@@ -9,6 +9,8 @@ const milestones = client.service('milestones');
 
 // Add a new milestone to the list
 const milestonesBox = document.querySelector('#milestones-box');
+// Add a new milestone to the list
+const listMilestoneNamesBox = document.querySelector('#list-milestone-names-box');
 
 // Dictionary of milestones by id
 let milestonesById = {}
@@ -19,10 +21,12 @@ let milestoneIds = []
 function addMilestone(milestone) {
   // Add milestone to ui
   milestonesBox.insertAdjacentHTML('beforeend', `<div class="milestone" id="ms_${milestone._id}">
-      ${milestone.name} has <span class="milestone-amount">0</span>
+      ${milestone.name} has <span class="milestone-amount">0</span> eth total
+  </div>`);
+  listMilestoneNamesBox.insertAdjacentHTML('beforeend', `<div class="milestone"">
+      ${milestone.name}
   </div>`);
   milestonesBox.scrollTop = milestonesBox.scrollHeight - milestonesBox.clientHeight;
-  // Add milestone name to list
   milestonesById[milestone._id] = milestone
   milestonesByName[milestone.name] = milestone
   milestoneIds.push(milestone._id)
@@ -84,7 +88,7 @@ let milestoneToAmount = {}
 function addDonation(donation) {
   let milestone = milestonesById[donation.milestoneId]
   donationsBox.insertAdjacentHTML('beforeend', `<div class="donation">
-      <p>${donation.amount} to ${milestone.name}</p>
+      <p>${donation.amount} eth to ${milestone.name} milestone</p>
   </div>`);
   donationsBox.scrollTop = donationsBox.scrollHeight - donationsBox.clientHeight;
   if (donation.milestoneId in milestoneToAmount) {
