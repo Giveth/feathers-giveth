@@ -21,7 +21,7 @@ let milestoneIds = []
 function addMilestone(milestone) {
   // Add milestone to ui
   milestonesBox.insertAdjacentHTML('beforeend', `<div class="milestone" id="ms_${milestone._id}">
-      milestone ${milestone.name} has <span class="milestone-amount">0</span> eth
+      ${milestone.name} has <span class="milestone-amount">0</span> eth
   </div>`);
   listMilestoneNamesBox.insertAdjacentHTML('beforeend', `<div class="milestone-name"">
       ${milestone.name}
