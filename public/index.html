@@ -35,18 +35,55 @@
         visibility: hidden;
         padding: 5px;
       }
+      button {
+        display: block;
+        margin-bottom: 10px;
+      }
+      .milestone {
+        background: #0fa8bb;
+        padding: 14px;
+        border-radius: 10px;
+        margin: 4px;
+        color: white;
+      }
+      .donation {
+        background: #5db344;
+        padding: 14px;
+        border-radius: 10px;
+        margin: 4px;
+        color: white;
+      }
+      #instructions-box {
+        margin: 10px 10px 30px;
+      }
+      #instructions {
+        padding: 10px 0;
+      }
     </style>
   </head>
   <body>
-    <div id="giver-role">
-      <div>
-        Choose your view:
+    <div id="instructions-box">
+      <div id="giver-role">
+        <div id="instructions">
+          Choose your view and submit data:
+        </div>
+        <input id="r1" type="radio" value="milestone-owner" name="radio-role" checked="checked"/>
+        <label for="r1">Milestone Owner - create milestones</label><br/>
+        <input id="r2" type="radio" value="donor" name="radio-role" />
+        <label for="r2">Donor - donate to milestones</label><br/>
+        <input id="r3" type="radio" value="both" name="radio-role" />
+        <label for="r3">Same damn time</label>
       </div>
-      <input id="r1" type="radio" value="milestone-owner" name="radio-role" checked="checked"/>
-      <label for="r1">Milestone Owner - create milestones</label><br/>
-      <input id="r2" type="radio" value="donor" name="radio-role" />
-      <label for="r2">Donor - donate to milestones</label>
-    </div>
+      <!-- <div id="aggregates-box">
+        <h4>Aggregate Data</h4>
+        <div>
+          # of milestones: <span id="num-milestones"></span>
+        </div>
+        <div>
+          # of donations: <span id="num-donations"></span>
+        </div>
+      </div> -->
+  </div>
     <div id="milestones-box">
       <h4>Milestone Owner</h4>
       <input type="text" placeholder="milestone name" name="name" />
@@ -77,8 +114,14 @@
           $('#milestones-box').css('visibility', 'visible');
           $('#donations-box').css('visibility', 'hidden');
           $('#list-milestone-names-box').css('visibility', 'hidden');
-        } else {
+        }
+        if ($(this).val() == "donor") {
           $('#milestones-box').css('visibility', 'hidden');
+          $('#donations-box').css('visibility', 'visible');
+          $('#list-milestone-names-box').css('visibility', 'visible');
+        }
+        if ($(this).val() == "both") {
+          $('#milestones-box').css('visibility', 'visible');
           $('#donations-box').css('visibility', 'visible');
           $('#list-milestone-names-box').css('visibility', 'visible');
         }
