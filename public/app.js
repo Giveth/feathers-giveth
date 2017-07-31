@@ -28,6 +28,7 @@ function addMilestone(milestone) {
   milestoneIds.push(milestone._id)
 }
 
+// Get all milestones from feathers db and add them to page
 milestones.find().then(page => page.data.forEach(addMilestone));
 milestones.on('created', addMilestone);
 
@@ -95,6 +96,7 @@ function addDonation(donation) {
 
 }
 
+// Get all donations from feathers db and add them to page
 donations.find().then(page => page.data.forEach(addDonation));
 donations.on('created', addDonation);
 
