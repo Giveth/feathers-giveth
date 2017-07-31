@@ -50,8 +50,8 @@ function fillField(inputValue) {
   return inputValue == '' ? makeid() : inputValue
 }
 
+// Add event listener to create a new milestone and then clear the input fields
 document.getElementById('create-milestone').addEventListener('click', function(ev) {
-  // Create a new milestone and then clear the input fields
   client.service('milestones').create({
     name: fillField(nameInput.value),
     goal: fillField(goalInput.value),
@@ -112,9 +112,8 @@ function fillMilestoneId(inputValue) {
   return milestoneIds[Math.floor(Math.random() * milestoneIds.length)];
 }
 
+// Add event listener to create a new donation and then clear the input fields
 document.getElementById('create-donation').addEventListener('click', function(ev) {
-
-  // Create a new donation and then clear the input fields
   client.service('donations').create({
     giverAddress: fillField(giverAddressInput.value),
     milestoneId: fillMilestoneId(milestoneNameInput.value),
