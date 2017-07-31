@@ -1,0 +1,48 @@
+<html>
+  <head>
+    <meta http-equiv="content-type" content="text/html; charset=utf-8">
+    <meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=0" />
+    <title>Feathers Giveth</title>
+    <link rel="shortcut icon" href="favicon.ico">
+    <!-- <link rel="stylesheet" href="//cdn.rawgit.com/feathersjs/feathers-chat/v0.2.0/public/base.css">
+    <link rel="stylesheet" href="//cdn.rawgit.com/feathersjs/feathers-chat/v0.2.0/public/chat.css"> -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+    <style>
+      #milestones-box {
+        max-width: 200px;
+        border: 1px green solid;
+        display: inline-block;
+        vertical-align: top;
+      }
+      #donations-box {
+        max-width: 200px;
+        border: 1px blue solid;
+        display: inline-block;
+        vertical-align: top;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="milestones-box">
+      <input type="text" placeholder="milestone name" name="name" />
+      <input type="text" placeholder="milestone goal" name="goal" />
+      <input type="text" placeholder="completion deadline" name="deadline" />
+      <input type="text" placeholder="milestone owner" name="owner" />
+      <input type="text" placeholder="milestone reviewer" name="reviewer" />
+      <button id="create-milestone" class="button-primary" type="submit">Create Milestone</button>
+    </div>
+    <div id="donations-box">
+      <input type="text" placeholder="giver address" name="giver-address" />
+      <input type="text" placeholder="milestone name" name="milestone-name" />
+      <input type="text" placeholder="donation amount" name="donation-amount" />
+      <button id="create-donation" class="button-primary" type="submit">Donate</button>
+    </div>
+    <script src="//npmcdn.com/feathers-client@^2.0.0-pre.1/dist/feathers.js">
+    </script>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="http://code.jquery.com/jquery-3.2.1.min.js" integrity="sha256-hwg4gsxgFZhOsEEamdOYGBf13FyQuiTwlAQgxVSNgt4=" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <script src="app.js"></script>
+  </body>
+</html>
