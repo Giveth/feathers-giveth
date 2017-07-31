@@ -12,20 +12,21 @@
       body {
         padding: 20px;
       }
-      #milestones-box {
+      #milestones-box, #donations-box {
         max-width: 250px;
-        border: 1px green solid;
+        border: 1px black solid;
+        border-radius: 10px;
+        background-color: black;
         display: inline-block;
         vertical-align: top;
         padding: 5px;
       }
       #donations-box {
-        max-width: 250px;
-        border: 1px blue solid;
-        display: inline-block;
-        vertical-align: top;
         visibility: hidden;
-        padding: 5px;
+      }
+      h4 {
+        color: white;
+        margin-bottom: 20px;
       }
       #list-milestone-names-box {
         max-width: 250px;
@@ -35,9 +36,15 @@
         visibility: hidden;
         padding: 5px;
       }
+      #list-milestone-names-box > h4 {
+        color: black;
+      }
       button {
         display: block;
-        margin-bottom: 10px;
+        margin: 10px auto 10px;
+      }
+      input {
+        margin: 3px;
       }
       .milestone {
         background: #0fa8bb;
@@ -53,11 +60,18 @@
         margin: 4px;
         color: white;
       }
+      .milestone-name {
+        border-top: 1px dashed #a9a6a6;
+      }
       #instructions-box {
         margin: 10px 10px 30px;
       }
       #instructions {
         padding: 10px 0;
+      }
+      form {
+        margin-top: 20px;
+        text-align: center;
       }
     </style>
   </head>
@@ -85,23 +99,27 @@
       </div> -->
   </div>
     <div id="milestones-box">
-      <h4>Milestone Owner</h4>
-      <input type="text" placeholder="milestone name" name="name" />
-      <input type="text" placeholder="milestone goal" name="goal" />
-      <input type="text" placeholder="completion deadline" name="deadline" />
-      <input type="text" placeholder="milestone owner" name="owner" />
-      <input type="text" placeholder="milestone reviewer" name="reviewer" />
-      <button id="create-milestone" class="button-primary" type="submit">Create Milestone</button>
+      <form>
+        <h4>Milestone Owner</h4>
+        <input type="text" placeholder="milestone name" name="name" />
+        <input type="text" placeholder="milestone goal" name="goal" />
+        <input type="text" placeholder="completion deadline" name="deadline" />
+        <input type="text" placeholder="milestone owner" name="owner" />
+        <input type="text" placeholder="milestone reviewer" name="reviewer" />
+        <button id="create-milestone" class="button-primary" type="submit">Create Milestone</button>
+      </form>
     </div>
     <div id="list-milestone-names-box">
-      <h4>List Milstone Names</h4>
+      <h5>List Milstone Names</h5>
     </div>
     <div id="donations-box">
-      <h4>Donor</h4>
-      <input type="text" placeholder="giver address" name="giver-address" />
-      <input type="text" placeholder="milestone name" name="milestone-name" />
-      <input type="text" placeholder="donation amount" name="donation-amount" />
-      <button id="create-donation" class="button-primary" type="submit">Donate</button>
+      <form>
+        <h4>Donor</h4>
+        <input type="text" placeholder="giver address" name="giver-address" />
+        <input type="text" placeholder="milestone name" name="milestone-name" />
+        <input type="text" placeholder="donation amount" name="donation-amount" />
+        <button id="create-donation" class="button-primary" type="submit">Donate</button>
+      </form>
     </div>
     <script src="//npmcdn.com/feathers-client@^2.0.0-pre.1/dist/feathers.js">
     </script>
