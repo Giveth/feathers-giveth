@@ -1,6 +1,6 @@
 # feathers-giveth
 
-> Proof of concept for giveth backend
+> Real-time json cache for blockchain data.
 
 ## About
 

@@ -1,8 +1,8 @@
-// Initializes the `completion-requests` service on path `/completion-requests`
+// Initializes the `skunkworks` service on path `/skunkworks`
 const createService = require('feathers-nedb');
-const createModel = require('../../models/completion-requests.model');
-const hooks = require('./completion-requests.hooks');
-const filters = require('./completion-requests.filters');
+const createModel = require('../../models/skunkworks.model');
+const hooks = require('./skunkworks.hooks');
+const filters = require('./skunkworks.filters');
 
 module.exports = function () {
   const app = this;
@@ -10,16 +10,16 @@ module.exports = function () {
   const paginate = app.get('paginate');
 
   const options = {
-    name: 'completion-requests',
+    name: 'skunkworks',
     Model,
     paginate
   };
 
   // Initialize our service with any options it requires
-  app.use('/completion-requests', createService(options));
+  app.use('/skunkworks', createService(options));
 
   // Get our initialized service so that we can register hooks and filters
-  const service = app.service('completion-requests');
+  const service = app.service('skunkworks');
 
   service.hooks(hooks);
 
