@@ -24,7 +24,8 @@
   "scripts": {
     "test": "npm run eslint && npm run mocha",
     "eslint": "eslint src/. test/. --config .eslintrc.json",
-    "start": "node src/",
+    "start": "pm2 start src",
+    "restart": "pm2 restart all",
     "mocha": "mocha test/ --recursive"
   },
   "dependencies": {
@@ -41,6 +42,7 @@
     "feathers-socketio": "^2.0.0",
     "helmet": "^3.8.1",
     "nedb": "^1.8.0",
+    "pm2": "^2.4.2",
     "serve-favicon": "^2.4.3",
     "winston": "^2.3.1"
   },
