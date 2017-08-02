@@ -35,28 +35,28 @@ Simply run `yarn test` and all your tests in the `test/` directory will be run.
 
 Each of these services are available via rest or websocket:
 
-    ```
-    givers
-    donations
-    milestones
-    projects
-    causes
-    skunkworks
-    ```
+```
+givers
+donations
+milestones
+projects
+causes
+skunkworks
+```
 
 # Rest calls using curl
 
 Example to store new json object:
 
-    ```
-    curl 'http://secret.com:3030/skunkworks/' -H 'Content-Type: application/json' --data-binary '{ "name": "Curler", "text": "Hello from the command line!" }'
-    ```
+```
+curl 'http://secret.com:3030/skunkworks/' -H 'Content-Type: application/json' --data-binary '{ "name": "Curler", "text": "Hello from the command line!" }'
+```
 
 Example to remove all json objects:
 
-    ```
-    curl 'http://secret.com:3030/skunkworks/' -X "DELETE"
-    ```
+```
+curl 'http://secret.com:3030/skunkworks/' -X "DELETE"
+```
 
 # WebSocket calls using javascript
 
@@ -64,23 +64,23 @@ You may call these services from client web app using the  [feathers api](https:
 
 Example to connect to donations service:
 
-    ```
-    const socket = io();
-    const client = feathers();
-    client.configure(feathers.socketio(socket));
-    const donations = client.service('donations');
-    ```
+```javascript
+const socket = io();
+const client = feathers();
+client.configure(feathers.socketio(socket));
+const donations = client.service('donations');
+```
 
 Example to get donation data from server db and do something for each stored json object (notice pagination):
 
-    ```
-    donations.find().then(page => page.data.forEach(doSomethingWithJsonObject));
-    ```
+```javascript
+donations.find().then(page => page.data.forEach(doSomethingWithJsonObject));
+```
 
 Example to subscribe to donations service create event assign it to named function:
-    ```
-    donations.on('created', doSomethingWithJsonObject);
-    ```
+```javascript
+donations.on('created', doSomethingWithJsonObject);
+```
 
 ## Data schemas
 
