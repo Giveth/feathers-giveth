@@ -4,7 +4,7 @@ const path = require('path');
 module.exports = function (app) {
   const dbPath = app.get('nedb');
   const Model = new NeDB({
-    filename: path.join(dbPath, 'completion-requests.db'),
+    filename: path.join(dbPath, 'skunkworks.db'),
     autoload: true
   });
 

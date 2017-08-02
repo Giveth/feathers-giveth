@@ -1,6 +1,6 @@
 {
   "name": "feathers-giveth",
-  "description": "Proof of concept for giveth backend",
+  "description": "Real-time json cache for blockchain data.",
   "version": "0.0.0",
   "homepage": "",
   "main": "src",
@@ -24,7 +24,8 @@
   "scripts": {
     "test": "npm run eslint && npm run mocha",
     "eslint": "eslint src/. test/. --config .eslintrc.json",
-    "start": "node src/",
+    "start": "pm2 start src",
+    "restart": "pm2 restart all",
     "mocha": "mocha test/ --recursive"
   },
   "dependencies": {
@@ -32,25 +33,24 @@
     "compression": "^1.7.0",
     "cors": "^2.8.4",
     "feathers": "^2.1.7",
-    "feathers-authentication": "^1.2.7",
-    "feathers-authentication-hooks": "^0.1.4",
-    "feathers-authentication-jwt": "^0.3.2",
-    "feathers-authentication-local": "^0.4.3",
     "feathers-configuration": "^0.4.1",
     "feathers-errors": "^2.9.1",
     "feathers-hooks": "^2.0.2",
     "feathers-hooks-common": "^3.6.1",
+    "feathers-memory": "^1.1.0",
     "feathers-nedb": "^2.6.2",
     "feathers-rest": "^1.8.0",
     "feathers-socketio": "^2.0.0",
-    "helmet": "^3.8.0",
+    "feathers-swagger": "^0.5.0",
+    "helmet": "^3.8.1",
     "nedb": "^1.8.0",
+    "pm2": "^2.4.2",
     "serve-favicon": "^2.4.3",
     "winston": "^2.3.1"
   },
   "devDependencies": {
     "eslint": "^4.3.0",
-    "mocha": "^3.4.2",
+    "mocha": "^3.5.0",
     "request": "^2.81.0",
     "request-promise": "^4.2.1"
   }
