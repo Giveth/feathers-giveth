@@ -34,6 +34,7 @@ Simply run `yarn test` and all your tests in the `test/` directory will be run.
 ## Usage
 
 Each of these services are available via rest or websocket:
+
     ```
     givers
     donations
@@ -45,10 +46,13 @@ Each of these services are available via rest or websocket:
 
 You may call these services from command line with using curl.
 Example to store new json object:
+
     ```
     curl 'http://secret.com:3030/skunkworks/' -H 'Content-Type: application/json' --data-binary '{ "name": "Curler", "text": "Hello from the command line!" }'
     ```
+
 Example to remove all json objects:
+
     ```
     curl 'http://secret.com:3030/skunkworks/' -X "DELETE"
     ```
@@ -56,13 +60,16 @@ Example to remove all json objects:
 You may call these services from client web app using the  [feathers api](https://docs.feathersjs.com/api/databases/common.html#service-methods).
 
 Example to connect to donations service:
+
     ```
     const socket = io();
     const client = feathers();
     client.configure(feathers.socketio(socket));
     const donations = client.service('donations');
     ```
+
 Example to get donation data from server db and do something for each stored json object (notice pagination):
+
     ```
     donations.find().then(page => page.data.forEach(doSomethingWithJsonObject));
     ```
