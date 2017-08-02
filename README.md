@@ -44,7 +44,8 @@ Each of these services are available via rest or websocket:
     skunkworks
     ```
 
-You may call these services from command line with using curl.
+# Rest calls using curl
+
 Example to store new json object:
 
     ```
@@ -56,6 +57,8 @@ Example to remove all json objects:
     ```
     curl 'http://secret.com:3030/skunkworks/' -X "DELETE"
     ```
+
+# WebSocket calls using javascript
 
 You may call these services from client web app using the  [feathers api](https://docs.feathersjs.com/api/databases/common.html#service-methods).
 
