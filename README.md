@@ -41,6 +41,8 @@ donations
 milestones
 reviewer-requests
 completion-requests
+projects
+causes
 skunkworks
 ```
 
