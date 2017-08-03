@@ -39,8 +39,8 @@ Each of these services are available via rest or websocket:
 givers
 donations
 milestones
-projects
-causes
+reviewer-requests
+completion-requests
 skunkworks
 ```
 
