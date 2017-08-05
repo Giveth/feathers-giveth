@@ -35,3 +35,9 @@ jobs:
 
       # run tests!
       - run: yarn test
+      - deploy:
+          name: Maybe Deploy
+          command: |
+            if [ "${CIRCLE_BRANCH}" == "master" ]; then
+              ssh deploy@95.85.4.133 'cd feathers-giveth/; git checkout master; git pull; yarn; yarn restart;'
+            fi
