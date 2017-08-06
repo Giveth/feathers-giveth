@@ -43,8 +43,17 @@ reviewer-requests
 completion-requests
 projects
 causes
+campaigns
 skunkworks
 ```
+
+To add another service use (after installing the [feathers cli](https://docs.feathersjs.com/guides/step-by-step/generators/readme.html)):
+
+```
+feathers generate service
+```
+
+Choose defaults for options as described [here](https://docs.feathersjs.com/guides/chat/service.html)
 
 # Rest calls using curl
 
