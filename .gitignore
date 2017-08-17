@@ -1,3 +1,5 @@
+build
+
 # Logs
 logs
 *.log
@@ -85,8 +87,6 @@ Icon
 .AppleDesktop
 Network Trash Folder
 Temporary Items
-.apdisk
-
 ### Windows ###
 # Windows thumbnail cache files
 Thumbs.db
