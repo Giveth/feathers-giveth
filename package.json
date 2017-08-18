@@ -37,6 +37,7 @@
     "compression": "^1.7.0",
     "cors": "^2.8.4",
     "feathers": "^2.1.7",
+    "feathers-authentication-hooks": "^0.1.4",
     "feathers-configuration": "^0.4.1",
     "feathers-errors": "^2.9.1",
     "feathers-hooks": "^2.0.2",
@@ -50,6 +51,7 @@
     "nedb": "^1.8.0",
     "pm2": "^2.4.2",
     "serve-favicon": "^2.4.3",
+    "web3": "^1.0.0-beta.18",
     "winston": "^2.3.1"
   },
   "devDependencies": {
