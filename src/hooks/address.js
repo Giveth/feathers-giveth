@@ -36,8 +36,6 @@ export const validateAddress = (...fieldNames) => {
       }
     });
 
-    console.log(context.data);
-
     return context;
   }
 };

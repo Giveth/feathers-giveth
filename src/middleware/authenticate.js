@@ -3,8 +3,6 @@ import Accounts from 'web3-eth-accounts';
 export default (req, res, next) => {
 
   const signature = req.headers.authorization;
-  console.log('header -> ', signature);
-  console.log('query -> ', req.query);
 
   if (signature) {
     const user = getUser(signature);
@@ -22,9 +20,7 @@ export const getUser = signature => {
     const address = accounts.recover(accounts.hashMessage(''), signature);
 
     return {
-      user: {
         address,
-      },
     }
   } catch (e) {
     console.warn('error recovering address from signature');
