@@ -1,4 +1,4 @@
-import Web3 from 'web3';
+import Accounts from 'web3-eth-accounts';
 
 export default (req, res, next) => {
 
@@ -17,10 +17,9 @@ export default (req, res, next) => {
 }
 
 export const getUser = signature => {
-  const { Eth } = Web3.modules;
-
   try {
-    const address = new Eth().accounts.recover('', signature);
+    const accounts = new Accounts();
+    const address = accounts.recover(accounts.hashMessage(''), signature);
 
     return {
       user: {
