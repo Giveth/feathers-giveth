@@ -26,7 +26,8 @@ jobs:
           # fallback to using the latest cache if no exact match is found
           - v1-dependencies-
 
-      - run: yarn install --pure-lockfile
+      # - run: yarn install --pure-lockfile
+      - run: npm install --pure-lockfile
 
       - save_cache:
           paths:
@@ -39,5 +40,6 @@ jobs:
           name: Maybe Deploy
           command: |
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
-            ssh -o "StrictHostKeyChecking no" deploy@95.85.4.133 'cd feathers-giveth/; git checkout master; git pull; yarn --pure-lockfile; yarn serve-restart;'
+            #ssh -o "StrictHostKeyChecking no" deploy@95.85.4.133 'cd feathers-giveth/; git checkout master; git pull; yarn --pure-lockfile; yarn serve-restart;'
+            ssh -o "StrictHostKeyChecking no" deploy@95.85.4.133 'cd feathers-giveth/; git checkout master; git pull; npm install; yarn serve-restart;'
             fi
