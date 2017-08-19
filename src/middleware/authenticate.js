@@ -12,7 +12,7 @@ export default (req, res, next) => {
   }
 
   next();
-}
+};
 
 export const getUser = signature => {
   try {
@@ -20,8 +20,8 @@ export const getUser = signature => {
     const address = accounts.recover(accounts.hashMessage(''), signature);
 
     return {
-        address,
-    }
+      address,
+    };
   } catch (e) {
     console.warn('error recovering address from signature');
   }

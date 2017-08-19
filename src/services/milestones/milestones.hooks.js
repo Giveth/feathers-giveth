@@ -10,15 +10,15 @@ const restrict = [
 ];
 
 const setAddress = context => {
-  setByDot(context.data, "ownerAddress", context.params.user.address);
-  return context
+  setByDot(context.data, 'ownerAddress', context.params.user.address);
+  return context;
 };
 
 const address = [
-  discard("ownerAddress"),
+  discard('ownerAddress'),
   setAddress,
-  sanitizeAddress("ownerAddress", "reviewerAddress", "recipientAddress"),
-  validateAddress("ownerAddress", "reviewerAddress", "recipientAddress"),
+  sanitizeAddress('ownerAddress', 'reviewerAddress', 'recipientAddress'),
+  validateAddress('ownerAddress', 'reviewerAddress', 'recipientAddress'),
 ];
 
 

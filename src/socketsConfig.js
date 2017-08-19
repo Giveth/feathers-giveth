@@ -1,5 +1,5 @@
 import socketio from 'feathers-socketio';
-import { getUser } from "./middleware/authenticate";
+import { getUser } from './middleware/authenticate';
 
 export default socketio(io => {
 
@@ -14,6 +14,6 @@ export default socketio(io => {
         Object.assign(socket.feathers, { authenticated: true, user });
       }
     });
-  })
+  });
 
-})
+});
