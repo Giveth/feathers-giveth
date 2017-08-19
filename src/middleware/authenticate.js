@@ -23,6 +23,6 @@ export const getUser = signature => {
       address,
     };
   } catch (e) {
-    console.warn('error recovering address from signature');
+    console.warn('error recovering address from signature'); // eslint-disable-line no-console
   }
 };

@@ -1,5 +1,5 @@
 import errors from 'feathers-errors';
-import { pluck, checkContext, getByDot, setByDot } from 'feathers-hooks-common';
+import { checkContext, getByDot, setByDot } from 'feathers-hooks-common';
 import { isAddress } from 'web3-utils';
 
 // A hook that sanitizes ethereum addresses
@@ -16,7 +16,7 @@ export const sanitizeAddress = (...fieldNames) => {
     });
 
     return context;
-  }
+  };
 };
 
 const _sanitizeAddress = addr => {
@@ -31,11 +31,11 @@ export const validateAddress = (...fieldNames) => {
       const value = getByDot(context.data, fieldName);
       if (!isAddress(value)) {
         throw new errors.BadRequest(
-          `Invalid address provided for field "${fieldName}": "${value}".`,
+          `Invalid address provided for field "${fieldName}": "${value}".`
         );
       }
     });
 
     return context;
-  }
+  };
 };

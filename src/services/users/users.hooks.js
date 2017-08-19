@@ -10,14 +10,14 @@ const restrict = [
 ];
 
 const setAddress = context => {
-  setByDot(context.data, "address", context.params.user.address);
-  return context
+  setByDot(context.data, 'address', context.params.user.address);
+  return context;
 };
 
 const address = [
   setAddress,
-  sanitizeAddress("address"),
-  validateAddress("address"),
+  sanitizeAddress('address'),
+  validateAddress('address'),
 ];
 
 module.exports = {
@@ -35,7 +35,7 @@ module.exports = {
     all: [
       when(
         hook => hook.params.provider,
-        discard('_id'),
+        discard('_id')
       ),
     ],
     find: [],
