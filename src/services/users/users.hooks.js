@@ -1,40 +1,43 @@
-import { discard, setByDot } from 'feathers-hooks-common';
+import { when, discard, setByDot, disallow } from 'feathers-hooks-common';
 import { sanitizeAddress, validateAddress } from '../../hooks/address';
 import { restrictToOwner } from 'feathers-authentication-hooks';
 
 const restrict = [
   restrictToOwner({
     idField: 'address',
-    ownerField: 'ownerAddress',
+    ownerField: 'address',
   }),
 ];
 
 const setAddress = context => {
-  setByDot(context.data, "ownerAddress", context.params.user.address);
+  setByDot(context.data, "address", context.params.user.address);
   return context
 };
 
 const address = [
-  discard("ownerAddress"),
   setAddress,
-  sanitizeAddress("ownerAddress", "reviewerAddress", "recipientAddress"),
-  validateAddress("ownerAddress", "reviewerAddress", "recipientAddress"),
+  sanitizeAddress("address"),
+  validateAddress("address"),
 ];
-
 
 module.exports = {
   before: {
     all: [],
     find: [],
     get: [],
-    create: [ ...address ],
-    update: [ ...restrict, ...address ],
-    patch: [ ...restrict, ...address ],
-    remove: [ ...restrict ],
+    create: [ discard('_id'), ...address ],
+    update: [ ...restrict ],
+    patch: [ ...restrict ],
+    remove: [ disallow() ],
   },
 
   after: {
-    all: [],
+    all: [
+      when(
+        hook => hook.params.provider,
+        discard('_id'),
+      ),
+    ],
     find: [],
     get: [],
     create: [],

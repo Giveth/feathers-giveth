@@ -22,10 +22,14 @@
     "yarn": ">= 0.18.0"
   },
   "scripts": {
+    "clean": "rm -rf build && mkdir build",
+    "build-server": "babel -d ./build src",
+    "build": "npm run clean && npm run build-server",
     "test": "npm run eslint && npm run mocha",
     "eslint": "eslint src/. test/. --config .eslintrc.json",
-    "start": "pm2 start src",
-    "restart": "pm2 restart all",
+    "start": "babel-watch src",
+    "serve": "npm run build && pm2 start ./build",
+    "serve-restart": "pm2 restart all",
     "mocha": "mocha test/ --recursive"
   },
   "dependencies": {
@@ -47,10 +51,14 @@
     "nedb": "^1.8.0",
     "pm2": "^2.4.2",
     "serve-favicon": "^2.4.3",
-    "web3": "^1.0.0-beta.18",
+    "web3-eth-accounts": "^1.0.0-beta.18",
+    "web3-utils": "^1.0.0-beta.17",
     "winston": "^2.3.1"
   },
   "devDependencies": {
+    "babel-core": "^6.26.0",
+    "babel-preset-env": "^1.6.0",
+    "babel-watch": "^2.0.7",
     "eslint": "^4.3.0",
     "mocha": "^3.5.0",
     "request": "^2.81.0",
