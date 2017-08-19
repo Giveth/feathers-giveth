@@ -1,28 +1,20 @@
-import Accounts from 'web3-eth-accounts';
+import Web3 from 'web3';
 
 export default (req, res, next) => {
+  const { Eth } = Web3.modules;
 
-  const signature = req.headers.authorization;
-
-  if (signature) {
-    const user = getUser(signature);
-
-    Object.assign(req, { authenticated: true, user });
-    Object.assign(req.feathers, { authenticated: true, user });
-  }
-
-  next();
-}
-
-export const getUser = signature => {
   try {
-    const accounts = new Accounts();
-    const address = accounts.recover(accounts.hashMessage(''), signature);
+    const signature = req.headers.authorization;
 
-    return {
-        address,
+    if (signature) {
+      const address = new Eth().accounts.recover('', signature);
+
+      Object.assign(req, { authenticated: true, user: { address } });
+      Object.assign(req.feathers, { authenticated: true, user: { address } });
     }
   } catch (e) {
     console.warn('error recovering address from signature');
   }
-};
+
+  next();
+}

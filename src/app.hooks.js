@@ -1,16 +1,15 @@
 // Application hooks that run for every service
 const logger = require('./hooks/logger');
-import { restrictToAuthenticated } from 'feathers-authentication-hooks';
 
 module.exports = {
   before: {
     all: [],
     find: [],
     get: [],
-    create: [ restrictToAuthenticated() ],
-    update: [ restrictToAuthenticated() ],
-    patch: [ restrictToAuthenticated() ],
-    remove: [ restrictToAuthenticated() ],
+    create: [],
+    update: [],
+    patch: [],
+    remove: []
   },
 
   after: {
@@ -20,7 +19,7 @@ module.exports = {
     create: [],
     update: [],
     patch: [],
-    remove: [],
+    remove: []
   },
 
   error: {
@@ -30,6 +29,6 @@ module.exports = {
     create: [],
     update: [],
     patch: [],
-    remove: [],
-  },
+    remove: []
+  }
 };

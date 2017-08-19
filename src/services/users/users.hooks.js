@@ -1,6 +1,6 @@
-import { when, discard, setByDot, disallow } from 'feathers-hooks-common';
+import { when, discard, setByDot } from 'feathers-hooks-common';
 import { sanitizeAddress, validateAddress } from '../../hooks/address';
-import { restrictToOwner } from 'feathers-authentication-hooks';
+import { restrictToOwner, restrictToAuthenticated } from 'feathers-authentication-hooks';
 
 const restrict = [
   restrictToOwner({
@@ -25,10 +25,10 @@ module.exports = {
     all: [],
     find: [],
     get: [],
-    create: [ discard('_id'), ...address ],
+    create: [ discard('_id'), restrictToAuthenticated(), ...address ],
     update: [ ...restrict ],
     patch: [ ...restrict ],
-    remove: [ disallow() ],
+    remove: [],
   },
 
   after: {
