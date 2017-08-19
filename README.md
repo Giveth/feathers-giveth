@@ -26,14 +26,6 @@ Getting up and running is as easy as 1, 2, 3.
     ```
     yarn start
     ```
-    
-## Deploying
-
-1. start a production server
-
-    ```
-    yarn serve
-    ```
 
 ## Testing
 
