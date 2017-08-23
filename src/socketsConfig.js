@@ -5,16 +5,18 @@ export default socketio(io => {
 
   io.on('connection', socket => {
 
-    socket.on('authenticate', (data, cb) => {
+    socket.on('authenticate', (data, fn) => {
       if (!data.signature) return;
 
       const user = getUser(data.signature);
 
       if (user) {
         Object.assign(socket.feathers, { authenticated: true, user });
-        cb(true);
       }
-      cb(false);
+
+      if (fn) {
+        fn({authenticated: (user) });
+      }
     });
   });
 
