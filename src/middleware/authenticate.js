@@ -20,7 +20,7 @@ export const getUser = signature => {
     const address = accounts.recover(accounts.hashMessage(''), signature);
 
     return {
-      address,
+      address: address.toLowerCase(),
     };
   } catch (e) {
     console.warn('error recovering address from signature'); // eslint-disable-line no-console
