@@ -89,11 +89,7 @@ module.exports = {
 
   after: {
     all: [
-      when(
-        hook => hook.params.provider,
-        discard('_id'),
-        checksumAddress(),
-      ),
+      when(hook => hook.params.provider, discard('_id'), checksumAddress()),
     ],
     find: [],
     get: [],
