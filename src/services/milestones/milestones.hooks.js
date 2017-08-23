@@ -1,4 +1,4 @@
-import { discard, setByDot } from 'feathers-hooks-common';
+import { populate, discard, setByDot } from 'feathers-hooks-common';
 import { sanitizeAddress, validateAddress } from '../../hooks/address';
 import { restrictToOwner } from 'feathers-authentication-hooks';
 
@@ -21,6 +21,29 @@ const address = [
   validateAddress('ownerAddress', 'reviewerAddress', 'recipientAddress'),
 ];
 
+const schema = {
+  include: [
+    {
+      service: 'users',
+      nameAs: 'owner',
+      parentField: 'ownerAddress',
+      childField: 'address',
+    },
+    {
+      service: 'users',
+      nameAs: 'reviewer',
+      parentField: 'reviewerAddress',
+      childField: 'address',
+    },
+    {
+      service: 'users',
+      nameAs: 'recipient',
+      parentField: 'recipientAddress',
+      childField: 'address',
+    },
+  ],
+};
+
 
 module.exports = {
   before: {
@@ -34,7 +57,7 @@ module.exports = {
   },
 
   after: {
-    all: [],
+    all: [ populate({ schema }) ],
     find: [],
     get: [],
     create: [],
