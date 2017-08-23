@@ -12,6 +12,7 @@ export default socketio(io => {
 
       if (user) {
         Object.assign(socket.feathers, { authenticated: true, user });
+        socket.emit('authenticated', {});
       }
     });
   });
