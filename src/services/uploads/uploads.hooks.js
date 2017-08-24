@@ -14,12 +14,16 @@ const transformFile = () => {
 
 const transformCreateResponse = () => {
   return context => {
-    let { host, protocol, port } = context.app.settings;
+    let { uploadsBaseUrl } = context.app.settings;
+
+    if (!uploadsBaseUrl.endsWith('/')) {
+      uploadsBaseUrl = uploadsBaseUrl + '/';
+    }
 
     const id = context.result.id;
     delete context.result.id;
 
-    context.result.url = `${protocol}://${host}:${port}/uploads/${id}`;
+    context.result.url = `${uploadsBaseUrl}${id}`;
 
     return context;
   };
