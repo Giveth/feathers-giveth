@@ -1,4 +1,5 @@
 {
-  "host": "feathers-giveth-app.feathersjs.com",
-  "port": "PORT"
+  "host": "feathers.giveth.io",
+  "port": 80,
+  "protocol": "https"
 }

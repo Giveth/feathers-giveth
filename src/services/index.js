@@ -7,6 +7,7 @@ const reviewerRequests = require('./reviewer-requests/reviewer-requests.service.
 const completionRequests = require('./completion-requests/completion-requests.service.js');
 const campaigns = require('./campaigns/campaigns.service.js');
 const users = require('./users/users.service.js');
+const uploads = require('./uploads/uploads.service.js');
 module.exports = function () {
   const app = this; // eslint-disable-line no-unused-vars
   app.configure(skunkworks);
@@ -18,4 +19,5 @@ module.exports = function () {
   app.configure(completionRequests);
   app.configure(campaigns);
   app.configure(users);
+  app.configure(uploads);
 };
