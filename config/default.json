@@ -7,5 +7,6 @@
     "max": 50
   },
   "nedb": "../data",
-  "uploads": "../uploads"
+  "uploads": "../uploads",
+  "uploadsBaseUrl": "http://localhost:3030/uploads/"
 }

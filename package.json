@@ -28,8 +28,8 @@
     "test": "npm run eslint && npm run mocha",
     "eslint": "eslint src/. test/. --config .eslintrc.json",
     "start": "babel-watch src",
-    "serve": "npm run build && pm2 start ./build --name 'feathers'",
-    "serve-restart": "npm run build && pm2 restart feathers",
+    "serve": "npm run build && pm2 startOrRestart ecosystem.config.js --env production",
+    "serve-restart": "npm run build && pm2 startOrRestart ecosystem.config.js --env production",
     "mocha": "mocha test/ --recursive --compilers js:babel-core/register"
   },
   "dependencies": {
