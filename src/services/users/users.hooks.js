@@ -1,7 +1,8 @@
-import { when, discard, getByDot, setByDot, disallow } from 'feathers-hooks-common';
+import commons from 'feathers-hooks-common';
 import { sanitizeAddress, validateAddress } from '../../hooks/address';
 import { restrictToOwner } from 'feathers-authentication-hooks';
 import { toChecksumAddress } from 'web3-utils';
+import notifyOfChange from "../../hooks/notifyOfChange";
 
 const normalizeId = () => {
   return context => {
@@ -27,15 +28,15 @@ const normalizeQueryAddress = () => {
 };
 
 const normalize = (data, field) => {
-  const addr = getByDot(data, field);
+  const addr = commons.getByDot(data, field);
   if (addr) {
-    setByDot(data, field, addr.toLowerCase());
+    commons.setByDot(data, field, addr.toLowerCase());
   }
   return data;
 };
 
 const setAddress = context => {
-  setByDot(context.data, 'address', context.params.user.address);
+  commons.setByDot(context.data, 'address', context.params.user.address);
   return context;
 };
 
@@ -76,27 +77,42 @@ const address = [
   normalizeAddress(),
 ];
 
+const notifyParents = [
+  {
+    service: 'campaigns',
+    parentField: 'ownerAddress',
+    childField: 'address',
+    watchFields: [ 'avatar', 'name' ],
+  },
+  {
+    service: 'causes',
+    parentField: 'ownerAddress',
+    childField: 'address',
+    watchFields: [ 'avatar', 'name' ],
+  },
+];
+
 module.exports = {
   before: {
     all: [],
     find: [ normalizeQueryAddress() ],
     get: [ normalizeId() ],
-    create: [ discard('_id'), ...address ],
-    update: [ ...restrict ],
-    patch: [ ...restrict ],
-    remove: [ disallow() ],
+    create: [ commons.discard('_id'), ...address ],
+    update: [ ...restrict, commons.stashBefore() ],
+    patch: [ ...restrict, commons.stashBefore() ],
+    remove: [ commons.disallow() ],
   },
 
   after: {
     all: [
-      when(hook => hook.params.provider, discard('_id'), checksumAddress()),
+      commons.when(hook => hook.params.provider, commons.discard('_id'), checksumAddress()),
     ],
     find: [],
     get: [],
     create: [],
-    update: [],
-    patch: [],
-    remove: [],
+    update: [ notifyOfChange(...notifyParents) ],
+    patch: [ notifyOfChange(...notifyParents) ],
+    remove: [ notifyOfChange(...notifyParents) ],
   },
 
   error: {
