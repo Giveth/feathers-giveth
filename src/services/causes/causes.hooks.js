@@ -1,6 +1,7 @@
 import { populate, discard, setByDot } from 'feathers-hooks-common';
-import { sanitizeAddress, validateAddress } from '../../hooks/address';
 import { restrictToOwner } from 'feathers-authentication-hooks';
+
+import sanitizeAddress from '../../hooks/sanitizeAddress';
 
 const restrict = [
   restrictToOwner({
@@ -17,8 +18,7 @@ const setAddress = context => {
 const address = [
   discard('ownerAddress'),
   setAddress,
-  sanitizeAddress('ownerAddress'),
-  validateAddress('ownerAddress'),
+  sanitizeAddress('ownerAddress', { required: true, validate: true }),
 ];
 
 const schema = {
@@ -27,7 +27,7 @@ const schema = {
       service: 'users',
       nameAs: 'owner',
       parentField: 'ownerAddress',
-      childField: 'address'
+      childField: 'address',
     },
   ],
 };
@@ -36,12 +36,12 @@ const schema = {
 module.exports = {
   before: {
     all: [],
-    find: [],
+    find: [ sanitizeAddress('ownerAddress') ],
     get: [],
     create: [ ...address ],
     update: [ ...restrict, ...address ],
     patch: [ ...restrict, ...address ],
-    remove: [ ...restrict ],
+    remove: [ sanitizeAddress('ownerAddress'), ...restrict ],
   },
 
   after: {

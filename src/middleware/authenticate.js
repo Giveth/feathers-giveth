@@ -1,4 +1,5 @@
 import Accounts from 'web3-eth-accounts';
+import { toChecksumAddress } from 'web3-utils';
 
 export default (req, res, next) => {
 
@@ -20,7 +21,7 @@ export const getUser = signature => {
     const address = accounts.recover(accounts.hashMessage(''), signature);
 
     return {
-      address: address.toLowerCase(),
+      address: toChecksumAddress(address)
     };
   } catch (e) {
     console.warn('error recovering address from signature'); // eslint-disable-line no-console

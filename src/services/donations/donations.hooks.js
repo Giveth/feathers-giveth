@@ -1,8 +1,9 @@
 /* eslint-disable no-unused-vars */
 import errors from 'feathers-errors';
 import { discard, setByDot } from 'feathers-hooks-common';
-import { sanitizeAddress, validateAddress } from '../../hooks/address';
 import { restrictToOwner } from 'feathers-authentication-hooks';
+
+import sanitizeAddress from '../../hooks/sanitizeAddress';
 
 const restrict = [
   restrictToOwner({
@@ -19,8 +20,7 @@ const setAddress = context => {
 const address = [
   discard('donorAddress'),
   setAddress,
-  sanitizeAddress('donorAddress'),
-  validateAddress('donorAddress'),
+  sanitizeAddress('donorAddress', { required: true, validate: true }),
 ];
 
 const updateType = () => {
@@ -60,12 +60,12 @@ const updateType = () => {
 module.exports = {
   before: {
     all: [],
-    find: [],
+    find: [ sanitizeAddress('donorAddress') ],
     get: [],
     create: [ ...address ],
     update: [ ...restrict, ...address ],
     patch: [ ...restrict, ...address ],
-    remove: [ ...restrict ],
+    remove: [ sanitizeAddress('donorAddress'), ...restrict ],
   },
 
   after: {

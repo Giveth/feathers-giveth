@@ -1,65 +1,22 @@
 import commons from 'feathers-hooks-common';
-import { sanitizeAddress, validateAddress } from '../../hooks/address';
 import { restrictToOwner } from 'feathers-authentication-hooks';
 import { toChecksumAddress } from 'web3-utils';
-import notifyOfChange from "../../hooks/notifyOfChange";
+
+import notifyOfChange from '../../hooks/notifyOfChange';
+import sanitizeAddress from '../../hooks/sanitizeAddress';
 
 const normalizeId = () => {
   return context => {
-    context.id = context.id.toLowerCase();
-    return context;
-  };
-};
-
-const normalizeAddress = () => {
-  return context => {
-    context.data = normalize(context.data, 'address');
-    return context;
-  };
-};
-
-const normalizeQueryAddress = () => {
-  return context => {
-    if (context.params.query) {
-      context.params.query = normalize(context.params.query, 'address');
+    if (context.id) {
+      context.id = toChecksumAddress(context.id);
     }
     return context;
   };
-};
-
-const normalize = (data, field) => {
-  const addr = commons.getByDot(data, field);
-  if (addr) {
-    commons.setByDot(data, field, addr.toLowerCase());
-  }
-  return data;
 };
 
 const setAddress = context => {
   commons.setByDot(context.data, 'address', context.params.user.address);
   return context;
-};
-
-const checksumAddress = () => {
-  return context => {
-    if (context.result.data) {
-      context.result.data = context.result.data.map(user => {
-        user.address = toChecksumAddress(user.address);
-        return user;
-      });
-    } else if (context.result) {
-      if (Array.isArray(context.result)) {
-        context.result = context.result.map(user => {
-          user.address = toChecksumAddress(user.address);
-          return user;
-        });
-
-      } else {
-        context.result.address = toChecksumAddress(context.result.address);
-      }
-    }
-    return context;
-  };
 };
 
 const restrict = [
@@ -72,9 +29,7 @@ const restrict = [
 
 const address = [
   setAddress,
-  sanitizeAddress('address'),
-  validateAddress('address'),
-  normalizeAddress(),
+  sanitizeAddress('address', { required: true, validate: true }),
 ];
 
 const notifyParents = [
@@ -95,7 +50,7 @@ const notifyParents = [
 module.exports = {
   before: {
     all: [],
-    find: [ normalizeQueryAddress() ],
+    find: [ sanitizeAddress('address') ],
     get: [ normalizeId() ],
     create: [ commons.discard('_id'), ...address ],
     update: [ ...restrict, commons.stashBefore() ],
@@ -105,7 +60,7 @@ module.exports = {
 
   after: {
     all: [
-      commons.when(hook => hook.params.provider, commons.discard('_id'), checksumAddress()),
+      commons.when(hook => hook.params.provider, commons.discard('_id')),
     ],
     find: [],
     get: [],

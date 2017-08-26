@@ -31,7 +31,7 @@ const notifyParent = (context, opts) => {
       .then(resp => {
 
         resp.data.forEach(item => {
-          service.emit(`${opts.service} updated`, item);
+          service.emit('updated', item);
         });
 
       });

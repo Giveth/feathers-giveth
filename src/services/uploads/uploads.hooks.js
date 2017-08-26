@@ -1,5 +1,5 @@
-import { discard, disallow } from 'feathers-hooks-common';
 import dauria from 'dauria';
+import { disallow } from 'feathers-hooks-common';
 
 const transformFile = () => {
   return context => {
@@ -21,7 +21,9 @@ const transformCreateResponse = () => {
     }
 
     const id = context.result.id;
+
     delete context.result.id;
+    delete context.result.uri;
 
     context.result.url = `${uploadsBaseUrl}${id}`;
 
@@ -40,7 +42,7 @@ module.exports = {
   after: {
     all: [],
     get: [],
-    create: [ discard('uri'), transformCreateResponse() ],
+    create: [ transformCreateResponse() ],
     remove: [],
   },
 
