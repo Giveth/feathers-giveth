@@ -103,13 +103,18 @@ export class Web3Challenger {
   verify(address, done) {
     debug(`Fetching user for address: ${address}`);
 
-    const returnPayload = entity => {
+    const returnPayload = (entity, newUser) => {
       // try to remove the challenge for this user, ignoring any errors
       this.challengeService.remove(address)
         .catch();
 
       const id = entity[this.service.id];
       const payload = { [`${this.options.entity}Id`]: id };
+
+      if (newUser) {
+        payload.newUser = true;
+      }
+
       done(null, entity, payload);
     };
 
@@ -118,7 +123,7 @@ export class Web3Challenger {
       .catch(err => {
         if (err.name === 'NotFound') {
           this.service.create({ address })
-            .then(returnPayload)
+            .then(addr => returnPayload(addr, true))
             .catch(done);
 
           return;
