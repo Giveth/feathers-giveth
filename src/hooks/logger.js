@@ -21,4 +21,4 @@ export default function () {
       logger.error(hook.error);
     }
   };
-};
+}

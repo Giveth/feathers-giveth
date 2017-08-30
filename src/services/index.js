@@ -25,4 +25,4 @@ export default function () {
   app.configure(uploads);
   app.configure(donations);
   app.configure(challenge);
-};
+}
