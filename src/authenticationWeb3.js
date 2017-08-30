@@ -104,6 +104,10 @@ export class Web3Challenger {
     debug(`Fetching user for address: ${address}`);
 
     const returnPayload = entity => {
+      // try to remove the challenge for this user, ignoring any errors
+      this.challengeService.remove(address)
+        .catch();
+
       const id = entity[this.service.id];
       const payload = { [`${this.options.entity}Id`]: id };
       done(null, entity, payload);
