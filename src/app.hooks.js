@@ -1,16 +1,24 @@
 // Application hooks that run for every service
-const logger = require('./hooks/logger');
+import logger from './hooks/logger';
 import { restrictToAuthenticated } from 'feathers-authentication-hooks';
 
-module.exports = {
+const excludableRestrictToAuthenticated = (...servicesToExclude) => {
+  return context => {
+    if (servicesToExclude.indexOf(context.path) > -1) return context;
+
+    return restrictToAuthenticated()(context);
+  };
+};
+
+export default {
   before: {
     all: [],
     find: [],
     get: [],
-    create: [ restrictToAuthenticated() ],
+    create: [ excludableRestrictToAuthenticated('authentication') ],
     update: [ restrictToAuthenticated() ],
     patch: [ restrictToAuthenticated() ],
-    remove: [ restrictToAuthenticated() ],
+    remove: [ excludableRestrictToAuthenticated('authentication') ],
   },
 
   after: {
