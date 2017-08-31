@@ -14,9 +14,11 @@ import socketsConfig from './socketsConfig';
 const handler = require('feathers-errors/handler');
 const notFound = require('feathers-errors/not-found');
 
-const middleware = require('./middleware');
-const services = require('./services');
-const appHooks = require('./app.hooks');
+import middleware from './middleware';
+import services from './services';
+import appHooks from './app.hooks';
+import authentication from './authentication';
+
 
 const app = feathers();
 
@@ -39,6 +41,7 @@ app.configure(socketsConfig);
 
 // Configure other middleware (see `middleware/index.js`)
 app.configure(middleware);
+app.configure(authentication);
 // Set up our services (see `services/index.js`)
 app.configure(services);
 // Configure a middleware for 404s and the error handler
