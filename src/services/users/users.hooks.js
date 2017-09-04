@@ -1,10 +1,10 @@
-import errors from 'feathers-errors';
 import commons from 'feathers-hooks-common';
 import { restrictToOwner } from 'feathers-authentication-hooks';
 import { toChecksumAddress } from 'web3-utils';
 
 import notifyOfChange from '../../hooks/notifyOfChange';
 import sanitizeAddress from '../../hooks/sanitizeAddress';
+import setAddress from '../../hooks/setAddress';
 
 const normalizeId = () => {
   return context => {
@@ -13,17 +13,6 @@ const normalizeId = () => {
     }
     return context;
   };
-};
-
-const setAddress = context => {
-  if (context.provider === undefined) {
-    if (!context.data.address) throw new errors.GeneralError('must provide address when calling users.create internally');
-
-    return context;
-  }
-
-  commons.setByDot(context.data, 'address', context.params.user.address);
-  return context;
 };
 
 const restrict = [
@@ -35,7 +24,7 @@ const restrict = [
 ];
 
 const address = [
-  setAddress,
+  setAddress('address'),
   sanitizeAddress('address', { required: true, validate: true }),
 ];
 

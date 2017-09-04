@@ -1,24 +1,15 @@
-import { populate, discard, setByDot } from 'feathers-hooks-common';
+import { populate, discard } from 'feathers-hooks-common';
 import { restrictToOwner } from 'feathers-authentication-hooks';
 
 import sanitizeAddress from '../../hooks/sanitizeAddress';
+import setAddress from '../../hooks/setAddress';
+
 
 const restrict = [
   restrictToOwner({
     idField: 'address',
     ownerField: 'ownerAddress',
   }),
-];
-
-const setAddress = context => {
-  setByDot(context.data, 'ownerAddress', context.params.user.address);
-  return context;
-};
-
-const address = [
-  discard('ownerAddress'),
-  setAddress,
-  sanitizeAddress('ownerAddress', { required: true, validate: true }),
 ];
 
 const schema = {
@@ -38,9 +29,12 @@ module.exports = {
     all: [],
     find: [ sanitizeAddress('ownerAddress') ],
     get: [],
-    create: [ ...address ],
-    update: [ ...restrict, ...address ],
-    patch: [ ...restrict, ...address ],
+    create: [ discard('ownerAddress'), setAddress('ownerAddress'), sanitizeAddress('ownerAddress', {
+      required: true,
+      validate: true,
+    }) ],
+    update: [ ...restrict, sanitizeAddress('ownerAddress', { required: true, validate: true }) ],
+    patch: [ ...restrict, sanitizeAddress('ownerAddress', { validate: true }) ],
     remove: [ sanitizeAddress('ownerAddress'), ...restrict ],
   },
 
