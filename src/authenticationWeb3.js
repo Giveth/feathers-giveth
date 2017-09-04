@@ -35,7 +35,7 @@ export default function web3(options = {}) {
     let authOptions = app.get('auth') || app.get('authentication') || {};
     let web3Options = authOptions[ options.name ] || {};
 
-    web3Options.challengeService = 'authentication/challenge';
+    web3Options.challengeService = 'authentication/challenges';
 
     let web3Settings = merge({}, defaults, pick(authOptions, KEYS), web3Options, omit(options, [ 'Verifier' ]));
 

@@ -14,4 +14,4 @@ export default (field) => {
     setByDot(context.data, field, context.params.user.address);
     return context;
   };
-}
+};

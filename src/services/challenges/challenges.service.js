@@ -1,12 +1,12 @@
-// Initializes the `challenge` service on path `/authentication/challenge`
+// Initializes the `challenges` service on path `/authentication/challenges`
 import { Service } from 'feathers-nedb';
 import errors from 'feathers-errors';
 
 import { toChecksumAddress } from 'web3-utils';
 
-import createModel from '../../models/challenge.model';
-import hooks from './challenge.hooks';
-import filters from './challenge.filters';
+import createModel from '../../models/challenges.model';
+import hooks from './challenges.hooks';
+import filters from './challenges.filters';
 
 //TODO clean this up and move to separate package feathers-authentication-web3
 
@@ -69,17 +69,17 @@ export default function () {
   const paginate = app.get('paginate');
 
   const options = {
-    name: 'challenge',
+    name: 'challenges',
     id: 'address',
     Model,
     paginate,
   };
 
   // Initialize our service with any options it requires
-  app.use('/authentication/challenge', new ChallengeService(options));
+  app.use('/authentication/challenges', new ChallengeService(options));
 
   // Get our initialized service so that we can register hooks and filters
-  const service = app.service('authentication/challenge');
+  const service = app.service('authentication/challenges');
 
   service.hooks(hooks);
 
