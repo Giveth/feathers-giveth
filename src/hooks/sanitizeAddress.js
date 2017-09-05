@@ -24,11 +24,13 @@ export default (fieldNames, opts = { required: false, validate: false }) => {
     if (context.method === 'find' || ([ 'update', 'patch', 'remove' ].indexOf(context.method) > -1 && !context.id)) {
       if (context.params.query) {
         Object.keys(context.params.query).forEach(key => {
-          if (required || fieldNames.indexOf(key) !== -1) {
+          if (required && fieldNames.indexOf(key) === -1) throw new errors.BadRequest(`"${key} is a required field`);
+
+          if (fieldNames.indexOf(key) !== -1) {
             try {
               context.params.query[ key ] = toChecksumAddress(context.params.query[ key ]);
             } catch (e) {
-              if (validate) return errors.BadRequest(`invalid address provided for "${key}"`, context.params.query);
+              if (validate) throw new errors.BadRequest(`invalid address provided for "${key}"`, context.params.query);
             }
           }
         });
@@ -38,11 +40,13 @@ export default (fieldNames, opts = { required: false, validate: false }) => {
 
     const convertItem = item => {
       fieldNames.forEach(fieldName => {
-        if (required || item[ fieldName ]) {
+        if (required && !item[ fieldName ]) throw new errors.BadRequest(`"${fieldName} is a required field`);
+
+        if (item[ fieldName ]) {
           try {
             item[ fieldName ] = toChecksumAddress(item[ fieldName ]);
           } catch (e) {
-            if (validate) return errors.BadRequest(`invalid address provided for "${fieldName}"`, item);
+            if (validate) throw new errors.BadRequest(`invalid address provided for "${fieldName}"`, item);
           }
         }
       });

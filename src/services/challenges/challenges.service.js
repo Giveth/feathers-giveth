@@ -26,7 +26,7 @@ class ChallengeService extends Service {
   }
 
   create(data, params) {
-    if (!data.address) return new errors.BadRequest('address is required');
+    if (!data.address) throw new errors.BadRequest('address is required');
     params.nedb = {
       upsert: true,
     };
