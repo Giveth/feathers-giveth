@@ -65,7 +65,7 @@ const updateType = () => {
 };
 
 const poSchemas = {
-  'po-dashboard': {
+  'po-donor': {
     include: [
       {
         service: 'users',
@@ -121,9 +121,9 @@ const joinType = (item, context, schema) => {
 const populateSchema = () => {
   return (context) => {
 
-    if (context.params.schema === 'dashboard') {
-      return commons.populate({ schema: poSchemas[ 'po-dashboard' ] })(context);
-    } else if (context.params.schema === 'typeDetail') {
+    if (context.params.schema === 'includeDonorDetails') {
+      return commons.populate({ schema: poSchemas[ 'po-donor' ] })(context);
+    } else if (context.params.schema === 'includeTypeDetails') {
       const items = commons.getItems(context);
 
       // items may be undefined if we are removing by id;
