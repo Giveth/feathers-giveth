@@ -8,38 +8,86 @@ class Managers {
     this.liquidPledging = liquidPledging;
   }
 
+
   addDonor(event) {
     if (event.event !== 'DonorAdded') throw new Error('addDonor only handles DonorAdded events');
 
     const { returnValues } = event;
 
+    this.liquidPledging.getNoteManager(returnValues.idDonor)
+      .then(donor => this._addDonor(donor, returnValues.idDonor))
+      .catch(err => console.error('addDonor error ->', err)); //eslint-disable-line no-console
+  }
+
+  updateDonor(event) {
+    if (event.event !== 'DonorUpdated') throw new Error('updateDonor only handles DonorUpdated events');
+
+    const donorId = event.returnValues.idDonor;
+
     const users = this.app.service('/users');
 
-    let commitTime;
-    this.liquidPledging.getNoteManager(returnValues.idDonor)
-      .then(donor => {
-        const { addr } = donor;
-        commitTime = donor.commitTime;
+    const BreakSignal = () => {
+    };
 
-        return users.get(addr)
-          .catch(err => {
-            console.log(err);
-            if (err.name === 'NotFound') {
-              return users.create({
-                address: addr,
-              });
-            }
+    const getUser = () => {
+      return users.find({ query: { donorId } })
+        .then(result => {
+          const users = result.data;
 
-            throw err;
+          if (users.length === 0) {
+            this.liquidPledging.getNoteManager(donorId)
+              .then(donor => this._addDonor(donor, donorId))
+              .catch(err => console.error('updateDonor error ->', err)); //eslint-disable-line no-console
+            throw new BreakSignal();
+          }
+
+          if (users.length > 1) {
+            console.warn('more then 1 user with the same donorId found: ', users); // eslint-disable-line no-console
+          }
+
+          return users[ 0 ];
+        });
+    };
+
+    Promise.all([ getUser(), this.liquidPledging.getNoteManager(donorId) ])
+      .then(([ user, donor ]) => {
+        // If a donor changes address, update users to reflect the change.
+        if (donor.addr !== user.address) {
+          console.log(`donor address "${donor.addr}" differs from users address "${user.address}". Updating users to match`); // eslint-disable-line no-console
+          users.patch(user.address, { $unset: { donorId: true } });
+          return this._addDonor(donor, donorId);
+        }
+
+        return users.patch(user.address, { commitTime: donor.commitTime, name: donor.name });
+      })
+      .catch(err => {
+        if (err instanceof BreakSignal) return;
+        console.error('updateDonor error ->', err); // eslint-disable-line no-console
+      });
+  }
+
+
+  _addDonor(donor, donorId) {
+    const { commitTime, addr, name } = donor;
+    const users = this.app.service('/users');
+
+    return users.get(addr)
+      .catch(err => {
+        if (err.name === 'NotFound') {
+          return users.create({
+            address: addr,
           });
+        }
+
+        throw err;
       })
       .then(user => {
         if (user.donorId && user.donorId !== 0) {
-          console.error(`user already has a donorId set. existing donorId: ${user.donorId}, new donorId: ${returnValues.idDonor}`);
+          console.error(`user already has a donorId set. existing donorId: ${user.donorId}, new donorId: ${donorId}`);
         }
-        return users.patch(user.address, { commitTime, donorId: returnValues.idDonor });
+        return users.patch(user.address, { commitTime, name, donorId: donorId });
       })
-      .catch(err => console.error('addDonor error ->', err));
+      .catch(err => console.error('_addDonor error ->', err));
   }
 }
 

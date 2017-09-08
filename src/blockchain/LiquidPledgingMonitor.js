@@ -103,6 +103,8 @@ export default class {
         this.managers.addDonor(event);
         break;
       case 'DonorUpdated':
+        this.managers.updateDonor(event);
+        break;
       case 'DelegateAdded':
       case 'DelegateUpdated':
       case 'ProjectAdded':
