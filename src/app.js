@@ -18,6 +18,7 @@ import middleware from './middleware';
 import services from './services';
 import appHooks from './app.hooks';
 import authentication from './authentication';
+import blockchain from './blockchain';
 
 
 const app = feathers();
@@ -42,6 +43,7 @@ app.configure(socketsConfig);
 // Configure other middleware (see `middleware/index.js`)
 app.configure(middleware);
 app.configure(authentication);
+app.configure(blockchain);
 // Set up our services (see `services/index.js`)
 app.configure(services);
 // Configure a middleware for 404s and the error handler
