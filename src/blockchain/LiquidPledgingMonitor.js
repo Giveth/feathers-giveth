@@ -8,13 +8,17 @@ const defaultConfig = {
 };
 
 export default class {
-  constructor(app, liquidPledging) {
+  constructor(app, liquidPledging, opts) {
     this.app = app;
     // this.web3 = liquidPledging.$web3;
     this.contract = liquidPledging.$contract;
     this.liquidPledging = liquidPledging;
     this.managers = new Managers(app, liquidPledging);
     this.model = createModel(app);
+
+    if (opts.startingBlock && opts.startingBlock !== 0) {
+      defaultConfig.lastBlock = opts.startingBlock;
+    }
   }
 
   /**
@@ -28,7 +32,7 @@ export default class {
   }
 
   /**
-   * start listenting to allEvents on the contract
+   * start listening to allEvents on the contract
    * @private
    */
   _startListeners() {
@@ -106,7 +110,11 @@ export default class {
         this.managers.updateDonor(event);
         break;
       case 'DelegateAdded':
+        this.managers.addDelegate(event);
+        break;
       case 'DelegateUpdated':
+        this.managers.updateDelegate(event);
+        break;
       case 'ProjectAdded':
       case 'ProjectUpdated':
       default:

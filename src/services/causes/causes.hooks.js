@@ -1,4 +1,4 @@
-import { populate, discard } from 'feathers-hooks-common';
+import { populate } from 'feathers-hooks-common';
 import { restrictToOwner } from 'feathers-authentication-hooks';
 
 import sanitizeAddress from '../../hooks/sanitizeAddress';
@@ -29,10 +29,7 @@ module.exports = {
     all: [],
     find: [ sanitizeAddress('ownerAddress') ],
     get: [],
-    create: [ discard('ownerAddress'), setAddress('ownerAddress'), sanitizeAddress('ownerAddress', {
-      required: true,
-      validate: true,
-    }) ],
+    create: [ setAddress('ownerAddress'), sanitizeAddress('ownerAddress', { required: true, validate: true, }) ],
     update: [ ...restrict, sanitizeAddress('ownerAddress', { required: true, validate: true }) ],
     patch: [ ...restrict, sanitizeAddress('ownerAddress', { validate: true }) ],
     remove: [ sanitizeAddress('ownerAddress'), ...restrict ],

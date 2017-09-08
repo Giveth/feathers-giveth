@@ -16,13 +16,17 @@ const networks = {
 
 export default function () {
   const app = this;
-  const rpcUrl = app.get('ethNodeConnectionUrl');
+  const blockchain = app.get('blockchain');
 
-  const web3 = new Web3(rpcUrl);
+  const web3 = new Web3(blockchain.rpcUrl);
+
+  const opts = {
+    startingBlock: blockchain.startingBlock
+  };
 
   getLiquidPledging(web3)
     .then(liquidPledging => {
-      const managerMonitor = new LiquidPledgingMonitor(app, liquidPledging);
+      const managerMonitor = new LiquidPledgingMonitor(app, liquidPledging, opts);
       managerMonitor.start();
     });
 }
