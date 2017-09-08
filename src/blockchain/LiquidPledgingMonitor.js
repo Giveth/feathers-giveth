@@ -4,7 +4,7 @@ import createModel from '../models/blockchain.model';
 
 // Storing this in the db ensures that we don't miss any events on a restart
 const defaultConfig = {
-  lastBlock: 0,
+  lastBlock: undefined,
 };
 
 export default class {
@@ -32,7 +32,7 @@ export default class {
    * @private
    */
   _startListeners() {
-    this.contract.events.allEvents({ fromBlock: this.config.lastBlock })
+    this.contract.events.allEvents({ fromBlock: this.config.lastBlock + 1 || 0 })
       .on('data', this._handleEvent.bind(this))
       .on('changed', (event) => {
         // I think this is emitted when a chain reorg happens and the tx has been removed
@@ -54,7 +54,7 @@ export default class {
    */
   _getConfig() {
     return new Promise((resolve, reject) => {
-      this.model.findOne({ _id: 0 }, (err, doc) => {
+      this.model.findOne({}, (err, doc) => {
         if (err) return reject(err);
 
         if (!doc) return resolve(defaultConfig);
@@ -71,10 +71,25 @@ export default class {
    * @private
    */
   _updateConfig(blockNumber) {
-    if (this.config.lastBlock < blockNumber) {
+    if (this._initializingConfig) {
+      this._onConfigInitialization = () => this._updateConfig(blockNumber);
+      return;
+    }
+
+    if (!this.config.lastBlock || this.config.lastBlock < blockNumber) {
       this.config.lastBlock = blockNumber;
 
-      this.model.update({ _id: 0 }, this.config, { upsert: true }, console.error); // eslint-disable-line no-console
+      if (!this.config._id) this._initializingConfig = true;
+
+      this.model.update({ _id: this.config._id }, this.config, { upsert: true }, (err, numAffected, affectedDocs, upsert) => {
+        if (err) console.error('updateConfig ->', err); // eslint-disable-line no-console
+
+        if (upsert) {
+          this.config._id = affectedDocs._id;
+          this._initializingConfig = false;
+          if (this._onConfigInitialization) this._onConfigInitialization();
+        }
+      });
     }
   }
 
@@ -87,6 +102,11 @@ export default class {
       case 'DonorAdded':
         this.managers.addDonor(event);
         break;
+      case 'DonorUpdated':
+      case 'DelegateAdded':
+      case 'DelegateUpdated':
+      case 'ProjectAdded':
+      case 'ProjectUpdated':
       default:
         console.error('Unknown event: ', event); //eslint-disable-line no-console
     }
