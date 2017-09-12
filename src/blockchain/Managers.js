@@ -124,7 +124,7 @@ class Managers {
 
     Promise.all([ getCause(), this.liquidPledging.getNoteManager(delegateId) ])
       .then(([ cause, delegate ]) => {
-        return cause.patch(cause._id, {
+        return causes.patch(cause._id, {
           ownerAddress: delegate.addr,
           title: delegate.name,
         });
@@ -139,7 +139,7 @@ class Managers {
     const causes = this.app.service('/causes');
 
     const findCause = (delegate) => {
-      return causes.find({ query: { title: delegate.name, ownerAddress: delegate.addr } })
+      return causes.find({ query: { title: delegate.name, ownerAddress: delegate.addr, delegateId: 0 } })
         .then(({ data }) => {
 
           if (data.length === 0) {
@@ -168,6 +168,196 @@ class Managers {
         ownerAddress: delegate.addr,
       }))
       .catch(err => console.error('_addDelegate error ->', err)); //eslint-disable-line no-console
+  }
+
+
+  addProject(event) {
+    if (event.event !== 'ProjectAdded') throw new Error('addProject only handles ProjectAdded events');
+
+    const projectId = event.returnValues.idProject;
+
+    // we make the assumption that if there is a parentProject, then the project is a milestone, otherwise it is a campaign
+    return this.liquidPledging.getNoteManager(projectId)
+      .then(project => {
+        return (project.parentProject > 0) ? this._addMilestone(project, projectId) : this._addCampaign(project, projectId);
+      });
+  }
+
+  _addMilestone(project, projectId) {
+    const milestones = this.app.service('/milestones');
+    const campaigns = this.app.service('/campaigns');
+
+    // get_or_create campaign by projectId
+    const findCampaign = (campaignProjectId) => {
+      return campaigns.find({ query: { projectId: campaignProjectId } })
+        .then(({ data }) => {
+
+          // create a campaign if necessary
+          if (data.length === 0) {
+            //TODO do we need to create an owner here?
+
+            return this.liquidPledging.getNoteManager(campaignProjectId)
+              .then(campaignProject => campaigns.create({
+                ownerAddress: campaignProject.ownerAddress,
+                title: campaignProject.name,
+                projectId: campaignProjectId,
+              }))
+              .then(campaign => campaign._id);
+          }
+
+          if (data.length > 1) {
+            console.warn('more then 1 campaign with the same projectId found: ', data); // eslint-disable-line no-console
+          }
+
+          return data[ 0 ]._id;
+        });
+    };
+
+    // get_or_create milestone by title and ownerAddress
+    const findMilestone = () => {
+      return milestones.find({ query: { title: project.name, ownerAddress: project.addr, projectId: 0 } })
+        .then(({ data }) => {
+
+          if (data.length === 0) {
+            //TODO do we need to create an owner here?
+
+            return findCampaign(project.parentProject)
+              .then(campaignId => milestones.create({
+                ownerAddress: project.addr,
+                title: project.name,
+                description: '',
+                campaignId,
+              }));
+          }
+
+          //TODO do we need to check that the parentProject and milestone campaignId are the same campaign?
+          if (data.length > 1) {
+            console.warn('more then 1 milestone with the same ownerAddress and title found: ', data); // eslint-disable-line no-console
+          }
+
+          return data[ 0 ];
+        });
+    };
+
+    return findMilestone()
+      .then((milestone) => milestones.patch(milestone._id, {
+        projectId,
+        title: project.name,
+        ownerAddress: project.addr,
+      }))
+      .catch(err => console.error('_addMilestone error ->', err)); //eslint-disable-line no-console
+  }
+
+  _addCampaign(project, projectId) {
+    const campaigns = this.app.service('/campaigns');
+
+    // get_or_create campaign by title and ownerAddress
+    const findCampaign = () => {
+      return campaigns.find({ query: { title: project.name, ownerAddress: project.addr, projectId: 0 } })
+        .then(({ data }) => {
+
+          // create a campaign if necessary
+          if (data.length === 0) {
+            return campaigns.create({
+              ownerAddress: project.addr,
+              title: project.name,
+              description: '',
+            });
+          }
+
+          if (data.length > 1) {
+            console.warn('more then 1 campaign with the same title and ownerAddress found: ', data); // eslint-disable-line no-console
+          }
+
+          return data[ 0 ];
+        });
+    };
+
+    return findCampaign()
+      .then(campaign => campaigns.patch(campaign._id, {
+        projectId,
+        title: project.name,
+        ownerAddress: project.addr,
+      }))
+      .catch(err => console.error('_addCampaign error ->', err)); //eslint-disable-line no-console
+  }
+
+  updateProject(event) {
+    if (event.event !== 'ProjectUpdated') throw new Error('updateProject only handles ProjectUpdated events');
+
+    const projectId = event.returnValues.idProject;
+
+    // we make the assumption that if there is a parentProject, then the project is a milestone, otherwise it is a campaign
+    return this.liquidPledging.getNoteManager(projectId)
+      .then(project => {
+        return (project.parentProject > 0) ? this._updateMilestone(project, projectId) : this._updateCampaign(project, projectId);
+      });
+  }
+
+  _updateMilestone(project, projectId) {
+    const milestones = this.app.service('/milestones');
+
+    const getMilestone = () => {
+      return milestones.find({ query: { projectId } })
+        .then(({ data }) => {
+
+          if (data.length === 0) {
+            this._addMilestone(project, projectId);
+            throw new BreakSignal();
+          }
+
+          if (data.length > 1) {
+            console.warn('more then 1 milestone with the same projectId found: ', data); // eslint-disable-line no-console
+          }
+
+          return data[ 0 ];
+        });
+    };
+
+    return getMilestone()
+      .then((milestone) => {
+        return milestones.patch(milestone._id, {
+          ownerAddress: project.addr,
+          title: project.name,
+        });
+      })
+      .catch(err => {
+        if (err instanceof BreakSignal) return;
+        console.error('_updateMilestone error ->', err); // eslint-disable-line no-console
+      });
+  }
+
+  _updateCampaign(project, projectId) {
+    const campaigns = this.app.service('/campaigns');
+
+    const getCampaign = () => {
+      return campaigns.find({ query: { projectId } })
+        .then(({ data }) => {
+
+          if (data.length === 0) {
+            this._addCampaign(project, projectId);
+            throw new BreakSignal();
+          }
+
+          if (data.length > 1) {
+            console.warn('more then 1 campaign with the same projectId found: ', data); // eslint-disable-line no-console
+          }
+
+          return data[ 0 ];
+        });
+    };
+
+    return getCampaign()
+      .then((campaign) => {
+        return campaigns.patch(campaign._id, {
+          ownerAddress: project.addr,
+          title: project.name,
+        });
+      })
+      .catch(err => {
+        if (err instanceof BreakSignal) return;
+        console.error('_updateCampaign error ->', err); // eslint-disable-line no-console
+      });
   }
 }
 

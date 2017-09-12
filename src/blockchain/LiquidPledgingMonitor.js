@@ -116,7 +116,11 @@ export default class {
         this.managers.updateDelegate(event);
         break;
       case 'ProjectAdded':
+        this.managers.addProject(event);
+        break;
       case 'ProjectUpdated':
+        this.managers.updateProject(event);
+        break;
       default:
         console.error('Unknown event: ', event); //eslint-disable-line no-console
     }
