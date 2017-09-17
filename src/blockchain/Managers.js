@@ -12,7 +12,6 @@ class Managers {
     this.liquidPledging = liquidPledging;
   }
 
-
   addDonor(event) {
     if (event.event !== 'DonorAdded') throw new Error('addDonor only handles DonorAdded events');
 
@@ -86,6 +85,10 @@ class Managers {
           console.error(`user already has a donorId set. existing donorId: ${user.donorId}, new donorId: ${donorId}`);
         }
         return users.patch(user.address, { commitTime, name, donorId: donorId });
+      })
+      .then(user => {
+        this._addNoteManager(donorId, 'users', user.address)
+          .then(() => user);
       })
       .catch(err => console.error('_addDonor error ->', err));
   }
@@ -167,6 +170,10 @@ class Managers {
         title: delegate.name,
         ownerAddress: delegate.addr,
       }))
+      .then(cause => {
+        this._addNoteManager(delegateId, 'causes', cause._id)
+          .then(() => cause);
+      })
       .catch(err => console.error('_addDelegate error ->', err)); //eslint-disable-line no-console
   }
 
@@ -245,6 +252,10 @@ class Managers {
         title: project.name,
         ownerAddress: project.addr,
       }))
+      .then(milestone => {
+        this._addNoteManager(projectId, 'milestones', milestone._id)
+          .then(() => milestone);
+      })
       .catch(err => console.error('_addMilestone error ->', err)); //eslint-disable-line no-console
   }
 
@@ -279,6 +290,10 @@ class Managers {
         title: project.name,
         ownerAddress: project.addr,
       }))
+      .then(campaign => {
+        this._addNoteManager(projectId, 'campaigns', campaign._id)
+          .then(() => campaign);
+      })
       .catch(err => console.error('_addCampaign error ->', err)); //eslint-disable-line no-console
   }
 
@@ -357,6 +372,17 @@ class Managers {
       .catch(err => {
         if (err instanceof BreakSignal) return;
         console.error('_updateCampaign error ->', err); // eslint-disable-line no-console
+      });
+  }
+
+
+  _addNoteManager(id, type, typeId) {
+    const noteManagers = this.app.service('/noteManagers');
+
+    return noteManagers.create({ id, type, typeId })
+      .catch(err => {
+        // TODO if the noteManager already exists, then verify the type and typeId and return the manager
+        console.log('create noteManager error =>', err);
       });
   }
 }

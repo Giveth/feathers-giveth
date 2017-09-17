@@ -7,6 +7,7 @@ const users = require('./users/users.service.js');
 const uploads = require('./uploads/uploads.service.js');
 const donations = require('./donations/donations.service.js');
 import challenges from './challenges/challenges.service.js';
+import noteManagers from './noteManagers/noteManagers.service';
 
 module.exports = function () {
   const app = this;
@@ -19,4 +20,5 @@ module.exports = function () {
   app.configure(uploads);
   app.configure(donations);
   app.configure(challenges);
+  app.configure(noteManagers);
 };
