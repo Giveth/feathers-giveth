@@ -1,14 +1,5 @@
 import commons from 'feathers-hooks-common';
-import errors from 'feathers-errors';
-
-
-const restrictToInternal = () => (context) => {
-  if (context.params.provider !== undefined) {
-    throw new errors.Forbidden();
-  }
-
-  return context;
-};
+import onlyInternal from '../../hooks/onlyInternal';
 
 const populateManager = () => (context) => {
   const fetchManager = (item) => {
@@ -33,9 +24,9 @@ export default {
     all: [],
     find: [],
     get: [],
-    create: [ restrictToInternal() ],
-    update: [ restrictToInternal() ],
-    patch: [ restrictToInternal() ],
+    create: [ onlyInternal() ],
+    update: [ onlyInternal() ],
+    patch: [ onlyInternal() ],
     remove: [ commons.disallow() ],
   },
 

@@ -160,12 +160,13 @@ module.exports = {
     get: [],
     create: [ ...address, updateType(),
       (context) => {
+        if (context.data.createdAt) return context;
         context.data.createdAt = new Date();
       },
     ],
     update: [ ...restrict, ...address ],
     patch: [ ...restrict, ...address ],
-    remove: [ sanitizeAddress('donorAddress'), ...restrict ],
+    remove: [ commons.disallow() ],
   },
 
   after: {
