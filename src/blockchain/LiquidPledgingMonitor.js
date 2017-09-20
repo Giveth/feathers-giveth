@@ -1,4 +1,5 @@
 import Managers from './Managers';
+import Notes from './Notes';
 import createModel from '../models/blockchain.model';
 
 
@@ -14,6 +15,7 @@ export default class {
     this.contract = liquidPledging.$contract;
     this.liquidPledging = liquidPledging;
     this.managers = new Managers(app, liquidPledging);
+    this.notes = new Notes(app, liquidPledging);
     this.model = createModel(app);
 
     if (opts.startingBlock && opts.startingBlock !== 0) {
@@ -120,6 +122,9 @@ export default class {
         break;
       case 'ProjectUpdated':
         this.managers.updateProject(event);
+        break;
+      case 'Transfer':
+        this.notes.transfer(event);
         break;
       default:
         console.error('Unknown event: ', event); //eslint-disable-line no-console
