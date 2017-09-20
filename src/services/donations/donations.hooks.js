@@ -30,7 +30,7 @@ const updateType = () => {
     let service;
     switch (data.type) {
     case 'dac': {
-      service = context.app.service('causes');
+      service = context.app.service('dacs');
       break;
     }
     case 'campaign': {
@@ -89,7 +89,7 @@ const poSchemas = {
   'po-dac': {
     include: [
       {
-        service: 'causes',
+        service: 'dacs',
         nameAs: 'dac',
         parentField: 'type_id',
         childField: '_id',

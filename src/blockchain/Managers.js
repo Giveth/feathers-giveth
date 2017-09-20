@@ -94,7 +94,7 @@ class Managers {
   }
 
 
-  //TODO support delegates other then causes
+  //TODO support delegates other then dacs
   addDelegate(event) {
     if (event.event !== 'DelegateAdded') throw new Error('addDelegate only handles DelegateAdded events');
 
@@ -106,10 +106,10 @@ class Managers {
 
     const delegateId = event.returnValues.idDelegate;
 
-    const causes = this.app.service('/causes');
+    const dacs = this.app.service('/dacs');
 
-    const getCause = () => {
-      return causes.find({ query: { delegateId } })
+    const getDAC = () => {
+      return dacs.find({ query: { delegateId } })
         .then(({ data }) => {
 
           if (data.length === 0) {
@@ -118,16 +118,16 @@ class Managers {
           }
 
           if (data.length > 1) {
-            console.warn('more then 1 cause with the same delegateId found: ', data); // eslint-disable-line no-console
+            console.warn('more then 1 dac with the same delegateId found: ', data); // eslint-disable-line no-console
           }
 
           return data[ 0 ];
         });
     };
 
-    Promise.all([ getCause(), this.liquidPledging.getNoteManager(delegateId) ])
-      .then(([ cause, delegate ]) => {
-        return causes.patch(cause._id, {
+    Promise.all([ getDAC(), this.liquidPledging.getNoteManager(delegateId) ])
+      .then(([ dac, delegate ]) => {
+        return dacs.patch(dac._id, {
           ownerAddress: delegate.addr,
           title: delegate.name,
         });
@@ -139,16 +139,16 @@ class Managers {
   }
 
   _addDelegate(delegateId) {
-    const causes = this.app.service('/causes');
+    const dacs = this.app.service('/dacs');
 
-    const findCause = (delegate) => {
-      return causes.find({ query: { title: delegate.name, ownerAddress: delegate.addr, delegateId: 0 } })
+    const findDAC = (delegate) => {
+      return dacs.find({ query: { title: delegate.name, ownerAddress: delegate.addr, delegateId: 0 } })
         .then(({ data }) => {
 
           if (data.length === 0) {
             //TODO do we need to create an owner here?
 
-            return causes.create({
+            return dacs.create({
               ownerAddress: delegate.addr,
               title: delegate.name,
               description: '',
@@ -156,7 +156,7 @@ class Managers {
           }
 
           if (data.length > 1) {
-            console.warn('more then 1 cause with the same ownerAddress and title found: ', data); // eslint-disable-line no-console
+            console.warn('more then 1 dac with the same ownerAddress and title found: ', data); // eslint-disable-line no-console
           }
 
           return data[ 0 ];
@@ -164,15 +164,15 @@ class Managers {
     };
 
     return this.liquidPledging.getNoteManager(delegateId)
-      .then(delegate => Promise.all([ delegate, findCause(delegate) ]))
-      .then(([ delegate, cause ]) => causes.patch(cause._id, {
+      .then(delegate => Promise.all([ delegate, findDAC(delegate) ]))
+      .then(([ delegate, dac ]) => dacs.patch(dac._id, {
         delegateId,
         title: delegate.name,
         ownerAddress: delegate.addr,
       }))
-      .then(cause => {
-        this._addNoteManager(delegateId, 'causes', cause._id)
-          .then(() => cause);
+      .then(dac => {
+        this._addNoteManager(delegateId, 'dacs', dac._id)
+          .then(() => dac);
       })
       .catch(err => console.error('_addDelegate error ->', err)); //eslint-disable-line no-console
   }

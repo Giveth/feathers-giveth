@@ -1,5 +1,4 @@
-const skunkworks = require('./skunkworks/skunkworks.service.js');
-const causes = require('./causes/causes.service.js');
+const dacs = require('./dacs/dacs.service.js');
 const projects = require('./projects/projects.service.js');
 const milestones = require('./milestones/milestones.service.js');
 const campaigns = require('./campaigns/campaigns.service.js');
@@ -12,8 +11,7 @@ import donationsHistory from './donationsHistory/donationsHistory.service';
 
 module.exports = function () {
   const app = this;
-  app.configure(skunkworks);
-  app.configure(causes);
+  app.configure(dacs);
   app.configure(projects);
   app.configure(milestones);
   app.configure(campaigns);
