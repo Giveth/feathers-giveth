@@ -18,7 +18,7 @@ export default function () {
   const app = this;
   const blockchain = app.get('blockchain');
 
-  const web3 = new Web3(blockchain.rpcUrl);
+  const web3 = new Web3(blockchain.nodeUrl);
 
   const opts = {
     startingBlock: blockchain.startingBlock

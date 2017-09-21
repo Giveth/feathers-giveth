@@ -183,10 +183,10 @@ class Managers {
 
     const projectId = event.returnValues.idProject;
 
-    // we make the assumption that if there is a parentProject, then the project is a milestone, otherwise it is a campaign
+    // we make the assumption that if there is a plugin, then the project is a milestone, otherwise it is a campaign
     return this.liquidPledging.getNoteManager(projectId)
       .then(project => {
-        return (project.parentProject > 0) ? this._addMilestone(project, projectId) : this._addCampaign(project, projectId);
+        return (project.plugin) ? this._addMilestone(project, projectId) : this._addCampaign(project, projectId);
       });
   }
 
@@ -220,6 +220,7 @@ class Managers {
         });
     };
 
+    // TODO this needs to be updated. project.addr will be the plugin. we need to track this, and set ownerAddress to LPPMilestone owner
     // get_or_create milestone by title and ownerAddress
     const findMilestone = () => {
       return milestones.find({ query: { title: project.name, ownerAddress: project.addr, projectId: 0 } })

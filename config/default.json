@@ -10,7 +10,7 @@
   "uploads": "../uploads",
   "uploadsBaseUrl": "http://localhost:3030/uploads/",
   "blockchain": {
-    "rpcUrl": "ws://localhost:8546",
+    "nodeUrl": "ws://localhost:8546",
     "startingBlock": 0
   },
   "authentication": {
