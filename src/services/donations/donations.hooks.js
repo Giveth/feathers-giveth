@@ -6,10 +6,10 @@ import { restrictToOwner } from 'feathers-authentication-hooks';
 import sanitizeAddress from '../../hooks/sanitizeAddress';
 
 const restrict = [
-  restrictToOwner({
-    idField: 'address',
-    ownerField: 'donorAddress',
-  }),
+  // restrictToOwner({
+  //   idField: 'address',
+  //   ownerField: 'donorAddress',
+  // }),
 ];
 
 const setAddress = context => {
