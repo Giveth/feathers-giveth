@@ -30,11 +30,18 @@ The configuration param `blockchain.nodeUrl` is used to establish a connection. 
     1. `mkdir data/testrpc` -- this will contain the TestRPC database 
     2. `yarn testrpc` -- this will start testrpc with some default parameters
     
-4. Start your app
+4. 1 time only - deploy liquidPledging contract
+
+    ```node --harmony deploy.js```
+    
+5. Start your app
 
     ```
     yarn start
     ```
+    * note: due to a bug somewhere (testrpc? web3? websocket?) the subscription events may not always be picked-up in feathers.
+    especially the first time you run ```yarn start```. It appears that testrpc is emitting the event correctly, but web3 Subscription
+    is not recieving the message. **If this happens, just restart feathers** and all past events will be picked up.
     
 ## Deploying
 

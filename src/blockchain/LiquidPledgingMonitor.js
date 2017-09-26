@@ -111,7 +111,8 @@ export default class {
       case 'DonorUpdated':
         this.managers.updateDonor(event);
         break;
-      case 'DelegateAdded':
+      // case 'DelegateAdded':
+      case 'DeegateAdded': // typo in contract
         this.managers.addDelegate(event);
         break;
       case 'DelegateUpdated':

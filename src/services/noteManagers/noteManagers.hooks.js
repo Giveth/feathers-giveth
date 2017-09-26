@@ -9,13 +9,16 @@ const populateManager = () => (context) => {
 
   const items = commons.getItems(context);
 
-  Array.isArray(items) ? items.forEach((item) => {
-    item.manager = fetchManager(item);
-  }) : items.manager = fetchManager(items);
+  const promise = Array.isArray(items) ? Promise.all(items.forEach((item) => {
+    return fetchManager(item)
+      .then((manager) => {
+        item.manager = manager;
+      });
+  })) : fetchManager(items).then((manager) => {
+    items.manager = manager;
+  });
 
-  commons.replaceItems(items);
-
-  return context;
+  return promise.then(() => commons.replaceItems(items));
 };
 
 

@@ -18,41 +18,56 @@ class Notes {
 
     this._getBlockTimestamp(event.blockNumber)
       .then(ts => {
-        if (from === '0') return this._newDonation(to, amount, ts);
+        if (from === '0') return this._newDonation(to, amount, ts, event.transactionHash);
 
-        return this._transfer(from, to, amount, ts);
+        return this._transfer(from, to, amount, ts, event.transactionHash);
       });
   }
 
-  _newDonation(noteId, amount, ts) {
+  _newDonation(noteId, amount, ts, txHash, retry = false) {
     const donations = this.app.service('donations');
     const noteManagers = this.app.service('noteManagers');
 
-    this.liquidPledging.getNote(noteId).call()
-      .then((note) => Promise.all([ noteManagers.get(note.owner), note ]))
-      .then(([ donor, note ]) => donations.create({
-        donorAddress: donor.manager.address, // donor is a user
-        amount,
-        noteId,
-        createdAt: ts,
-        owner: donor.typeId,
-        ownerType: donor.type,
-        paymentState: note.paymentState,
-      }))
+    const findDonation = () => donations.find({ query: { txHash } })
+      .then(resp => {
+        return (resp.data.length > 0) ? resp.data[0] : undefined;
+      });
+
+    this.liquidPledging.getNote(noteId)
+      .then((note) => Promise.all([ noteManagers.get(note.owner), note, findDonation() ]))
+      .then(([ donor, note, donation ]) => {
+        if (!donation)  {
+          if (retry) throw new Error(`no donation found w/ txHash -> ${txHash}`);
+
+          // this is really only useful when instant mining. Other then that, the donotation should always be
+          // created before the tx was mined.
+          setTimeout(() => this._newDonation(noteId, amount, ts, txHash, true), 5000);
+        }
+
+        return donations.patch(donation._id, {
+          donorAddress: donor.manager.address, // donor is a user
+          amount,
+          noteId,
+          createdAt: ts,
+          owner: donor.typeId,
+          ownerType: donor.type,
+          paymentState: this._paymentState(note.paymentState),
+        });
+      })
       // now that this donation has been added, we can purge the transfer queue for this noteId
       .then(() => this.queue.purge(noteId));
   }
 
-  _transfer(from, to, amount, ts) {
+  _transfer(from, to, amount, ts, txHash) {
     const donations = this.app.service('donations');
     const noteManagers = this.app.service('noteManagers');
 
     const getDonation = () => {
-      return donations.find({ query: { noteId: from } })
-        .then(donations => (donations) ? donations[ 0 ] : undefined);
+      return donations.find({ query: { noteId: from, txHash } })
+        .then(donations => (donations.data.length > 0) ? donations.data[ 0 ] : undefined);
     };
 
-    Promise.all([ this.liquidPledging.getNote(from).call(), this.liquidPledging.getNote(to).call() ])
+    Promise.all([ this.liquidPledging.getNote(from), this.liquidPledging.getNote(to) ])
       .then(([ fromNote, toNote ]) =>
         Promise.all([ noteManagers.get(fromNote.owner), noteManagers.get(toNote.owner), fromNote, toNote, getDonation() ]))
       .then(([ fromNoteManager, toNoteManager, fromNote, toNote, donation ]) => {
@@ -97,7 +112,7 @@ class Notes {
       const mutation = {
         // delegates: toNote.delegates,
         amount: amount,
-        paymentState: toNote.paymentState,
+        paymentState: this._paymentState(toNote.paymentState),
         updatedAt: ts,
         owner: toNoteManager.typeId,
         ownerType: toNoteManager.type,
@@ -133,7 +148,7 @@ class Notes {
           owner: toNoteManager.typeId,
           ownerType: toNoteManager.type,
           proposedProject: toNote.proposedProject,
-          paymentState: toNote.paymentState,
+          paymentState: this._paymentState(toNote.paymentState),
         }))
         // now that this donation has been added, we can purge the transfer queue for this noteId
         .then(() => this.queue.purge(toNoteId));
@@ -159,10 +174,19 @@ class Notes {
 
     // regular transfer
 
+  }
 
-
-
-
+  _paymentState(val) {
+    switch(val) {
+      case '0':
+        return 'NotPaid';
+      case '1':
+        return 'Paying';
+      case '2':
+        return 'Paid';
+      default:
+        return 'Unknown';
+    };
   }
 
   _getBlockTimestamp(blockNumber) {

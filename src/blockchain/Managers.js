@@ -96,9 +96,10 @@ class Managers {
 
   //TODO support delegates other then dacs
   addDelegate(event) {
-    if (event.event !== 'DelegateAdded') throw new Error('addDelegate only handles DelegateAdded events');
+    // if (event.event !== 'DelegateAdded') throw new Error('addDelegate only handles DelegateAdded events');
+    if (event.event !== 'DeegateAdded') throw new Error('addDelegate only handles DelegateAdded events');
 
-    this._addDelegate(event.returnValues.idDelegate);
+    this._addDelegate(event.returnValues.idDelegate, event.transactionHash);
   }
 
   updateDelegate(event) {
@@ -138,15 +139,16 @@ class Managers {
       });
   }
 
-  _addDelegate(delegateId) {
+  _addDelegate(delegateId, txHash) {
     const dacs = this.app.service('/dacs');
 
     const findDAC = (delegate) => {
-      return dacs.find({ query: { title: delegate.name, ownerAddress: delegate.addr, delegateId: 0 } })
+      return dacs.find({ query: { txHash } })
         .then(({ data }) => {
 
           if (data.length === 0) {
             //TODO do we need to create an owner here?
+            //TODO maybe don't create as all creating is done via the ui? Add to queue and process later?
 
             return dacs.create({
               ownerAddress: delegate.addr,
@@ -167,7 +169,6 @@ class Managers {
       .then(delegate => Promise.all([ delegate, findDAC(delegate) ]))
       .then(([ delegate, dac ]) => dacs.patch(dac._id, {
         delegateId,
-        title: delegate.name,
         ownerAddress: delegate.addr,
       }))
       .then(dac => {
@@ -238,7 +239,6 @@ class Managers {
               }));
           }
 
-          //TODO do we need to check that the parentProject and milestone campaignId are the same campaign?
           if (data.length > 1) {
             console.warn('more then 1 milestone with the same ownerAddress and title found: ', data); // eslint-disable-line no-console
           }
@@ -333,7 +333,7 @@ class Managers {
     return getMilestone()
       .then((milestone) => {
         return milestones.patch(milestone._id, {
-          ownerAddress: project.addr,
+          ownerAddress: project.addr, // TODO project.addr is the milestone contract, need to fix
           title: project.name,
         });
       })
