@@ -1,18 +1,18 @@
 import { populate } from 'feathers-hooks-common';
-import { restrictToOwner } from 'feathers-authentication-hooks';
+// import { restrictToOwner } from 'feathers-authentication-hooks';
 
 import sanitizeAddress from '../../hooks/sanitizeAddress';
 import setAddress from '../../hooks/setAddress';
 
 const restrict = [
-  restrictToOwner({
-    idField: 'address',
-    ownerField: 'ownerAddress',
-  }),
+  // restrictToOwner({
+  //   idField: 'address',
+  //   ownerField: 'ownerAddress',
+  // }),
 ];
 
 const address = [
-  sanitizeAddress('ownerAddress', { required: true, validate: true }),
+  sanitizeAddress('pluginAddress', { required: true, validate: true }),
   sanitizeAddress([ 'reviewerAddress', 'recipientAddress' ], { required: false, validate: true }),
 ];
 
@@ -43,12 +43,12 @@ const schema = {
 module.exports = {
   before: {
     all: [],
-    find: [ sanitizeAddress([ 'ownerAddress', 'reviewerAddress', 'recipientAddress' ]) ],
+    find: [ sanitizeAddress([ 'ownerAddress', 'pluginAddress', 'reviewerAddress', 'recipientAddress' ]) ],
     get: [],
     create: [ setAddress('ownerAddress'), ...address ],
     update: [ ...restrict, ...address ],
-    patch: [ ...restrict, sanitizeAddress(['ownerAddress', 'reviewerAddress', 'recipientAddress'], { validate: true }) ],
-    remove: [ sanitizeAddress([ 'ownerAddress', 'reviewerAddress', 'recipientAddress' ]), ...restrict ],
+    patch: [ ...restrict, sanitizeAddress(['pluginAddress', 'reviewerAddress', 'recipientAddress'], { validate: true }) ],
+    remove: [ sanitizeAddress([ 'pluginAddress', 'reviewerAddress', 'recipientAddress' ]), ...restrict ],
   },
 
   after: {

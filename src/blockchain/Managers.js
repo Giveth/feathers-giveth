@@ -1,3 +1,5 @@
+import LPPMilestone from 'lpp-milestone';
+
 const BreakSignal = () => {
 };
 
@@ -183,17 +185,21 @@ class Managers {
     if (event.event !== 'ProjectAdded') throw new Error('addProject only handles ProjectAdded events');
 
     const projectId = event.returnValues.idProject;
+    const { txHash } = event;
 
     // we make the assumption that if there is a plugin, then the project is a milestone, otherwise it is a campaign
     return this.liquidPledging.getNoteManager(projectId)
       .then(project => {
-        return (project.plugin) ? this._addMilestone(project, projectId) : this._addCampaign(project, projectId);
+        console.log('project ->', project);
+        return (project.plugin !== '0x0000000000000000000000000000000000000000') ? this._addMilestone(project, projectId, txHash) : this._addCampaign(project, projectId, txHash);
       });
   }
 
-  _addMilestone(project, projectId) {
+  _addMilestone(project, projectId, txHash) {
     const milestones = this.app.service('/milestones');
     const campaigns = this.app.service('/campaigns');
+
+    const lppMilestone = new LPPMilestone(this.web3, project.plugin);
 
     // get_or_create campaign by projectId
     const findCampaign = (campaignProjectId) => {
@@ -206,7 +212,7 @@ class Managers {
 
             return this.liquidPledging.getNoteManager(campaignProjectId)
               .then(campaignProject => campaigns.create({
-                ownerAddress: campaignProject.ownerAddress,
+                ownerAddress: campaignProject.addr,
                 title: campaignProject.name,
                 projectId: campaignProjectId,
               }))
@@ -221,10 +227,9 @@ class Managers {
         });
     };
 
-    // TODO this needs to be updated. project.addr will be the plugin. we need to track this, and set ownerAddress to LPPMilestone owner
     // get_or_create milestone by title and ownerAddress
     const findMilestone = () => {
-      return milestones.find({ query: { title: project.name, ownerAddress: project.addr, projectId: 0 } })
+      return milestones.find({ query: { txHash } })
         .then(({ data }) => {
 
           if (data.length === 0) {
@@ -232,7 +237,8 @@ class Managers {
 
             return findCampaign(project.parentProject)
               .then(campaignId => milestones.create({
-                ownerAddress: project.addr,
+                ownerAddress: project.addr, // TODO fix this, project.addr will be the plugin, but LPPMilestone currently doesn't have an owner
+                pluginAddress: project.plugin,
                 title: project.name,
                 description: '',
                 campaignId,
@@ -240,18 +246,23 @@ class Managers {
           }
 
           if (data.length > 1) {
-            console.warn('more then 1 milestone with the same ownerAddress and title found: ', data); // eslint-disable-line no-console
+            console.warn('more then 1 milestone with the same txHash found: ', data); // eslint-disable-line no-console
           }
 
           return data[ 0 ];
         });
     };
 
-    return findMilestone()
-      .then((milestone) => milestones.patch(milestone._id, {
+    return Promise.all([ findMilestone(), lppMilestone.maxAmount(), lppMilestone.reviewer(), lppMilestone.recipient() ])
+      .then(([ milestone, maxAmount, reviewer, recipient ]) => milestones.patch(milestone._id, {
         projectId,
+        maxAmount,
+        reviewerAddress: reviewer,
+        recipientAddress: recipient,
         title: project.name,
-        ownerAddress: project.addr,
+        ownerAddress: recipient, //TODO remove this?
+        accepted: false,
+        canceled: false
       }))
       .then(milestone => {
         this._addNoteManager(projectId, 'milestones', milestone._id)
