@@ -185,12 +185,11 @@ class Managers {
     if (event.event !== 'ProjectAdded') throw new Error('addProject only handles ProjectAdded events');
 
     const projectId = event.returnValues.idProject;
-    const { txHash } = event;
+    const txHash = event.transactionHash;
 
     // we make the assumption that if there is a plugin, then the project is a milestone, otherwise it is a campaign
     return this.liquidPledging.getNoteManager(projectId)
       .then(project => {
-        console.log('project ->', project);
         return (project.plugin !== '0x0000000000000000000000000000000000000000') ? this._addMilestone(project, projectId, txHash) : this._addCampaign(project, projectId, txHash);
       });
   }
