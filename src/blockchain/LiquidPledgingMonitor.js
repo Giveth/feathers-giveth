@@ -19,7 +19,7 @@ export default class {
     this.model = createModel(app);
 
     if (opts.startingBlock && opts.startingBlock !== 0) {
-      defaultConfig.lastBlock = opts.startingBlock;
+      defaultConfig.lastBlock = opts.startingBlock - 1;
     }
   }
 
@@ -38,7 +38,7 @@ export default class {
    * @private
    */
   _startListeners() {
-    this.contract.events.allEvents({ fromBlock: this.config.lastBlock + 1 || 0 })
+    this.contract.events.allEvents({ fromBlock: this.config.lastBlock + 1 || 1 })
       .on('data', this._handleEvent.bind(this))
       .on('changed', (event) => {
         // I think this is emitted when a chain reorg happens and the tx has been removed
