@@ -119,7 +119,7 @@ export class Web3Challenger {
     };
 
     this.service.get(address)
-      .then(returnPayload)
+      .then(user => returnPayload(user, !(user.name))) // assuming this is a newUser if no name has been set
       .catch(err => {
         if (err.name === 'NotFound') {
           this.service.create({ address })
