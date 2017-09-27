@@ -141,7 +141,7 @@ class Managers {
       });
   }
 
-  _addDelegate(delegateId, txHash) {
+  _addDelegate(delegateId, txHash, retry = false) {
     const dacs = this.app.service('/dacs');
 
     const findDAC = (delegate) => {
@@ -149,8 +149,14 @@ class Managers {
         .then(({ data }) => {
 
           if (data.length === 0) {
+            if (!retry) {
+              // this is really only useful when instant mining. Other then that, the dac should always be
+              // created before the tx was mined.
+              setTimeout(() => this._addDelegate(delegateId, txHash, true), 5000);
+              throw new BreakSignal();
+            }
             //TODO do we need to create an owner here?
-            //TODO maybe don't create as all creating is done via the ui? Add to queue and process later?
+            //TODO maybe don't create new dac as all creating is done via the ui? Do we want to show delegates added not via the ui?
 
             return dacs.create({
               ownerAddress: delegate.addr,
@@ -177,7 +183,10 @@ class Managers {
         this._addNoteManager(delegateId, 'dacs', dac._id)
           .then(() => dac);
       })
-      .catch(err => console.error('_addDelegate error ->', err)); //eslint-disable-line no-console
+      .catch(err => {
+        if (err instanceof BreakSignal) return;
+        console.error('_addDelegate error ->', err); //eslint-disable-line no-console
+      });
   }
 
 
@@ -194,7 +203,7 @@ class Managers {
       });
   }
 
-  _addMilestone(project, projectId, txHash) {
+  _addMilestone(project, projectId, txHash, retry = false) {
     const milestones = this.app.service('/milestones');
     const campaigns = this.app.service('/campaigns');
 
@@ -232,6 +241,12 @@ class Managers {
         .then(({ data }) => {
 
           if (data.length === 0) {
+            if (!retry) {
+              // this is really only useful when instant mining. Other then that, the milestone should always be
+              // created before the tx was mined.
+              setTimeout(() => this._addMilestone(project, projectId, txHash, true), 5000);
+              throw new BreakSignal();
+            }
             //TODO do we need to create an owner here?
 
             return findCampaign(project.parentProject)
@@ -267,19 +282,29 @@ class Managers {
         this._addNoteManager(projectId, 'milestones', milestone._id)
           .then(() => milestone);
       })
-      .catch(err => console.error('_addMilestone error ->', err)); //eslint-disable-line no-console
+      .catch(err => {
+        if (err instanceof BreakSignal) return;
+        console.error('_addMilestone error ->', err); //eslint-disable-line no-console
+      });
   }
 
-  _addCampaign(project, projectId) {
+  _addCampaign(project, projectId, txHash, retry = false) {
     const campaigns = this.app.service('/campaigns');
 
     // get_or_create campaign by title and ownerAddress
     const findCampaign = () => {
-      return campaigns.find({ query: { title: project.name, ownerAddress: project.addr, projectId: 0 } })
+      return campaigns.find({ query: { txHash } })
         .then(({ data }) => {
 
           // create a campaign if necessary
           if (data.length === 0) {
+            if (!retry) {
+              // this is really only useful when instant mining. Other then that, the campaign should always be
+              // created before the tx was mined.
+              setTimeout(() => this._addCampaign(project, projectId, txHash, true), 5000);
+              throw new BreakSignal();
+            }
+
             return campaigns.create({
               ownerAddress: project.addr,
               title: project.name,
@@ -305,7 +330,10 @@ class Managers {
         this._addNoteManager(projectId, 'campaigns', campaign._id)
           .then(() => campaign);
       })
-      .catch(err => console.error('_addCampaign error ->', err)); //eslint-disable-line no-console
+      .catch(err => {
+        if (err instanceof BreakSignal) return;
+        console.error('_addCampaign error ->', err); //eslint-disable-line no-console
+      });
   }
 
   updateProject(event) {
