@@ -13,6 +13,7 @@ async function deploy() {
 
   console.log('vaultAddress: ', vault.$address);
   console.log('liquidPledgingAddress: ', liquidPledging.$address);
+  process.exit();  // some reason, this script won't exit. I think it has to do with web3 subscribing to tx confirmations?
 }
 
 deploy();
