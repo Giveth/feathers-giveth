@@ -89,7 +89,7 @@ class Managers {
         return users.patch(user.address, { commitTime, name, donorId: donorId });
       })
       .then(user => {
-        this._addNoteManager(donorId, 'users', user.address)
+        this._addNoteManager(donorId, 'donor', user.address)
           .then(() => user);
       })
       .catch(err => console.error('_addDonor error ->', err));
@@ -180,7 +180,7 @@ class Managers {
         ownerAddress: delegate.addr,
       }))
       .then(dac => {
-        this._addNoteManager(delegateId, 'dacs', dac._id)
+        this._addNoteManager(delegateId, 'dac', dac._id)
           .then(() => dac);
       })
       .catch(err => {
@@ -276,10 +276,10 @@ class Managers {
         title: project.name,
         ownerAddress: recipient, //TODO remove this?
         accepted: false,
-        canceled: false
+        canceled: false,
       }))
       .then(milestone => {
-        this._addNoteManager(projectId, 'milestones', milestone._id)
+        this._addNoteManager(projectId, 'milestone', milestone._id)
           .then(() => milestone);
       })
       .catch(err => {
@@ -327,7 +327,7 @@ class Managers {
         ownerAddress: project.addr,
       }))
       .then(campaign => {
-        this._addNoteManager(projectId, 'campaigns', campaign._id)
+        this._addNoteManager(projectId, 'campaign', campaign._id)
           .then(() => campaign);
       })
       .catch(err => {
@@ -416,7 +416,7 @@ class Managers {
 
 
   _addNoteManager(id, type, typeId) {
-    const noteManagers = this.app.service('/noteManagers');
+    const noteManagers = this.app.service('noteManagers');
 
     return noteManagers.create({ id, type, typeId })
       .catch(err => {

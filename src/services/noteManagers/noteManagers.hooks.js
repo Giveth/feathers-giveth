@@ -3,7 +3,13 @@ import onlyInternal from '../../hooks/onlyInternal';
 
 const populateManager = () => (context) => {
   const fetchManager = (item) => {
-    const service = context.app.service(item.type);
+    let serviceName;
+    if (item.type === 'donor') serviceName = 'users';
+    else if (item.type === 'dac') serviceName = 'dacs';
+    else if (item.type === 'campaign') serviceName = 'campaigns';
+    else if (item.type === 'milestone') serviceName = 'milestones';
+
+    const service = context.app.service(serviceName);
     return service.get(item.typeId);
   };
 

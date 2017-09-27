@@ -1,5 +1,8 @@
 import TransferQueue from './TransferQueue';
 
+const BreakSignal = () => {
+};
+
 class Notes {
   constructor(app, liquidPledging) {
     this.app = app;
@@ -30,32 +33,44 @@ class Notes {
 
     const findDonation = () => donations.find({ query: { txHash } })
       .then(resp => {
-        return (resp.data.length > 0) ? resp.data[0] : undefined;
+        return (resp.data.length > 0) ? resp.data[ 0 ] : undefined;
       });
 
     this.liquidPledging.getNote(noteId)
       .then((note) => Promise.all([ noteManagers.get(note.owner), note, findDonation() ]))
       .then(([ donor, note, donation ]) => {
-        if (!donation)  {
-          if (retry) throw new Error(`no donation found w/ txHash -> ${txHash}`);
-
-          // this is really only useful when instant mining. Other then that, the donotation should always be
-          // created before the tx was mined.
-          setTimeout(() => this._newDonation(noteId, amount, ts, txHash, true), 5000);
-        }
-
-        return donations.patch(donation._id, {
+        const mutation = {
           donorAddress: donor.manager.address, // donor is a user
           amount,
           noteId,
           createdAt: ts,
-          owner: donor.typeId,
+          owner: note.owner,
+          ownerId: donor.typeId,
           ownerType: donor.type,
+          status: 'waiting', // waiting for delegation by owner or delegate
           paymentState: this._paymentState(note.paymentState),
-        });
+        };
+
+        if (!donation) {
+          // do we need to add type & typeId here? I don't think so as a new donation will always be immediately followed
+          // by a transfer event which we can set the type there
+          if (retry) return donations.create(Object.assign(mutation, { txHash }));
+
+          // this is really only useful when instant mining. Other then that, the donotation should always be
+          // created before the tx was mined.
+          setTimeout(() => this._newDonation(noteId, amount, ts, txHash, true), 5000);
+          throw new BreakSignal();
+        }
+
+        return donations.patch(donation._id, mutation);
       })
       // now that this donation has been added, we can purge the transfer queue for this noteId
-      .then(() => this.queue.purge(noteId));
+      .then(() => this.queue.purge(noteId))
+      .catch((err) => {
+        if (err instanceof BreakSignal) return;
+        console.error(err); // eslint-disable-line no-console
+      });
+
   }
 
   _transfer(from, to, amount, ts, txHash) {
@@ -68,9 +83,36 @@ class Notes {
     };
 
     Promise.all([ this.liquidPledging.getNote(from), this.liquidPledging.getNote(to) ])
-      .then(([ fromNote, toNote ]) =>
-        Promise.all([ noteManagers.get(fromNote.owner), noteManagers.get(toNote.owner), fromNote, toNote, getDonation() ]))
-      .then(([ fromNoteManager, toNoteManager, fromNote, toNote, donation ]) => {
+      .then(([ fromNote, toNote ]) => {
+        const promises = [
+          noteManagers.get(fromNote.owner),
+          noteManagers.get(toNote.owner),
+          fromNote,
+          toNote,
+          getDonation(),
+        ];
+
+        // In lp any delegate in the chain can delegate (bug prevents that currently), but we only want the last delegate
+        // to have that ability
+        if (toNote.nDelegates > 0) {
+          promises.push(
+            this.liquidPledging.getNoteDelegate(to, toNote.nDelegates)
+              .then(delegate => noteManagers.get(delegate.idDelegate))
+          );
+        } else {
+          promises.push(undefined);
+        }
+
+        // fetch proposedProject noteManager
+        if (toNote.proposedProject > 0) {
+          promises.push(noteManagers.get(toNote.proposedProject));
+        } else {
+          promises.push(undefined);
+        }
+
+        return Promise.all(promises);
+      })
+      .then(([ fromNoteManager, toNoteManager, fromNote, toNote, donation, delegate, proposedProject ]) => {
 
         const transferInfo = {
           fromNoteManager,
@@ -78,9 +120,11 @@ class Notes {
           fromNote,
           toNote,
           toNoteId: to,
+          delegate,
+          proposedProject,
           donation,
           amount,
-          ts
+          ts,
         };
 
         if (donation) return this._doTransfer(transferInfo);
@@ -92,7 +136,7 @@ class Notes {
             .then(d => {
               transferInfo.donation = d;
               return this._doTransfer(transferInfo);
-            })
+            }),
         );
 
       })
@@ -101,7 +145,12 @@ class Notes {
 
   _doTransfer(transferInfo) {
     const donations = this.app.service('donations');
-    const { fromNoteManager, toNoteManager, fromNote, toNote, toNoteId, donation, amount, ts } = transferInfo;
+    const { fromNoteManager, toNoteManager, fromNote, toNote, toNoteId, delegate, proposedProject, donation, amount, ts } = transferInfo;
+
+    let status;
+    if (proposedProject) status = 'to_approve';
+    else if (toNoteManager.type === 'user' || delegate) status = 'waiting';
+    else status = 'committed';
 
     if (donation.amount === amount) {
       // this is a transfer
@@ -111,20 +160,29 @@ class Notes {
 
       const mutation = {
         // delegates: toNote.delegates,
-        amount: amount,
+        amount,
         paymentState: this._paymentState(toNote.paymentState),
         updatedAt: ts,
-        owner: toNoteManager.typeId,
+        owner: toNote.owner,
+        ownerId: toNoteManager.typeId,
         ownerType: toNoteManager.type,
         proposedProject: toNote.proposedProject,
-        noteId: toNoteId
+        noteId: toNoteId,
+        status,
       };
 
-      // In lp any delegate in the chain can delegate (bug prevents that currently), but we only want the last delegate
-      // to have that ability
-      if (toNote.delegates) {
-        // only last delegate in chain can delegate?
-        mutation.delegateId = toNote.delegates[ toNote.delegates.length - 1 ];
+      if (proposedProject) {
+        Object.assign(mutation, {
+          proposedProjectId: proposedProject.typeId,
+          proposedProjectType: proposedProject.type,
+        });
+      }
+
+      if (delegate) {
+        Object.assign(mutation, {
+          delegate: delegate.id,
+          delegateId: delegate.typeId,
+        });
       }
 
       //TODO donationHistory entry
@@ -138,8 +196,9 @@ class Notes {
 
       //TODO donationHistory entry
       donations.patch(donation._id, {
-        amount: donation.amount - amount
-      })
+          amount: donation.amount - amount,
+        })
+        //TODO update this
         .then(() => donations.create({
           donorAddress: donation.donorAddress,
           amount,
@@ -177,7 +236,7 @@ class Notes {
   }
 
   _paymentState(val) {
-    switch(val) {
+    switch (val) {
       case '0':
         return 'NotPaid';
       case '1':
@@ -186,7 +245,7 @@ class Notes {
         return 'Paid';
       default:
         return 'Unknown';
-    };
+    }
   }
 
   _getBlockTimestamp(blockNumber) {

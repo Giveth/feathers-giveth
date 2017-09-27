@@ -4,7 +4,7 @@ import commons from 'feathers-hooks-common';
 import { restrictToOwner } from 'feathers-authentication-hooks';
 
 import sanitizeAddress from '../../hooks/sanitizeAddress';
-import setAddress from "../../hooks/setAddress";
+import setAddress from '../../hooks/setAddress';
 
 // const restrict = [
 //   restrictToOwner({
@@ -49,26 +49,27 @@ const updateType = () => {
   return context => {
     const { data } = context;
 
-    let service;
-    switch (data.type.toLowerCase()) {
-      case 'dac': {
-        service = context.app.service('dacs');
-        break;
-      }
-      case 'campaign': {
-        service = context.app.service('campaigns');
-        break;
-      }
-      case 'milestone': {
-        service = context.app.service('milestones');
-        break;
-      }
-      default: {
-        throw new errors.BadRequest('Invalid type. Must be one of [\'dac\', \'campaign\', \'milestone\'].');
-      }
+    let serviceName;
+    let id;
+
+    // TODO need to update this logic to handle delegations/undelegations/cancelations etc.
+    if (data.ownerType.toLowerCase() === 'campaign') {
+      serviceName = 'campaigns';
+      id = data.ownerId;
+    }
+    else if (data.ownerType.toLowerCase() === 'milestone') {
+      serviceName = 'milestone';
+      id = data.ownerId;
+    } else if (data.delegate) {
+      serviceName = 'dacs';
+      id = data.delegateId;
     }
 
-    return service.get(data.type_id)
+    const service = context.app.service(serviceName);
+
+    if (!service) return;
+
+    return service.get(id)
       .then(entity => {
         let totalDonated = entity.totalDonated || 0;
         let donationCount = entity.donationCount || 0;
@@ -102,8 +103,19 @@ const poSchemas = {
       {
         service: 'campaigns',
         nameAs: 'campaign',
-        parentField: 'type_id',
+        parentField: 'ownerId',
         childField: '_id',
+        useInnerPopulate: true,
+      },
+    ],
+  },
+  'po-campaign-proposed': {
+    include: [
+      {
+        service: 'campaigns',
+        nameAs: 'campaign',
+        parentField: 'proposedProject',
+        childField: 'projectId',
         useInnerPopulate: true,
       },
     ],
@@ -113,7 +125,7 @@ const poSchemas = {
       {
         service: 'dacs',
         nameAs: 'dac',
-        parentField: 'type_id',
+        parentField: 'delegateId',
         childField: '_id',
         useInnerPopulate: true,
       },
@@ -124,20 +136,35 @@ const poSchemas = {
       {
         service: 'milestones',
         nameAs: 'milestone',
-        parentField: 'type_id',
+        parentField: 'ownerId',
         childField: '_id',
+        useInnerPopulate: true,
+      },
+    ],
+  },
+  'po-milestone-proposed': {
+    include: [
+      {
+        service: 'milestones',
+        nameAs: 'milestone',
+        parentField: 'proposedProject',
+        childField: 'projectId',
         useInnerPopulate: true,
       },
     ],
   },
 };
 
-const joinType = (item, context, schema) => {
+const joinDonationRecipient = (item, context) => {
+  let schema;
   const newContext = Object.assign({}, context, { result: item });
+
+  if (item.delegate) schema = poSchemas[ 'po-dac' ];
+  else if (item.proposedProject > 0) schema = poSchemas[ `po-${item.proposedProjectType.toLowerCase()}-proposed` ];
+  else schema = poSchemas[ `po-${item.ownerType.toLowerCase()}` ];
 
   return commons.populate({ schema })(newContext)
     .then(context => context.result);
-
 };
 
 const populateSchema = () => {
@@ -153,8 +180,7 @@ const populateSchema = () => {
 
 
       if (Array.isArray(items)) {
-        const promises = [];
-        items.forEach(item => promises.push(joinType(item, context, poSchemas[ `po-${item.type}` ])));
+        const promises = items.map(item => joinDonationRecipient(item, context));
 
         return Promise.all(promises)
           .then(results => {
@@ -162,7 +188,7 @@ const populateSchema = () => {
             return context;
           });
       } else {
-        return joinType(items, context, poSchemas[ `po-${items.type}` ])
+        return joinDonationRecipient(items, context)
           .then(result => {
             commons.replaceItems(context, result);
             return context;
