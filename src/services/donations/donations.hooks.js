@@ -172,7 +172,11 @@ const populateSchema = () => {
 
     if (context.params.schema === 'includeDonorDetails') {
       return commons.populate({ schema: poSchemas[ 'po-donor' ] })(context);
-    } else if (context.params.schema === 'includeTypeDetails') {
+    } else if ([ 'includeTypeDetails', 'includeTypeAndDonorDetails' ].includes(context.params.schema)) {
+      if (context.params.schema === 'includeTypeAndDonorDetails') {
+        commons.populate({ schema: poSchemas[ 'po-donor' ] })(context);
+      }
+
       const items = commons.getItems(context);
 
       // items may be undefined if we are removing by id;
