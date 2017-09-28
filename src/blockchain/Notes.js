@@ -151,13 +151,9 @@ class Notes {
     else status = 'committed';
 
     if (donation.amount === amount) {
-      // this is a transfer
-
-      // if (fromNote.owner === toNote.owner) {
-      // this is a delegation
+      // this is a complete note transfer
 
       const mutation = {
-        // delegates: toNote.delegates,
         amount,
         paymentState: this._paymentState(toNote.paymentState),
         updatedAt: ts,
@@ -166,7 +162,7 @@ class Notes {
         ownerType: toNoteManager.type,
         proposedProject: toNote.proposedProject,
         noteId: toNoteId,
-        commitTime: new Date(toNote.commitTime * 1000),
+        commitTime: (toNote.commitTime) ? new Date(toNote.commitTime * 1000) : ts,
         status,
       };
 
@@ -177,6 +173,16 @@ class Notes {
         });
       }
 
+      if (!proposedProject && donation.proposedProject) {
+        Object.assign(mutation, {
+          $unset: {
+            proposedProject: true,
+            proposedProjectId: true,
+            proposedProjectType: true
+          }
+        });
+      }
+
       if (delegate) {
         Object.assign(mutation, {
           delegate: delegate.id,
@@ -184,12 +190,21 @@ class Notes {
         });
       }
 
+      if (!delegate && donation.delegate) {
+        Object.assign(mutation, {
+          $unset: {
+            delegate: true,
+            delegateId: true,
+            delegateType: true
+          }
+        });
+      }
+
+      console.log('donation ->', donation);
+      console.log('mutation ->', mutation);
       //TODO donationHistory entry
       donations.patch(donation._id, mutation)
         .then(this._updateDonationHistory(transferInfo));
-
-      return;
-      // }
     } else {
       // this is a split
 
