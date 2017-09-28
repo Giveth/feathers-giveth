@@ -52,11 +52,9 @@ class Notes {
         };
 
         if (!donation) {
-          // do we need to add type & typeId here? I don't think so as a new donation will always be immediately followed
-          // by a transfer event which we can set the type there
           if (retry) return donations.create(Object.assign(mutation, { txHash }));
 
-          // this is really only useful when instant mining. Other then that, the donotation should always be
+          // this is really only useful when instant mining. Other then that, the donation should always be
           // created before the tx was mined.
           setTimeout(() => this._newDonation(noteId, amount, ts, txHash, true), 5000);
           throw new BreakSignal();
@@ -168,6 +166,7 @@ class Notes {
         ownerType: toNoteManager.type,
         proposedProject: toNote.proposedProject,
         noteId: toNoteId,
+        commitTime: new Date(toNote.commitTime * 1000),
         status,
       };
 
@@ -195,22 +194,22 @@ class Notes {
       // this is a split
 
       //TODO donationHistory entry
-      donations.patch(donation._id, {
-          amount: donation.amount - amount,
-        })
-        //TODO update this
-        .then(() => donations.create({
-          donorAddress: donation.donorAddress,
-          amount,
-          toNoteId,
-          createdAt: ts,
-          owner: toNoteManager.typeId,
-          ownerType: toNoteManager.type,
-          proposedProject: toNote.proposedProject,
-          paymentState: this._paymentState(toNote.paymentState),
-        }))
-        // now that this donation has been added, we can purge the transfer queue for this noteId
-        .then(() => this.queue.purge(toNoteId));
+      // donations.patch(donation._id, {
+      //     amount: donation.amount - amount,
+      //   })
+      //   //TODO update this
+      //   .then(() => donations.create({
+      //     donorAddress: donation.donorAddress,
+      //     amount,
+      //     toNoteId,
+      //     createdAt: ts,
+      //     owner: toNoteManager.typeId,
+      //     ownerType: toNoteManager.type,
+      //     proposedProject: toNote.proposedProject,
+      //     paymentState: this._paymentState(toNote.paymentState),
+      //   }))
+      //   // now that this donation has been added, we can purge the transfer queue for this noteId
+      //   .then(() => this.queue.purge(toNoteId));
     }
 
   }
