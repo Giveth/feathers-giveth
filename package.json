@@ -72,7 +72,7 @@
     "babel-watch": "^2.0.7",
     "eslint": "^4.3.0",
     "lerna": "^2.2.0",    
-    "ethereumjs-testrpc": "git://github.com/perissology/testrpc.git#ws",
+    "ethereumjs-testrpc": "git://github.com/perissology/testrpc.git#81216dbc",
     "mocha": "^3.5.0",
     "request": "^2.81.0",
     "request-promise": "^4.2.1"

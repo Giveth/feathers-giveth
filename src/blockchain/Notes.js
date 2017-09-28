@@ -66,6 +66,14 @@ class Notes {
       .then(() => this.queue.purge(noteId))
       .catch((err) => {
         if (err instanceof BreakSignal) return;
+        if (err.name === 'NotFound') {
+          // most likely the from noteManager hasn't been registered yet.
+          // this can happen b/c when donating in liquidPledging, if the donorId === 0, the donate method will create a
+          // donor. Thus the tx will emit 3 events. AddDonor, and 2 x Transfer. Since these are processed asyncrounously
+          // calling noteManagers.get(from) could result in a 404 as the AddDonor event hasn't finished processing
+          setTimeout(() => this._newDonation(noteId, amount, ts, txHash, true), 5000);
+          return;
+        }
         console.error(err); // eslint-disable-line no-console
       });
 
@@ -138,7 +146,21 @@ class Notes {
         );
 
       })
-      .catch(console.error);
+      .catch((err) => {
+        if (err.name === 'NotFound') {
+          // most likely the from noteManager hasn't been registered yet.
+          // this can happen b/c when donating in liquidPledging, if the donorId === 0, the donate method will create a
+          // donor. Thus the tx will emit 3 events. AddDonor, and 2 x Transfer. Since these are processed asyncrounously
+          // calling noteManagers.get(from) could result in a 404 as the AddDonor event hasn't finished processing
+          console.log('adding to queue, missing noteManager fromNoteId:', from)
+          this.queue.add(
+            from,
+            () => this._transfer(from, to, amount, ts, txHash)
+          );
+          return;
+        }
+      console.error
+      });
   }
 
   _doTransfer(transferInfo) {
