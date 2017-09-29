@@ -98,8 +98,7 @@ class Managers {
 
   //TODO support delegates other then dacs
   addDelegate(event) {
-    // if (event.event !== 'DelegateAdded') throw new Error('addDelegate only handles DelegateAdded events');
-    if (event.event !== 'DeegateAdded') throw new Error('addDelegate only handles DelegateAdded events');
+    if (event.event !== 'DelegateAdded') throw new Error('addDelegate only handles DelegateAdded events');
 
     this._addDelegate(event.returnValues.idDelegate, event.transactionHash);
   }

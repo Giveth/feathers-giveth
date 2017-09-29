@@ -52,11 +52,9 @@ class Notes {
         };
 
         if (!donation) {
-          // do we need to add type & typeId here? I don't think so as a new donation will always be immediately followed
-          // by a transfer event which we can set the type there
           if (retry) return donations.create(Object.assign(mutation, { txHash }));
 
-          // this is really only useful when instant mining. Other then that, the donotation should always be
+          // this is really only useful when instant mining. Other then that, the donation should always be
           // created before the tx was mined.
           setTimeout(() => this._newDonation(noteId, amount, ts, txHash, true), 5000);
           throw new BreakSignal();
@@ -68,6 +66,14 @@ class Notes {
       .then(() => this.queue.purge(noteId))
       .catch((err) => {
         if (err instanceof BreakSignal) return;
+        if (err.name === 'NotFound') {
+          // most likely the from noteManager hasn't been registered yet.
+          // this can happen b/c when donating in liquidPledging, if the donorId === 0, the donate method will create a
+          // donor. Thus the tx will emit 3 events. AddDonor, and 2 x Transfer. Since these are processed asyncrounously
+          // calling noteManagers.get(from) could result in a 404 as the AddDonor event hasn't finished processing
+          setTimeout(() => this._newDonation(noteId, amount, ts, txHash, true), 5000);
+          return;
+        }
         console.error(err); // eslint-disable-line no-console
       });
 
@@ -140,7 +146,21 @@ class Notes {
         );
 
       })
-      .catch(console.error);
+      .catch((err) => {
+        if (err.name === 'NotFound') {
+          // most likely the from noteManager hasn't been registered yet.
+          // this can happen b/c when donating in liquidPledging, if the donorId === 0, the donate method will create a
+          // donor. Thus the tx will emit 3 events. AddDonor, and 2 x Transfer. Since these are processed asyncrounously
+          // calling noteManagers.get(from) could result in a 404 as the AddDonor event hasn't finished processing
+          console.log('adding to queue, missing noteManager fromNoteId:', from)
+          this.queue.add(
+            from,
+            () => this._transfer(from, to, amount, ts, txHash)
+          );
+          return;
+        }
+      console.error
+      });
   }
 
   _doTransfer(transferInfo) {
@@ -153,13 +173,9 @@ class Notes {
     else status = 'committed';
 
     if (donation.amount === amount) {
-      // this is a transfer
-
-      // if (fromNote.owner === toNote.owner) {
-      // this is a delegation
+      // this is a complete note transfer
 
       const mutation = {
-        // delegates: toNote.delegates,
         amount,
         paymentState: this._paymentState(toNote.paymentState),
         updatedAt: ts,
@@ -168,6 +184,7 @@ class Notes {
         ownerType: toNoteManager.type,
         proposedProject: toNote.proposedProject,
         noteId: toNoteId,
+        commitTime: (toNote.commitTime) ? new Date(toNote.commitTime * 1000) : ts,
         status,
       };
 
@@ -178,6 +195,16 @@ class Notes {
         });
       }
 
+      if (!proposedProject && donation.proposedProject) {
+        Object.assign(mutation, {
+          $unset: {
+            proposedProject: true,
+            proposedProjectId: true,
+            proposedProjectType: true
+          }
+        });
+      }
+
       if (delegate) {
         Object.assign(mutation, {
           delegate: delegate.id,
@@ -185,32 +212,41 @@ class Notes {
         });
       }
 
+      if (!delegate && donation.delegate) {
+        Object.assign(mutation, {
+          $unset: {
+            delegate: true,
+            delegateId: true,
+            delegateType: true
+          }
+        });
+      }
+
+      console.log('donation ->', donation);
+      console.log('mutation ->', mutation);
       //TODO donationHistory entry
       donations.patch(donation._id, mutation)
         .then(this._updateDonationHistory(transferInfo));
-
-      return;
-      // }
     } else {
       // this is a split
 
       //TODO donationHistory entry
-      donations.patch(donation._id, {
-          amount: donation.amount - amount,
-        })
-        //TODO update this
-        .then(() => donations.create({
-          donorAddress: donation.donorAddress,
-          amount,
-          toNoteId,
-          createdAt: ts,
-          owner: toNoteManager.typeId,
-          ownerType: toNoteManager.type,
-          proposedProject: toNote.proposedProject,
-          paymentState: this._paymentState(toNote.paymentState),
-        }))
-        // now that this donation has been added, we can purge the transfer queue for this noteId
-        .then(() => this.queue.purge(toNoteId));
+      // donations.patch(donation._id, {
+      //     amount: donation.amount - amount,
+      //   })
+      //   //TODO update this
+      //   .then(() => donations.create({
+      //     donorAddress: donation.donorAddress,
+      //     amount,
+      //     toNoteId,
+      //     createdAt: ts,
+      //     owner: toNoteManager.typeId,
+      //     ownerType: toNoteManager.type,
+      //     proposedProject: toNote.proposedProject,
+      //     paymentState: this._paymentState(toNote.paymentState),
+      //   }))
+      //   // now that this donation has been added, we can purge the transfer queue for this noteId
+      //   .then(() => this.queue.purge(toNoteId));
     }
 
   }
