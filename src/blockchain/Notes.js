@@ -222,8 +222,6 @@ class Notes {
         });
       }
 
-      console.log('donation ->', donation);
-      console.log('mutation ->', mutation);
       //TODO donationHistory entry
       donations.patch(donation._id, mutation)
         .then(this._updateDonationHistory(transferInfo));
@@ -255,13 +253,24 @@ class Notes {
     const donationsHistory = this.app.service('donations/:donationId/history');
     const { fromNoteManager, toNoteManager, fromNote, toNote, toNoteId, donation, amount, ts } = transferInfo;
 
-    if (toNote.paymentStatus === 'Paying' || toNote.paymentStatus === 'Paid') {
-      // payment has been initiated/completed in vault
+    // only handling new donations for now
+    if (fromNoteManager.type === 'donor') {
       return donationsHistory.create({
-        status: (toNote.paymentStatus === 'Paying') ? 'Payment Initiated' : 'Payment Completed',
+        ownerId: toNoteManager.typeId,
+        ownerType: toNoteManager.type,
         createdAt: ts,
-      }, { donationId: donation._id });
+        amount,
+        txHash: donation.txHash,
+        donationId: donation._id
+      })
     }
+    // if (toNote.paymentStatus === 'Paying' || toNote.paymentStatus === 'Paid') {
+    //   // payment has been initiated/completed in vault
+    //   return donationsHistory.create({
+    //     status: (toNote.paymentStatus === 'Paying') ? 'Payment Initiated' : 'Payment Completed',
+    //     createdAt: ts,
+    //   }, { donationId: donation._id });
+    // }
 
     // canceled payment from vault
 
