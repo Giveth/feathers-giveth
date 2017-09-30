@@ -250,19 +250,30 @@ class Notes {
   }
 
   _updateDonationHistory(transferInfo) {
-    const donationsHistory = this.app.service('donations/:donationId/history');
-    const { fromNoteManager, toNoteManager, fromNote, toNote, toNoteId, donation, amount, ts } = transferInfo;
+    const donationsHistory = this.app.service('donations/history');
+    const { fromNoteManager, toNoteManager, fromNote, toNote, toNoteId, delegate, proposedProject, donation, amount, ts } = transferInfo;
 
+    console.log(fromNote);
+    console.log(toNote);
     // only handling new donations for now
-    if (fromNoteManager.type === 'donor') {
-      return donationsHistory.create({
+    if (fromNote.oldNote === '0' && toNote.nDelegates === '1' && toNote.proposedProject === '0') {
+      const history = {
         ownerId: toNoteManager.typeId,
         ownerType: toNoteManager.type,
         createdAt: ts,
         amount,
         txHash: donation.txHash,
-        donationId: donation._id
-      })
+        donationId: donation._id,
+      };
+
+      if (delegate) {
+        Object.assign(history, {
+          delegateType: delegate.type,
+          delegateId: delegate.typeId,
+        });
+      }
+
+      return donationsHistory.create(history);
     }
     // if (toNote.paymentStatus === 'Paying' || toNote.paymentStatus === 'Paid') {
     //   // payment has been initiated/completed in vault

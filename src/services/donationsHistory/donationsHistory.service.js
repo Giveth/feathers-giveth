@@ -1,39 +1,9 @@
-// Initializes the `donationsHistory` service on path `/donations/:id/history`
-import { Service } from 'feathers-nedb';
-import errors from 'feathers-errors';
+// Initializes the `donationsHistory` service on path `/donations/:donationId/history` and `/donationHistory`
+import createService from 'feathers-nedb';
 import createModel from '../../models/donationsHistory.model';
 import hooks from './donationsHistory.hooks';
+
 import filters from './donationsHistory.filters';
-
-class DonationsHistoryService extends Service {
-
-  create(data, params) {
-    data.donationId = params.donationId;
-    return super.create(data, params);
-  }
-
-  find(query, params) {
-    query.donationId = params.donationId;
-    return super.find(query, params);
-  }
-
-  update() {
-    this._notImplemented('update');
-  }
-
-  patch() {
-    this._notImplemented('patch');
-  }
-
-  remove() {
-    this._notImplemented('remove');
-  }
-
-  _notImplemented(method) {
-    throw new errors.NotImplemented(`${method} is not implemented on this service`);
-  }
-}
-
 
 export default function () {
   const app = this;
@@ -47,15 +17,24 @@ export default function () {
   };
 
   // Initialize our service with any options it requires
-  app.use('/donations/:donationId/history', new DonationsHistoryService(options));
+  // for viewing an individual donation history entities
+  // app.use('/donations/:donationId/history', createService(options));
+  // for querying all donationHistory entities
+  app.use('/donations/history', new createService(options));
 
   // Get our initialized service so that we can register hooks and filters
-  const service = app.service('donations/:donationId/history');
+  // const nestedService = app.service('donations/:donationId/history');
+  const service = app.service('donations/history');
 
+  // nestedService.hooks(nestedHistoryHooks);
   service.hooks(hooks);
 
   if (service.filter) {
     service.filter(filters);
   }
-};
+
+  // if (nestedService.filter) {
+  //   nestedService.filter(filters);
+  // }
+}
 
