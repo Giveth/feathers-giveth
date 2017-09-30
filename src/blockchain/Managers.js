@@ -248,12 +248,13 @@ class Managers {
             }
             //TODO do we need to create an owner here?
 
-            return findCampaign(project.parentProject)
-              .then(campaignId => milestones.create({
-                ownerAddress: project.addr, // TODO fix this, project.addr will be the plugin, but LPPMilestone currently doesn't have an owner
+            return Promise.all([ findCampaign(project.parentProject), this.web3.eth.getTransaction(txHash) ])
+              .then(([ campaignId, tx ]) => milestones.create({
+                ownerAddress: tx.from,
                 pluginAddress: project.plugin,
                 title: project.name,
                 description: '',
+                txHash,
                 campaignId,
               }));
           }

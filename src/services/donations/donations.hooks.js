@@ -2,6 +2,7 @@
 import errors from 'feathers-errors';
 import commons from 'feathers-hooks-common';
 import { restrictToOwner } from 'feathers-authentication-hooks';
+import { toBN } from 'web3-utils';
 
 import sanitizeAddress from '../../hooks/sanitizeAddress';
 import setAddress from '../../hooks/setAddress';
@@ -58,7 +59,7 @@ const updateType = () => {
       id = data.ownerId;
     }
     else if (data.ownerType.toLowerCase() === 'milestone') {
-      serviceName = 'milestone';
+      serviceName = 'milestones';
       id = data.ownerId;
     } else if (data.delegate) {
       serviceName = 'dacs';
@@ -75,7 +76,7 @@ const updateType = () => {
         let donationCount = entity.donationCount || 0;
 
         donationCount += 1;
-        totalDonated += data.amount;
+        totalDonated = toBN(totalDonated).add(toBN(data.amount)).toString();
 
         return service.patch(entity._id, { donationCount, totalDonated })
           .then(() => context);
