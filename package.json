@@ -60,6 +60,7 @@
     "nedb": "^1.8.0",
     "passport-strategy": "^1.0.0",
     "pm2": "^2.4.2",
+    "sanitize-html": "^1.14.1",
     "serve-favicon": "^2.4.3",
     "web3": "git://github.com/perissology/web3.js.git#all_fixes",
     "web3-eth-accounts": "^1.0.0-beta.18",
@@ -71,11 +72,10 @@
     "babel-preset-env": "^1.6.0",
     "babel-watch": "^2.0.7",
     "eslint": "^4.3.0",
-    "lerna": "^2.2.0",    
+    "lerna": "^2.2.0",
     "ethereumjs-testrpc": "git://github.com/perissology/testrpc.git#81216dbc",
     "mocha": "^3.5.0",
     "request": "^2.81.0",
     "request-promise": "^4.2.1"
   }
-
 }

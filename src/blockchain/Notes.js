@@ -253,8 +253,6 @@ class Notes {
     const donationsHistory = this.app.service('donations/history');
     const { fromNoteManager, toNoteManager, fromNote, toNote, toNoteId, delegate, proposedProject, donation, amount, ts } = transferInfo;
 
-    console.log(fromNote);
-    console.log(toNote);
     // only handling new donations for now
     if (fromNote.oldNote === '0' && toNote.nDelegates === '1' && toNote.proposedProject === '0') {
       const history = {
