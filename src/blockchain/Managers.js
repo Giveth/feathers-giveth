@@ -1,4 +1,5 @@
 import LPPMilestone from 'lpp-milestone';
+import { milestoneStatus } from "./helpers";
 
 const BreakSignal = () => {
 };
@@ -268,16 +269,15 @@ class Managers {
         });
     };
 
-    return Promise.all([ findMilestone(), lppMilestone.maxAmount(), lppMilestone.reviewer(), lppMilestone.recipient() ])
-      .then(([ milestone, maxAmount, reviewer, recipient ]) => milestones.patch(milestone._id, {
+    return Promise.all([ findMilestone(), lppMilestone.maxAmount(), lppMilestone.reviewer(), lppMilestone.recipient(), lppMilestone.state() ])
+      .then(([ milestone, maxAmount, reviewer, recipient, state ]) => milestones.patch(milestone._id, {
         projectId,
         maxAmount,
         reviewerAddress: reviewer,
         recipientAddress: recipient,
         title: project.name,
         pluginAddress: project.plugin,
-        accepted: false,
-        canceled: false,
+        status: milestoneStatus(state)
       }))
       .then(milestone => {
         this._addNoteManager(projectId, 'milestone', milestone._id)
