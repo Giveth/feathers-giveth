@@ -12,8 +12,12 @@ export default (...fieldNames) => (context) => {
         item[ fieldName ] = sanitizeHtml(item[ fieldName ], {
           allowedTags: [ 'p', 'h1', 'h2', 'strong', 'em', 'u', 's', 'blockquote', 'ol', 'ul', 'li', 'img', 'iframe', 'a' ],
           allowedAttributes: {
-            'iframe': [ 'src', 'class', 'allowfullscreen', 'frameborder' ],
+            'iframe': [ 'src', 'allowfullscreen', 'frameborder' ],
             'a': [ 'target', 'href']
+          },
+          allowedClasses: {
+            '*': [ 'ql-indent-*' ],
+            'iframe': [ 'ql-video' ],
           }
         });
       }
