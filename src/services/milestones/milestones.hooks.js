@@ -3,6 +3,7 @@ import { populate } from 'feathers-hooks-common';
 
 import sanitizeAddress from '../../hooks/sanitizeAddress';
 import setAddress from '../../hooks/setAddress';
+import sanitizeHtml from '../../hooks/sanitizeHtml';
 
 const restrict = [
   // restrictToOwner({
@@ -45,9 +46,9 @@ module.exports = {
     all: [],
     find: [ sanitizeAddress([ 'ownerAddress', 'pluginAddress', 'reviewerAddress', 'recipientAddress' ]) ],
     get: [],
-    create: [ setAddress('ownerAddress'), ...address ],
-    update: [ ...restrict, ...address ],
-    patch: [ ...restrict, sanitizeAddress(['pluginAddress', 'reviewerAddress', 'recipientAddress'], { validate: true }) ],
+    create: [ setAddress('ownerAddress'), ...address, sanitizeHtml('description') ],
+    update: [ ...restrict, ...address, sanitizeHtml('description') ],
+    patch: [ ...restrict, sanitizeAddress(['pluginAddress', 'reviewerAddress', 'recipientAddress'], { validate: true }), sanitizeHtml('description') ],
     remove: [ sanitizeAddress([ 'pluginAddress', 'reviewerAddress', 'recipientAddress' ]), ...restrict ],
   },
 

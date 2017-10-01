@@ -3,6 +3,7 @@ import { restrictToOwner } from 'feathers-authentication-hooks';
 
 import sanitizeAddress from '../../hooks/sanitizeAddress';
 import setAddress from '../../hooks/setAddress';
+import sanitizeHtml from '../../hooks/sanitizeHtml';
 
 const restrict = [
   restrictToOwner({
@@ -31,9 +32,9 @@ module.exports = {
     create: [ setAddress('ownerAddress'), sanitizeAddress('ownerAddress', {
       required: true,
       validate: true,
-    }) ],
-    update: [ ...restrict, sanitizeAddress('ownerAddress', { required: true, validate: true }) ],
-    patch: [ ...restrict, sanitizeAddress('ownerAddress', { validate: true }) ],
+    }), sanitizeHtml('description') ],
+    update: [ ...restrict, sanitizeAddress('ownerAddress', { required: true, validate: true }), sanitizeHtml('description') ],
+    patch: [ ...restrict, sanitizeAddress('ownerAddress', { validate: true }), sanitizeHtml('description') ],
     remove: [ sanitizeAddress('ownerAddress'), ...restrict ],
   },
 
