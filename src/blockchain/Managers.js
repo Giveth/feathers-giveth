@@ -198,6 +198,7 @@ class Managers {
     // we make the assumption that if there is a plugin, then the project is a milestone, otherwise it is a campaign
     return this.liquidPledging.getNoteManager(projectId)
       .then(project => {
+        console.log(project);
         return (project.plugin !== '0x0000000000000000000000000000000000000000') ? this._addMilestone(project, projectId, txHash) : this._addCampaign(project, projectId, txHash);
       });
   }
@@ -274,7 +275,7 @@ class Managers {
         reviewerAddress: reviewer,
         recipientAddress: recipient,
         title: project.name,
-        ownerAddress: recipient, //TODO remove this?
+        pluginAddress: project.plugin,
         accepted: false,
         canceled: false,
       }))

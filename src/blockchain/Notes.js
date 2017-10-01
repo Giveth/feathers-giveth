@@ -212,7 +212,9 @@ class Notes {
         });
       }
 
-      if (!delegate && donation.delegate) {
+      // if the paymentState === 'Paying', this means that the owner is withdrawing and the delegates can no longer
+      // delegate the note, so we drop them
+      if ((!delegate || toNote.paymentState === 'Paying') && donation.delegate) {
         Object.assign(mutation, {
           $unset: {
             delegate: true,
