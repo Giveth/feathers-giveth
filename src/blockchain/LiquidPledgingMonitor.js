@@ -1,6 +1,7 @@
 import Managers from './Managers';
 import Notes from './Notes';
 import Milestones from './Milestones';
+import Campaigns from './Campaigns';
 import createModel from '../models/blockchain.model';
 
 
@@ -18,6 +19,7 @@ export default class {
     this.managers = new Managers(app, liquidPledging);
     this.notes = new Notes(app, liquidPledging);
     this.milestones = new Milestones(app, this.web3);
+    this.campaigns = new Campaigns(app, this.web3);
     this.model = createModel(app);
 
     if (opts.startingBlock && opts.startingBlock !== 0) {
@@ -66,6 +68,22 @@ export default class {
       .on('changed', (event) => {
         // I think this is emitted when a chain reorg happens and the tx has been removed
         console.log('lpp-milestone changed: ', event); // eslint-disable-line no-console
+        // TODO handle chain reorgs
+      })
+      .on('error', err => console.error('error: ', err)); // eslint-disable-line no-console
+
+    // start a listener for all campaigns associated with this liquidPledging contract
+    this.web3.eth.subscribe('logs', {
+        fromBlock: this.config.lastBlock + 1 || 1,
+        topics: [
+          this.web3.utils.keccak256('CampaignCanceled(address)'), // hash of the event signature we're interested in
+          this.web3.utils.padLeft(`0x${this.liquidPledging.$address.substring(2).toLowerCase()}`, 64), // remove leading 0x from address
+        ]
+      }, () => {}) // TODO fix web3 bug so we don't have to pass a cb
+      .on('data', this.campaigns.campaignCanceled.bind(this.campaigns))
+      .on('changed', (event) => {
+        // I think this is emitted when a chain reorg happens and the tx has been removed
+        console.log('lpp-campaign changed: ', event); // eslint-disable-line no-console
         // TODO handle chain reorgs
       })
       .on('error', err => console.error('error: ', err)); // eslint-disable-line no-console

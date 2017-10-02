@@ -10,12 +10,12 @@ class Milestones {
     this.app = app;
     this.web3 = web3;
     this.contract = new LPPMilestone(this.web3).$contract;
-    this.stateChangedEvent = this.contract._jsonInterface.find(d => d.type === 'event' && d.name === 'StateChanged');
+    this.campaignCanceledEvent = this.contract._jsonInterface.find(d => d.type === 'event' && d.name === 'StateChanged');
     this.milestones = this.app.service('milestones');
   }
 
   stateChanged(event) {
-    const decodedEvent = this.contract._decodeEventABI.bind(this.stateChangedEvent)(event);
+    const decodedEvent = this.contract._decodeEventABI.bind(this.campaignCanceledEvent)(event);
     console.log('handling milestone Event: ', decodedEvent);
 
     this.milestones.find({ query: { pluginAddress: decodedEvent.address } })
