@@ -1,6 +1,6 @@
 import LPPMilestone from 'lpp-milestone';
 
-import { milestoneStatus } from "./helpers";
+import { milestoneStatus } from './helpers';
 
 /**
  * class to keep feathers cache in sync with lpp-milestone contracts
@@ -27,6 +27,7 @@ class Milestones {
 
         return this.milestones.patch(m._id, {
           status: milestoneStatus(decodedEvent.returnValues.state),
+          mined: true,
         });
       })
       .catch(console.error); // eslint-disable-line no-console

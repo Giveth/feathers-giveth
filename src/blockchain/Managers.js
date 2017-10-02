@@ -277,7 +277,8 @@ class Managers {
         recipientAddress: recipient,
         title: project.name,
         pluginAddress: project.plugin,
-        status: milestoneStatus(state)
+        status: milestoneStatus(state),
+        mined: true
       }))
       .then(milestone => {
         this._addNoteManager(projectId, 'milestone', milestone._id)
