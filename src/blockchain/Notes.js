@@ -48,7 +48,7 @@ class Notes {
           ownerId: donor.typeId,
           ownerType: donor.type,
           status: 'waiting', // waiting for delegation by owner or delegate
-          paymentState: this._paymentState(note.paymentState),
+          paymentStatus: this._paymentStatus(note.paymentState),
         };
 
         if (!donation) {
@@ -177,7 +177,7 @@ class Notes {
 
       const mutation = {
         amount,
-        paymentState: this._paymentState(toNote.paymentState),
+        paymentStatus: this._paymentStatus(toNote.paymentState),
         updatedAt: ts,
         owner: toNote.owner,
         ownerId: toNoteManager.typeId,
@@ -243,7 +243,7 @@ class Notes {
       //     owner: toNoteManager.typeId,
       //     ownerType: toNoteManager.type,
       //     proposedProject: toNote.proposedProject,
-      //     paymentState: this._paymentState(toNote.paymentState),
+      //     paymentState: this._paymentStatus(toNote.paymentState),
       //   }))
       //   // now that this donation has been added, we can purge the transfer queue for this noteId
       //   .then(() => this.queue.purge(toNoteId));
@@ -291,7 +291,7 @@ class Notes {
 
   }
 
-  _paymentState(val) {
+  _paymentStatus(val) {
     switch (val) {
       case '0':
         return 'NotPaid';

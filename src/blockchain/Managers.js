@@ -1,7 +1,14 @@
 import LPPMilestone from 'lpp-milestone';
+import { LPPMilestoneByteCode } from 'lpp-milestone/build/LPPMilestone.sol';
+import LPPCampaign from 'lpp-campaign';
+import { LPPCampaignByteCode } from 'lpp-campaign/build/LPPCampaign.sol';
+
+import { campaignStatus, milestoneStatus } from './helpers';
 
 const BreakSignal = () => {
 };
+
+const LPPCampaignRuntimeByteCode = '0x606060405236156100b45763ffffffff60e060020a600035041663200d2ed281146100b95780634ce3791e146100f057806374041d1f1461011f57806379ba5097146101325780637ec4c705146101475780638652d8d61461015a5780638da5cb5b1461017957806394edc3591461018c578063980e7844146101bc578063a54044f8146101cf578063a6f9dae1146101e2578063ad1483c314610201578063d4edf5e514610236578063d4ee1d901461027d575b600080fd5b34156100c457600080fd5b6100cc610290565b604051808260018111156100dc57fe5b60ff16815260200191505060405180910390f35b34156100fb57600080fd5b6101036102a0565b604051600160a060020a03909116815260200160405180910390f35b341561012a57600080fd5b6101036102af565b341561013d57600080fd5b6101456102be565b005b341561015257600080fd5b610145610307565b341561016557600080fd5b610145600160a060020a0360043516610356565b341561018457600080fd5b6101036103a0565b341561019757600080fd5b61019f6103af565b60405167ffffffffffffffff909116815260200160405180910390f35b34156101c757600080fd5b6101456103c6565b34156101da57600080fd5b6101036104f6565b34156101ed57600080fd5b610145600160a060020a0360043516610505565b341561020c57600080fd5b61014567ffffffffffffffff6004358116906024358116906044358116906064351660843561054f565b341561024157600080fd5b61026b67ffffffffffffffff60043581169060243581169060443581169060643516608435610556565b60405190815260200160405180910390f35b341561028857600080fd5b610103610698565b60045460a060020a900460ff1681565b600454600160a060020a031681565b600254600160a060020a031681565b60015433600160a060020a0390811691161415610305576001546000805473ffffffffffffffffffffffffffffffffffffffff1916600160a060020a039092169190911790555b565b60045433600160a060020a0390811691161461032257600080fd5b600480546003805473ffffffffffffffffffffffffffffffffffffffff19908116600160a060020a03841617909155169055565b60035433600160a060020a0390811691161461037157600080fd5b6004805473ffffffffffffffffffffffffffffffffffffffff1916600160a060020a0392909216919091179055565b600054600160a060020a031681565b60025460a060020a900467ffffffffffffffff1681565b60005433600160a060020a03908116911614806103f1575060035433600160a060020a039081169116145b15156103fc57600080fd5b600060045460a060020a900460ff16600181111561041657fe5b1461042057600080fd5b600254600160a060020a0381169063796d56549060a060020a900467ffffffffffffffff1660405160e060020a63ffffffff841602815267ffffffffffffffff9091166004820152602401600060405180830381600087803b151561048457600080fd5b6102c65a03f1151561049557600080fd5b50506004805474ff0000000000000000000000000000000000000000191660a060020a17905550600254600160a060020a03167f3be3cf8b79824600b33b84642199163dc824bc8afdc691d0bcd8a849e39f92fc60405160405180910390a2565b600354600160a060020a031681565b60005433600160a060020a0390811691161461052057600080fd5b6001805473ffffffffffffffffffffffffffffffffffffffff1916600160a060020a0392909216919091179055565b5050505050565b600254600090819033600160a060020a0390811691161461057657600080fd5b600254600160a060020a031663cb9123ff87600060405160e0015260405160e060020a63ffffffff841602815267ffffffffffffffff909116600482015260240160e060405180830381600087803b15156105d057600080fd5b6102c65a03f115156105e157600080fd5b5050506040518051906020018051906020018051906020018051906020018051906020018051906020018051905050505093505050506101ff8467ffffffffffffffff16148061065d57506101008467ffffffffffffffff1614801561065d575060025467ffffffffffffffff82811660a060020a9092041614155b1561068a57600060045460a060020a900460ff16600181111561067c57fe5b1461068a576000915061068e565b8291505b5095945050505050565b600154600160a060020a0316815600a165627a7a7230582028d8154c8c1ead23ab39437b47fd920fafef615329007c5034ee11dfe0da93310029';
 
 
 /**
@@ -195,11 +202,17 @@ class Managers {
     const projectId = event.returnValues.idProject;
     const txHash = event.transactionHash;
 
-    // we make the assumption that if there is a plugin, then the project is a milestone, otherwise it is a campaign
     return this.liquidPledging.getNoteManager(projectId)
-      .then(project => {
-        console.log(project);
-        return (project.plugin !== '0x0000000000000000000000000000000000000000') ? this._addMilestone(project, projectId, txHash) : this._addCampaign(project, projectId, txHash);
+      .then(project => Promise.all([ project, this.web3.eth.getCode(project.plugin) ]))
+      .then(([ project, byteCode ]) => {
+
+        // if (byteCode === LPPMilestoneByteCode) return this._addMilestone(project, projectId, txHash);
+        // if (byteCode === LPPCampaignByteCode) return this._addCampaign(project, projectId, txHash);
+
+        // console.error('AddProject event with unknown plugin byteCode ->', event); // eslint-disable-line no-console
+        //TODO remove this after runtimeByteCode is added to solcpiler
+        if (byteCode === LPPCampaignRuntimeByteCode) return this._addCampaign(project, projectId, txHash);
+        return this._addMilestone(project, projectId, txHash);
       });
   }
 
@@ -268,16 +281,16 @@ class Managers {
         });
     };
 
-    return Promise.all([ findMilestone(), lppMilestone.maxAmount(), lppMilestone.reviewer(), lppMilestone.recipient() ])
-      .then(([ milestone, maxAmount, reviewer, recipient ]) => milestones.patch(milestone._id, {
+    return Promise.all([ findMilestone(), lppMilestone.maxAmount(), lppMilestone.reviewer(), lppMilestone.recipient(), lppMilestone.state() ])
+      .then(([ milestone, maxAmount, reviewer, recipient, state ]) => milestones.patch(milestone._id, {
         projectId,
         maxAmount,
         reviewerAddress: reviewer,
         recipientAddress: recipient,
         title: project.name,
         pluginAddress: project.plugin,
-        accepted: false,
-        canceled: false,
+        status: milestoneStatus(state),
+        mined: true,
       }))
       .then(milestone => {
         this._addNoteManager(projectId, 'milestone', milestone._id)
@@ -306,11 +319,14 @@ class Managers {
               throw new BreakSignal();
             }
 
-            return campaigns.create({
-              ownerAddress: project.addr,
-              title: project.name,
-              description: '',
-            });
+            return this.web3.eth.getTransaction(txHash)
+              .then(tx => campaigns.create({
+                ownerAddress: tx.from,
+                pluginAddress: project.plugin,
+                title: project.name,
+                description: '',
+                txHash,
+              }));
           }
 
           if (data.length > 1) {
@@ -321,11 +337,16 @@ class Managers {
         });
     };
 
-    return findCampaign()
-      .then(campaign => campaigns.patch(campaign._id, {
+    const lppCampaign = new LPPCampaign(this.web3, project.plugin);
+
+    return Promise.all([ findCampaign(), lppCampaign.status(), lppCampaign.reviewer() ])
+      .then(([ campaign, status, reviewer ]) => campaigns.patch(campaign._id, {
         projectId,
         title: project.name,
         ownerAddress: project.addr,
+        reviewerAddress: reviewer,
+        pluginAddress: project.plugin,
+        status: campaignStatus(status),
       }))
       .then(campaign => {
         this._addNoteManager(projectId, 'campaign', campaign._id)
