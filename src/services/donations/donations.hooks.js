@@ -99,6 +99,16 @@ const poSchemas = {
       },
     ],
   },
+  'po-donor-owner': {
+    include: [
+      {
+        service: 'users',
+        nameAs: 'ownerEntity',
+        parentField: 'donorAddress',
+        childField: 'address',
+      },
+    ],
+  },
   'po-campaign': {
     include: [
       {
@@ -159,11 +169,12 @@ const poSchemas = {
 const joinDonationRecipient = (item, context) => {
   const newContext = Object.assign({}, context, { result: item });
 
-  const ownerSchema = poSchemas[ `po-${item.ownerType.toLowerCase()}` ];
-
+  let ownerSchema;
   // if this is po-donor schema, we need to change the `nameAs` to ownerEntity
   if (item.ownerType.toLowerCase() === 'donor') {
-    Object.assign(ownerSchema.include[ 0 ], { nameAs: 'ownerEntity' });
+    ownerSchema = poSchemas[ 'po-donor-owner' ];
+  } else {
+    ownerSchema = poSchemas[ `po-${item.ownerType.toLowerCase()}` ];
   }
 
   return commons.populate({ schema: ownerSchema })(newContext)
