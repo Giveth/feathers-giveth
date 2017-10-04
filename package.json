@@ -55,7 +55,7 @@
     "fs-blob-store": "^5.2.1",
     "helmet": "^3.8.1",
     "liquidpledging": "git://github.com/perissology/liquidpledging.git#f3086ea48aac97dc57e1788f88af4a8d7274cfc7",
-    "lpp-campaign": "0.0.1",
+    "lpp-campaign": "0.0.4",
     "lpp-milestone": "git://github.com/Giveth/lpp-milestone.git#8b9936cdde78f7d0dd5c4dab6ec41719a2e9bf7c",
     "multer": "^1.3.0",
     "nedb": "^1.8.0",
