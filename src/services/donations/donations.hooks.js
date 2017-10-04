@@ -103,7 +103,7 @@ const poSchemas = {
     include: [
       {
         service: 'campaigns',
-        nameAs: 'campaign',
+        nameAs: 'ownerEntity',
         parentField: 'ownerId',
         childField: '_id',
         useInnerPopulate: true,
@@ -114,7 +114,7 @@ const poSchemas = {
     include: [
       {
         service: 'campaigns',
-        nameAs: 'campaign',
+        nameAs: 'proposedEntity',
         parentField: 'proposedProject',
         childField: 'projectId',
         useInnerPopulate: true,
@@ -125,7 +125,7 @@ const poSchemas = {
     include: [
       {
         service: 'dacs',
-        nameAs: 'dac',
+        nameAs: 'delegateEntity',
         parentField: 'delegateId',
         childField: '_id',
         useInnerPopulate: true,
@@ -136,7 +136,7 @@ const poSchemas = {
     include: [
       {
         service: 'milestones',
-        nameAs: 'milestone',
+        nameAs: 'ownerEntity',
         parentField: 'ownerId',
         childField: '_id',
         useInnerPopulate: true,
@@ -147,7 +147,7 @@ const poSchemas = {
     include: [
       {
         service: 'milestones',
-        nameAs: 'milestone',
+        nameAs: 'proposedEntity',
         parentField: 'proposedProject',
         childField: 'projectId',
         useInnerPopulate: true,
@@ -157,14 +157,22 @@ const poSchemas = {
 };
 
 const joinDonationRecipient = (item, context) => {
-  let schema;
   const newContext = Object.assign({}, context, { result: item });
 
-  if (item.delegate) schema = poSchemas[ 'po-dac' ];
-  else if (item.proposedProject > 0) schema = poSchemas[ `po-${item.proposedProjectType.toLowerCase()}-proposed` ];
-  else schema = poSchemas[ `po-${item.ownerType.toLowerCase()}` ];
+  const ownerSchema = poSchemas[ `po-${item.ownerType.toLowerCase()}` ];
 
-  return commons.populate({ schema })(newContext)
+  // if this is po-donor schema, we need to change the `nameAs` to ownerEntity
+  if (item.ownerType.toLowerCase() === 'donor') {
+    Object.assign(ownerSchema.include[ 0 ], { nameAs: 'ownerEntity' });
+  }
+
+  return commons.populate({ schema: ownerSchema })(newContext)
+    .then(context => {
+      return (item.delegate) ? commons.populate({ schema: poSchemas[ 'po-dac' ] })(context) : context;
+    })
+    .then(context => {
+      return (item.proposedProject > 0) ? commons.populate({ schema: poSchemas[ `po-${item.proposedProjectType.toLowerCase()}-proposed` ] })(context) : context;
+    })
     .then(context => context.result);
 };
 
@@ -211,7 +219,10 @@ module.exports = {
     all: [ commons.paramsFromClient('schema') ],
     find: [ sanitizeAddress('donorAddress') ],
     get: [],
-    create: [ setAddress('donorAddress'), sanitizeAddress('donorAddress', { required: true, validate: true }), updateType(),
+    create: [ setAddress('donorAddress'), sanitizeAddress('donorAddress', {
+      required: true,
+      validate: true,
+    }), updateType(),
       (context) => {
         if (context.data.createdAt) return context;
         context.data.createdAt = new Date();
