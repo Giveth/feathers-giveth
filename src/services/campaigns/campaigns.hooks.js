@@ -40,7 +40,31 @@ module.exports = {
 
   after: {
     all: [ populate({ schema }) ],
-    find: [],
+    find: [
+      // add milestonesCount to each DAC object
+      function(hook) {
+        return new Promise((resolve, reject) => {
+          let promises = []
+
+          hook.result.data.map((campaign, i) => {          
+            promises.push(hook.app.service('milestones').find({ query: { 
+              campaignId: campaign._id,
+              $limit: 0 
+            }}).then(count => {  
+              campaign.milestonesCount = count.total
+              return campaign
+            }))
+
+          })
+
+          Promise.all(promises).then(() => {
+            resolve(hook)
+          })
+        })
+    }
+
+
+    ],
     get: [],
     create: [],
     update: [],
