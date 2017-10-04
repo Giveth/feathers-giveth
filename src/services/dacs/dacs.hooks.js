@@ -1,10 +1,8 @@
-import { populate } from 'feathers-hooks-common';
+import commons from 'feathers-hooks-common';
 import { restrictToOwner } from 'feathers-authentication-hooks';
 import sanitizeAddress from '../../hooks/sanitizeAddress';
 import setAddress from '../../hooks/setAddress';
 import sanitizeHtml from '../../hooks/sanitizeHtml';
-
-const feathers = require('feathers');
 
 const restrict = [
   restrictToOwner({
@@ -24,6 +22,35 @@ const schema = {
   ]
 };
 
+const countCampaigns = (item, service) => {
+  return service.find({
+    query: {
+      dacs: item._id,
+      projectId: {
+        $gt: '0' // 0 is a pending campaign
+      },
+      $limit: 0
+    }
+  }).then(count => Object.assign(item, { campaignsCount: count.total }));
+};
+
+// add campaignCount to each DAC object
+const addCampaignCounts = () => (context) => {
+  const service = context.app.service('campaigns');
+
+  const items = commons.getItems(context);
+
+  let promises;
+  if (Array.isArray(items)) {
+    promises = items.map(item => countCampaigns(item, service));
+  } else {
+    promises = [ countCampaigns(items, service) ];
+  }
+
+  return Promise.all(promises)
+    .then(results => commons.replaceItems(context, results));
+};
+
 module.exports = {
   before: {
     all: [],
@@ -36,37 +63,9 @@ module.exports = {
   },
 
   after: {
-    all: [ populate({ schema })],
-    find: [ 
-      // add campaignsCount to each DAC object
-      function(hook) {
-        return new Promise((resolve, reject) => {
-          let promises = []
-
-          if(hook.result.data) {
-            hook.result.data.map((dac, i) => {          
-              promises.push(hook.app.service('campaigns').find({ query: { 
-                dacs: dac._id,
-                projectId: {
-                  $gt: '0' // 0 is a pending campaign
-                },                
-                $limit: 0 
-              }}).then(count => {  
-                dac.campaignsCount = count.total
-                return dac
-              }))
-
-            })
-
-            Promise.all(promises).then(() => {
-              resolve(hook)
-            })
-          } else {
-            resolve(hook)
-          }
-        })
-    }],
-    get: [],
+    all: [ commons.populate({ schema })],
+    find: [ addCampaignCounts() ],
+    get: [ addCampaignCounts() ],
     create: [],
     update: [],
     patch: [],

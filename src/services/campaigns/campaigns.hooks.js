@@ -1,4 +1,4 @@
-import { populate,} from 'feathers-hooks-common';
+import commons from 'feathers-hooks-common';
 import { restrictToOwner } from 'feathers-authentication-hooks';
 
 import sanitizeAddress from '../../hooks/sanitizeAddress';
@@ -22,7 +22,34 @@ const schema = {
     },
   ],
 };
+const countMilestones = (item, service) => {
+  return service.find({
+    query: {
+      campaignId: item._id,
+      projectId: {
+        $gt: '0' // 0 is a pending milestone
+      },
+      $limit: 0
+    }
+  }).then(count => Object.assign(item, { milestonesCount: count.total }));
+};
 
+// add milestonesCount to each DAC object
+const addMilestoneCounts = () => (context) => {
+  const service = context.app.service('milestones');
+
+  const items = commons.getItems(context);
+
+  let promises;
+  if (Array.isArray(items)) {
+    promises = items.map(item => countMilestones(item, service));
+  } else {
+    promises = [ countMilestones(items, service) ];
+  }
+
+  return Promise.all(promises)
+    .then(results => commons.replaceItems(context, results));
+};
 
 module.exports = {
   before: {
@@ -39,40 +66,9 @@ module.exports = {
   },
 
   after: {
-    all: [ populate({ schema }) ],
-    find: [
-      // add milestonesCount to each DAC object
-      function(hook) {
-        return new Promise((resolve, reject) => {
-          let promises = []
-
-          if(hook.result.data) {
-            hook.result.data.map((campaign, i) => {          
-              promises.push(hook.app.service('milestones').find({ query: { 
-                campaignId: campaign._id,
-                projectId: {
-                  $gt: '0' // 0 is a pending milestone
-                },                
-                $limit: 0 
-              }}).then(count => {  
-                campaign.milestonesCount = count.total
-                return campaign
-              }))
-
-            })
-
-            Promise.all(promises).then(() => {
-              resolve(hook)
-            })
-          } else {
-            resolve(hook)
-          }
-        })
-    }
-
-
-    ],
-    get: [],
+    all: [ commons.populate({ schema }) ],
+    find: [ addMilestoneCounts() ],
+    get: [ addMilestoneCounts() ],
     create: [],
     update: [],
     patch: [],
