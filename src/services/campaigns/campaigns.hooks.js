@@ -46,20 +46,24 @@ module.exports = {
         return new Promise((resolve, reject) => {
           let promises = []
 
-          hook.result.data.map((campaign, i) => {          
-            promises.push(hook.app.service('milestones').find({ query: { 
-              campaignId: campaign._id,
-              $limit: 0 
-            }}).then(count => {  
-              campaign.milestonesCount = count.total
-              return campaign
-            }))
+          if(hook.result.data) {
+            hook.result.data.map((campaign, i) => {          
+              promises.push(hook.app.service('milestones').find({ query: { 
+                campaignId: campaign._id,
+                $limit: 0 
+              }}).then(count => {  
+                campaign.milestonesCount = count.total
+                return campaign
+              }))
 
-          })
+            })
 
-          Promise.all(promises).then(() => {
+            Promise.all(promises).then(() => {
+              resolve(hook)
+            })
+          } else {
             resolve(hook)
-          })
+          }
         })
     }
 
