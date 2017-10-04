@@ -50,6 +50,9 @@ module.exports = {
             hook.result.data.map((campaign, i) => {          
               promises.push(hook.app.service('milestones').find({ query: { 
                 campaignId: campaign._id,
+                projectId: {
+                  $gt: '0' // 0 is a pending milestone
+                },                
                 $limit: 0 
               }}).then(count => {  
                 campaign.milestonesCount = count.total

@@ -47,6 +47,9 @@ module.exports = {
             hook.result.data.map((dac, i) => {          
               promises.push(hook.app.service('campaigns').find({ query: { 
                 dacs: dac._id,
+                projectId: {
+                  $gt: '0' // 0 is a pending campaign
+                },                
                 $limit: 0 
               }}).then(count => {  
                 dac.campaignsCount = count.total
