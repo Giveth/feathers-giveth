@@ -163,7 +163,7 @@ const joinDonationRecipient = (item, context) => {
 
   // if this is po-donor schema, we need to change the `nameAs` to ownerEntity
   if (item.ownerType.toLowerCase() === 'donor') {
-    Object.extend(ownerSchema.includes[0], { nameAs: 'ownerEntity' });
+    Object.assign(ownerSchema.include[ 0 ], { nameAs: 'ownerEntity' });
   }
 
   return commons.populate({ schema: ownerSchema })(newContext)
@@ -219,7 +219,10 @@ module.exports = {
     all: [ commons.paramsFromClient('schema') ],
     find: [ sanitizeAddress('donorAddress') ],
     get: [],
-    create: [ setAddress('donorAddress'), sanitizeAddress('donorAddress', { required: true, validate: true }), updateType(),
+    create: [ setAddress('donorAddress'), sanitizeAddress('donorAddress', {
+      required: true,
+      validate: true,
+    }), updateType(),
       (context) => {
         if (context.data.createdAt) return context;
         context.data.createdAt = new Date();
