@@ -1,6 +1,7 @@
 // import errors from 'feathers-errors';
 import { disallow } from 'feathers-hooks-common';
 import onlyInternal from '../../hooks/onlyInternal';
+import { populate } from 'feathers-hooks-common';
 
 // // A hook that updates `data` with the route parameter
 // const mapDonationIdToQuery = () => (context) => {
@@ -24,6 +25,17 @@ import onlyInternal from '../../hooks/onlyInternal';
 //   throw new errors.NotImplemented('create is not implemented on this service. You must use /donations/:donationId/history service');
 // };
 
+const schema = {
+  include: [
+    {
+      service: 'users',
+      nameAs: 'donor',
+      parentField: 'ownerId',
+      childField: 'address',
+    },
+  ],
+};
+
 //TODO require donationID
 export default {
   before: {
@@ -37,7 +49,7 @@ export default {
   },
 
   after: {
-    all: [],
+    all: [ populate({ schema }) ],
     find: [],
     get: [],
     create: [],
