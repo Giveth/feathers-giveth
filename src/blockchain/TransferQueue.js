@@ -3,17 +3,17 @@ class TransferQueue {
     this.queue = {};
   }
 
-  add(noteId, fn) {
-    console.log('adding to queue ->', noteId);
-    (this.queue[ noteId ]) ? this.queue[ noteId ].push(fn) : this.queue[ noteId ] = [ fn ];
+  add(pledgeId, fn) {
+    console.log('adding to queue ->', pledgeId);
+    (this.queue[ pledgeId ]) ? this.queue[ pledgeId ].push(fn) : this.queue[ pledgeId ] = [ fn ];
   }
 
-  purge(noteId) {
+  purge(pledgeId) {
 
-    if (!this.queue[ noteId ]) return;
+    if (!this.queue[ pledgeId ]) return;
 
-    console.log('purging queue ->', noteId);
-    this.queue[ noteId ].forEach(fn => fn());
+    console.log('purging queue ->', pledgeId);
+    this.queue[ pledgeId ].forEach(fn => fn());
   }
 
 }

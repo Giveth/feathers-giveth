@@ -4,7 +4,7 @@ import path from 'path';
 export default (app) => {
   const dbPath = app.get('nedb');
   const Model = new NeDB({
-    filename: path.join(dbPath, 'noteManagers.db'),
+    filename: path.join(dbPath, 'pledgeManagers.db'),
     autoload: true
   });
 

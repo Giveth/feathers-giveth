@@ -1,8 +1,8 @@
-// Initializes the `noteManagers` service on path `/noteManagers`
+// Initializes the `pledgeManagers` service on path `/pledgeManagers`
 import createService from 'feathers-nedb';
-import createModel from '../../models/noteManagers.model';
-import hooks from './noteManagers.hooks';
-import filters from './noteManagers.filters';
+import createModel from '../../models/pledgeManagers.model';
+import hooks from './pledgeManagers.hooks';
+import filters from './pledgeManagers.filters';
 
 export default function () {
   const app = this;
@@ -10,17 +10,17 @@ export default function () {
   const paginate = app.get('paginate');
 
   const options = {
-    name: 'noteManagers',
+    name: 'pledgeManagers',
     id: 'id',
     Model,
     paginate
   };
 
   // Initialize our service with any options it requires
-  app.use('/noteManagers', createService(options));
+  app.use('/pledgeManagers', createService(options));
 
   // Get our initialized service so that we can register hooks and filters
-  const service = app.service('noteManagers');
+  const service = app.service('pledgeManagers');
 
   service.hooks(hooks);
 

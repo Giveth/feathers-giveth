@@ -1,5 +1,5 @@
 import Managers from './Managers';
-import Notes from './Notes';
+import Pledges from './Pledges';
 import Milestones from './Milestones';
 import Campaigns from './Campaigns';
 import createModel from '../models/blockchain.model';
@@ -17,7 +17,7 @@ export default class {
     this.contract = liquidPledging.$contract;
     this.liquidPledging = liquidPledging;
     this.managers = new Managers(app, liquidPledging);
-    this.notes = new Notes(app, liquidPledging);
+    this.pledges = new Pledges(app, liquidPledging);
     this.milestones = new Milestones(app, this.web3);
     this.campaigns = new Campaigns(app, this.web3);
     this.model = createModel(app);
@@ -161,7 +161,7 @@ export default class {
         this.managers.updateProject(event);
         break;
       case 'Transfer':
-        this.notes.transfer(event);
+        this.pledges.transfer(event);
         break;
       default:
         console.error('Unknown event: ', event); //eslint-disable-line no-console

@@ -3,7 +3,7 @@ import TransferQueue from './TransferQueue';
 const BreakSignal = () => {
 };
 
-class Notes {
+class Pledges {
   constructor(app, liquidPledging) {
     this.app = app;
     this.web3 = liquidPledging.$web3;
@@ -27,28 +27,28 @@ class Notes {
       });
   }
 
-  _newDonation(noteId, amount, ts, txHash, retry = false) {
+  _newDonation(pledgeId, amount, ts, txHash, retry = false) {
     const donations = this.app.service('donations');
-    const noteManagers = this.app.service('noteManagers');
+    const pledgeManagers = this.app.service('pledgeManagers');
 
     const findDonation = () => donations.find({ query: { txHash } })
       .then(resp => {
         return (resp.data.length > 0) ? resp.data[ 0 ] : undefined;
       });
 
-    this.liquidPledging.getNote(noteId)
-      .then((note) => Promise.all([ noteManagers.get(note.owner), note, findDonation() ]))
-      .then(([ giver, note, donation ]) => {
+    this.liquidPledging.getPledge(pledgeId)
+      .then((pledge) => Promise.all([ pledgeManagers.get(pledge.owner), pledge, findDonation() ]))
+      .then(([ giver, pledge, donation ]) => {
         const mutation = {
           giverAddress: giver.manager.address, // giver is a user
           amount,
-          noteId,
+          pledgeId,
           createdAt: ts,
-          owner: note.owner,
+          owner: pledge.owner,
           ownerId: giver.typeId,
           ownerType: giver.type,
           status: 'waiting', // waiting for delegation by owner or delegate
-          paymentStatus: this._paymentStatus(note.paymentState),
+          paymentStatus: this._paymentStatus(pledge.paymentState),
         };
 
         if (!donation) {
@@ -56,22 +56,22 @@ class Notes {
 
           // this is really only useful when instant mining. Other then that, the donation should always be
           // created before the tx was mined.
-          setTimeout(() => this._newDonation(noteId, amount, ts, txHash, true), 5000);
+          setTimeout(() => this._newDonation(pledgeId, amount, ts, txHash, true), 5000);
           throw new BreakSignal();
         }
 
         return donations.patch(donation._id, mutation);
       })
-      // now that this donation has been added, we can purge the transfer queue for this noteId
-      .then(() => this.queue.purge(noteId))
+      // now that this donation has been added, we can purge the transfer queue for this pledgeId
+      .then(() => this.queue.purge(pledgeId))
       .catch((err) => {
         if (err instanceof BreakSignal) return;
         if (err.name === 'NotFound') {
-          // most likely the from noteManager hasn't been registered yet.
+          // most likely the from pledgeManager hasn't been registered yet.
           // this can happen b/c when donating in liquidPledging, if the giverId === 0, the donate method will create a
           // giver. Thus the tx will emit 3 events. AddGiver, and 2 x Transfer. Since these are processed asyncrounously
-          // calling noteManagers.get(from) could result in a 404 as the AddGiver event hasn't finished processing
-          setTimeout(() => this._newDonation(noteId, amount, ts, txHash, true), 5000);
+          // calling pledgeManagers.get(from) could result in a 404 as the AddGiver event hasn't finished processing
+          setTimeout(() => this._newDonation(pledgeId, amount, ts, txHash, true), 5000);
           return;
         }
         console.error(err); // eslint-disable-line no-console
@@ -81,51 +81,51 @@ class Notes {
 
   _transfer(from, to, amount, ts, txHash) {
     const donations = this.app.service('donations');
-    const noteManagers = this.app.service('noteManagers');
+    const pledgeManagers = this.app.service('pledgeManagers');
 
     const getDonation = () => {
-      return donations.find({ query: { noteId: from, txHash } })
+      return donations.find({ query: { pledgeId: from, txHash } })
         .then(donations => (donations.data.length > 0) ? donations.data[ 0 ] : undefined);
     };
 
-    Promise.all([ this.liquidPledging.getNote(from), this.liquidPledging.getNote(to) ])
-      .then(([ fromNote, toNote ]) => {
+    Promise.all([ this.liquidPledging.getPledge(from), this.liquidPledging.getPledge(to) ])
+      .then(([ fromPledge, toPledge ]) => {
         const promises = [
-          noteManagers.get(fromNote.owner),
-          noteManagers.get(toNote.owner),
-          fromNote,
-          toNote,
+          pledgeManagers.get(fromPledge.owner),
+          pledgeManagers.get(toPledge.owner),
+          fromPledge,
+          toPledge,
           getDonation(),
         ];
 
         // In lp any delegate in the chain can delegate (bug prevents that currently), but we only want the last delegate
         // to have that ability
-        if (toNote.nDelegates > 0) {
+        if (toPledge.nDelegates > 0) {
           promises.push(
-            this.liquidPledging.getNoteDelegate(to, toNote.nDelegates)
-              .then(delegate => noteManagers.get(delegate.idDelegate))
+            this.liquidPledging.getPledgeDelegate(to, toPledge.nDelegates)
+              .then(delegate => pledgeManagers.get(delegate.idDelegate))
           );
         } else {
           promises.push(undefined);
         }
 
-        // fetch proposedProject noteManager
-        if (toNote.proposedProject > 0) {
-          promises.push(noteManagers.get(toNote.proposedProject));
+        // fetch proposedProject pledgeManager
+        if (toPledge.proposedProject > 0) {
+          promises.push(pledgeManagers.get(toPledge.proposedProject));
         } else {
           promises.push(undefined);
         }
 
         return Promise.all(promises);
       })
-      .then(([ fromNoteManager, toNoteManager, fromNote, toNote, donation, delegate, proposedProject ]) => {
+      .then(([ fromPledgeManager, toPledgeManager, fromPledge, toPledge, donation, delegate, proposedProject ]) => {
 
         const transferInfo = {
-          fromNoteManager,
-          toNoteManager,
-          fromNote,
-          toNote,
-          toNoteId: to,
+          fromPledgeManager,
+          toPledgeManager,
+          fromPledge,
+          toPledge,
+          toPledgeId: to,
           delegate,
           proposedProject,
           donation,
@@ -135,7 +135,7 @@ class Notes {
 
         if (donation) return this._doTransfer(transferInfo);
 
-        // if donation doesn't exist where noteId === from, then add to transferQueue.
+        // if donation doesn't exist where pledgeId === from, then add to transferQueue.
         this.queue.add(
           from,
           () => getDonation()
@@ -148,11 +148,11 @@ class Notes {
       })
       .catch((err) => {
         if (err.name === 'NotFound') {
-          // most likely the from noteManager hasn't been registered yet.
+          // most likely the from pledgeManager hasn't been registered yet.
           // this can happen b/c when donating in liquidPledging, if the giverId === 0, the donate method will create a
           // giver. Thus the tx will emit 3 events. AddGiver, and 2 x Transfer. Since these are processed asyncrounously
-          // calling noteManagers.get(from) could result in a 404 as the AddGiver event hasn't finished processing
-          console.log('adding to queue, missing noteManager fromNoteId:', from)
+          // calling pledgeManagers.get(from) could result in a 404 as the AddGiver event hasn't finished processing
+          console.log('adding to queue, missing pledgeManager fromPledgeId:', from)
           this.queue.add(
             from,
             () => this._transfer(from, to, amount, ts, txHash)
@@ -165,26 +165,26 @@ class Notes {
 
   _doTransfer(transferInfo) {
     const donations = this.app.service('donations');
-    const { fromNoteManager, toNoteManager, fromNote, toNote, toNoteId, delegate, proposedProject, donation, amount, ts } = transferInfo;
+    const { fromPledgeManager, toPledgeManager, fromPledge, toPledge, toPledgeId, delegate, proposedProject, donation, amount, ts } = transferInfo;
 
     let status;
     if (proposedProject) status = 'to_approve';
-    else if (toNoteManager.type === 'user' || delegate) status = 'waiting';
+    else if (toPledgeManager.type === 'user' || delegate) status = 'waiting';
     else status = 'committed';
 
     if (donation.amount === amount) {
-      // this is a complete note transfer
+      // this is a complete pledge transfer
 
       const mutation = {
         amount,
-        paymentStatus: this._paymentStatus(toNote.paymentState),
+        paymentStatus: this._paymentStatus(toPledge.paymentState),
         updatedAt: ts,
-        owner: toNote.owner,
-        ownerId: toNoteManager.typeId,
-        ownerType: toNoteManager.type,
-        proposedProject: toNote.proposedProject,
-        noteId: toNoteId,
-        commitTime: (toNote.commitTime) ? new Date(toNote.commitTime * 1000) : ts,
+        owner: toPledge.owner,
+        ownerId: toPledgeManager.typeId,
+        ownerType: toPledgeManager.type,
+        proposedProject: toPledge.proposedProject,
+        pledgeId: toPledgeId,
+        commitTime: (toPledge.commitTime) ? new Date(toPledge.commitTime * 1000) : ts,
         status,
       };
 
@@ -213,8 +213,8 @@ class Notes {
       }
 
       // if the paymentState === 'Paying', this means that the owner is withdrawing and the delegates can no longer
-      // delegate the note, so we drop them
-      if ((!delegate || toNote.paymentState === 'Paying') && donation.delegate) {
+      // delegate the pledge, so we drop them
+      if ((!delegate || toPledge.paymentState === 'Paying') && donation.delegate) {
         Object.assign(mutation, {
           $unset: {
             delegate: true,
@@ -238,28 +238,28 @@ class Notes {
       //   .then(() => donations.create({
       //     giverAddress: donation.giverAddress,
       //     amount,
-      //     toNoteId,
+      //     toPledgeId,
       //     createdAt: ts,
-      //     owner: toNoteManager.typeId,
-      //     ownerType: toNoteManager.type,
-      //     proposedProject: toNote.proposedProject,
-      //     paymentState: this._paymentStatus(toNote.paymentState),
+      //     owner: toPledgeManager.typeId,
+      //     ownerType: toPledgeManager.type,
+      //     proposedProject: toPledge.proposedProject,
+      //     paymentState: this._paymentStatus(toPledge.paymentState),
       //   }))
-      //   // now that this donation has been added, we can purge the transfer queue for this noteId
-      //   .then(() => this.queue.purge(toNoteId));
+      //   // now that this donation has been added, we can purge the transfer queue for this pledgeId
+      //   .then(() => this.queue.purge(toPledgeId));
     }
 
   }
 
   _updateDonationHistory(transferInfo) {
     const donationsHistory = this.app.service('donations/history');
-    const { fromNoteManager, toNoteManager, fromNote, toNote, toNoteId, delegate, proposedProject, donation, amount, ts } = transferInfo;
+    const { fromPledgeManager, toPledgeManager, fromPledge, toPledge, toPledgeId, delegate, proposedProject, donation, amount, ts } = transferInfo;
 
     // only handling new donations for now
-    if (fromNote.oldNote === '0' && toNote.nDelegates === '1' && toNote.proposedProject === '0') {
+    if (fromPledge.oldPledge === '0' && toPledge.nDelegates === '1' && toPledge.proposedProject === '0') {
       const history = {
-        ownerId: toNoteManager.typeId,
-        ownerType: toNoteManager.type,
+        ownerId: toPledgeManager.typeId,
+        ownerType: toPledgeManager.type,
         createdAt: ts,
         amount,
         txHash: donation.txHash,
@@ -275,10 +275,10 @@ class Notes {
 
       return donationsHistory.create(history);
     }
-    // if (toNote.paymentStatus === 'Paying' || toNote.paymentStatus === 'Paid') {
+    // if (toPledge.paymentStatus === 'Paying' || toPledge.paymentStatus === 'Paid') {
     //   // payment has been initiated/completed in vault
     //   return donationsHistory.create({
-    //     status: (toNote.paymentStatus === 'Paying') ? 'Payment Initiated' : 'Payment Completed',
+    //     status: (toPledge.paymentStatus === 'Paying') ? 'Payment Initiated' : 'Payment Completed',
     //     createdAt: ts,
     //   }, { donationId: donation._id });
     // }
@@ -339,4 +339,4 @@ class Notes {
   }
 }
 
-export default Notes;
+export default Pledges;
