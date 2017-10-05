@@ -48,7 +48,7 @@ const addMilestoneCounts = () => (context) => {
   }
 
   return Promise.all(promises)
-    .then(results => commons.replaceItems(context, results));
+    .then(results => (results.length === 1) ? commons.replaceItems(context, results[ 0 ]) : commons.replaceItems(context, results));
 };
 
 module.exports = {

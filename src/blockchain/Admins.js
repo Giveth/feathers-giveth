@@ -1,9 +1,9 @@
 import LPPMilestone from 'lpp-milestone';
 import { LPPMilestoneRuntimeByteCode } from 'lpp-milestone/build/LPPMilestone.sol';
 import LPPCampaign from 'lpp-campaign';
-import { deployedBytecode as LPPCampaignByteCode } from 'lpp-campaign/build/contracts/LPPCampaign.json';
+import { LPPCampaignRuntimeByteCode } from 'lpp-campaign/build/LPPCampaign.sol';
 
-import { campaignStatus, milestoneStatus } from './helpers';
+import { milestoneStatus } from './helpers';
 
 const BreakSignal = () => {
 };
@@ -206,9 +206,7 @@ class Admins {
       .then(([ project, byteCode ]) => {
 
         if (byteCode === LPPMilestoneRuntimeByteCode) return this._addMilestone(project, projectId, txHash);
-        //TODO remove this after lpp-campaign uses solcpiler
-        if (byteCode === LPPCampaignByteCode) return this._addCampaign(project, projectId, txHash);
-        // if (byteCode === LPPCampaignByteCode) return this._addCampaign(project, projectId, txHash);
+        if (byteCode === LPPCampaignRuntimeByteCode) return this._addCampaign(project, projectId, txHash);
 
         console.error('AddProject event with unknown plugin byteCode ->', event); // eslint-disable-line no-console
       });
@@ -343,13 +341,13 @@ class Admins {
 
     const lppCampaign = new LPPCampaign(this.web3, project.plugin);
 
-    return Promise.all([ findCampaign(), lppCampaign.status(), lppCampaign.reviewer() ])
-      .then(([ campaign, status, reviewer ]) => campaigns.patch(campaign._id, {
+    return Promise.all([ findCampaign(), lppCampaign.canceled(), lppCampaign.reviewer() ])
+      .then(([ campaign, canceled, reviewer ]) => campaigns.patch(campaign._id, {
         projectId,
         title: project.name,
         reviewerAddress: reviewer,
         pluginAddress: project.plugin,
-        status: campaignStatus(status),
+        status: (canceled) ? 'Canceled' : 'Active',
       }))
       .then(campaign => {
         this._addPledgeAdmin(projectId, 'campaign', campaign._id)
