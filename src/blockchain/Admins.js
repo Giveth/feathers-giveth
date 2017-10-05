@@ -1,5 +1,5 @@
 import LPPMilestone from 'lpp-milestone';
-import { LPPMilestoneByteCode } from 'lpp-milestone/build/LPPMilestone.sol';
+import { LPPMilestoneRuntimeByteCode } from 'lpp-milestone/build/LPPMilestone.sol';
 import LPPCampaign from 'lpp-campaign';
 import { deployedBytecode as LPPCampaignByteCode } from 'lpp-campaign/build/contracts/LPPCampaign.json';
 
@@ -205,13 +205,12 @@ class Admins {
       .then(project => Promise.all([ project, this.web3.eth.getCode(project.plugin) ]))
       .then(([ project, byteCode ]) => {
 
-        // if (byteCode === LPPMilestoneByteCode) return this._addMilestone(project, projectId, txHash);
+        if (byteCode === LPPMilestoneRuntimeByteCode) return this._addMilestone(project, projectId, txHash);
+        //TODO remove this after lpp-campaign uses solcpiler
+        if (byteCode === LPPCampaignByteCode) return this._addCampaign(project, projectId, txHash);
         // if (byteCode === LPPCampaignByteCode) return this._addCampaign(project, projectId, txHash);
 
-        // console.error('AddProject event with unknown plugin byteCode ->', event); // eslint-disable-line no-console
-        //TODO remove this after lpp-milestone uses truffle
-        if (byteCode === LPPCampaignByteCode) return this._addCampaign(project, projectId, txHash);
-        return this._addMilestone(project, projectId, txHash);
+        console.error('AddProject event with unknown plugin byteCode ->', event); // eslint-disable-line no-console
       });
   }
 
@@ -284,15 +283,15 @@ class Admins {
         });
     };
 
-    return Promise.all([ findMilestone(), lppMilestone.maxAmount(), lppMilestone.reviewer(), lppMilestone.recipient(), lppMilestone.state() ])
-      .then(([ milestone, maxAmount, reviewer, recipient, state ]) => milestones.patch(milestone._id, {
+    return Promise.all([ findMilestone(), lppMilestone.maxAmount(), lppMilestone.reviewer(), lppMilestone.recipient(), lppMilestone.accepted(), lppMilestone.canceled() ])
+      .then(([ milestone, maxAmount, reviewer, recipient, accepted, canceled ]) => milestones.patch(milestone._id, {
         projectId,
         maxAmount,
         reviewerAddress: reviewer,
         recipientAddress: recipient,
         title: project.name,
         pluginAddress: project.plugin,
-        status: milestoneStatus(state),
+        status: milestoneStatus(accepted, canceled),
         mined: true,
       }))
       .then(milestone => {
@@ -397,7 +396,7 @@ class Admins {
     return getMilestone()
       .then((milestone) => {
         return milestones.patch(milestone._id, {
-          ownerAddress: project.addr, // TODO project.addr is the milestone contract, need to fix
+          // ownerAddress: project.addr, // TODO project.addr is the milestone contract, need to fix
           title: project.name,
         });
       })

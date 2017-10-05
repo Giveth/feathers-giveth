@@ -60,11 +60,11 @@ export default class {
     this.web3.eth.subscribe('logs', {
       fromBlock: this.config.lastBlock + 1 || 1,
       topics: [
-        this.web3.utils.keccak256('StateChanged(address,uint8)'), // hash of the event signature we're interested in
+        this.web3.utils.keccak256('MilestoneAccepted(address)'), // hash of the event signature we're interested in
         this.web3.utils.padLeft(`0x${this.liquidPledging.$address.substring(2).toLowerCase()}`, 64), // remove leading 0x from address
       ]
     }, () => {}) // TODO fix web3 bug so we don't have to pass a cb
-      .on('data', this.milestones.stateChanged.bind(this.milestones))
+      .on('data', this.milestones.milestoneAccepted.bind(this.milestones))
       .on('changed', (event) => {
         // I think this is emitted when a chain reorg happens and the tx has been removed
         console.log('lpp-milestone changed: ', event); // eslint-disable-line no-console

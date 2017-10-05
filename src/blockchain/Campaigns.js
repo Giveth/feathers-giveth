@@ -10,12 +10,12 @@ class Campaigns {
     this.app = app;
     this.web3 = web3;
     this.contract = new LPPCampaign(this.web3).$contract;
-    this.campaignCanceledEvent = this.contract._jsonInterface.find(d => d.type === 'event' && d.name === 'CampaignCanceled');
+    this.milestoneAcceptedEvent = this.contract._jsonInterface.find(d => d.type === 'event' && d.name === 'CampaignCanceled');
     this.campaigns = this.app.service('campaigns');
   }
 
   campaignCanceled(event) {
-    const decodedEvent = this.contract._decodeEventABI.bind(this.campaignCanceledEvent)(event);
+    const decodedEvent = this.contract._decodeEventABI.bind(this.milestoneAcceptedEvent)(event);
     console.log('handling campaign Event: ', decodedEvent);
 
     this.campaigns.find({ query: { pluginAddress: decodedEvent.address } })
