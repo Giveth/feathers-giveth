@@ -294,7 +294,7 @@ class Pledges {
   _paymentStatus(val) {
     switch (val) {
       case '0':
-        return 'NotPaid';
+        return 'Pledged';
       case '1':
         return 'Paying';
       case '2':
