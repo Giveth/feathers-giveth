@@ -170,6 +170,8 @@ class Pledges {
     let status;
     if (intendedProject) status = 'to_approve';
     else if (toPledgeAdmin.type === 'user' || delegate) status = 'waiting';
+    else if (toPledge.paymentState === 'Paying') status = 'paying';
+    else if (toPledge.paymentState === 'Paid') status = 'paid';
     else status = 'committed';
 
     if (donation.amount === amount) {
@@ -221,6 +223,14 @@ class Pledges {
             delegateId: true,
             delegateType: true
           }
+        });
+      }
+
+      // update milestone status if toPledge == paying or paid
+      if (['Paying', 'Paid'].includes(toPledge.paymentState) && toPledgeAdmin.type === 'milestone') {
+        this.app.service('milestones').patch(null, {
+          status: (toPledge.paymentState === 'Paying') ? 'InitializedWithdraw' : 'Paid',
+          mined: true
         });
       }
 

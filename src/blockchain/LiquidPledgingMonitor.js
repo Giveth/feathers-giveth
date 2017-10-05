@@ -1,5 +1,6 @@
 import Admins from './Admins';
 import Pledges from './Pledges';
+import Payments from './Payments';
 import Milestones from './Milestones';
 import createModel from '../models/blockchain.model';
 
@@ -15,6 +16,7 @@ export default class {
     this.web3 = liquidPledging.$web3;
     this.contract = liquidPledging.$contract;
     this.liquidPledging = liquidPledging;
+    this.payments = new Payments(app, liquidPledging.$vault);
     this.admins = new Admins(app, liquidPledging);
     this.pledges = new Pledges(app, liquidPledging);
     this.milestones = new Milestones(app, this.web3);
@@ -60,7 +62,7 @@ export default class {
         topics: [
           this.web3.utils.keccak256('MilestoneAccepted(address)'), // hash of the event signature we're interested in
           this.web3.utils.padLeft(`0x${this.liquidPledging.$address.substring(2).toLowerCase()}`, 64), // remove leading 0x from address
-        ]
+        ],
       }, () => {
       }) // TODO fix web3 bug so we don't have to pass a cb
       .on('data', this.milestones.milestoneAccepted.bind(this.milestones))
@@ -70,6 +72,17 @@ export default class {
         // TODO handle chain reorgs
       })
       .on('error', err => console.error('error: ', err)); // eslint-disable-line no-console
+
+    // starts a listener on the liquidPledging contract
+    this.liquidPledging.$vault.$contract.events.allEvents({ fromBlock: this.config.lastBlock + 1 || 1 })
+      .on('data', this._handleVaultEvent.bind(this))
+      .on('changed', (event) => {
+        // I think this is emitted when a chain reorg happens and the tx has been removed
+        console.log('vault changed: ', event); // eslint-disable-line no-console
+      })
+      // TODO if the connection dropped, do we need to try and reconnect?
+      .on('error', err => console.error('error: ', err)); // eslint-disable-line no-console
+
   }
 
   /**
@@ -148,6 +161,26 @@ export default class {
         break;
       default:
         console.error('Unknown event: ', event); //eslint-disable-line no-console
+    }
+  }
+
+  _handleVaultEvent(event) {
+    this._updateConfig(event.blockNumber);
+
+    console.log('handling vault event ->', event);
+
+    switch (event.event) {
+      case 'AuthorizePayment':
+        this.payments.authorizePayment(event);
+        break;
+      case 'ConfirmPayment':
+        this.payments.confirmPayment(event);
+        break;
+      case 'CancelPayment':
+        this.payments.cancelPayment(event);
+        break;
+      default:
+        console.error('Unknown event: ', event); // eslint-disable-line no-console
     }
   }
 }
