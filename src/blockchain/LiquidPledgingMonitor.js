@@ -142,11 +142,11 @@ export default class {
     console.log('handlingEvent: ', event);
 
     switch (event.event) {
-      case 'DonorAdded':
-        this.managers.addDonor(event);
+      case 'GiverAdded':
+        this.managers.addGiver(event);
         break;
-      case 'DonorUpdated':
-        this.managers.updateDonor(event);
+      case 'GiverUpdated':
+        this.managers.updateGiver(event);
         break;
       case 'DelegateAdded':
         this.managers.addDelegate(event);

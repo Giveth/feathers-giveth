@@ -29,7 +29,7 @@ const schema = {
   include: [
     {
       service: 'users',
-      nameAs: 'donor',
+      nameAs: 'giver',
       parentField: 'ownerId',
       childField: 'address',
     },

@@ -10,7 +10,7 @@ import setAddress from '../../hooks/setAddress';
 // const restrict = [
 //   restrictToOwner({
 //     idField: 'address',
-//     ownerField: 'donorAddress',
+//     ownerField: 'giverAddress',
 //   }),
 // ];
 
@@ -89,22 +89,22 @@ const updateType = () => {
 };
 
 const poSchemas = {
-  'po-donor': {
+  'po-giver': {
     include: [
       {
         service: 'users',
-        nameAs: 'donor',
-        parentField: 'donorAddress',
+        nameAs: 'giver',
+        parentField: 'giverAddress',
         childField: 'address',
       },
     ],
   },
-  'po-donor-owner': {
+  'po-giver-owner': {
     include: [
       {
         service: 'users',
         nameAs: 'ownerEntity',
-        parentField: 'donorAddress',
+        parentField: 'giverAddress',
         childField: 'address',
       },
     ],
@@ -170,9 +170,9 @@ const joinDonationRecipient = (item, context) => {
   const newContext = Object.assign({}, context, { result: item });
 
   let ownerSchema;
-  // if this is po-donor schema, we need to change the `nameAs` to ownerEntity
-  if (item.ownerType.toLowerCase() === 'donor') {
-    ownerSchema = poSchemas[ 'po-donor-owner' ];
+  // if this is po-giver schema, we need to change the `nameAs` to ownerEntity
+  if (item.ownerType.toLowerCase() === 'giver') {
+    ownerSchema = poSchemas[ 'po-giver-owner' ];
   } else {
     ownerSchema = poSchemas[ `po-${item.ownerType.toLowerCase()}` ];
   }
@@ -190,11 +190,11 @@ const joinDonationRecipient = (item, context) => {
 const populateSchema = () => {
   return (context) => {
 
-    if (context.params.schema === 'includeDonorDetails') {
-      return commons.populate({ schema: poSchemas[ 'po-donor' ] })(context);
-    } else if ([ 'includeTypeDetails', 'includeTypeAndDonorDetails' ].includes(context.params.schema)) {
-      if (context.params.schema === 'includeTypeAndDonorDetails') {
-        commons.populate({ schema: poSchemas[ 'po-donor' ] })(context);
+    if (context.params.schema === 'includeGiverDetails') {
+      return commons.populate({ schema: poSchemas[ 'po-giver' ] })(context);
+    } else if ([ 'includeTypeDetails', 'includeTypeAndGiverDetails' ].includes(context.params.schema)) {
+      if (context.params.schema === 'includeTypeAndGiverDetails') {
+        commons.populate({ schema: poSchemas[ 'po-giver' ] })(context);
       }
 
       const items = commons.getItems(context);
@@ -228,9 +228,9 @@ const populateSchema = () => {
 module.exports = {
   before: {
     all: [ commons.paramsFromClient('schema') ],
-    find: [ sanitizeAddress('donorAddress') ],
+    find: [ sanitizeAddress('giverAddress') ],
     get: [],
-    create: [ setAddress('donorAddress'), sanitizeAddress('donorAddress', {
+    create: [ setAddress('giverAddress'), sanitizeAddress('giverAddress', {
       required: true,
       validate: true,
     }), updateType(),
@@ -241,8 +241,8 @@ module.exports = {
     ],
     // update: [ ...restrict, ...address ],
     // patch: [ ...restrict, ...address ],
-    update: [ sanitizeAddress('donorAddress', { validate: true }) ],
-    patch: [ sanitizeAddress('donorAddress', { validate: true }) ],
+    update: [ sanitizeAddress('giverAddress', { validate: true }) ],
+    patch: [ sanitizeAddress('giverAddress', { validate: true }) ],
     remove: [ commons.disallow() ],
   },
 

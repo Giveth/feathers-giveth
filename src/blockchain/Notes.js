@@ -38,15 +38,15 @@ class Notes {
 
     this.liquidPledging.getNote(noteId)
       .then((note) => Promise.all([ noteManagers.get(note.owner), note, findDonation() ]))
-      .then(([ donor, note, donation ]) => {
+      .then(([ giver, note, donation ]) => {
         const mutation = {
-          donorAddress: donor.manager.address, // donor is a user
+          giverAddress: giver.manager.address, // giver is a user
           amount,
           noteId,
           createdAt: ts,
           owner: note.owner,
-          ownerId: donor.typeId,
-          ownerType: donor.type,
+          ownerId: giver.typeId,
+          ownerType: giver.type,
           status: 'waiting', // waiting for delegation by owner or delegate
           paymentStatus: this._paymentStatus(note.paymentState),
         };
@@ -68,9 +68,9 @@ class Notes {
         if (err instanceof BreakSignal) return;
         if (err.name === 'NotFound') {
           // most likely the from noteManager hasn't been registered yet.
-          // this can happen b/c when donating in liquidPledging, if the donorId === 0, the donate method will create a
-          // donor. Thus the tx will emit 3 events. AddDonor, and 2 x Transfer. Since these are processed asyncrounously
-          // calling noteManagers.get(from) could result in a 404 as the AddDonor event hasn't finished processing
+          // this can happen b/c when donating in liquidPledging, if the giverId === 0, the donate method will create a
+          // giver. Thus the tx will emit 3 events. AddGiver, and 2 x Transfer. Since these are processed asyncrounously
+          // calling noteManagers.get(from) could result in a 404 as the AddGiver event hasn't finished processing
           setTimeout(() => this._newDonation(noteId, amount, ts, txHash, true), 5000);
           return;
         }
@@ -149,9 +149,9 @@ class Notes {
       .catch((err) => {
         if (err.name === 'NotFound') {
           // most likely the from noteManager hasn't been registered yet.
-          // this can happen b/c when donating in liquidPledging, if the donorId === 0, the donate method will create a
-          // donor. Thus the tx will emit 3 events. AddDonor, and 2 x Transfer. Since these are processed asyncrounously
-          // calling noteManagers.get(from) could result in a 404 as the AddDonor event hasn't finished processing
+          // this can happen b/c when donating in liquidPledging, if the giverId === 0, the donate method will create a
+          // giver. Thus the tx will emit 3 events. AddGiver, and 2 x Transfer. Since these are processed asyncrounously
+          // calling noteManagers.get(from) could result in a 404 as the AddGiver event hasn't finished processing
           console.log('adding to queue, missing noteManager fromNoteId:', from)
           this.queue.add(
             from,
@@ -236,7 +236,7 @@ class Notes {
       //   })
       //   //TODO update this
       //   .then(() => donations.create({
-      //     donorAddress: donation.donorAddress,
+      //     giverAddress: donation.giverAddress,
       //     amount,
       //     toNoteId,
       //     createdAt: ts,
