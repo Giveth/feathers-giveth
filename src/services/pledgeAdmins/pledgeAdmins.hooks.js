@@ -1,8 +1,8 @@
 import commons from 'feathers-hooks-common';
 import onlyInternal from '../../hooks/onlyInternal';
 
-const populateManager = () => (context) => {
-  const fetchManager = (item) => {
+const populateAdmin = () => (context) => {
+  const fetchAdmin = (item) => {
     let serviceName;
     if (item.type === 'giver') serviceName = 'users';
     else if (item.type === 'dac') serviceName = 'dacs';
@@ -16,12 +16,12 @@ const populateManager = () => (context) => {
   const items = commons.getItems(context);
 
   const promise = Array.isArray(items) ? Promise.all(items.map((item) => {
-    return fetchManager(item)
-      .then((manager) => {
-        item.manager = manager;
+    return fetchAdmin(item)
+      .then((admin) => {
+        item.admin = admin;
       });
-  })) : fetchManager(items).then((manager) => {
-    items.manager = manager;
+  })) : fetchAdmin(items).then((admin) => {
+    items.admin = admin;
   });
 
   return promise.then(() => commons.replaceItems(items));
@@ -40,7 +40,7 @@ export default {
   },
 
   after: {
-    all: [ populateManager(), commons.discard('_id') ],
+    all: [ populateAdmin(), commons.discard('_id') ],
     find: [],
     get: [],
     create: [],

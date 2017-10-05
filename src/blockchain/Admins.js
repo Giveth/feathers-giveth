@@ -9,9 +9,9 @@ const BreakSignal = () => {
 };
 
 /**
- * class to keep feathers cache in sync with liquidpledging managers
+ * class to keep feathers cache in sync with liquidpledging admins
  */
-class Managers {
+class Admins {
   constructor(app, liquidPledging) {
     this.app = app;
     this.web3 = liquidPledging.$web3;
@@ -23,7 +23,7 @@ class Managers {
 
     const { returnValues } = event;
 
-    this.liquidPledging.getPledgeManager(returnValues.idGiver)
+    this.liquidPledging.getPledgeAdmin(returnValues.idGiver)
       .then(giver => this._addGiver(giver, returnValues.idGiver))
       .catch(err => console.error('addGiver error ->', err)); //eslint-disable-line no-console
   }
@@ -40,7 +40,7 @@ class Managers {
         .then(({ data }) => {
 
           if (data.length === 0) {
-            this.liquidPledging.getPledgeManager(giverId)
+            this.liquidPledging.getPledgeAdmin(giverId)
               .then(giver => this._addGiver(giver, giverId))
               .catch(err => console.error('updateGiver error ->', err)); //eslint-disable-line no-console
             throw new BreakSignal();
@@ -54,7 +54,7 @@ class Managers {
         });
     };
 
-    Promise.all([ getUser(), this.liquidPledging.getPledgeManager(giverId) ])
+    Promise.all([ getUser(), this.liquidPledging.getPledgeAdmin(giverId) ])
       .then(([ user, giver ]) => {
         // If a giver changes address, update users to reflect the change.
         if (giver.addr !== user.address) {
@@ -93,7 +93,7 @@ class Managers {
         return users.patch(user.address, { commitTime, name, giverId: giverId });
       })
       .then(user => {
-        this._addPledgeManager(giverId, 'giver', user.address)
+        this._addPledgeAdmin(giverId, 'giver', user.address)
           .then(() => user);
       })
       .catch(err => console.error('_addGiver error ->', err));
@@ -131,7 +131,7 @@ class Managers {
         });
     };
 
-    Promise.all([ getDAC(), this.liquidPledging.getPledgeManager(delegateId) ])
+    Promise.all([ getDAC(), this.liquidPledging.getPledgeAdmin(delegateId) ])
       .then(([ dac, delegate ]) => {
         return dacs.patch(dac._id, {
           ownerAddress: delegate.addr,
@@ -178,14 +178,14 @@ class Managers {
         });
     };
 
-    return this.liquidPledging.getPledgeManager(delegateId)
+    return this.liquidPledging.getPledgeAdmin(delegateId)
       .then(delegate => Promise.all([ delegate, findDAC(delegate) ]))
       .then(([ delegate, dac ]) => dacs.patch(dac._id, {
         delegateId,
         ownerAddress: delegate.addr,
       }))
       .then(dac => {
-        this._addPledgeManager(delegateId, 'dac', dac._id)
+        this._addPledgeAdmin(delegateId, 'dac', dac._id)
           .then(() => dac);
       })
       .catch(err => {
@@ -201,7 +201,7 @@ class Managers {
     const projectId = event.returnValues.idProject;
     const txHash = event.transactionHash;
 
-    return this.liquidPledging.getPledgeManager(projectId)
+    return this.liquidPledging.getPledgeAdmin(projectId)
       .then(project => Promise.all([ project, this.web3.eth.getCode(project.plugin) ]))
       .then(([ project, byteCode ]) => {
 
@@ -230,7 +230,7 @@ class Managers {
           if (data.length === 0) {
             //TODO do we need to create an owner here?
 
-            return this.liquidPledging.getPledgeManager(campaignProjectId)
+            return this.liquidPledging.getPledgeAdmin(campaignProjectId)
               .then(campaignProject => campaigns.create({
                 ownerAddress: campaignProject.addr,
                 title: campaignProject.name,
@@ -296,7 +296,7 @@ class Managers {
         mined: true,
       }))
       .then(milestone => {
-        this._addPledgeManager(projectId, 'milestone', milestone._id)
+        this._addPledgeAdmin(projectId, 'milestone', milestone._id)
           .then(() => milestone);
       })
       .catch(err => {
@@ -353,7 +353,7 @@ class Managers {
         status: campaignStatus(status),
       }))
       .then(campaign => {
-        this._addPledgeManager(projectId, 'campaign', campaign._id)
+        this._addPledgeAdmin(projectId, 'campaign', campaign._id)
           .then(() => campaign);
       })
       .catch(err => {
@@ -368,7 +368,7 @@ class Managers {
     const projectId = event.returnValues.idProject;
 
     // we make the assumption that if there is a parentProject, then the project is a milestone, otherwise it is a campaign
-    return this.liquidPledging.getPledgeManager(projectId)
+    return this.liquidPledging.getPledgeAdmin(projectId)
       .then(project => {
         return (project.parentProject > 0) ? this._updateMilestone(project, projectId) : this._updateCampaign(project, projectId);
       });
@@ -441,15 +441,15 @@ class Managers {
   }
 
 
-  _addPledgeManager(id, type, typeId) {
-    const pledgeManagers = this.app.service('pledgeManagers');
+  _addPledgeAdmin(id, type, typeId) {
+    const pledgeAdmins = this.app.service('pledgeAdmins');
 
-    return pledgeManagers.create({ id, type, typeId })
+    return pledgeAdmins.create({ id, type, typeId })
       .catch(err => {
-        // TODO if the pledgeManager already exists, then verify the type and typeId and return the manager
-        console.log('create pledgeManager error =>', err);
+        // TODO if the pledgeAdmin already exists, then verify the type and typeId and return the admin
+        console.log('create pledgeAdmin error =>', err);
       });
   }
 }
 
-export default Managers;
+export default Admins;

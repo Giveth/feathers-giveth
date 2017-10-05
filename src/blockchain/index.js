@@ -26,8 +26,8 @@ export default function () {
 
   getLiquidPledging(web3)
     .then(liquidPledging => {
-      const managerMonitor = new LiquidPledgingMonitor(app, liquidPledging, opts);
-      managerMonitor.start();
+      const adminMonitor = new LiquidPledgingMonitor(app, liquidPledging, opts);
+      adminMonitor.start();
     });
 }
 

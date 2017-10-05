@@ -29,7 +29,7 @@ class Pledges {
 
   _newDonation(pledgeId, amount, ts, txHash, retry = false) {
     const donations = this.app.service('donations');
-    const pledgeManagers = this.app.service('pledgeManagers');
+    const pledgeAdmins = this.app.service('pledgeAdmins');
 
     const findDonation = () => donations.find({ query: { txHash } })
       .then(resp => {
@@ -37,10 +37,10 @@ class Pledges {
       });
 
     this.liquidPledging.getPledge(pledgeId)
-      .then((pledge) => Promise.all([ pledgeManagers.get(pledge.owner), pledge, findDonation() ]))
+      .then((pledge) => Promise.all([ pledgeAdmins.get(pledge.owner), pledge, findDonation() ]))
       .then(([ giver, pledge, donation ]) => {
         const mutation = {
-          giverAddress: giver.manager.address, // giver is a user
+          giverAddress: giver.admin.address, // giver is a user
           amount,
           pledgeId,
           createdAt: ts,
@@ -67,10 +67,10 @@ class Pledges {
       .catch((err) => {
         if (err instanceof BreakSignal) return;
         if (err.name === 'NotFound') {
-          // most likely the from pledgeManager hasn't been registered yet.
+          // most likely the from pledgeAdmin hasn't been registered yet.
           // this can happen b/c when donating in liquidPledging, if the giverId === 0, the donate method will create a
           // giver. Thus the tx will emit 3 events. AddGiver, and 2 x Transfer. Since these are processed asyncrounously
-          // calling pledgeManagers.get(from) could result in a 404 as the AddGiver event hasn't finished processing
+          // calling pledgeAdmins.get(from) could result in a 404 as the AddGiver event hasn't finished processing
           setTimeout(() => this._newDonation(pledgeId, amount, ts, txHash, true), 5000);
           return;
         }
@@ -81,7 +81,7 @@ class Pledges {
 
   _transfer(from, to, amount, ts, txHash) {
     const donations = this.app.service('donations');
-    const pledgeManagers = this.app.service('pledgeManagers');
+    const pledgeAdmins = this.app.service('pledgeAdmins');
 
     const getDonation = () => {
       return donations.find({ query: { pledgeId: from, txHash } })
@@ -91,8 +91,8 @@ class Pledges {
     Promise.all([ this.liquidPledging.getPledge(from), this.liquidPledging.getPledge(to) ])
       .then(([ fromPledge, toPledge ]) => {
         const promises = [
-          pledgeManagers.get(fromPledge.owner),
-          pledgeManagers.get(toPledge.owner),
+          pledgeAdmins.get(fromPledge.owner),
+          pledgeAdmins.get(toPledge.owner),
           fromPledge,
           toPledge,
           getDonation(),
@@ -103,26 +103,26 @@ class Pledges {
         if (toPledge.nDelegates > 0) {
           promises.push(
             this.liquidPledging.getPledgeDelegate(to, toPledge.nDelegates)
-              .then(delegate => pledgeManagers.get(delegate.idDelegate))
+              .then(delegate => pledgeAdmins.get(delegate.idDelegate))
           );
         } else {
           promises.push(undefined);
         }
 
-        // fetch proposedProject pledgeManager
+        // fetch proposedProject pledgeAdmin
         if (toPledge.proposedProject > 0) {
-          promises.push(pledgeManagers.get(toPledge.proposedProject));
+          promises.push(pledgeAdmins.get(toPledge.proposedProject));
         } else {
           promises.push(undefined);
         }
 
         return Promise.all(promises);
       })
-      .then(([ fromPledgeManager, toPledgeManager, fromPledge, toPledge, donation, delegate, proposedProject ]) => {
+      .then(([ fromPledgeAdmin, toPledgeAdmin, fromPledge, toPledge, donation, delegate, proposedProject ]) => {
 
         const transferInfo = {
-          fromPledgeManager,
-          toPledgeManager,
+          fromPledgeAdmin,
+          toPledgeAdmin,
           fromPledge,
           toPledge,
           toPledgeId: to,
@@ -148,11 +148,11 @@ class Pledges {
       })
       .catch((err) => {
         if (err.name === 'NotFound') {
-          // most likely the from pledgeManager hasn't been registered yet.
+          // most likely the from pledgeAdmin hasn't been registered yet.
           // this can happen b/c when donating in liquidPledging, if the giverId === 0, the donate method will create a
           // giver. Thus the tx will emit 3 events. AddGiver, and 2 x Transfer. Since these are processed asyncrounously
-          // calling pledgeManagers.get(from) could result in a 404 as the AddGiver event hasn't finished processing
-          console.log('adding to queue, missing pledgeManager fromPledgeId:', from)
+          // calling pledgeAdmins.get(from) could result in a 404 as the AddGiver event hasn't finished processing
+          console.log('adding to queue, missing pledgeAdmin fromPledgeId:', from)
           this.queue.add(
             from,
             () => this._transfer(from, to, amount, ts, txHash)
@@ -165,11 +165,11 @@ class Pledges {
 
   _doTransfer(transferInfo) {
     const donations = this.app.service('donations');
-    const { fromPledgeManager, toPledgeManager, fromPledge, toPledge, toPledgeId, delegate, proposedProject, donation, amount, ts } = transferInfo;
+    const { fromPledgeAdmin, toPledgeAdmin, fromPledge, toPledge, toPledgeId, delegate, proposedProject, donation, amount, ts } = transferInfo;
 
     let status;
     if (proposedProject) status = 'to_approve';
-    else if (toPledgeManager.type === 'user' || delegate) status = 'waiting';
+    else if (toPledgeAdmin.type === 'user' || delegate) status = 'waiting';
     else status = 'committed';
 
     if (donation.amount === amount) {
@@ -180,8 +180,8 @@ class Pledges {
         paymentStatus: this._paymentStatus(toPledge.paymentState),
         updatedAt: ts,
         owner: toPledge.owner,
-        ownerId: toPledgeManager.typeId,
-        ownerType: toPledgeManager.type,
+        ownerId: toPledgeAdmin.typeId,
+        ownerType: toPledgeAdmin.type,
         proposedProject: toPledge.proposedProject,
         pledgeId: toPledgeId,
         commitTime: (toPledge.commitTime) ? new Date(toPledge.commitTime * 1000) : ts,
@@ -240,8 +240,8 @@ class Pledges {
       //     amount,
       //     toPledgeId,
       //     createdAt: ts,
-      //     owner: toPledgeManager.typeId,
-      //     ownerType: toPledgeManager.type,
+      //     owner: toPledgeAdmin.typeId,
+      //     ownerType: toPledgeAdmin.type,
       //     proposedProject: toPledge.proposedProject,
       //     paymentState: this._paymentStatus(toPledge.paymentState),
       //   }))
@@ -253,13 +253,13 @@ class Pledges {
 
   _updateDonationHistory(transferInfo) {
     const donationsHistory = this.app.service('donations/history');
-    const { fromPledgeManager, toPledgeManager, fromPledge, toPledge, toPledgeId, delegate, proposedProject, donation, amount, ts } = transferInfo;
+    const { fromPledgeAdmin, toPledgeAdmin, fromPledge, toPledge, toPledgeId, delegate, proposedProject, donation, amount, ts } = transferInfo;
 
     // only handling new donations for now
     if (fromPledge.oldPledge === '0' && toPledge.nDelegates === '1' && toPledge.proposedProject === '0') {
       const history = {
-        ownerId: toPledgeManager.typeId,
-        ownerType: toPledgeManager.type,
+        ownerId: toPledgeAdmin.typeId,
+        ownerType: toPledgeAdmin.type,
         createdAt: ts,
         amount,
         txHash: donation.txHash,

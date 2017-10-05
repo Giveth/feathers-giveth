@@ -1,4 +1,4 @@
-import Managers from './Managers';
+import Admins from './Admins';
 import Pledges from './Pledges';
 import Milestones from './Milestones';
 import Campaigns from './Campaigns';
@@ -16,7 +16,7 @@ export default class {
     this.web3 = liquidPledging.$web3;
     this.contract = liquidPledging.$contract;
     this.liquidPledging = liquidPledging;
-    this.managers = new Managers(app, liquidPledging);
+    this.admins = new Admins(app, liquidPledging);
     this.pledges = new Pledges(app, liquidPledging);
     this.milestones = new Milestones(app, this.web3);
     this.campaigns = new Campaigns(app, this.web3);
@@ -143,22 +143,22 @@ export default class {
 
     switch (event.event) {
       case 'GiverAdded':
-        this.managers.addGiver(event);
+        this.admins.addGiver(event);
         break;
       case 'GiverUpdated':
-        this.managers.updateGiver(event);
+        this.admins.updateGiver(event);
         break;
       case 'DelegateAdded':
-        this.managers.addDelegate(event);
+        this.admins.addDelegate(event);
         break;
       case 'DelegateUpdated':
-        this.managers.updateDelegate(event);
+        this.admins.updateDelegate(event);
         break;
       case 'ProjectAdded':
-        this.managers.addProject(event);
+        this.admins.addProject(event);
         break;
       case 'ProjectUpdated':
-        this.managers.updateProject(event);
+        this.admins.updateProject(event);
         break;
       case 'Transfer':
         this.pledges.transfer(event);
