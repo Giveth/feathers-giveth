@@ -120,12 +120,12 @@ const poSchemas = {
       },
     ],
   },
-  'po-campaign-proposed': {
+  'po-campaign-intended': {
     include: [
       {
         service: 'campaigns',
-        nameAs: 'proposedEntity',
-        parentField: 'proposedProject',
+        nameAs: 'intendedEntity',
+        parentField: 'intendedProject',
         childField: 'projectId',
         useInnerPopulate: true,
       },
@@ -153,12 +153,12 @@ const poSchemas = {
       },
     ],
   },
-  'po-milestone-proposed': {
+  'po-milestone-intended': {
     include: [
       {
         service: 'milestones',
-        nameAs: 'proposedEntity',
-        parentField: 'proposedProject',
+        nameAs: 'intendedEntity',
+        parentField: 'intendedProject',
         childField: 'projectId',
         useInnerPopulate: true,
       },
@@ -182,7 +182,7 @@ const joinDonationRecipient = (item, context) => {
       return (item.delegate) ? commons.populate({ schema: poSchemas[ 'po-dac' ] })(context) : context;
     })
     .then(context => {
-      return (item.proposedProject > 0) ? commons.populate({ schema: poSchemas[ `po-${item.proposedProjectType.toLowerCase()}-proposed` ] })(context) : context;
+      return (item.intendedProject > 0) ? commons.populate({ schema: poSchemas[ `po-${item.intendedProjectType.toLowerCase()}-intended` ] })(context) : context;
     })
     .then(context => context.result);
 };

@@ -4,8 +4,8 @@ const createModel = require('../../models/donations.model');
 const hooks = require('./donations.hooks');
 const filters = require('./donations.filters');
 
-// If a donation has a proposedProject & the commitTime has passed, we need to update the donation to reflect
-// that the proposedProject is now the owner
+// If a donation has a intendedProject & the commitTime has passed, we need to update the donation to reflect
+// that the intendedProject is now the owner
 const pollForCommittedDonations = (service) => {
   const interval = 1000 * 30; // check every 30 seconds
 
@@ -13,7 +13,7 @@ const pollForCommittedDonations = (service) => {
 
     service.find({
       query: {
-        proposedProject: {
+        intendedProject: {
           $gt: '0',
         },
         commitTime: {
@@ -25,13 +25,13 @@ const pollForCommittedDonations = (service) => {
       .then(({ data }) => {
         data.forEach(donation => service.patch(donation._id, {
           status: 'committed',
-          owner: donation.proposedProject,
-          ownerId: donation.proposedProjectId,
-          ownerType: donation.proposedProjectType,
+          owner: donation.intendedProject,
+          ownerId: donation.intendedProjectId,
+          ownerType: donation.intendedProjectType,
           $unset: {
-            proposedProject: true,
-            proposedProjectId: true,
-            proposedProjectType: true,
+            intendedProject: true,
+            intendedProjectId: true,
+            intendedProjectType: true,
             delegate: true,
             delegateId: true,
             delegateType: true,

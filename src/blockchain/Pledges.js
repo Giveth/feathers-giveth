@@ -109,16 +109,16 @@ class Pledges {
           promises.push(undefined);
         }
 
-        // fetch proposedProject pledgeAdmin
-        if (toPledge.proposedProject > 0) {
-          promises.push(pledgeAdmins.get(toPledge.proposedProject));
+        // fetch intendedProject pledgeAdmin
+        if (toPledge.intendedProject > 0) {
+          promises.push(pledgeAdmins.get(toPledge.intendedProject));
         } else {
           promises.push(undefined);
         }
 
         return Promise.all(promises);
       })
-      .then(([ fromPledgeAdmin, toPledgeAdmin, fromPledge, toPledge, donation, delegate, proposedProject ]) => {
+      .then(([ fromPledgeAdmin, toPledgeAdmin, fromPledge, toPledge, donation, delegate, intendedProject ]) => {
 
         const transferInfo = {
           fromPledgeAdmin,
@@ -127,7 +127,7 @@ class Pledges {
           toPledge,
           toPledgeId: to,
           delegate,
-          proposedProject,
+          intendedProject,
           donation,
           amount,
           ts,
@@ -165,10 +165,10 @@ class Pledges {
 
   _doTransfer(transferInfo) {
     const donations = this.app.service('donations');
-    const { fromPledgeAdmin, toPledgeAdmin, fromPledge, toPledge, toPledgeId, delegate, proposedProject, donation, amount, ts } = transferInfo;
+    const { fromPledgeAdmin, toPledgeAdmin, fromPledge, toPledge, toPledgeId, delegate, intendedProject, donation, amount, ts } = transferInfo;
 
     let status;
-    if (proposedProject) status = 'to_approve';
+    if (intendedProject) status = 'to_approve';
     else if (toPledgeAdmin.type === 'user' || delegate) status = 'waiting';
     else status = 'committed';
 
@@ -182,25 +182,25 @@ class Pledges {
         owner: toPledge.owner,
         ownerId: toPledgeAdmin.typeId,
         ownerType: toPledgeAdmin.type,
-        proposedProject: toPledge.proposedProject,
+        intendedProject: toPledge.intendedProject,
         pledgeId: toPledgeId,
         commitTime: (toPledge.commitTime) ? new Date(toPledge.commitTime * 1000) : ts,
         status,
       };
 
-      if (proposedProject) {
+      if (intendedProject) {
         Object.assign(mutation, {
-          proposedProjectId: proposedProject.typeId,
-          proposedProjectType: proposedProject.type,
+          intendedProjectId: intendedProject.typeId,
+          intendedProjectType: intendedProject.type,
         });
       }
 
-      if (!proposedProject && donation.proposedProject) {
+      if (!intendedProject && donation.intendedProject) {
         Object.assign(mutation, {
           $unset: {
-            proposedProject: true,
-            proposedProjectId: true,
-            proposedProjectType: true
+            intendedProject: true,
+            intendedProjectId: true,
+            intendedProjectType: true
           }
         });
       }
@@ -242,7 +242,7 @@ class Pledges {
       //     createdAt: ts,
       //     owner: toPledgeAdmin.typeId,
       //     ownerType: toPledgeAdmin.type,
-      //     proposedProject: toPledge.proposedProject,
+      //     intendedProject: toPledge.intendedProject,
       //     paymentState: this._paymentStatus(toPledge.paymentState),
       //   }))
       //   // now that this donation has been added, we can purge the transfer queue for this pledgeId
@@ -253,10 +253,10 @@ class Pledges {
 
   _updateDonationHistory(transferInfo) {
     const donationsHistory = this.app.service('donations/history');
-    const { fromPledgeAdmin, toPledgeAdmin, fromPledge, toPledge, toPledgeId, delegate, proposedProject, donation, amount, ts } = transferInfo;
+    const { fromPledgeAdmin, toPledgeAdmin, fromPledge, toPledge, toPledgeId, delegate, intendedProject, donation, amount, ts } = transferInfo;
 
     // only handling new donations for now
-    if (fromPledge.oldPledge === '0' && toPledge.nDelegates === '1' && toPledge.proposedProject === '0') {
+    if (fromPledge.oldPledge === '0' && toPledge.nDelegates === '1' && toPledge.intendedProject === '0') {
       const history = {
         ownerId: toPledgeAdmin.typeId,
         ownerType: toPledgeAdmin.type,
