@@ -247,7 +247,7 @@ class Pledges {
       // update milestone status if toPledge == paying or paid
       if (['1', '2'].includes(toPledge.paymentState) && toPledgeAdmin.type === 'milestone') {
         this.app.service('milestones').patch(toPledgeAdmin.typeId, {
-          status: (toPledge.paymentState === '1') ? 'Paying' : 'Paid',
+          status: (toPledge.paymentState === '1') ? 'Paying' : 'CanWithdraw',
           mined: true
         });
       }
