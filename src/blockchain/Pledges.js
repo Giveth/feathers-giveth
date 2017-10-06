@@ -84,8 +84,26 @@ class Pledges {
     const pledgeAdmins = this.app.service('pledgeAdmins');
 
     const getDonation = () => {
-      return donations.find({ query: { pledgeId: from, txHash } })
-        .then(donations => (donations.data.length > 0) ? donations.data[ 0 ] : undefined);
+      return donations.find({ query: { pledgeId: from } })
+        .then(donations => {
+          if (donations.data.length === 1) return donations.data[ 0 ];
+
+          // check for any donations w/ matching txHash
+          // this won't work when confirmPayment is called on the vault
+          const filteredDonationsByTxHash = donations.data.filter(donation => donation.txHash === txHash);
+
+          if (filteredDonationsByTxHash.length === 1) return filteredDonationsByTxHash[ 0 ];
+
+          const filteredDonationsByAmount = donations.data.filter(donation => donation.amount === amount);
+
+          // possible to have 2 donations w/ same pledgeId & amount. This would happen if a giver makes
+          // a donation to the same delegate/project w/ for the same amount multiple times. Currently there
+          // no way to tell which donation was acted on, so we just return the first
+          if (filteredDonationsByAmount.length > 0) return filteredDonationsByAmount[ 0 ];
+
+          // this is probably a split which happened outside of the ui
+          throw new Error('unable to determine what donations entity to update', from, to, amount, ts, txHash);
+        });
     };
 
     Promise.all([ this.liquidPledging.getPledge(from), this.liquidPledging.getPledge(to) ])
@@ -168,10 +186,10 @@ class Pledges {
     const { fromPledgeAdmin, toPledgeAdmin, fromPledge, toPledge, toPledgeId, delegate, intendedProject, donation, amount, ts } = transferInfo;
 
     let status;
-    if (intendedProject) status = 'to_approve';
+    if (toPledge.paymentState === '1') status = 'paying';
+    else if (toPledge.paymentState === '2') status = 'paid';
+    else if (intendedProject) status = 'to_approve';
     else if (toPledgeAdmin.type === 'user' || delegate) status = 'waiting';
-    else if (toPledge.paymentState === 'Paying') status = 'paying';
-    else if (toPledge.paymentState === 'Paid') status = 'paid';
     else status = 'committed';
 
     if (donation.amount === amount) {
@@ -216,7 +234,7 @@ class Pledges {
 
       // if the paymentState === 'Paying', this means that the owner is withdrawing and the delegates can no longer
       // delegate the pledge, so we drop them
-      if ((!delegate || toPledge.paymentState === 'Paying') && donation.delegate) {
+      if ((!delegate || toPledge.paymentState === '1') && donation.delegate) {
         Object.assign(mutation, {
           $unset: {
             delegate: true,
@@ -227,9 +245,9 @@ class Pledges {
       }
 
       // update milestone status if toPledge == paying or paid
-      if (['Paying', 'Paid'].includes(toPledge.paymentState) && toPledgeAdmin.type === 'milestone') {
-        this.app.service('milestones').patch(null, {
-          status: (toPledge.paymentState === 'Paying') ? 'InitializedWithdraw' : 'Paid',
+      if (['1', '2'].includes(toPledge.paymentState) && toPledgeAdmin.type === 'milestone') {
+        this.app.service('milestones').patch(toPledgeAdmin.typeId, {
+          status: (toPledge.paymentState === '1') ? 'Paying' : 'Paid',
           mined: true
         });
       }

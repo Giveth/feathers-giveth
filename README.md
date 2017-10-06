@@ -32,7 +32,7 @@ The configuration param `blockchain.nodeUrl` is used to establish a connection. 
     
 4. 1 time only - deploy liquidPledging contract
 
-    ```node --harmony deploy.js```
+    ```node --harmony scripts/deploy.js```
     
 5. Start your app
 
@@ -50,6 +50,14 @@ The configuration param `blockchain.nodeUrl` is used to establish a connection. 
     ```
     yarn serve
     ```
+    
+## Scripts
+
+The `scripts` directory contains a few scripts to help development.
+
+`deploy.js` - deploys a new vault & liquidPledging contract
+`getState.js` - prints the current state of the deployed vault & liquidPledging contracts.
+`confirm.js` - confirms any payments that are pending in the vault 
 
 ## Testing
 
