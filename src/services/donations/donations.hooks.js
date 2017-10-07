@@ -123,6 +123,35 @@ const poSchemas = {
   },
 };
 
+// a bit of a hacky way to be able to revert donations if the tx failed.
+const stashDonationIfPending = () => context => {
+  // only deal with single donation patchs
+  if (!context.id) return context;
+
+  const { data } = context;
+  console.log(data);
+
+  if (data.status === 'pending') {
+    return context.app.service('donations').get(context.id)
+      .then(donation => {
+        data.previousState = donation;
+
+        return context;
+      }).catch(console.error);
+  }
+
+  // if not pending status, remove previousState from donation as it isn't needed
+  if (data.$unset) {
+    data.$unset.previousState = true;
+  } else {
+    data.$unset = {
+      previousState: true
+    };
+  }
+
+  return context;
+};
+
 const joinDonationRecipient = (item, context) => {
   const newContext = Object.assign({}, context, { result: item });
 
@@ -198,7 +227,7 @@ module.exports = {
     // update: [ ...restrict, ...address ],
     // patch: [ ...restrict, ...address ],
     update: [ sanitizeAddress('giverAddress', { validate: true }), ],
-    patch: [ sanitizeAddress('giverAddress', { validate: true }), ],
+    patch: [ sanitizeAddress('giverAddress', { validate: true }), stashDonationIfPending() ],
     remove: [ commons.disallow() ],
   },
 
