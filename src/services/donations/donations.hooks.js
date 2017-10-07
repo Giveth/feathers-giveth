@@ -2,7 +2,6 @@
 import errors from 'feathers-errors';
 import commons from 'feathers-hooks-common';
 import { restrictToOwner } from 'feathers-authentication-hooks';
-import { toBN } from 'web3-utils';
 
 import sanitizeAddress from '../../hooks/sanitizeAddress';
 import setAddress from '../../hooks/setAddress';
@@ -45,48 +44,6 @@ import setAddress from '../../hooks/setAddress';
 //         return context;
 //       })
 // }
-
-const updateType = () => {
-  return context => {
-    const { data } = context;
-
-    let serviceName;
-    let id;
-
-    // TODO need to update this logic to handle delegations/undelegations/cancelations etc.
-    if (data.ownerType.toLowerCase() === 'campaign') {
-      serviceName = 'campaigns';
-      id = data.ownerId;
-    }
-    else if (data.ownerType.toLowerCase() === 'milestone') {
-      serviceName = 'milestones';
-      id = data.ownerId;
-    } else if (data.delegate) {
-      serviceName = 'dacs';
-      id = data.delegateId;
-    }
-
-    const service = context.app.service(serviceName);
-
-    if (!service) return;
-
-    return service.get(id)
-      .then(entity => {
-        let totalDonated = entity.totalDonated || 0;
-        let donationCount = entity.donationCount || 0;
-
-        donationCount += 1;
-        totalDonated = toBN(totalDonated).add(toBN(data.amount)).toString();
-
-        return service.patch(entity._id, { donationCount, totalDonated })
-          .then(() => context);
-      })
-      .catch((error) => {
-        console.error(error); // eslint-disable-line no-console
-        return context;
-      });
-  };
-};
 
 const poSchemas = {
   'po-giver': {
@@ -233,16 +190,15 @@ module.exports = {
     create: [ setAddress('giverAddress'), sanitizeAddress('giverAddress', {
       required: true,
       validate: true,
-    }), updateType(),
-      (context) => {
-        if (context.data.createdAt) return context;
-        context.data.createdAt = new Date();
-      },
-    ],
+    }),
+    (context) => {
+      if (context.data.createdAt) return context;
+      context.data.createdAt = new Date();
+    }, ],
     // update: [ ...restrict, ...address ],
     // patch: [ ...restrict, ...address ],
-    update: [ sanitizeAddress('giverAddress', { validate: true }) ],
-    patch: [ sanitizeAddress('giverAddress', { validate: true }) ],
+    update: [ sanitizeAddress('giverAddress', { validate: true }), ],
+    patch: [ sanitizeAddress('giverAddress', { validate: true }), ],
     remove: [ commons.disallow() ],
   },
 

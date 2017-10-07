@@ -294,8 +294,12 @@ class Pledges {
     const donationsHistory = this.app.service('donations/history');
     const { fromPledgeAdmin, toPledgeAdmin, fromPledge, toPledge, toPledgeId, delegate, intendedProject, donation, amount, ts } = transferInfo;
 
-    // only handling new donations for now
-    if (fromPledge.oldPledge === '0' && toPledge.nDelegates === '1' && toPledge.intendedProject === '0') {
+    const isNewDonation = () => fromPledge.oldPledge === '0' && (toPledgeAdmin.type !== 'giver' || toPledge.nDelegates === '1') && toPledge.intendedProject === '0';
+    const isCommittedDelegation = () => fromPledge.intendedProject !== '0' && fromPledge.intendedProject === toPledge.owner;
+    const isCampaignToMilestone = () => fromPledgeAdmin.type === 'campaign' && toPledgeAdmin.type === 'milestone';
+
+    // only handling new donations & committed delegations for now
+    if (isNewDonation() || isCommittedDelegation() || isCampaignToMilestone()) {
       const history = {
         ownerId: toPledgeAdmin.typeId,
         ownerType: toPledgeAdmin.type,
@@ -303,6 +307,7 @@ class Pledges {
         amount,
         txHash: donation.txHash,
         donationId: donation._id,
+        giverAddress: donation.giverAddress
       };
 
       if (delegate) {
