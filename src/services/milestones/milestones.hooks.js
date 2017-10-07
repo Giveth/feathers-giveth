@@ -11,13 +11,12 @@ const restrict = () => context => {
   // internal call are fine
   if (!context.params.provider) return context;
 
-  const { data } = context;
+  const { data, service } = context;
   const user = context.params.user;
 
   if (!user) throw new errors.NotAuthenticated();
 
   const items = commons.getItems(context);
-  const service = context.app.service('milestones');
 
   const getMilestones = () => {
     if (context.id) return service.get(context.id);
@@ -31,6 +30,13 @@ const restrict = () => context => {
     // reviewer can mark Completed or Canceled
     if (['Completed', 'Canceled'].includes(data.status) && data.mined === false) {
       if (!user.address === milestone.reviewerAddress) throw new errors.Forbidden('Only the reviewer accept or cancel a milestone');
+
+      // whitelist of what the reviewer can update
+      const approvedKeys = ['txHash', 'status', 'mined'];
+
+      const keysToRemove = Object.keys(data).map(key => !approvedKeys.includes(key));
+      keysToRemove.forEach(key => delete data[ key ]);
+
     } else if (!user.address === milestone.ownerAddress) throw new errors.Forbidden();
   };
 
@@ -40,7 +46,6 @@ const restrict = () => context => {
         return (Array.isArray(milestones)) ? milestones.forEach(canUpdate) : canUpdate(milestones);
       });
   }
-
 };
 
 const address = [

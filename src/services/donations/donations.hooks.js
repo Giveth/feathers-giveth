@@ -1,49 +1,55 @@
 /* eslint-disable no-unused-vars */
 import errors from 'feathers-errors';
 import commons from 'feathers-hooks-common';
-import { restrictToOwner } from 'feathers-authentication-hooks';
 
 import sanitizeAddress from '../../hooks/sanitizeAddress';
 import setAddress from '../../hooks/setAddress';
 
-// const restrict = [
-//   restrictToOwner({
-//     idField: 'address',
-//     ownerField: 'giverAddress',
-//   }),
-// ];
 
-// const restrict = () => context => {
-//   //TODO allow delegates to modify the donation
-//     if (context.id === null || context.id === undefined) {
-//       throw new errors.BadRequest('Id is required.');
-//     }
-//
-//     const params = context.method === 'get' ? context.params : {
-//       provider: context.params.provider,
-//       authenticated: context.params.authenticated,
-//       user: context.params.user
-//     };
-//
-//     params.query = params.query || {};
-//
-//     return context.service.get(context.id, params)
-//       .then(donation => {
-//         const addr = context.params.user.address;
-//
-//         switch (donation.type.lowerCase()) {
-//           case 'dac':
-//             // allow delegation
-//             break;
-//           case 'campaign':
-//             break;
-//           case 'milestone':
-//             break
-//         }
-//
-//         return context;
-//       })
-// }
+const restrict = () => context => {
+  // internal call are fine
+  if (!context.params.provider) return context;
+
+  const { data } = context;
+  const user = context.params.user;
+
+  if (!user) throw new errors.NotAuthenticated();
+
+  const items = commons.getItems(context);
+  const service = context.app.service('milestones');
+
+  const getDonations = () => {
+    if (context.id) return service.get(context.id);
+    if (!context.id && context.params.query) return service.find(context.params.query);
+    return undefined;
+  };
+
+  const canUpdate = (donation) => {
+    if (!donation) throw new errors.Forbidden();
+
+    if (data.status === 'pending' && (data.intendedProjectId || data.delegateId !== donation.delegateId)) {
+      // delegate made this call
+      if (!user.address === donation.ownerId || !user.address === donation.delegateEntity.ownerAddress) throw new errors.Forbidden();
+
+      // whitelist of what the delegate can update
+      const approvedKeys = ['txHash', 'status', 'delegate', 'delegateId', 'intendedProject', 'intendedProjectId', 'intendedProjectType'];
+
+      const keysToRemove = Object.keys(data).map(key => !approvedKeys.includes(key))
+      keysToRemove.forEach(key => delete data[ key ]);
+
+    } else if ((donation.ownerType === 'giver' && !user.address === donation.ownerId) ||
+      !user.address === donation.ownerEntity.ownerAddress) {
+      throw new errors.Forbidden();
+    }
+  };
+
+  if (Array.isArray(items)) {
+    return getDonations()
+      .then(donations => {
+        return (Array.isArray(donations)) ? donations.forEach(canUpdate) : canUpdate(donations);
+      });
+  }
+};
 
 const poSchemas = {
   'po-giver': {
@@ -223,10 +229,8 @@ module.exports = {
       if (context.data.createdAt) return context;
       context.data.createdAt = new Date();
     }, ],
-    // update: [ ...restrict, ...address ],
-    // patch: [ ...restrict, ...address ],
-    update: [ sanitizeAddress('giverAddress', { validate: true }), ],
-    patch: [ sanitizeAddress('giverAddress', { validate: true }), stashDonationIfPending() ],
+    update: [ restrict(), sanitizeAddress('giverAddress', { validate: true }), ],
+    patch: [ restrict(), sanitizeAddress('giverAddress', { validate: true }), stashDonationIfPending() ],
     remove: [ commons.disallow() ],
   },
 
