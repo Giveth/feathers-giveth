@@ -445,7 +445,6 @@ class Admins {
 
     const projectId = event.returnValues.idProject;
 
-    //TODO cancel campaign or milestone w projectId === idProject & and child milestones for the campaign
     return this.app.service('pledgeAdmins').get(projectId)
       .then(pledgeAdmin => {
 

@@ -31,7 +31,6 @@ class Pledges {
         };
 
         if (event.logIndex > 0) {
-          console.log('adding to queue ->', event);
           this.queue.add(
             event.transactionHash,
             processEvent
@@ -216,7 +215,7 @@ class Pledges {
         ownerType: toPledgeAdmin.type,
         intendedProject: toPledge.intendedProject,
         pledgeId: toPledgeId,
-        commitTime: (toPledge.commitTime) ? new Date(toPledge.commitTime * 1000) : ts,
+        commitTime: (toPledge.commitTime > 0) ? new Date(toPledge.commitTime * 1000) : ts,
         status,
       };
 
