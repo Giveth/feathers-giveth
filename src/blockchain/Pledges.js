@@ -1,4 +1,5 @@
 import TransferQueue from './TransferQueue';
+import { pledgePaymentStatus } from "./helpers";
 
 const BreakSignal = () => {
 };
@@ -48,7 +49,7 @@ class Pledges {
           ownerId: giver.typeId,
           ownerType: giver.type,
           status: 'waiting', // waiting for delegation by owner or delegate
-          paymentStatus: this._paymentStatus(pledge.paymentState),
+          paymentStatus: pledgePaymentStatus(pledge.paymentState),
         };
 
         if (!donation) {
@@ -189,7 +190,7 @@ class Pledges {
     if (toPledge.paymentState === '1') status = 'paying';
     else if (toPledge.paymentState === '2') status = 'paid';
     else if (intendedProject) status = 'to_approve';
-    else if (toPledgeAdmin.type === 'user' || delegate) status = 'waiting';
+    else if (toPledgeAdmin.type === 'giver' || delegate) status = 'waiting';
     else status = 'committed';
 
     if (donation.amount === amount) {
@@ -197,7 +198,7 @@ class Pledges {
 
       const mutation = {
         amount,
-        paymentStatus: this._paymentStatus(toPledge.paymentState),
+        paymentStatus: pledgePaymentStatus(toPledge.paymentState),
         updatedAt: ts,
         owner: toPledge.owner,
         ownerId: toPledgeAdmin.typeId,
@@ -317,19 +318,6 @@ class Pledges {
 
     // regular transfer
 
-  }
-
-  _paymentStatus(val) {
-    switch (val) {
-      case '0':
-        return 'Pledged';
-      case '1':
-        return 'Paying';
-      case '2':
-        return 'Paid';
-      default:
-        return 'Unknown';
-    }
   }
 
   _getBlockTimestamp(blockNumber) {

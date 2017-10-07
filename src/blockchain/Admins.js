@@ -3,7 +3,7 @@ import { LPPMilestoneRuntimeByteCode } from 'lpp-milestone/build/LPPMilestone.so
 import LPPCampaign from 'lpp-campaign';
 import { LPPCampaignRuntimeByteCode } from 'lpp-campaign/build/LPPCampaign.sol';
 
-import { milestoneStatus } from './helpers';
+import { milestoneStatus, pledgePaymentStatus } from './helpers';
 
 const BreakSignal = () => {
 };
@@ -348,6 +348,7 @@ class Admins {
         reviewerAddress: reviewer,
         pluginAddress: project.plugin,
         status: (canceled) ? 'Canceled' : 'Active',
+        mined: true,
       }))
       .then(campaign => {
         this._addPledgeAdmin(projectId, 'campaign', campaign._id)
@@ -437,6 +438,153 @@ class Admins {
       });
   }
 
+  cancelProject(event) {
+    if (event.event !== 'CancelProject') throw new Error('cancelProject only handles CancelProject events');
+
+    const projectId = event.returnValues.idProject;
+
+    //TODO cancel campaign or milestone w projectId === idProject & and child milestones for the campaign
+    return this.app.service('pledgeAdmins').get(projectId)
+      .then(pledgeAdmin => {
+
+        let service;
+        if (pledgeAdmin.type === 'campaign') {
+          service = this.app.service('campaigns');
+          // cancel all milestones
+        } else {
+          service = this.app.service('milestones');
+        }
+
+        // revert donations
+        this.app.service('donations').find({
+          paginate: false,
+          query: {
+            $or: [
+              { ownerId: pledgeAdmin.typeId },
+              { intendedProjectId: pledgeAdmin.typeId },
+            ],
+          },
+        })
+          .then((data) => data.forEach((donation) => this._revertDonation(donation)))
+          .catch(console.error);
+
+        // update admin entity
+        return service.patch(pledgeAdmin.typeId, {
+          status: 'Canceled',
+          mined: true,
+        });
+      })
+      .catch((error) => {
+        if (error.name === 'NotFound') return;
+        console.log(error);
+      });
+  }
+
+  _revertDonation(donation) {
+    console.log(donation);
+    const pledgeAdmins = this.app.service('pledgeAdmins');
+    const donations = this.app.service('donations');
+
+    // This is the root level for a donation. Only need to remove the intendedProject if present
+    if (donation.ownerType === 'giver') {
+      if (donation.intendedProject) {
+        donations.patch(donation._id, {
+          $unset: {
+            intendedProject: true,
+            intendedProjectId: true,
+            intendedProjectType: true,
+          },
+        });
+      }
+    }
+
+    const getAdmin = (id) => pledgeAdmins.get(id)
+      .catch((error) => {
+        if (error.name === 'NotFound') return undefined;
+
+        console.error(error);
+        return undefined;
+      });
+
+    const getMostRecentPledgeNotCanceled = (pledgeId) => {
+      if (pledgeId === 0) return Promise.reject('pledgeId === 0, not sure what to do');
+
+      return this.liquidPledging.getPledge(pledgeId)
+        .then(pledge => Promise.all([ getAdmin(pledge.owner), getAdmin(pledge.intendedProject), pledge ]))
+        .then(([ pledgeOwnerAdmin, pledgeIntendedProjectAdmin, pledge ]) => {
+
+          console.log(pledgeOwnerAdmin);
+          console.log(pledgeIntendedProjectAdmin);
+          console.log(pledge);
+          // if pledgeAdmin is the giver, this is the furthest back we can go
+          if (pledgeOwnerAdmin.type !== 'giver') {
+            if (pledgeIntendedProjectAdmin && pledgeIntendedProjectAdmin.admin.status === 'Canceled') return getMostRecentPledgeNotCanceled(pledge.oldPledge);
+
+            if (pledgeOwnerAdmin && pledgeOwnerAdmin.admin.status === 'Canceled') return getMostRecentPledgeNotCanceled(pledge.oldPledge);
+          }
+
+          const pledgeInfo = {
+            pledgeOwnerAdmin,
+            pledgeIntendedProjectAdmin,
+            pledge,
+          };
+
+          return (pledge.nDelegates > 0) ?
+            this.liquidPledging.getPledgeDelegate(pledgeId, pledge.nDelegates)
+              .then(delegate => pledgeAdmins.get(delegate.idDelegate))
+              .then(delegate => Object.assign(pledgeInfo, { pledgeDelegateAdmin: delegate })) :
+            pledgeInfo;
+        });
+    };
+
+    return getMostRecentPledgeNotCanceled(donation.pledgeId)
+      .then(({ pledgeOwnerAdmin, pledgeIntendedProjectAdmin, pledge, pledgeDelegateAdmin }) => {
+
+        console.log(pledgeDelegateAdmin);
+
+        const status = (pledgeOwnerAdmin.type === 'giver' || pledgeDelegateAdmin) ? 'waiting' : 'committed';
+
+        const mutation = {
+          paymentStatus: pledgePaymentStatus(pledge.paymentState),
+          // updatedAt: //TODO get block time
+          owner: pledge.owner,
+          ownerId: pledgeOwnerAdmin.typeId,
+          ownerType: pledgeOwnerAdmin.type,
+          intendedProject: pledge.intendedProject,
+          commitTime: (pledge.commitTime) ? new Date(pledge.commitTime * 1000) : new Date(),
+          status,
+        };
+
+        if (pledgeIntendedProjectAdmin) {
+          Object.assign(mutation, {
+            intendedProjectId: pledgeIntendedProjectAdmin.typeId,
+            intendedProjectType: pledgeIntendedProjectAdmin.type,
+          });
+        }
+
+        if (!pledgeIntendedProjectAdmin && donation.intendedProject) {
+          Object.assign(mutation, {
+            $unset: {
+              intendedProject: true,
+              intendedProjectId: true,
+              intendedProjectType: true
+            }
+          });
+        }
+
+        if (pledgeDelegateAdmin) {
+          Object.assign(mutation, {
+            delegate: pledgeDelegateAdmin.id,
+            delegateId: pledgeDelegateAdmin.typeId,
+          });
+        }
+
+        if (pledge.paymentState !== '0') console.log('why does pledge have non `Pledged` paymentState? ->', pledge);
+
+        return donations.patch(donation._id, mutation);
+      }).catch(console.error);
+
+  }
 
   _addPledgeAdmin(id, type, typeId) {
     const pledgeAdmins = this.app.service('pledgeAdmins');

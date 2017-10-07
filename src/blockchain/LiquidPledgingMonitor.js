@@ -156,6 +156,9 @@ export default class {
       case 'ProjectUpdated':
         this.admins.updateProject(event);
         break;
+      case 'CancelProject':
+        this.admins.cancelProject(event);
+        break;
       case 'Transfer':
         this.pledges.transfer(event);
         break;

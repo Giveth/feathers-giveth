@@ -12,6 +12,7 @@ const pollForCommittedDonations = (service) => {
   const doUpdate = () => {
 
     service.find({
+      paginate: false,
       query: {
         intendedProject: {
           $gt: '0',
@@ -19,10 +20,9 @@ const pollForCommittedDonations = (service) => {
         commitTime: {
           $lte: new Date(),
         },
-        $limit: 5000,
       },
     })
-      .then(({ data }) => {
+      .then((data) => {
         data.forEach(donation => service.patch(donation._id, {
           status: 'committed',
           owner: donation.intendedProject,
