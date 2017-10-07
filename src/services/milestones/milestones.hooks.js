@@ -1,17 +1,47 @@
 import Web3 from 'web3';
 import commons from 'feathers-hooks-common';
-// import { restrictToOwner } from 'feathers-authentication-hooks';
+import errors from 'feathers-errors';
 
 import sanitizeAddress from '../../hooks/sanitizeAddress';
 import setAddress from '../../hooks/setAddress';
 import sanitizeHtml from '../../hooks/sanitizeHtml';
 
-const restrict = [
-  // restrictToOwner({
-  //   idField: 'address',
-  //   ownerField: 'ownerAddress',
-  // }),
-];
+
+const restrict = () => context => {
+  // internal call are fine
+  if (!context.params.provider) return context;
+
+  const { data } = context;
+  const user = context.params.user;
+
+  if (!user) throw new errors.NotAuthenticated();
+
+  const items = commons.getItems(context);
+  const service = context.app.service('milestones');
+
+  const getMilestones = () => {
+    if (context.id) return service.get(context.id);
+    if (!context.id && context.params.query) return service.find(context.params.query);
+    return undefined;
+  };
+
+  const canUpdate = (milestone) => {
+    if (!milestone) throw new errors.Forbidden();
+
+    // reviewer can mark Completed or Canceled
+    if (['Completed', 'Canceled'].includes(data.status) && data.mined === false) {
+      if (!user.address === milestone.reviewerAddress) throw new errors.Forbidden('Only the reviewer accept or cancel a milestone');
+    } else if (!user.address === milestone.ownerAddress) throw new errors.Forbidden();
+  };
+
+  if (Array.isArray(items)) {
+    return getMilestones()
+      .then(milestones => {
+        return (Array.isArray(milestones)) ? milestones.forEach(canUpdate) : canUpdate(milestones);
+      });
+  }
+
+};
 
 const address = [
   sanitizeAddress('pluginAddress', { required: true, validate: true }),
@@ -36,7 +66,7 @@ const watchTx = () => context => {
         .then(tx => {
           if (tx) {
             context.app.service('milestones').patch(context.id, {
-              mined: true
+              mined: true,
             }).catch(console.log);
             clearInterval(intervalId);
           }
@@ -81,9 +111,9 @@ module.exports = {
     find: [ sanitizeAddress([ 'ownerAddress', 'pluginAddress', 'reviewerAddress', 'recipientAddress' ]) ],
     get: [],
     create: [ setAddress('ownerAddress'), ...address, sanitizeHtml('description') ],
-    update: [ ...restrict, ...address, sanitizeHtml('description') ],
-    patch: [ ...restrict, sanitizeAddress(['pluginAddress', 'reviewerAddress', 'recipientAddress'], { validate: true }), sanitizeHtml('description'), watchTx() ],
-    remove: [ sanitizeAddress([ 'pluginAddress', 'reviewerAddress', 'recipientAddress' ]), ...restrict ],
+    update: [ restrict(), ...address, sanitizeHtml('description') ],
+    patch: [ restrict(), sanitizeAddress([ 'pluginAddress', 'reviewerAddress', 'recipientAddress' ], { validate: true }), sanitizeHtml('description'), watchTx() ],
+    remove: [ sanitizeAddress([ 'pluginAddress', 'reviewerAddress', 'recipientAddress' ]), commons.disallow() ],
   },
 
   after: {

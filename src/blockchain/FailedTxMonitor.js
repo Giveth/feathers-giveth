@@ -14,8 +14,8 @@ class FailedTxMonitor {
 
     setInterval(this.checkPendingDonations.bind(this), FIFTEEN_MINUTES);
     setInterval(this.checkPendingDACS.bind(this), FIFTEEN_MINUTES);
-    setInterval(this.checkPendingCampaigns().bind(this), FIFTEEN_MINUTES);
-    setInterval(this.checkPendingMilestones().bind(this), FIFTEEN_MINUTES);
+    setInterval(this.checkPendingCampaigns.bind(this), FIFTEEN_MINUTES);
+    setInterval(this.checkPendingMilestones.bind(this), FIFTEEN_MINUTES);
   }
 
   checkPendingDonations() {

@@ -129,7 +129,6 @@ const stashDonationIfPending = () => context => {
   if (!context.id) return context;
 
   const { data } = context;
-  console.log(data);
 
   if (data.status === 'pending') {
     return context.app.service('donations').get(context.id)
