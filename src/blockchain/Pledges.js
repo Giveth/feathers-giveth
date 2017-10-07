@@ -1,4 +1,5 @@
 import { pledgePaymentStatus } from "./helpers";
+import { hexToNumber } from 'web3-utils';
 
 const BreakSignal = () => {
 };
@@ -30,7 +31,7 @@ class Pledges {
             .then(() => this.queue.purge(txHash));
         };
 
-        if (event.logIndex > 0) {
+        if (hexToNumber(event.transactionLogIndex) > 0) {
           this.queue.add(
             event.transactionHash,
             processEvent
