@@ -17,8 +17,8 @@ const networks = {
     vaultAddress: '0x0',
   },
   ropsten: {
-    liquidPledgingAddress: '0x0',
-    vaultAddress: '0x0',
+    liquidPledgingAddress: '0x18658A1A7cB8b0Be97b155D051769b3651b2943c',
+    vaultAddress: '0x92b77D5Fb946e63404967C04f9023db77EC66832',
   },
   rinkeby: {
     liquidPledgingAddress: '0x0',
@@ -45,13 +45,20 @@ export default function () {
     startingBlock: blockchain.startingBlock,
   };
 
-  new FailedTxMonitor(web3, app).start();
+  web3.currentProvider.connection.onerror = (e) => console.error('connection error ->', e);
+  web3.currentProvider.connection.onclose = (e) => console.error('connection closed ->', e);
 
-  getLiquidPledging(web3)
-    .then(liquidPledging => {
-      const adminMonitor = new LiquidPledgingMonitor(app, liquidPledging, opts);
-      adminMonitor.start();
-    });
+  const init = () => {
+    new FailedTxMonitor(web3, app).start();
+
+    getLiquidPledging(web3)
+      .then(liquidPledging => {
+        const lpMonitor = new LiquidPledgingMonitor(app, liquidPledging, opts);
+        lpMonitor.start();
+      });
+  };
+
+  init();
 }
 
 const getLiquidPledging = (web3) => {

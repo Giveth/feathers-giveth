@@ -1,4 +1,6 @@
 build
+deployRopsten.js
+config/production.json
 
 # Logs
 logs

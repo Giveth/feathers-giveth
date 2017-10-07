@@ -58,11 +58,11 @@ export default class {
           });
       })
       // TODO if the connection dropped, do we need to try and reconnect?
-      .on('error', err => console.error('error: ', err));
+      .on('error', err => console.error('SUBSCRIPTION ERROR error: ', err));
 
     // start a listener for all milestones associated with this liquidPledging contract
     this.web3.eth.subscribe('logs', {
-      fromBlock: this.config.lastBlock + 1 || 1,
+      fromBlock: this.web3.utils.toHex(this.config.lastBlock + 1) || this.web3.utils.toHex(1), // convert to hex due to web3 bug https://github.com/ethereum/web3.js/issues/1097
       topics: [
         this.web3.utils.keccak256('MilestoneAccepted(address)'), // hash of the event signature we're interested in
         this.web3.utils.padLeft(`0x${this.liquidPledging.$address.substring(2).toLowerCase()}`, 64), // remove leading 0x from address
