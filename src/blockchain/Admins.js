@@ -453,20 +453,47 @@ class Admins {
         if (pledgeAdmin.type === 'campaign') {
           service = this.app.service('campaigns');
           // cancel all milestones
+          this.app.service('milestones').patch(null, {
+            status: 'Canceled',
+            mined: true,
+            txHash: event.transactionHash
+          }, {
+            query: {
+              campaignId: pledgeAdmin.typeId,
+              $not: {
+                status: 'Canceled'
+              }
+            }
+          })
+            .then(milestones => milestones.map(m => m._id))
+            .then(milestoneIds => {
+              this.app.service('donations').find({
+                paginate: false,
+                query: {
+                  $or: [
+                    { ownerId:  { $in: milestoneIds } },
+                    { intendedProjectId:  { $in: milestoneIds } },
+                  ],
+                  paymentStatus: 'Pledged', //TODO what happens when paying?
+                },
+              })
+                .then((data) => data.forEach((donation) => this._revertDonation(donation)))
+                .catch(console.error);
+            });
         } else {
           service = this.app.service('milestones');
         }
 
         // revert donations
         this.app.service('donations').find({
-            paginate: false,
-            query: {
-              $or: [
-                { ownerId: pledgeAdmin.typeId },
-                { intendedProjectId: pledgeAdmin.typeId },
-              ],
-            },
-          })
+          paginate: false,
+          query: {
+            $or: [
+              { ownerId: pledgeAdmin.typeId },
+              { intendedProjectId: pledgeAdmin.typeId },
+            ],
+          },
+        })
           .then((data) => data.forEach((donation) => this._revertDonation(donation)))
           .catch(console.error);
 
@@ -483,7 +510,6 @@ class Admins {
   }
 
   _revertDonation(donation) {
-    console.log(donation);
     const pledgeAdmins = this.app.service('pledgeAdmins');
     const donations = this.app.service('donations');
 
@@ -515,9 +541,6 @@ class Admins {
         .then(pledge => Promise.all([ getAdmin(pledge.owner), getAdmin(pledge.intendedProject), pledge ]))
         .then(([ pledgeOwnerAdmin, pledgeIntendedProjectAdmin, pledge ]) => {
 
-          console.log(pledgeOwnerAdmin);
-          console.log(pledgeIntendedProjectAdmin);
-          console.log(pledge);
           // if pledgeAdmin is the giver, this is the furthest back we can go
           if (pledgeOwnerAdmin.type !== 'giver') {
             if (pledgeIntendedProjectAdmin && pledgeIntendedProjectAdmin.admin.status === 'Canceled') return getMostRecentPledgeNotCanceled(pledge.oldPledge);
@@ -541,8 +564,6 @@ class Admins {
 
     return getMostRecentPledgeNotCanceled(donation.pledgeId)
       .then(({ pledgeOwnerAdmin, pledgeIntendedProjectAdmin, pledge, pledgeDelegateAdmin }) => {
-
-        console.log(pledgeDelegateAdmin);
 
         const status = (pledgeOwnerAdmin.type === 'giver' || pledgeDelegateAdmin) ? 'waiting' : 'committed';
 
