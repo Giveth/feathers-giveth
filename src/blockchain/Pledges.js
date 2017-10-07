@@ -298,7 +298,7 @@ class Pledges {
     const isCampaignToMilestone = () => fromPledgeAdmin.type === 'campaign' && toPledgeAdmin.type === 'milestone';
 
     // only handling new donations & committed delegations for now
-    if (isNewDonation() || isCommittedDelegation() || isCampaignToMilestone()) {
+    if (toPledge.paymentState === '0' &&( isNewDonation() || isCommittedDelegation() || isCampaignToMilestone())) {
       const history = {
         ownerId: toPledgeAdmin.typeId,
         ownerType: toPledgeAdmin.type,
