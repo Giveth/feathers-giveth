@@ -12,10 +12,11 @@ const BreakSignal = () => {
  * class to keep feathers cache in sync with liquidpledging admins
  */
 class Admins {
-  constructor(app, liquidPledging) {
+  constructor(app, liquidPledging, eventQueue) {
     this.app = app;
     this.web3 = liquidPledging.$web3;
     this.liquidPledging = liquidPledging;
+    this.queue = eventQueue;
   }
 
   addGiver(event) {
@@ -24,7 +25,7 @@ class Admins {
     const { returnValues } = event;
 
     this.liquidPledging.getPledgeAdmin(returnValues.idGiver)
-      .then(giver => this._addGiver(giver, returnValues.idGiver))
+      .then(giver => this._addGiver(giver, returnValues.idGiver, event.transactionHash))
       .catch(err => console.error('addGiver error ->', err)); //eslint-disable-line no-console
   }
 
@@ -41,7 +42,7 @@ class Admins {
 
           if (data.length === 0) {
             this.liquidPledging.getPledgeAdmin(giverId)
-              .then(giver => this._addGiver(giver, giverId))
+              .then(giver => this._addGiver(giver, giverId, 0))
               .catch(err => console.error('updateGiver error ->', err)); //eslint-disable-line no-console
             throw new BreakSignal();
           }
@@ -60,7 +61,7 @@ class Admins {
         if (giver.addr !== user.address) {
           console.log(`giver address "${giver.addr}" differs from users address "${user.address}". Updating users to match`); // eslint-disable-line no-console
           users.patch(user.address, { $unset: { giverId: true } });
-          return this._addGiver(giver, giverId);
+          return this._addGiver(giver, giverId, 0);
         }
 
         return users.patch(user.address, { commitTime: giver.commitTime, name: giver.name });
@@ -72,10 +73,11 @@ class Admins {
   }
 
 
-  _addGiver(giver, giverId) {
+  _addGiver(giver, giverId, txHash) {
     const { commitTime, addr, name } = giver;
     const users = this.app.service('/users');
 
+    let user;
     return users.get(addr)
       .catch(err => {
         if (err.name === 'NotFound') {
@@ -86,16 +88,16 @@ class Admins {
 
         throw err;
       })
-      .then(user => {
+      .then(u => {
+        user = u;
         if (user.giverId && user.giverId !== 0) {
           console.error(`user already has a giverId set. existing giverId: ${user.giverId}, new giverId: ${giverId}`);
         }
         return users.patch(user.address, { commitTime, name, giverId: giverId });
       })
-      .then(user => {
-        this._addPledgeAdmin(giverId, 'giver', user.address)
-          .then(() => user);
-      })
+      .then(user => this._addPledgeAdmin(giverId, 'giver', user.address))
+      .then(() => this.queue.purge(txHash))
+      .then(() => user)
       .catch(err => console.error('_addGiver error ->', err));
   }
 
@@ -457,14 +459,14 @@ class Admins {
 
         // revert donations
         this.app.service('donations').find({
-          paginate: false,
-          query: {
-            $or: [
-              { ownerId: pledgeAdmin.typeId },
-              { intendedProjectId: pledgeAdmin.typeId },
-            ],
-          },
-        })
+            paginate: false,
+            query: {
+              $or: [
+                { ownerId: pledgeAdmin.typeId },
+                { intendedProjectId: pledgeAdmin.typeId },
+              ],
+            },
+          })
           .then((data) => data.forEach((donation) => this._revertDonation(donation)))
           .catch(console.error);
 
@@ -567,8 +569,8 @@ class Admins {
             $unset: {
               intendedProject: true,
               intendedProjectId: true,
-              intendedProjectType: true
-            }
+              intendedProjectType: true,
+            },
           });
         }
 

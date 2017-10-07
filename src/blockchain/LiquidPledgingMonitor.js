@@ -3,6 +3,7 @@ import Pledges from './Pledges';
 import Payments from './Payments';
 import Milestones from './Milestones';
 import createModel from '../models/blockchain.model';
+import EventQueue from './EventQueue';
 
 
 // Storing this in the db ensures that we don't miss any events on a restart
@@ -16,9 +17,12 @@ export default class {
     this.web3 = liquidPledging.$web3;
     this.contract = liquidPledging.$contract;
     this.liquidPledging = liquidPledging;
+
+    const eventQueue = new EventQueue();
+
     this.payments = new Payments(app, liquidPledging.$vault);
-    this.admins = new Admins(app, liquidPledging);
-    this.pledges = new Pledges(app, liquidPledging);
+    this.admins = new Admins(app, liquidPledging, eventQueue);
+    this.pledges = new Pledges(app, liquidPledging, eventQueue);
     this.milestones = new Milestones(app, this.web3);
     this.model = createModel(app);
 
@@ -58,13 +62,13 @@ export default class {
 
     // start a listener for all milestones associated with this liquidPledging contract
     this.web3.eth.subscribe('logs', {
-        fromBlock: this.config.lastBlock + 1 || 1,
-        topics: [
-          this.web3.utils.keccak256('MilestoneAccepted(address)'), // hash of the event signature we're interested in
-          this.web3.utils.padLeft(`0x${this.liquidPledging.$address.substring(2).toLowerCase()}`, 64), // remove leading 0x from address
-        ],
-      }, () => {
-      }) // TODO fix web3 bug so we don't have to pass a cb
+      fromBlock: this.config.lastBlock + 1 || 1,
+      topics: [
+        this.web3.utils.keccak256('MilestoneAccepted(address)'), // hash of the event signature we're interested in
+        this.web3.utils.padLeft(`0x${this.liquidPledging.$address.substring(2).toLowerCase()}`, 64), // remove leading 0x from address
+      ],
+    }, () => {
+    }) // TODO fix web3 bug so we don't have to pass a cb
       .on('data', this.milestones.milestoneAccepted.bind(this.milestones))
       .on('changed', (event) => {
         // I think this is emitted when a chain reorg happens and the tx has been removed

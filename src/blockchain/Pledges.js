@@ -1,15 +1,14 @@
-import TransferQueue from './TransferQueue';
 import { pledgePaymentStatus } from "./helpers";
 
 const BreakSignal = () => {
 };
 
 class Pledges {
-  constructor(app, liquidPledging) {
+  constructor(app, liquidPledging, eventQueue) {
     this.app = app;
     this.web3 = liquidPledging.$web3;
     this.liquidPledging = liquidPledging;
-    this.queue = new TransferQueue();
+    this.queue = eventQueue;
     this.blockTimes = {};
     this.fetchingBlocks = {};
   }
@@ -19,12 +18,27 @@ class Pledges {
     if (event.event !== 'Transfer') throw new Error('transfer only handles Transfer events');
 
     const { from, to, amount } = event.returnValues;
+    const txHash = event.transactionHash;
 
     this._getBlockTimestamp(event.blockNumber)
       .then(ts => {
-        if (from === '0') return this._newDonation(to, amount, ts, event.transactionHash);
+        const processEvent = () => {
+          if (from === '0') return this._newDonation(to, amount, ts, txHash)
+            .then(() => this.queue.purge(txHash));
 
-        return this._transfer(from, to, amount, ts, event.transactionHash);
+          return this._transfer(from, to, amount, ts, txHash)
+            .then(() => this.queue.purge(txHash));
+        };
+
+        if (event.logIndex > 0) {
+          console.log('adding to queue ->', event);
+          this.queue.add(
+            event.transactionHash,
+            processEvent
+          );
+        } else {
+          return processEvent();
+        }
       });
   }
 
@@ -37,7 +51,7 @@ class Pledges {
         return (resp.data.length > 0) ? resp.data[ 0 ] : undefined;
       });
 
-    this.liquidPledging.getPledge(pledgeId)
+    return this.liquidPledging.getPledge(pledgeId)
       .then((pledge) => Promise.all([ pledgeAdmins.get(pledge.owner), pledge, findDonation() ]))
       .then(([ giver, pledge, donation ]) => {
         const mutation = {
@@ -63,8 +77,6 @@ class Pledges {
 
         return donations.patch(donation._id, mutation);
       })
-      // now that this donation has been added, we can purge the transfer queue for this pledgeId
-      .then(() => this.queue.purge(pledgeId))
       .catch((err) => {
         if (err instanceof BreakSignal) return;
         if (err.name === 'NotFound') {
@@ -107,7 +119,7 @@ class Pledges {
         });
     };
 
-    Promise.all([ this.liquidPledging.getPledge(from), this.liquidPledging.getPledge(to) ])
+    return Promise.all([ this.liquidPledging.getPledge(from), this.liquidPledging.getPledge(to) ])
       .then(([ fromPledge, toPledge ]) => {
         const promises = [
           pledgeAdmins.get(fromPledge.owner),
@@ -152,33 +164,32 @@ class Pledges {
           ts,
         };
 
-        if (donation) return this._doTransfer(transferInfo);
+        if (!donation) console.error('missing donation for ->', JSON.stringify(transferInfo, null, 2));
+
+        return this._doTransfer(transferInfo);
 
         // if donation doesn't exist where pledgeId === from, then add to transferQueue.
-        this.queue.add(
-          from,
-          () => getDonation()
-            .then(d => {
-              transferInfo.donation = d;
-              return this._doTransfer(transferInfo);
-            }),
-        );
+        // this.queue.add(
+        //   from,
+        //   () => getDonation()
+        //     .then(d => {
+        //       transferInfo.donation = d;
+        //       return this._doTransfer(transferInfo);
+        //     }),
+        // );
 
       })
       .catch((err) => {
-        if (err.name === 'NotFound') {
-          // most likely the from pledgeAdmin hasn't been registered yet.
-          // this can happen b/c when donating in liquidPledging, if the giverId === 0, the donate method will create a
-          // giver. Thus the tx will emit 3 events. AddGiver, and 2 x Transfer. Since these are processed asyncrounously
-          // calling pledgeAdmins.get(from) could result in a 404 as the AddGiver event hasn't finished processing
-          console.log('adding to queue, missing pledgeAdmin fromPledgeId:', from)
-          this.queue.add(
-            from,
-            () => this._transfer(from, to, amount, ts, txHash)
-          );
-          return;
-        }
-      console.error
+        // if (err.name === 'NotFound') {
+        //   // most likely the from pledgeAdmin hasn't been registered yet.
+        //   // this can happen b/c when donating in liquidPledging, if the giverId === 0, the donate method will create a
+        //   // giver. Thus the tx will emit 3 events. AddGiver, and 2 x Transfer. Since these are processed asyncrounously
+        //   // calling pledgeAdmins.get(from) could result in a 404 as the AddGiver event hasn't finished processing
+        //   console.log('retrying in 10 seconds, missing pledgeAdmin fromPledgeId:', from);
+        //   setTimeout(() => this._transfer(from, to, amount, ts, txHash), 10000);
+        //   return;
+        // }
+        console.error(err);
       });
   }
 
@@ -254,8 +265,8 @@ class Pledges {
       }
 
       //TODO donationHistory entry
-      donations.patch(donation._id, mutation)
-        .then(this._updateDonationHistory(transferInfo));
+      return donations.patch(donation._id, mutation)
+        .then(() => this._updateDonationHistory(transferInfo));
     } else {
       // this is a split
 
