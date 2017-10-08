@@ -49,9 +49,6 @@ The configuration param `blockchain.nodeUrl` is used to establish a connection. 
     ```
     yarn start
     ```
-    * note: due to a bug somewhere (testrpc? web3? websocket?) the subscription events may not always be picked-up in feathers.
-    especially the first time you run ```yarn start```. It appears that testrpc is emitting the event correctly, but web3 Subscription
-    is not recieving the message. **If this happens, just restart feathers** and all past events will be picked up.
     
 ## Deploying
 
