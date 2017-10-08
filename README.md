@@ -9,12 +9,10 @@ This is the server code for Giveth's [dapp](https://github.com/Giveth/giveth-dap
 ## Getting Started
 
 ### Installation
-1. Click "Star" on this repo near the top-right corner of this web page.
+1. Click **Star** on this repo near the top-right corner of this web page.
 2. Join our [slack](http://slack.giveth.io) if you haven't already.
-3. Fork this repo by clicking "Fork" button in top-right corner of this web page.
-   
-   Note: the rest of these steps must be done from your machine's command line.
-5. Clone your personal "feathers-giveth" repo: 
+3. Fork this repo by clicking **Fork** button in top-right corner of this web page. Continue to follow instruction steps from your own feathers-giveth repo.
+5. The rest of these steps must be done from your machine's command line. Clone your own "feathers-giveth" repo: 
     ```
     git clone https://github.com/GITHUB_USERNAME/feathers-giveth.git
     ```
@@ -90,7 +88,10 @@ milestones
 uploads
 users
 ```
+If the server is using default configurations, you can see data for any of these services through your web browser at `http://localhost/3030/SERVICE_NAME`
 
 ## Help
 
-Checkout Feathersjs api [service methods](https://docs.feathersjs.com/api/databases/common.html#service-methods) and [service events](https://docs.feathersjs.com/api/events.html#service-events) and [database querying](https://docs.feathersjs.com/api/databases/querying.html).
+For more info on how to work with Feathersjs checkout out their docs on [service methods](https://docs.feathersjs.com/api/databases/common.html#service-methods), [service events](https://docs.feathersjs.com/api/events.html#service-events), and [database querying](https://docs.feathersjs.com/api/databases/querying.html).
+
+Also feel free to reach out to us on [slack](http://slack.giveth.io) for any help or to share ideas.
