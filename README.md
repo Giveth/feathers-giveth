@@ -1,6 +1,6 @@
 # feathers-giveth
 
-> Real-time json cache for blockchain data.
+> Real-time json cache server for blockchain data.
 
 ## About
 
