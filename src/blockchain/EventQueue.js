@@ -21,7 +21,6 @@ class EventQueue {
       return queued.splice(0, 1)[ 0 ]() // remove first function from list and run it
         .then(() => {
           console.log('returned from purge');
-          return this.purge(txHash);
         });
     }
 
