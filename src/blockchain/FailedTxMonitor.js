@@ -104,8 +104,10 @@ class FailedTxMonitor {
     campaigns.find({
       paginate: false,
       query: {
-        status: 'pending',
-        mined: false
+        $or: [
+          { status: 'pending' },
+          { mined: false }
+        ]
       }
     }).then(pendingDACs => pendingDACs.forEach(updateCampaignIfFailed))
       .catch(console.error); //eslint-disable-line no-console
@@ -149,8 +151,10 @@ class FailedTxMonitor {
     milestones.find({
       paginate: false,
       query: {
-        status: 'pending',
-        mined: false
+        $or: [
+          { status: 'pending' },
+          { mined: false }
+        ]
       }
     }).then(pendingMilestones => pendingMilestones.forEach(updateMilestoneIfFailed))
       .catch(console.error); //eslint-disable-line no-console
