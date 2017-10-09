@@ -109,7 +109,7 @@ class FailedTxMonitor {
           { mined: false }
         ]
       }
-    }).then(pendingDACs => pendingDACs.forEach(updateCampaignIfFailed))
+    }).then(pendingCampaigns => pendingCampaigns.forEach(updateCampaignIfFailed))
       .catch(console.error); //eslint-disable-line no-console
   }
 
