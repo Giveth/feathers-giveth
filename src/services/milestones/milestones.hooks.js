@@ -16,8 +16,6 @@ const restrict = () => context => {
 
   if (!user) throw new errors.NotAuthenticated();
 
-  const items = commons.getItems(context);
-
   const getMilestones = () => {
     if (context.id) return service.get(context.id);
     if (!context.id && context.params.query) return service.find(context.params.query);
@@ -29,7 +27,7 @@ const restrict = () => context => {
 
     // reviewer can mark Completed or Canceled
     if (['Completed', 'Canceled'].includes(data.status) && data.mined === false) {
-      if (!user.address === milestone.reviewerAddress) throw new errors.Forbidden('Only the reviewer accept or cancel a milestone');
+      if (user.address !== milestone.reviewerAddress) throw new errors.Forbidden('Only the reviewer accept or cancel a milestone');
 
       // whitelist of what the reviewer can update
       const approvedKeys = ['txHash', 'status', 'mined'];
@@ -37,15 +35,23 @@ const restrict = () => context => {
       const keysToRemove = Object.keys(data).map(key => !approvedKeys.includes(key));
       keysToRemove.forEach(key => delete data[ key ]);
 
-    } else if (!user.address === milestone.ownerAddress) throw new errors.Forbidden();
+    } else if (data.status === 'InProgress') {
+      // reject milestone
+      if (user.address !== milestone.reviewerAddress) throw new errors.Forbidden('Only the reviewer reject a milestone');
+
+      // whitelist of what the reviewer can update
+      const approvedKeys = ['status'];
+
+      const keysToRemove = Object.keys(data).map(key => !approvedKeys.includes(key));
+      keysToRemove.forEach(key => delete data[ key ]);
+
+    } else if (user.address !== milestone.ownerAddress) throw new errors.Forbidden();
   };
 
-  if (Array.isArray(items)) {
-    return getMilestones()
-      .then(milestones => {
-        return (Array.isArray(milestones)) ? milestones.forEach(canUpdate) : canUpdate(milestones);
-      });
-  }
+  return getMilestones()
+    .then(milestones => {
+      return (Array.isArray(milestones)) ? milestones.forEach(canUpdate) : canUpdate(milestones);
+    });
 };
 
 const address = [
@@ -118,7 +124,7 @@ module.exports = {
     create: [ setAddress('ownerAddress'), ...address, sanitizeHtml('description') ],
     update: [ restrict(), ...address, sanitizeHtml('description') ],
     patch: [ restrict(), sanitizeAddress([ 'pluginAddress', 'reviewerAddress', 'recipientAddress' ], { validate: true }), sanitizeHtml('description'), watchTx() ],
-    remove: [ sanitizeAddress([ 'pluginAddress', 'reviewerAddress', 'recipientAddress' ]), commons.disallow() ],
+    remove: [ commons.disallow() ],
   },
 
   after: {
