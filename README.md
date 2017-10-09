@@ -20,7 +20,7 @@ This is the server code for Giveth's [dapp](https://github.com/Giveth/giveth-dap
     ```
     cd feathers-giveth
     ```
-5. Make sure you have [NodeJS](https://nodejs.org/) and [yarn](https://www.yarnpkg.com/) installed.
+5. Make sure you have [NodeJS](https://nodejs.org/) (v8.4.0 or higher), [yarn](https://www.yarnpkg.com/) (v0.27.5 or higher), and npm (5.4.1 or higher) installed.
 6. Install dependencies from within feathers-giveth directory:
     ```
     npm install
