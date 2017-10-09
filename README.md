@@ -1,8 +1,6 @@
 # feathers-giveth
 
-> Real-time json cache server for blockchain data.
-
-## About
+> Real-time json cache server for blockchain data
 
 This is the server code for Giveth's [dapp](https://github.com/Giveth/giveth-dapp). The dapp uses [feathersjs](http://feathersjs.com) as a cache for its blockchain transactions. By utilizing websockets on both the blockchain and client devices, we can receive and push updates simultaneously to all users in real time.
 
