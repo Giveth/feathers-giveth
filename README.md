@@ -2,13 +2,13 @@
 
 > Real-time json cache server for blockchain data
 
-This is the server code for Giveth's [dapp](https://github.com/Giveth/giveth-dapp). The dapp uses [feathersjs](http://feathersjs.com) as a cache for its blockchain transactions. By utilizing websockets on both the blockchain and client devices, we can receive and push updates simultaneously to all users in real time.
+Welcome to the server code for Giveth's [dapp](https://github.com/Giveth/giveth-dapp). The dapp uses [feathers](http://feathersjs.com) as a cache for its blockchain transactions. By utilizing websockets on both the blockchain and client devices, we can receive and push updates simultaneously to all users in real time.
 
 ## Table of content
 
 - [Getting Started](#getting-started)
-    - [Installation](#installation)
-    - [Running server](#running-server)
+    - [Install](#install)
+    - [Run server](#run-server)
 - [Deploying](#deploying)
 - [Scripts](#scripts)
 - [Testing](#testing)
@@ -17,7 +17,7 @@ This is the server code for Giveth's [dapp](https://github.com/Giveth/giveth-dap
 
 ## Getting Started
 
-### Installation
+### Install
 1. Click **Star** on this repo near the top-right corner of this web page.
 2. Join our [slack](http://slack.giveth.io) if you haven't already.
 3. Fork this repo by clicking **Fork** button in top-right corner of this web page. Continue to follow instruction steps from your own feathers-giveth repo.
@@ -36,7 +36,7 @@ This is the server code for Giveth's [dapp](https://github.com/Giveth/giveth-dap
     ```
     * note: due to a bug in yarn, `yarn install` currently does not work
 
-### Running server
+### Run server
 The feathers server will need to connect to an ethereum node via websockets. Typically this will be a local TestRPC instance. 
 The configuration param `blockchain.nodeUrl` is used to establish a connection. The default nodeUrl is `ws://localhost:8546`
 
@@ -98,6 +98,6 @@ If the server is using default configurations, you can see data for any of these
 
 ## Help
 
-For more info on how to work with Feathersjs checkout out their docs on [service methods](https://docs.feathersjs.com/api/databases/common.html#service-methods), [service events](https://docs.feathersjs.com/api/events.html#service-events), and [database querying](https://docs.feathersjs.com/api/databases/querying.html).
+For more info on how to work with feathers checkout out their docs on [service methods](https://docs.feathersjs.com/api/databases/common.html#service-methods), [service events](https://docs.feathersjs.com/api/events.html#service-events), and [database querying](https://docs.feathersjs.com/api/databases/querying.html).
 
 Also feel free to reach out to us on [slack](http://slack.giveth.io) for any help or to share ideas.
