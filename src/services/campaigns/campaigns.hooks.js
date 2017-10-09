@@ -14,8 +14,6 @@ const restrict = () => context => {
 
   if (!user) throw new errors.NotAuthenticated();
 
-  const items = commons.getItems(context);
-
   const getCampaigns = () => {
     if (context.id) return service.get(context.id);
     if (!context.id && context.params.query) return service.find(context.params.query);
@@ -27,7 +25,7 @@ const restrict = () => context => {
 
     // reviewer can mark Completed or Canceled
     if (data.status === 'Canceled' && data.mined === false) {
-      if (!user.address === campaign.reviewerAddress) throw new errors.Forbidden('Only the reviewer accept or cancel a campaign');
+      if (user.address !== campaign.reviewerAddress && user.address !== campaign.ownerAddress) throw new errors.Forbidden();
 
       // whitelist of what the reviewer can update
       const approvedKeys = ['txHash', 'status', 'mined'];
@@ -35,15 +33,13 @@ const restrict = () => context => {
       const keysToRemove = Object.keys(data).map(key => !approvedKeys.includes(key));
       keysToRemove.forEach(key => delete data[ key ]);
 
-    } else if (!user.address === campaign.ownerAddress) throw new errors.Forbidden();
+    } else if (user.address !== campaign.ownerAddress) throw new errors.Forbidden();
   };
 
-  if (Array.isArray(items)) {
-    return getCampaigns()
-      .then(campaigns => {
-        return (Array.isArray(campaigns)) ? campaigns.forEach(canUpdate) : canUpdate(campaigns);
-      });
-  }
+  return getCampaigns()
+    .then(campaigns => {
+      return (Array.isArray(campaigns)) ? campaigns.forEach(canUpdate) : canUpdate(campaigns);
+    });
 };
 
 const schema = {
@@ -94,9 +90,9 @@ module.exports = {
       required: true,
       validate: true,
     }), sanitizeHtml('description') ],
-    update: [ ...restrict, sanitizeAddress('ownerAddress', { required: true, validate: true }), sanitizeHtml('description') ],
-    patch: [ ...restrict, sanitizeAddress('ownerAddress', { validate: true }), sanitizeHtml('description') ],
-    remove: [ sanitizeAddress('ownerAddress'), ...restrict ],
+    update: [ restrict(), sanitizeAddress('ownerAddress', { required: true, validate: true }), sanitizeHtml('description') ],
+    patch: [ restrict(), sanitizeAddress('ownerAddress', { validate: true }), sanitizeHtml('description') ],
+    remove: [ commons.disallow() ],
   },
 
   after: {

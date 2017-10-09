@@ -42,6 +42,7 @@ class Pledges {
         });
     };
 
+    // TODO update this to work w/ testrpc which only has logIndex. using only logIndex won't work outside of testrpc
     if (hexToNumber(event.transactionLogIndex) > 0) {
       this.queue.add(
         event.transactionHash,

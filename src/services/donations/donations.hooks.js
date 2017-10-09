@@ -10,26 +10,26 @@ const restrict = () => context => {
   // internal call are fine
   if (!context.params.provider) return context;
 
-  const { data } = context;
+  const { data, service } = context;
   const user = context.params.user;
 
   if (!user) throw new errors.NotAuthenticated();
 
-  const items = commons.getItems(context);
-  const service = context.app.service('milestones');
 
   const getDonations = () => {
-    if (context.id) return service.get(context.id);
-    if (!context.id && context.params.query) return service.find(context.params.query);
+    if (context.id) return service.get(context.id, {schema: 'includeTypeDetails'});
+    if (!context.id && context.params.query) return service.find({query: context.params.query, schema: 'includeTypeDetails'});
     return undefined;
   };
 
   const canUpdate = (donation) => {
+    console.log(data);
+    console.log(donation)
     if (!donation) throw new errors.Forbidden();
 
     if (data.status === 'pending' && (data.intendedProjectId || data.delegateId !== donation.delegateId)) {
       // delegate made this call
-      if (!user.address === donation.ownerId || !user.address === donation.delegateEntity.ownerAddress) throw new errors.Forbidden();
+      if (user.address !== donation.ownerId && user.address !== donation.delegateEntity.ownerAddress) throw new errors.Forbidden();
 
       // whitelist of what the delegate can update
       const approvedKeys = ['txHash', 'status', 'delegate', 'delegateId', 'intendedProject', 'intendedProjectId', 'intendedProjectType'];
@@ -37,18 +37,16 @@ const restrict = () => context => {
       const keysToRemove = Object.keys(data).map(key => !approvedKeys.includes(key))
       keysToRemove.forEach(key => delete data[ key ]);
 
-    } else if ((donation.ownerType === 'giver' && !user.address === donation.ownerId) ||
-      !user.address === donation.ownerEntity.ownerAddress) {
+    } else if ((donation.ownerType === 'giver' && user.address !== donation.ownerId) ||
+      user.address !== donation.ownerEntity.ownerAddress) {
       throw new errors.Forbidden();
     }
   };
 
-  if (Array.isArray(items)) {
-    return getDonations()
-      .then(donations => {
-        return (Array.isArray(donations)) ? donations.forEach(canUpdate) : canUpdate(donations);
-      });
-  }
+  return getDonations()
+    .then(donations => {
+      return (Array.isArray(donations)) ? donations.forEach(canUpdate) : canUpdate(donations);
+    });
 };
 
 const poSchemas = {
