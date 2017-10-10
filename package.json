@@ -63,7 +63,7 @@
     "pm2": "^2.4.2",
     "sanitize-html": "^1.14.1",
     "serve-favicon": "^2.4.3",
-    "web3": "git://github.com/perissology/web3.js.git#all_fixes",
+    "web3": "git://github.com/perissology/web3.js.git#c56213a6ab13e4980fb8523ad56a3cd334e9455a",
     "web3-eth-accounts": "^1.0.0-beta.18",
     "web3-utils": "^1.0.0-beta.17",
     "winston": "^2.3.1"
