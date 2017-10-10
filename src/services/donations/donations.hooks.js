@@ -23,8 +23,6 @@ const restrict = () => context => {
   };
 
   const canUpdate = (donation) => {
-    console.log(data);
-    console.log(donation)
     if (!donation) throw new errors.Forbidden();
 
     if (data.status === 'pending' && (data.intendedProjectId || data.delegateId !== donation.delegateId)) {
