@@ -37,9 +37,9 @@ jobs:
       # run tests!
      # - run: yarn test
       - deploy:
-          name: Maybe Deploy
+          name: Production Deploy
           command: |
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
-            #ssh -o "StrictHostKeyChecking no" deploy@95.85.4.133 'cd feathers-giveth/; git checkout master; git pull; yarn --pure-lockfile; yarn serve-restart;'
             ssh -o "StrictHostKeyChecking no" deploy@95.85.4.133 'cd feathers-giveth/; git checkout master; git pull; npm install; yarn serve-restart;'
+            ssh -o "StrictHostKeyChecking no" deploy@82.196.1.147 'cd feathers-giveth/; git checkout master; git pull; npm install; yarn serve-restart;'
             fi
