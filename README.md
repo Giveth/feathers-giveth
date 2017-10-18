@@ -1,4 +1,4 @@
-# feathers-giveth
+![Feathers Giveth](readme-header.png)
 
 > Real-time json cache server for blockchain data
 
