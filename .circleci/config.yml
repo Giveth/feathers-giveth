@@ -41,5 +41,5 @@ jobs:
           command: |
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
             ssh -o "StrictHostKeyChecking no" deploy@95.85.4.133 'cd feathers-giveth/; git checkout master; git pull; npm install; yarn serve-restart;'
-            ssh -o "StrictHostKeyChecking no" deploy@82.196.1.147 'cd feathers-giveth/; git checkout master; git pull; npm install; yarn serve-restart;'
+            ssh -o "StrictHostKeyChecking no" deploy@146.185.156.117 'cd feathers-giveth/; git checkout master; git pull; npm install; yarn serve-restart;'
             fi
