@@ -50,7 +50,7 @@ The configuration param `blockchain.nodeUrl` is used to establish a connection. 
 3. The TestRPC instance simulates a new blockchain. So we must deploy any contracts we intend to call.
 
     ```
-    node --harmony scripts/deploy.js
+    node scripts/deploy.js
     ```
     
 4. Start your app
