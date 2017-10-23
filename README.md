@@ -21,9 +21,9 @@ Welcome to the server code for Giveth's [dapp](https://github.com/Giveth/giveth-
 1. Click **Star** on this repo near the top-right corner of this web page.
 2. Join our [slack](http://slack.giveth.io) if you haven't already.
 3. Fork this repo by clicking **Fork** button in top-right corner of this web page. Continue to follow instruction steps from your own feathers-giveth repo.
-5. The rest of these steps must be done from your machine's command line. Clone your own "feathers-giveth" repo: 
+5. The rest of these steps must be done from your machine's command line. Clone your own "feathers-giveth" repo. Copy the link from the "Clone or download" button near the top right of this repo's home page.
     ```
-    git clone https://github.com/GITHUB_USERNAME/feathers-giveth.git
+    git clone {paste your own repo link here}
     ```
 6. Change directories to feathers-giveth:
     ```
@@ -50,7 +50,7 @@ The configuration param `blockchain.nodeUrl` is used to establish a connection. 
 3. The TestRPC instance simulates a new blockchain. So we must deploy any contracts we intend to call.
 
     ```
-    node --harmony scripts/deploy.js
+    node scripts/deploy.js
     ```
     
 4. Start your app
