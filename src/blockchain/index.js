@@ -49,11 +49,12 @@ export default function () {
   web3.currentProvider.connection.onclose = (e) => console.error('connection closed ->', e);
 
   const init = () => {
-    new FailedTxMonitor(web3, app).start();
+    const txMonitor = new FailedTxMonitor(web3, app);
+    txMonitor.start();
 
     getLiquidPledging(web3)
       .then(liquidPledging => {
-        const lpMonitor = new LiquidPledgingMonitor(app, liquidPledging, opts);
+        const lpMonitor = new LiquidPledgingMonitor(app, liquidPledging, txMonitor, opts);
         lpMonitor.start();
       });
   };

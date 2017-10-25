@@ -12,11 +12,13 @@ const defaultConfig = {
 };
 
 export default class {
-  constructor(app, liquidPledging, opts) {
+
+  constructor(app, liquidPledging, txMonitor, opts) {
     this.app = app;
     this.web3 = liquidPledging.$web3;
     this.contract = liquidPledging.$contract;
     this.liquidPledging = liquidPledging;
+    this.txMonitor = txMonitor;
 
     const eventQueue = new EventQueue();
 
@@ -39,6 +41,10 @@ export default class {
     this._getConfig()
       .then(config => this.config = config)
       .then(() => this._startListeners());
+
+    this.txMonitor.on(this.txMonitor.LP_EVENT, this._handleEvent.bind(this));
+    this.txMonitor.on(this.txMonitor.MILESTONE_EVENT, this.milestones.milestoneAccepted.bind(this.milestones));
+    this.txMonitor.on(this.txMonitor.VAULT_EVENT, this._handleVaultEvent.bind(this));
   }
 
   /**
