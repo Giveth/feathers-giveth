@@ -27,4 +27,4 @@ export default function () {
   if (service.filter) {
     service.filter(filters);
   }
-};
+}

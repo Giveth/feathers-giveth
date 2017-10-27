@@ -2,7 +2,7 @@ import Web3 from 'web3';
 import liquidpledging from 'liquidpledging';
 
 import LiquidPledgingMonitor from './LiquidPledgingMonitor';
-import FailedTxMonitor from "./FailedTxMonitor";
+import FailedTxMonitor from './FailedTxMonitor';
 
 const LiquidPledging = liquidpledging.LiquidPledging(false);
 const Vault = liquidpledging.Vault;
