@@ -73,7 +73,7 @@
     "babel-core": "^6.26.0",
     "babel-preset-env": "^1.6.0",
     "babel-watch": "^2.0.7",
-    "eslint": "^4.3.0",
+    "eslint": "^4.9.0",
     "ethereumjs-testrpc": "git://github.com/perissology/testrpc.git#81216dbc",
     "lerna": "^2.2.0",
     "mocha": "^3.5.0",
