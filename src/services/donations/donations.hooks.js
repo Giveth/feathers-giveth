@@ -32,7 +32,7 @@ const restrict = () => context => {
       // whitelist of what the delegate can update
       const approvedKeys = ['txHash', 'status', 'delegate', 'delegateId', 'intendedProject', 'intendedProjectId', 'intendedProjectType'];
 
-      const keysToRemove = Object.keys(data).map(key => !approvedKeys.includes(key))
+      const keysToRemove = Object.keys(data).map(key => !approvedKeys.includes(key));
       keysToRemove.forEach(key => delete data[ key ]);
 
     } else if ((donation.ownerType === 'giver' && user.address !== donation.ownerId) ||

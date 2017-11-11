@@ -194,7 +194,7 @@ class Pledges {
 
   _doTransfer(transferInfo) {
     const donations = this.app.service('donations');
-    const { fromPledgeAdmin, toPledgeAdmin, fromPledge, toPledge, toPledgeId, delegate, intendedProject, donation, amount, ts } = transferInfo;
+    const { _fromPledgeAdmin, toPledgeAdmin, _fromPledge, toPledge, toPledgeId, delegate, intendedProject, donation, amount, ts } = transferInfo;
 
     let status;
     if (toPledge.paymentState === '1') status = 'paying';
@@ -292,7 +292,7 @@ class Pledges {
 
   _updateDonationHistory(transferInfo) {
     const donationsHistory = this.app.service('donations/history');
-    const { fromPledgeAdmin, toPledgeAdmin, fromPledge, toPledge, toPledgeId, delegate, intendedProject, donation, amount, ts } = transferInfo;
+    const { fromPledgeAdmin, toPledgeAdmin, fromPledge, toPledge, _toPledgeId, delegate, _intendedProject, donation, amount, ts } = transferInfo;
 
     const isNewDonation = () => fromPledge.oldPledge === '0' && (toPledgeAdmin.type !== 'giver' || toPledge.nDelegates === '1') && toPledge.intendedProject === '0';
     const isCommittedDelegation = () => fromPledge.intendedProject !== '0' && fromPledge.intendedProject === toPledge.owner;
