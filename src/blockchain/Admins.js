@@ -147,7 +147,6 @@ class Admins {
     Promise.all([ getDAC(), this.liquidPledging.getPledgeAdmin(delegateId) ])
       .then(([ dac, delegate ]) => {
         return dacs.patch(dac._id, {
-          ownerAddress: delegate.addr,
           title: delegate.name,
         });
       })
@@ -174,14 +173,15 @@ class Admins {
             //TODO do we need to create an owner here?
             //TODO maybe don't create new dac as all creating is done via the ui? Do we want to show delegates added not via the ui?
 
-            return dacs.create({
-              ownerAddress: delegate.addr,
-              pluginAddress: delegate.plugin,
-              title: delegate.name,
-              totalDonated: '0',
-              donationCount: 0,
-              description: '',
-            });
+            return this.web3.eth.getTransaction(txHash)
+              .then(tx =>  dacs.create({
+                ownerAddress: tx.from,
+                pluginAddress: delegate.plugin,
+                title: delegate.name,
+                totalDonated: '0',
+                donationCount: 0,
+                description: '',
+              }));
           }
 
           if (data.length > 1) {
@@ -202,7 +202,6 @@ class Admins {
       .then(delegate => Promise.all([ delegate, findDAC(delegate), getTokenInfo(delegate) ]))
       .then(([ delegate, dac, tokenInfo ]) => dacs.patch(dac._id, {
         delegateId,
-        ownerAddress: delegate.addr,
         pluginAddress: delegate.plugin,
         tokenAddress: tokenInfo.address,
         tokenSymbol: tokenInfo.symbol,
@@ -368,7 +367,7 @@ class Admins {
 
     const getTokenInfo = () => lppCampaign.token().then(addr => getTokenInformation(this.web3, addr));
 
-    return Promise.all([ findCampaign(), lppCampaign.canceled(), lppCampaign.reviewer(), getTokenInfo() ])
+    return Promise.all([ findCampaign(), lppCampaign.isCanceled(), lppCampaign.reviewer(), getTokenInfo() ])
       .then(([ campaign, canceled, reviewer, tokenInfo ]) => campaigns.patch(campaign._id, {
         projectId,
         title: project.name,

@@ -2,6 +2,7 @@ import Admins from './Admins';
 import Pledges from './Pledges';
 import Payments from './Payments';
 import Milestones from './Milestones';
+import Tokens from './Tokens';
 import createModel from '../models/blockchain.model';
 import EventQueue from './EventQueue';
 
@@ -26,6 +27,7 @@ export default class {
     this.admins = new Admins(app, liquidPledging, eventQueue);
     this.pledges = new Pledges(app, liquidPledging, eventQueue);
     this.milestones = new Milestones(app, this.web3);
+    this.tokens = new Tokens(app, this.web3);
     this.model = createModel(app);
 
     if (opts.startingBlock && opts.startingBlock !== 0) {
@@ -91,6 +93,23 @@ export default class {
         console.log('vault changed: ', event); // eslint-disable-line no-console
       })
       // TODO if the connection dropped, do we need to try and reconnect?
+      .on('error', err => console.error('error: ', err)); // eslint-disable-line no-console
+
+    // start a listener for all GenerateToken events associated with this liquidPledging contract
+    this.web3.eth.subscribe('logs', {
+      fromBlock: this.web3.utils.toHex(this.config.lastBlock + 1) || this.web3.utils.toHex(1), // convert to hex due to web3 bug https://github.com/ethereum/web3.js/issues/1097
+      topics: [
+        this.web3.utils.keccak256('GenerateTokens(address,address,uint256)'), // hash of the event signature we're interested in
+        this.web3.utils.padLeft(`0x${this.liquidPledging.$address.substring(2).toLowerCase()}`, 64), // remove leading 0x from address
+      ],
+    }, () => {
+    }) // TODO fix web3 bug so we don't have to pass a cb
+      .on('data', this.tokens.tokensGenerated.bind(this.tokens))
+      .on('changed', (event) => {
+        // I think this is emitted when a chain reorg happens and the tx has been removed
+        console.log('GenerateTokens changed: ', event); // eslint-disable-line no-console
+        // TODO handle chain reorgs
+      })
       .on('error', err => console.error('error: ', err)); // eslint-disable-line no-console
 
   }

@@ -1,4 +1,4 @@
-import MiniMe from "node_modules/minimetoken/js/minimetoken";
+import { MiniMeToken } from 'minimetoken';
 
 export const milestoneStatus = (accepted, canceled) => {
   if (canceled) return 'Canceled';
@@ -20,7 +20,7 @@ export const pledgePaymentStatus = (val) => {
 };
 
 export const getTokenInformation = (web3, addr) => {
-  const minime = new MiniMe(web3, addr);
+  const minime = new MiniMeToken(web3, addr);
 
   return Promise.all([
     minime.name(),
