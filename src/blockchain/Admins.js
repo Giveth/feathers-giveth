@@ -1,9 +1,10 @@
+import LPPDac from 'lpp-dac';
 import LPPMilestone from 'lpp-milestone';
 import { LPPMilestoneRuntimeByteCode } from 'lpp-milestone/build/LPPMilestone.sol';
 import LPPCampaign from 'lpp-campaign';
 import { LPPCampaignRuntimeByteCode } from 'lpp-campaign/build/LPPCampaign.sol';
 
-import { milestoneStatus, pledgePaymentStatus } from './helpers';
+import { getTokenInformation, milestoneStatus, pledgePaymentStatus } from './helpers';
 
 const BreakSignal = () => {
 };
@@ -175,6 +176,7 @@ class Admins {
 
             return dacs.create({
               ownerAddress: delegate.addr,
+              pluginAddress: delegate.plugin,
               title: delegate.name,
               totalDonated: '0',
               donationCount: 0,
@@ -190,11 +192,21 @@ class Admins {
         });
     };
 
+    const getTokenInfo = (delegate) => {
+      const dac = new LPPDac(this.web3, delegate.plugin);
+
+      return dac.token().then(addr => getTokenInformation(this.web3, addr));
+    };
+
     return this.liquidPledging.getPledgeAdmin(delegateId)
-      .then(delegate => Promise.all([ delegate, findDAC(delegate) ]))
-      .then(([ delegate, dac ]) => dacs.patch(dac._id, {
+      .then(delegate => Promise.all([ delegate, findDAC(delegate), getTokenInfo(delegate) ]))
+      .then(([ delegate, dac, tokenInfo ]) => dacs.patch(dac._id, {
         delegateId,
         ownerAddress: delegate.addr,
+        pluginAddress: delegate.plugin,
+        tokenAddress: tokenInfo.address,
+        tokenSymbol: tokenInfo.symbol,
+        tokenName: tokenInfo.name,
       }))
       .then(dac => {
         this._addPledgeAdmin(delegateId, 'dac', dac._id)
@@ -353,14 +365,20 @@ class Admins {
 
     const lppCampaign = new LPPCampaign(this.web3, project.plugin);
 
-    return Promise.all([ findCampaign(), lppCampaign.canceled(), lppCampaign.reviewer() ])
-      .then(([ campaign, canceled, reviewer ]) => campaigns.patch(campaign._id, {
+
+    const getTokenInfo = () => lppCampaign.token().then(addr => getTokenInformation(this.web3, addr));
+
+    return Promise.all([ findCampaign(), lppCampaign.canceled(), lppCampaign.reviewer(), getTokenInfo() ])
+      .then(([ campaign, canceled, reviewer, tokenInfo ]) => campaigns.patch(campaign._id, {
         projectId,
         title: project.name,
         reviewerAddress: reviewer,
         pluginAddress: project.plugin,
         status: (canceled) ? 'Canceled' : 'Active',
         mined: true,
+        tokenAddress: tokenInfo.address,
+        tokenSymbol: tokenInfo.symbol,
+        tokenName: tokenInfo.name,
       }))
       .then(campaign => {
         this._addPledgeAdmin(projectId, 'campaign', campaign._id)
