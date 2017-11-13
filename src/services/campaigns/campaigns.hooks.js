@@ -4,6 +4,7 @@ import errors from 'feathers-errors';
 import sanitizeAddress from '../../hooks/sanitizeAddress';
 import setAddress from '../../hooks/setAddress';
 import sanitizeHtml from '../../hooks/sanitizeHtml';
+import isProjectAllowed from "../../hooks/isProjectAllowed";
 
 const restrict = () => context => {
   // internal call are fine
@@ -89,7 +90,7 @@ module.exports = {
     create: [ setAddress('ownerAddress'), sanitizeAddress('ownerAddress', {
       required: true,
       validate: true,
-    }), sanitizeHtml('description') ],
+    }), isProjectAllowed(), sanitizeHtml('description') ],
     update: [ restrict(), sanitizeAddress('ownerAddress', { required: true, validate: true }), sanitizeHtml('description') ],
     patch: [ restrict(), sanitizeAddress('ownerAddress', { validate: true }), sanitizeHtml('description') ],
     remove: [ commons.disallow() ],
