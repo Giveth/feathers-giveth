@@ -1,8 +1,8 @@
 // Initializes the `whitelist` service on path `/whitelist`
 const createService = require('feathers-memory');
 const filters = require('./whitelist.filters');
-const hooks = require('feathers-hooks');
-import errors from 'feathers-errors';
+import hooks from './whitelist.hooks';
+
 
 
 module.exports = function () {
@@ -18,18 +18,7 @@ module.exports = function () {
   // Get our initialized service so that we can register hooks and filters
   const service = app.service('whitelist');
 
-  service.hooks({
-    after: {
-      find: [ hook => {
-        hook.result = {
-          reviewerWhitelist: app.get('reviewerWhitelist').map(addr => addr.toLowerCase()),
-          delegateWhitelist: app.get('delegateWhitelist').map(addr => addr.toLowerCase()),
-          projectOwnerWhitelist: app.get('projectOwnerWhitelist').map(addr => addr.toLowerCase())
-        };
-        return hook
-      } ],
-    }
-  });
+  service.hooks(hooks);
 
   if (service.filter) {
     service.filter(filters);
