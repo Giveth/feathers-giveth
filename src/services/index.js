@@ -9,6 +9,8 @@ import pledgeAdmins from './pledgeAdmins/pledgeAdmins.service';
 import donationsHistory from './donationsHistory/donationsHistory.service';
 import donationTokens from './donationTokens/donationTokens.service';
 
+const whitelist = require('./whitelist/whitelist.service.js');
+
 module.exports = function () {
   const app = this;
   app.configure(dacs);
@@ -21,4 +23,5 @@ module.exports = function () {
   app.configure(challenges);
   app.configure(pledgeAdmins);
   app.configure(donationTokens);
+  app.configure(whitelist);
 };
