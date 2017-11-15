@@ -85,7 +85,7 @@ module.exports = {
     create: [ setAddress('ownerAddress'), isDacAllowed(), sanitizeAddress('ownerAddress', { required: true, validate: true, }), sanitizeHtml('description') ],
     update: [ ...restrict, sanitizeAddress('ownerAddress', { required: true, validate: true }), sanitizeHtml('description') ],
     patch: [ ...restrict, sanitizeAddress('ownerAddress', { validate: true }), sanitizeHtml('description') ],
-    remove: [ sanitizeAddress('ownerAddress'), ...restrict ],
+    remove: [ commons.disallow() ],
   },
 
   after: {

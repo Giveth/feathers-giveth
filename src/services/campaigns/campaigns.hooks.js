@@ -24,7 +24,7 @@ const restrict = () => context => {
   const canUpdate = (campaign) => {
     if (!campaign) throw new errors.Forbidden();
 
-    // reviewer can mark Completed or Canceled
+    // reviewer Canceled
     if (data.status === 'Canceled' && data.mined === false) {
       if (user.address !== campaign.reviewerAddress && user.address !== campaign.ownerAddress) throw new errors.Forbidden();
 

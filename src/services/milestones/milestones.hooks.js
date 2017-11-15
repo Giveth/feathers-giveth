@@ -36,7 +36,7 @@ const restrict = () => context => {
       const keysToRemove = Object.keys(data).map(key => !approvedKeys.includes(key));
       keysToRemove.forEach(key => delete data[ key ]);
 
-    } else if (data.status === 'InProgress') {
+    } else if (data.status === 'InProgress' && milestone.status !== data.status) {
       // reject milestone
       if (user.address !== milestone.reviewerAddress) throw new errors.Forbidden('Only the reviewer reject a milestone');
 
