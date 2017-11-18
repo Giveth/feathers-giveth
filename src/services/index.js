@@ -7,6 +7,9 @@ const donations = require('./donations/donations.service.js');
 import challenges from './challenges/challenges.service.js';
 import pledgeAdmins from './pledgeAdmins/pledgeAdmins.service';
 import donationsHistory from './donationsHistory/donationsHistory.service';
+import donationTokens from './donationTokens/donationTokens.service';
+
+const whitelist = require('./whitelist/whitelist.service.js');
 
 module.exports = function () {
   const app = this;
@@ -19,4 +22,6 @@ module.exports = function () {
   app.configure(donations);
   app.configure(challenges);
   app.configure(pledgeAdmins);
+  app.configure(donationTokens);
+  app.configure(whitelist);
 };

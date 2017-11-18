@@ -5,6 +5,7 @@ import errors from 'feathers-errors';
 import sanitizeAddress from '../../hooks/sanitizeAddress';
 import setAddress from '../../hooks/setAddress';
 import sanitizeHtml from '../../hooks/sanitizeHtml';
+import isProjectAllowed from "../../hooks/isProjectAllowed";
 
 
 const restrict = () => context => {
@@ -35,7 +36,7 @@ const restrict = () => context => {
       const keysToRemove = Object.keys(data).map(key => !approvedKeys.includes(key));
       keysToRemove.forEach(key => delete data[ key ]);
 
-    } else if (data.status === 'InProgress') {
+    } else if (data.status === 'InProgress' && milestone.status !== data.status) {
       // reject milestone
       if (user.address !== milestone.reviewerAddress) throw new errors.Forbidden('Only the reviewer reject a milestone');
 
@@ -117,7 +118,7 @@ const schema = {
       nameAs: 'campaign',
       parentField: 'campaignId',
       childField: '_id',
-    },    
+    },
   ],
 };
 
@@ -127,7 +128,7 @@ module.exports = {
     all: [],
     find: [ sanitizeAddress([ 'ownerAddress', 'pluginAddress', 'reviewerAddress', 'recipientAddress' ]) ],
     get: [],
-    create: [ setAddress('ownerAddress'), ...address, sanitizeHtml('description') ],
+    create: [ setAddress('ownerAddress'), ...address, isProjectAllowed(), sanitizeHtml('description') ],
     update: [ restrict(), ...address, sanitizeHtml('description') ],
     patch: [ restrict(), sanitizeAddress([ 'pluginAddress', 'reviewerAddress', 'recipientAddress' ], { validate: true }), sanitizeHtml('description'), watchTx() ],
     remove: [ commons.disallow() ],

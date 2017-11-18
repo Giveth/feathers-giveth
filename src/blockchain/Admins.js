@@ -1,9 +1,10 @@
+import LPPDac from 'lpp-dac';
 import LPPMilestone from 'lpp-milestone';
 import { LPPMilestoneRuntimeByteCode } from 'lpp-milestone/build/LPPMilestone.sol';
 import LPPCampaign from 'lpp-campaign';
 import { LPPCampaignRuntimeByteCode } from 'lpp-campaign/build/LPPCampaign.sol';
 
-import { milestoneStatus, pledgePaymentStatus } from './helpers';
+import { getTokenInformation, milestoneStatus, pledgePaymentStatus } from './helpers';
 
 const BreakSignal = () => {
 };
@@ -146,7 +147,6 @@ class Admins {
     Promise.all([ getDAC(), this.liquidPledging.getPledgeAdmin(delegateId) ])
       .then(([ dac, delegate ]) => {
         return dacs.patch(dac._id, {
-          ownerAddress: delegate.addr,
           title: delegate.name,
         });
       })
@@ -170,16 +170,22 @@ class Admins {
               setTimeout(() => this._addDelegate(delegateId, txHash, true), 5000);
               throw new BreakSignal();
             }
-            //TODO do we need to create an owner here?
-            //TODO maybe don't create new dac as all creating is done via the ui? Do we want to show delegates added not via the ui?
 
-            return dacs.create({
-              ownerAddress: delegate.addr,
-              title: delegate.name,
-              totalDonated: '0',
-              donationCount: 0,
-              description: '',
-            });
+            return this.web3.eth.getTransaction(txHash)
+              .then(tx => dacs.create({
+                ownerAddress: tx.from,
+                pluginAddress: delegate.plugin,
+                title: delegate.name,
+                totalDonated: '0',
+                donationCount: 0,
+                description: '',
+              }))
+              .catch((err) => {
+                // dacs service will throw BadRequest error if owner isn't whitelisted
+                if (err.name === 'BadRequest') throw new BreakSignal();
+
+                throw err;
+              });
           }
 
           if (data.length > 1) {
@@ -190,11 +196,20 @@ class Admins {
         });
     };
 
+    const getTokenInfo = (delegate) => {
+      const dac = new LPPDac(this.web3, delegate.plugin);
+
+      return dac.token().then(addr => getTokenInformation(this.web3, addr));
+    };
+
     return this.liquidPledging.getPledgeAdmin(delegateId)
-      .then(delegate => Promise.all([ delegate, findDAC(delegate) ]))
-      .then(([ delegate, dac ]) => dacs.patch(dac._id, {
+      .then(delegate => Promise.all([ delegate, findDAC(delegate), getTokenInfo(delegate) ]))
+      .then(([ delegate, dac, tokenInfo ]) => dacs.patch(dac._id, {
         delegateId,
-        ownerAddress: delegate.addr,
+        pluginAddress: delegate.plugin,
+        tokenAddress: tokenInfo.address,
+        tokenSymbol: tokenInfo.symbol,
+        tokenName: tokenInfo.name,
       }))
       .then(dac => {
         this._addPledgeAdmin(delegateId, 'dac', dac._id)
@@ -270,7 +285,6 @@ class Admins {
               setTimeout(() => this._addMilestone(project, projectId, txHash, true), 5000);
               throw new BreakSignal();
             }
-            //TODO do we need to create an owner here?
 
             return Promise.all([ findCampaign(project.parentProject), this.web3.eth.getTransaction(txHash) ])
               .then(([ campaignId, tx ]) => milestones.create({
@@ -282,7 +296,13 @@ class Admins {
                 campaignId,
                 totalDonated: '0',
                 donationCount: 0,
-              }));
+              }))
+              .catch((err) => {
+                // milestones service will throw BadRequest error if reviewer isn't whitelisted
+                if (err.name === 'BadRequest') throw new BreakSignal();
+
+                throw err;
+              });
           }
 
           if (data.length > 1) {
@@ -340,7 +360,13 @@ class Admins {
                 txHash,
                 totalDonated: '0',
                 donationCount: 0,
-              }));
+              }))
+              .catch((err) => {
+                // campaigns service will throw BadRequest error if reviewer isn't whitelisted
+                if (err.name === 'BadRequest') throw new BreakSignal();
+
+                throw err;
+              });
           }
 
           if (data.length > 1) {
@@ -353,14 +379,20 @@ class Admins {
 
     const lppCampaign = new LPPCampaign(this.web3, project.plugin);
 
-    return Promise.all([ findCampaign(), lppCampaign.canceled(), lppCampaign.reviewer() ])
-      .then(([ campaign, canceled, reviewer ]) => campaigns.patch(campaign._id, {
+
+    const getTokenInfo = () => lppCampaign.token().then(addr => getTokenInformation(this.web3, addr));
+
+    return Promise.all([ findCampaign(), lppCampaign.isCanceled(), lppCampaign.reviewer(), getTokenInfo() ])
+      .then(([ campaign, canceled, reviewer, tokenInfo ]) => campaigns.patch(campaign._id, {
         projectId,
         title: project.name,
         reviewerAddress: reviewer,
         pluginAddress: project.plugin,
         status: (canceled) ? 'Canceled' : 'Active',
         mined: true,
+        tokenAddress: tokenInfo.address,
+        tokenSymbol: tokenInfo.symbol,
+        tokenName: tokenInfo.name,
       }))
       .then(campaign => {
         this._addPledgeAdmin(projectId, 'campaign', campaign._id)

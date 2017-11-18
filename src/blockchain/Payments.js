@@ -44,8 +44,8 @@ class Payments {
   confirmPayment(event) {
     if (event.event !== 'ConfirmPayment') throw new Error('confirmPayment only handles ConfirmPayment events');
 
-    const { returnValues } = event;
-    const paymentId = returnValues.idPayment;
+    // const { returnValues } = event;
+    // const paymentId = returnValues.idPayment;
     // I don't think we need to do anything here
 
     // const donations = this.app.service('donations');
@@ -72,9 +72,9 @@ class Payments {
   cancelPayment(event) {
     if (event.event !== 'CancelPayment') throw new Error('cancelPayment only handles CancelPayment events');
 
-    const { returnValues } = event;
+    // const { returnValues } = event;
 
-    const paymentId = returnValues.idPayment;
+    // const paymentId = returnValues.idPayment;
     // I don't think we need to do anything here
 
     // const donations = this.app.service('donations');
