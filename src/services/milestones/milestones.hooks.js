@@ -26,7 +26,6 @@ const restrict = () => context => {
   const canUpdate = (milestone) => {
     if (!milestone) throw new errors.Forbidden();
 
-    // reviewer can mark Completed or Canceled
     if (['Completed', 'Canceled'].includes(data.status) && data.mined === false) {
       if (user.address !== milestone.reviewerAddress) throw new errors.Forbidden('Only the reviewer accept or cancel a milestone');
 
@@ -46,7 +45,17 @@ const restrict = () => context => {
       const keysToRemove = Object.keys(data).map(key => !approvedKeys.includes(key));
       keysToRemove.forEach(key => delete data[ key ]);
 
-    } else if (user.address !== milestone.ownerAddress) throw new errors.Forbidden();
+    } else if (milestone.status === 'proposed') {
+      // accept proposed milestone
+      if (user.address !== milestone.campaignOwnerAddress) throw new errors.Forbidden('Only the campaign owner can accept a milestone');
+      const approvedKeys = ['txHash', 'status', 'mined', 'ownerAddress'];
+
+      // data.ownerAddress = user.address
+
+      const keysToRemove = Object.keys(data).map(key => !approvedKeys.includes(key));
+      keysToRemove.forEach(key => delete data[ key ]);  
+
+    } else if (!milestone.status && (user.address !== milestone.ownerAddress)) throw new errors.Forbidden();
   };
 
   return getMilestones()
