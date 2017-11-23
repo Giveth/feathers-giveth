@@ -1,11 +1,8 @@
 import Web3 from 'web3';
-import liquidpledging from 'liquidpledging';
+import { LiquidPledging, Vault } from 'liquidpledging';
 
 import LiquidPledgingMonitor from './LiquidPledgingMonitor';
 import FailedTxMonitor from './FailedTxMonitor';
-
-const LiquidPledging = liquidpledging.LiquidPledging(false);
-const Vault = liquidpledging.Vault;
 
 const networks = {
   main: {
@@ -25,6 +22,10 @@ const networks = {
     vaultAddress: '0x0',
   },
   kovan: {
+    liquidPledgingAddress: '0x0',
+    vaultAddress: '0x0',
+  },
+  giveth: {
     liquidPledgingAddress: '0x0',
     vaultAddress: '0x0',
   },
@@ -82,6 +83,10 @@ const getLiquidPledging = (web3) => {
         case 4:
           liquidPledging = new LiquidPledging(web3, networks.rinkeby.liquidPledgingAddress);
           liquidPledging.$vault = new Vault(web3, networks.rinkeby.vaultAddress);
+          break;
+        case 33:
+          liquidPledging = new LiquidPledging(web3, networks.giveth.liquidPledgingAddress);
+          liquidPledging.$vault = new Vault(web3, networks.giveth.vaultAddress);
           break;
         case 42:
           liquidPledging = new LiquidPledging(web3, networks.kovan.liquidPledgingAddress);

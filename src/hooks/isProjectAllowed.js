@@ -12,7 +12,10 @@ const checkReviewer = (context) => {
 
   const inWhitelist = (project) => {
     if (reviewerWhitelist.includes(project.reviewerAddress.toLowerCase())) {
-      return;
+      // milestones have a campaignReviewerAddress
+      if (!Object.keys(project).includes('campaignReviewerAddress') || reviewerWhitelist.includes(project.campaignReviewerAddress.toLowerCase())) {
+        return;
+      }
     }
 
     throw new errors.BadRequest(`project reviewer address ${project.reviewerAddress} is not in the whitelist`);

@@ -1,4 +1,4 @@
-import LPPMilestone from 'lpp-milestone';
+import { LPPMilestone } from 'lpp-milestone';
 
 /**
  * class to keep feathers cache in sync with lpp-milestone contracts

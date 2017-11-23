@@ -1,8 +1,8 @@
-import LPPDac from 'lpp-dac';
-import LPPMilestone from 'lpp-milestone';
-import { LPPMilestoneRuntimeByteCode } from 'lpp-milestone/build/LPPMilestone.sol';
-import LPPCampaign from 'lpp-campaign';
-import { LPPCampaignRuntimeByteCode } from 'lpp-campaign/build/LPPCampaign.sol';
+import { LPPDac } from 'lpp-dac';
+import { LPPMilestone } from 'lpp-milestone';
+import { LPPMilestoneRuntimeByteCode } from 'lpp-milestone/build/LPPMilestoneFactory.sol';
+import { LPPCampaign } from 'lpp-campaign';
+import { LPPCampaignRuntimeByteCode } from 'lpp-campaign/build/LPPCampaignFactory.sol';
 
 import { getTokenInformation, milestoneStatus, pledgePaymentStatus } from './helpers';
 
@@ -286,10 +286,12 @@ class Admins {
               throw new BreakSignal();
             }
 
-            return Promise.all([ findCampaign(project.parentProject), this.web3.eth.getTransaction(txHash) ])
-              .then(([ campaignId, tx ]) => milestones.create({
+            return Promise.all([ findCampaign(project.parentProject), this.web3.eth.getTransaction(txHash), lppMilestone.milestoneReviewer(), lppMilestone.campaignReviewer() ])
+              .then(([ campaignId, tx, mReviewer, cReviewer ]) => milestones.create({
                 ownerAddress: tx.from,
                 pluginAddress: project.plugin,
+                reviewerAddress: mReviewer,
+                campaignReviewerAddress: cReviewer,
                 title: project.name,
                 description: '',
                 txHash,
@@ -313,11 +315,12 @@ class Admins {
         });
     };
 
-    return Promise.all([ findMilestone(), lppMilestone.maxAmount(), lppMilestone.reviewer(), lppMilestone.recipient(), lppMilestone.accepted(), lppMilestone.canceled() ])
-      .then(([ milestone, maxAmount, reviewer, recipient, accepted, canceled ]) => milestones.patch(milestone._id, {
+    return Promise.all([ findMilestone(), lppMilestone.maxAmount(), lppMilestone.milestoneReviewer(), lppMilestone.campaignReviewer(), lppMilestone.recipient(), lppMilestone.accepted(), lppMilestone.isCanceled() ])
+      .then(([ milestone, maxAmount, milestoneReviewer, campaignReviewer, recipient, accepted, canceled ]) => milestones.patch(milestone._id, {
         projectId,
         maxAmount,
-        reviewerAddress: reviewer,
+        reviewerAddress: milestoneReviewer,
+        campaignReviewerAddress: campaignReviewer,
         recipientAddress: recipient,
         title: project.name,
         pluginAddress: project.plugin,

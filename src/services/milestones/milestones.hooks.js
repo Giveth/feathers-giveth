@@ -26,8 +26,11 @@ const restrict = () => context => {
   const canUpdate = (milestone) => {
     if (!milestone) throw new errors.Forbidden();
 
+    const reviewers = [ milestone.reviewerAddress, milestone.campaignReviewerAddress ];
+
+    // reviewers can mark Completed or Canceled
     if (['Completed', 'Canceled'].includes(data.status) && data.mined === false) {
-      if (user.address !== milestone.reviewerAddress) throw new errors.Forbidden('Only the reviewer accept or cancel a milestone');
+      if (!reviewers.includes(user.address)) throw new errors.Forbidden('Only the reviewer accept or cancel a milestone');
 
       // whitelist of what the reviewer can update
       const approvedKeys = ['txHash', 'status', 'mined'];
@@ -37,7 +40,7 @@ const restrict = () => context => {
 
     } else if (data.status === 'InProgress' && milestone.status !== data.status) {
       // reject milestone
-      if (user.address !== milestone.reviewerAddress) throw new errors.Forbidden('Only the reviewer reject a milestone');
+      if (!reviewers.includes(user.address)) throw new errors.Forbidden('Only the reviewer reject a milestone');
 
       // whitelist of what the reviewer can update
       const approvedKeys = ['status'];
@@ -66,7 +69,7 @@ const restrict = () => context => {
 
 const address = [
   sanitizeAddress('pluginAddress', { required: true, validate: true }),
-  sanitizeAddress([ 'reviewerAddress', 'recipientAddress' ], { required: false, validate: true }),
+  sanitizeAddress([ 'reviewerAddress', 'campaignReviewerAddress', 'recipientAddress' ], { required: false, validate: true }),
 ];
 
 // hack for mlp so we can update the milestone when `collect` tx has been mined
@@ -118,6 +121,12 @@ const schema = {
     },
     {
       service: 'users',
+      nameAs: 'campaignReviewer',
+      parentField: 'campaignReviewerAddress',
+      childField: 'address',
+    },
+    {
+      service: 'users',
       nameAs: 'recipient',
       parentField: 'recipientAddress',
       childField: 'address',
@@ -135,11 +144,11 @@ const schema = {
 module.exports = {
   before: {
     all: [],
-    find: [ sanitizeAddress([ 'ownerAddress', 'pluginAddress', 'reviewerAddress', 'recipientAddress' ]) ],
+    find: [ sanitizeAddress([ 'ownerAddress', 'pluginAddress', 'reviewerAddress', 'campaignReviewerAddress', 'recipientAddress' ]) ],
     get: [],
     create: [ setAddress('ownerAddress'), ...address, isProjectAllowed(), sanitizeHtml('description') ],
     update: [ restrict(), ...address, sanitizeHtml('description') ],
-    patch: [ restrict(), sanitizeAddress([ 'pluginAddress', 'reviewerAddress', 'recipientAddress' ], { validate: true }), sanitizeHtml('description'), watchTx() ],
+    patch: [ restrict(), sanitizeAddress([ 'pluginAddress', 'reviewerAddress', 'campaignReviewerAddress', 'recipientAddress' ], { validate: true }), sanitizeHtml('description'), watchTx() ],
     remove: [ commons.disallow() ],
   },
 
