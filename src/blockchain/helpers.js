@@ -24,13 +24,11 @@ export const getTokenInformation = (web3, addr) => {
 
   return Promise.all([
     minime.name(),
-    minime.symbol()
+    minime.symbol(),
   ])
-    .then(([ name, symbol ]) => {
-      return {
-        name,
-        symbol,
-        address: addr
-      };
-    });
+    .then(([name, symbol]) => ({
+      name,
+      symbol,
+      address: addr,
+    }));
 };
