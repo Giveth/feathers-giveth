@@ -36,7 +36,7 @@ module.exports = {
     all: [],
     get: [ disallow() ],
     create: [ transformFile() ],
-    remove: [],
+    remove: [ disallow() ],
   },
 
   after: {

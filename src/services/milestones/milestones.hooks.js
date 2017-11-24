@@ -5,9 +5,10 @@ import errors from 'feathers-errors';
 import sanitizeAddress from '../../hooks/sanitizeAddress';
 import setAddress from '../../hooks/setAddress';
 import sanitizeHtml from '../../hooks/sanitizeHtml';
+import isProjectAllowed from '../../hooks/isProjectAllowed';
 
 
-const restrict = () => context => {
+const restrict = () => (context) => {
   // internal call are fine
   if (!context.params.provider) return context;
 
@@ -25,43 +26,49 @@ const restrict = () => context => {
   const canUpdate = (milestone) => {
     if (!milestone) throw new errors.Forbidden();
 
-    // reviewer can mark Completed or Canceled
+    const reviewers = [milestone.reviewerAddress, milestone.campaignReviewerAddress];
+
+    // reviewers can mark Completed or Canceled
     if (['Completed', 'Canceled'].includes(data.status) && data.mined === false) {
-      if (user.address !== milestone.reviewerAddress) throw new errors.Forbidden('Only the reviewer accept or cancel a milestone');
+      if (!reviewers.includes(user.address)) throw new errors.Forbidden('Only the reviewer accept or cancel a milestone');
 
       // whitelist of what the reviewer can update
       const approvedKeys = ['txHash', 'status', 'mined'];
 
       const keysToRemove = Object.keys(data).map(key => !approvedKeys.includes(key));
-      keysToRemove.forEach(key => delete data[ key ]);
-
-    } else if (data.status === 'InProgress') {
+      keysToRemove.forEach(key => delete data[key]);
+    } else if (data.status === 'InProgress' && milestone.status !== data.status) {
       // reject milestone
-      if (user.address !== milestone.reviewerAddress) throw new errors.Forbidden('Only the reviewer reject a milestone');
+      if (!reviewers.includes(user.address)) throw new errors.Forbidden('Only the reviewer reject a milestone');
 
       // whitelist of what the reviewer can update
       const approvedKeys = ['status'];
 
       const keysToRemove = Object.keys(data).map(key => !approvedKeys.includes(key));
-      keysToRemove.forEach(key => delete data[ key ]);
+      keysToRemove.forEach(key => delete data[key]);
+    } else if (milestone.status === 'proposed') {
+      // accept proposed milestone
+      if (user.address !== milestone.campaignOwnerAddress) throw new errors.Forbidden('Only the campaign owner can accept a milestone');
+      const approvedKeys = ['txHash', 'status', 'mined', 'ownerAddress'];
 
-    } else if (user.address !== milestone.ownerAddress) throw new errors.Forbidden();
+      // data.ownerAddress = user.address
+
+      const keysToRemove = Object.keys(data).map(key => !approvedKeys.includes(key));
+      keysToRemove.forEach(key => delete data[key]);
+    } else if (!milestone.status && (user.address !== milestone.ownerAddress)) throw new errors.Forbidden();
   };
 
   return getMilestones()
-    .then(milestones => {
-      return (Array.isArray(milestones)) ? milestones.forEach(canUpdate) : canUpdate(milestones);
-    });
+    .then(milestones => ((Array.isArray(milestones)) ? milestones.forEach(canUpdate) : canUpdate(milestones)));
 };
 
 const address = [
   sanitizeAddress('pluginAddress', { required: true, validate: true }),
-  sanitizeAddress([ 'reviewerAddress', 'recipientAddress' ], { required: false, validate: true }),
+  sanitizeAddress(['reviewerAddress', 'campaignReviewerAddress', 'recipientAddress'], { required: false, validate: true }),
 ];
 
 // hack for mlp so we can update the milestone when `collect` tx has been mined
-const watchTx = () => context => {
-
+const watchTx = () => (context) => {
   const items = commons.getItems(context);
 
   // should be a single item;
@@ -74,14 +81,14 @@ const watchTx = () => context => {
     const getTx = () => {
       console.log('checking tx milestoneId ->', context.id);
       web3.eth.getTransaction(items.txHash)
-        .then(tx => {
+        .then((tx) => {
           if (tx) {
             context.app.service('milestones').patch(context.id, {
               mined: true,
             }).catch(console.log);
             clearInterval(intervalId);
           }
-        }).catch(error => {
+        }).catch((error) => {
           console.log(error);
           clearInterval(intervalId);
         });
@@ -89,7 +96,6 @@ const watchTx = () => context => {
 
     intervalId = setInterval(getTx, 5000); // 5 seconds
   }
-
 };
 
 const schema = {
@@ -108,6 +114,12 @@ const schema = {
     },
     {
       service: 'users',
+      nameAs: 'campaignReviewer',
+      parentField: 'campaignReviewerAddress',
+      childField: 'address',
+    },
+    {
+      service: 'users',
       nameAs: 'recipient',
       parentField: 'recipientAddress',
       childField: 'address',
@@ -117,7 +129,7 @@ const schema = {
       nameAs: 'campaign',
       parentField: 'campaignId',
       childField: '_id',
-    },    
+    },
   ],
 };
 
@@ -125,16 +137,16 @@ const schema = {
 module.exports = {
   before: {
     all: [],
-    find: [ sanitizeAddress([ 'ownerAddress', 'pluginAddress', 'reviewerAddress', 'recipientAddress' ]) ],
+    find: [sanitizeAddress(['ownerAddress', 'pluginAddress', 'reviewerAddress', 'campaignReviewerAddress', 'recipientAddress'])],
     get: [],
-    create: [ setAddress('ownerAddress'), ...address, sanitizeHtml('description') ],
-    update: [ restrict(), ...address, sanitizeHtml('description') ],
-    patch: [ restrict(), sanitizeAddress([ 'pluginAddress', 'reviewerAddress', 'recipientAddress' ], { validate: true }), sanitizeHtml('description'), watchTx() ],
-    remove: [ commons.disallow() ],
+    create: [setAddress('ownerAddress'), ...address, isProjectAllowed(), sanitizeHtml('description')],
+    update: [restrict(), ...address, sanitizeHtml('description')],
+    patch: [restrict(), sanitizeAddress(['pluginAddress', 'reviewerAddress', 'campaignReviewerAddress', 'recipientAddress'], { validate: true }), sanitizeHtml('description'), watchTx()],
+    remove: [commons.disallow()],
   },
 
   after: {
-    all: [ commons.populate({ schema }) ],
+    all: [commons.populate({ schema })],
     find: [],
     get: [],
     create: [],
