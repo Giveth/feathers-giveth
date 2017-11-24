@@ -4,7 +4,7 @@ import errors from 'feathers-errors';
 import sanitizeAddress from '../../hooks/sanitizeAddress';
 import setAddress from '../../hooks/setAddress';
 import sanitizeHtml from '../../hooks/sanitizeHtml';
-import isProjectAllowed from "../../hooks/isProjectAllowed";
+import isProjectAllowed from '../../hooks/isProjectAllowed';
 
 const restrict = () => context => {
   // internal call are fine

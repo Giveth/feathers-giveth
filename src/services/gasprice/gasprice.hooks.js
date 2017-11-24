@@ -1,6 +1,6 @@
 const getGasPrice = () => (context) => {
-  context.result = context.app.get('gasPrice') || 10
-  return context
+  context.result = context.app.get('gasPrice') || 10;
+  return context;
 };
 
 module.exports = {
