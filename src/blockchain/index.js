@@ -15,7 +15,7 @@ const networks = {
   },
   ropsten: {
     liquidPledgingAddress: '0x9a3e76a27e18994ebdb1ab813e87f4315d8faa5e',
-    vaultAddress: '0x547626030c9e9df93657a38075339f429e7a998b ',
+    vaultAddress: '0x547626030c9e9df93657a38075339f429e7a998b',
   },
   rinkeby: {
     liquidPledgingAddress: '0x0',
