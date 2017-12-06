@@ -3,6 +3,7 @@ import { disallow } from 'feathers-hooks-common';
 import onlyInternal from '../../hooks/onlyInternal';
 import { populate } from 'feathers-hooks-common';
 import { toBN } from 'web3-utils';
+import _ from 'underscore'
 
 // // A hook that updates `data` with the route parameter
 // const mapDonationIdToQuery = () => (context) => {
@@ -31,17 +32,21 @@ const updateType = () => context => {
 
   let serviceName;
   let id;
+  let donationQuery;
 
   if (data.ownerType.toLowerCase() === 'campaign') {
     serviceName = 'campaigns';
     id = data.ownerId;
+    donationQuery = { ownerId: id, $select: [ 'ownerId' ] }        
   }
   else if (data.ownerType.toLowerCase() === 'milestone') {
     serviceName = 'milestones';
     id = data.ownerId;
+    donationQuery = { ownerId: id, $select: [ 'ownerId' ] }    
   } else if (data.delegateId) {
     serviceName = 'dacs';
     id = data.delegateId;
+    donationQuery = { delegateId: id, $select: [ 'ownerId' ] }
   }
 
   const service = context.app.service(serviceName);
@@ -52,12 +57,20 @@ const updateType = () => context => {
     .then(entity => {
       let totalDonated = entity.totalDonated || 0;
       let donationCount = entity.donationCount || 0;
+      let peopleCount = entity.peopleCount || 0;
 
-      donationCount += 1;
-      totalDonated = toBN(totalDonated).add(toBN(data.amount)).toString();
+      context.app.service('donations/history').find({
+        query: donationQuery,
+        $select: [ 'ownerId' ]
+      }).then((donationsForEntity) => {
+        peopleCount = _.uniq(_.pluck(donationsForEntity.data, 'ownerId')).length;
 
-      return service.patch(entity._id, { donationCount, totalDonated })
-        .then(() => context);
+        donationCount += 1;
+        totalDonated = toBN(totalDonated).add(toBN(data.amount)).toString();
+
+        return service.patch(entity._id, { donationCount, totalDonated, peopleCount })
+          .then(() => context);
+      });
     })
     .catch((error) => {
       console.error(error); // eslint-disable-line no-console
