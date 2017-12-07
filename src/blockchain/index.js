@@ -1,5 +1,5 @@
 import Web3 from 'web3';
-import { LiquidPledging, Vault } from 'liquidpledging';
+import { LiquidPledging, LPVault } from 'liquidpledging';
 
 import LiquidPledgingMonitor from './LiquidPledgingMonitor';
 import FailedTxMonitor from './FailedTxMonitor';
@@ -70,31 +70,31 @@ const getLiquidPledging = (web3) => {
       switch (id) {
         case 1:
           liquidPledging = new LiquidPledging(web3, networks.main.liquidPledgingAddress);
-          liquidPledging.$vault = new Vault(web3, networks.main.vaultAddress);
+          liquidPledging.$vault = new LPVault(web3, networks.main.vaultAddress);
           break;
         case 2:
           liquidPledging = new LiquidPledging(web3, networks.morden.liquidPledgingAddress);
-          liquidPledging.$vault = new Vault(web3, networks.morden.vaultAddress);
+          liquidPledging.$vault = new LPVault(web3, networks.morden.vaultAddress);
           break;
         case 3:
           liquidPledging = new LiquidPledging(web3, networks.ropsten.liquidPledgingAddress);
-          liquidPledging.$vault = new Vault(web3, networks.ropsten.vaultAddress);
+          liquidPledging.$vault = new LPVault(web3, networks.ropsten.vaultAddress);
           break;
         case 4:
           liquidPledging = new LiquidPledging(web3, networks.rinkeby.liquidPledgingAddress);
-          liquidPledging.$vault = new Vault(web3, networks.rinkeby.vaultAddress);
+          liquidPledging.$vault = new LPVault(web3, networks.rinkeby.vaultAddress);
           break;
         case 33:
           liquidPledging = new LiquidPledging(web3, networks.giveth.liquidPledgingAddress);
-          liquidPledging.$vault = new Vault(web3, networks.giveth.vaultAddress);
+          liquidPledging.$vault = new LPVault(web3, networks.giveth.vaultAddress);
           break;
         case 42:
           liquidPledging = new LiquidPledging(web3, networks.kovan.liquidPledgingAddress);
-          liquidPledging.$vault = new Vault(web3, networks.kovan.vaultAddress);
+          liquidPledging.$vault = new LPVault(web3, networks.kovan.vaultAddress);
           break;
         default:
           liquidPledging = new LiquidPledging(web3, networks.default.liquidPledgingAddress);
-          liquidPledging.$vault = new Vault(web3, networks.default.vaultAddress);
+          liquidPledging.$vault = new LPVault(web3, networks.default.vaultAddress);
           break;
       }
 

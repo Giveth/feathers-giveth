@@ -1,10 +1,10 @@
 const Web3 = require('web3');
-const Vault = require('liquidpledging').Vault;
+const { LPVault } = require('liquidpledging');
 
 const web3 = new Web3("ws://localhost:8546");
 
 async function confirmPayments() {
-  const vault = new Vault(web3, '0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab');
+  const vault = new LPVault(web3, '0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab');
 
   const nPayments = await vault.nPayments();
   const paymentsToConfirm = [];
