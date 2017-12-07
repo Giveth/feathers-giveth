@@ -4,7 +4,7 @@ import { LPPMilestoneRuntimeByteCode } from 'lpp-milestone/build/LPPMilestoneFac
 import { LPPCampaign } from 'lpp-campaign';
 import { LPPCampaignRuntimeByteCode } from 'lpp-campaign/build/LPPCampaignFactory.sol';
 
-import { getTokenInformation, milestoneStatus, pledgePaymentStatus } from './helpers';
+import { getTokenInformation, milestoneStatus, pledgeState } from './helpers';
 
 const BreakSignal = () => {
 };
@@ -27,7 +27,7 @@ class Admins {
 
     this.liquidPledging.getPledgeAdmin(returnValues.idGiver)
       .then(giver => this._addGiver(giver, returnValues.idGiver, event.transactionHash))
-      .catch(err => console.error('addGiver error ->', err)); //eslint-disable-line no-console
+      .catch(err => console.error('addGiver error ->', err)); // eslint-disable-line no-console
   }
 
   updateGiver(event) {
@@ -37,27 +37,24 @@ class Admins {
 
     const users = this.app.service('/users');
 
-    const getUser = () => {
-      return users.find({ query: { giverId } })
-        .then(({ data }) => {
+    const getUser = () => users.find({ query: { giverId } })
+      .then(({ data }) => {
+        if (data.length === 0) {
+          this.liquidPledging.getPledgeAdmin(giverId)
+            .then(giver => this._addGiver(giver, giverId, 0))
+            .catch(err => console.error('updateGiver error ->', err)); // eslint-disable-line no-console
+          throw new BreakSignal();
+        }
 
-          if (data.length === 0) {
-            this.liquidPledging.getPledgeAdmin(giverId)
-              .then(giver => this._addGiver(giver, giverId, 0))
-              .catch(err => console.error('updateGiver error ->', err)); //eslint-disable-line no-console
-            throw new BreakSignal();
-          }
+        if (data.length > 1) {
+          console.warn('more then 1 user with the same giverId found: ', data); // eslint-disable-line no-console
+        }
 
-          if (data.length > 1) {
-            console.warn('more then 1 user with the same giverId found: ', data); // eslint-disable-line no-console
-          }
+        return data[0];
+      });
 
-          return data[ 0 ];
-        });
-    };
-
-    Promise.all([ getUser(), this.liquidPledging.getPledgeAdmin(giverId) ])
-      .then(([ user, giver ]) => {
+    Promise.all([getUser(), this.liquidPledging.getPledgeAdmin(giverId)])
+      .then(([user, giver]) => {
         // If a giver changes address, update users to reflect the change.
         if (giver.addr !== user.address) {
           console.log(`giver address "${giver.addr}" differs from users address "${user.address}". Updating users to match`); // eslint-disable-line no-console
@@ -72,7 +69,7 @@ class Admins {
 
         return users.patch(user.address, mutation);
       })
-      .catch(err => {
+      .catch((err) => {
         if (err instanceof BreakSignal) return;
         console.error('updateGiver error ->', err); // eslint-disable-line no-console
       });
@@ -85,7 +82,7 @@ class Admins {
 
     let user;
     return users.get(addr)
-      .catch(err => {
+      .catch((err) => {
         if (err.name === 'NotFound') {
           return users.create({
             address: addr,
@@ -94,13 +91,13 @@ class Admins {
 
         throw err;
       })
-      .then(u => {
+      .then((u) => {
         user = u;
         if (user.giverId && user.giverId !== 0) {
           console.error(`user already has a giverId set. existing giverId: ${user.giverId}, new giverId: ${giverId}`);
         }
 
-        const mutation = { commitTime, giverId: giverId };
+        const mutation = { commitTime, giverId };
         if (!user.name) {
           mutation.name = name;
         }
@@ -113,7 +110,7 @@ class Admins {
   }
 
 
-  //TODO support delegates other then dacs
+  // TODO support delegates other then dacs
   addDelegate(event) {
     if (event.event !== 'DelegateAdded') throw new Error('addDelegate only handles DelegateAdded events');
 
@@ -127,30 +124,25 @@ class Admins {
 
     const dacs = this.app.service('/dacs');
 
-    const getDAC = () => {
-      return dacs.find({ query: { delegateId } })
-        .then(({ data }) => {
+    const getDAC = () => dacs.find({ query: { delegateId } })
+      .then(({ data }) => {
+        if (data.length === 0) {
+          this._addDelegate(delegateId);
+          throw new BreakSignal();
+        }
 
-          if (data.length === 0) {
-            this._addDelegate(delegateId);
-            throw new BreakSignal();
-          }
+        if (data.length > 1) {
+          console.warn('more then 1 dac with the same delegateId found: ', data); // eslint-disable-line no-console
+        }
 
-          if (data.length > 1) {
-            console.warn('more then 1 dac with the same delegateId found: ', data); // eslint-disable-line no-console
-          }
+        return data[0];
+      });
 
-          return data[ 0 ];
-        });
-    };
-
-    Promise.all([ getDAC(), this.liquidPledging.getPledgeAdmin(delegateId) ])
-      .then(([ dac, delegate ]) => {
-        return dacs.patch(dac._id, {
-          title: delegate.name,
-        });
-      })
-      .catch(err => {
+    Promise.all([getDAC(), this.liquidPledging.getPledgeAdmin(delegateId)])
+      .then(([dac, delegate]) => dacs.patch(dac._id, {
+        title: delegate.name,
+      }))
+      .catch((err) => {
         if (err instanceof BreakSignal) return;
         console.error('updateDelegate error ->', err); // eslint-disable-line no-console
       });
@@ -159,42 +151,39 @@ class Admins {
   _addDelegate(delegateId, txHash, retry = false) {
     const dacs = this.app.service('/dacs');
 
-    const findDAC = (delegate) => {
-      return dacs.find({ query: { txHash } })
-        .then(({ data }) => {
-
-          if (data.length === 0) {
-            if (!retry) {
-              // this is really only useful when instant mining. Other then that, the dac should always be
-              // created before the tx was mined.
-              setTimeout(() => this._addDelegate(delegateId, txHash, true), 5000);
-              throw new BreakSignal();
-            }
-
-            return this.web3.eth.getTransaction(txHash)
-              .then(tx => dacs.create({
-                ownerAddress: tx.from,
-                pluginAddress: delegate.plugin,
-                title: delegate.name,
-                totalDonated: '0',
-                donationCount: 0,
-                description: '',
-              }))
-              .catch((err) => {
-                // dacs service will throw BadRequest error if owner isn't whitelisted
-                if (err.name === 'BadRequest') throw new BreakSignal();
-
-                throw err;
-              });
+    const findDAC = delegate => dacs.find({ query: { txHash } })
+      .then(({ data }) => {
+        if (data.length === 0) {
+          if (!retry) {
+            // this is really only useful when instant mining. Other then that, the dac should always be
+            // created before the tx was mined.
+            setTimeout(() => this._addDelegate(delegateId, txHash, true), 5000);
+            throw new BreakSignal();
           }
 
-          if (data.length > 1) {
-            console.warn('more then 1 dac with the same ownerAddress and title found: ', data); // eslint-disable-line no-console
-          }
+          return this.web3.eth.getTransaction(txHash)
+            .then(tx => dacs.create({
+              ownerAddress: tx.from,
+              pluginAddress: delegate.plugin,
+              title: delegate.name,
+              totalDonated: '0',
+              donationCount: 0,
+              description: '',
+            }))
+            .catch((err) => {
+              // dacs service will throw BadRequest error if owner isn't whitelisted
+              if (err.name === 'BadRequest') throw new BreakSignal();
 
-          return data[ 0 ];
-        });
-    };
+              throw err;
+            });
+        }
+
+        if (data.length > 1) {
+          console.warn('more then 1 dac with the same ownerAddress and title found: ', data); // eslint-disable-line no-console
+        }
+
+        return data[0];
+      });
 
     const getTokenInfo = (delegate) => {
       const dac = new LPPDac(this.web3, delegate.plugin);
@@ -203,21 +192,21 @@ class Admins {
     };
 
     return this.liquidPledging.getPledgeAdmin(delegateId)
-      .then(delegate => Promise.all([ delegate, findDAC(delegate), getTokenInfo(delegate) ]))
-      .then(([ delegate, dac, tokenInfo ]) => dacs.patch(dac._id, {
+      .then(delegate => Promise.all([delegate, findDAC(delegate), getTokenInfo(delegate)]))
+      .then(([delegate, dac, tokenInfo]) => dacs.patch(dac._id, {
         delegateId,
         pluginAddress: delegate.plugin,
         tokenAddress: tokenInfo.address,
         tokenSymbol: tokenInfo.symbol,
         tokenName: tokenInfo.name,
       }))
-      .then(dac => {
+      .then((dac) => {
         this._addPledgeAdmin(delegateId, 'dac', dac._id)
           .then(() => dac);
       })
-      .catch(err => {
+      .catch((err) => {
         if (err instanceof BreakSignal) return;
-        console.error('_addDelegate error ->', err); //eslint-disable-line no-console
+        console.error('_addDelegate error ->', err); // eslint-disable-line no-console
       });
   }
 
@@ -229,9 +218,8 @@ class Admins {
     const txHash = event.transactionHash;
 
     return this.liquidPledging.getPledgeAdmin(projectId)
-      .then(project => Promise.all([ project, this.web3.eth.getCode(project.plugin) ]))
-      .then(([ project, byteCode ]) => {
-
+      .then(project => Promise.all([project, this.web3.eth.getCode(project.plugin)]))
+      .then(([project, byteCode]) => {
         if (byteCode === LPPMilestoneRuntimeByteCode) return this._addMilestone(project, projectId, txHash);
         if (byteCode === LPPCampaignRuntimeByteCode) return this._addCampaign(project, projectId, txHash);
 
@@ -246,77 +234,71 @@ class Admins {
     const lppMilestone = new LPPMilestone(this.web3, project.plugin);
 
     // get_or_create campaign by projectId
-    const findCampaign = (campaignProjectId) => {
-      return campaigns.find({ query: { projectId: campaignProjectId } })
-        .then(({ data }) => {
+    const findCampaign = campaignProjectId => campaigns.find({ query: { projectId: campaignProjectId } })
+      .then(({ data }) => {
+        // create a campaign if necessary
+        if (data.length === 0) {
+          // TODO do we need to create an owner here?
 
-          // create a campaign if necessary
-          if (data.length === 0) {
-            //TODO do we need to create an owner here?
+          return this.liquidPledging.getPledgeAdmin(campaignProjectId)
+            .then(campaignProject => campaigns.create({
+              ownerAddress: campaignProject.addr,
+              title: campaignProject.name,
+              projectId: campaignProjectId,
+              totalDonated: '0',
+              donationCount: 0,
+            }))
+            .then(campaign => campaign._id);
+        }
 
-            return this.liquidPledging.getPledgeAdmin(campaignProjectId)
-              .then(campaignProject => campaigns.create({
-                ownerAddress: campaignProject.addr,
-                title: campaignProject.name,
-                projectId: campaignProjectId,
-                totalDonated: '0',
-                donationCount: 0,
-              }))
-              .then(campaign => campaign._id);
-          }
+        if (data.length > 1) {
+          console.warn('more then 1 campaign with the same projectId found: ', data); // eslint-disable-line no-console
+        }
 
-          if (data.length > 1) {
-            console.warn('more then 1 campaign with the same projectId found: ', data); // eslint-disable-line no-console
-          }
-
-          return data[ 0 ]._id;
-        });
-    };
+        return data[0]._id;
+      });
 
     // get_or_create milestone by title and ownerAddress
-    const findMilestone = () => {
-      return milestones.find({ query: { txHash } })
-        .then(({ data }) => {
-
-          if (data.length === 0) {
-            if (!retry) {
-              // this is really only useful when instant mining. Other then that, the milestone should always be
-              // created before the tx was mined.
-              setTimeout(() => this._addMilestone(project, projectId, txHash, true), 5000);
-              throw new BreakSignal();
-            }
-
-            return Promise.all([ findCampaign(project.parentProject), this.web3.eth.getTransaction(txHash), lppMilestone.milestoneReviewer(), lppMilestone.campaignReviewer() ])
-              .then(([ campaignId, tx, mReviewer, cReviewer ]) => milestones.create({
-                ownerAddress: tx.from,
-                pluginAddress: project.plugin,
-                reviewerAddress: mReviewer,
-                campaignReviewerAddress: cReviewer,
-                title: project.name,
-                description: '',
-                txHash,
-                campaignId,
-                totalDonated: '0',
-                donationCount: 0,
-              }))
-              .catch((err) => {
-                // milestones service will throw BadRequest error if reviewer isn't whitelisted
-                if (err.name === 'BadRequest') throw new BreakSignal();
-
-                throw err;
-              });
+    const findMilestone = () => milestones.find({ query: { txHash } })
+      .then(({ data }) => {
+        if (data.length === 0) {
+          if (!retry) {
+            // this is really only useful when instant mining. Other then that, the milestone should always be
+            // created before the tx was mined.
+            setTimeout(() => this._addMilestone(project, projectId, txHash, true), 5000);
+            throw new BreakSignal();
           }
 
-          if (data.length > 1) {
-            console.warn('more then 1 milestone with the same txHash found: ', data); // eslint-disable-line no-console
-          }
+          return Promise.all([findCampaign(project.parentProject), this.web3.eth.getTransaction(txHash), lppMilestone.milestoneReviewer(), lppMilestone.campaignReviewer()])
+            .then(([campaignId, tx, mReviewer, cReviewer]) => milestones.create({
+              ownerAddress: tx.from,
+              pluginAddress: project.plugin,
+              reviewerAddress: mReviewer,
+              campaignReviewerAddress: cReviewer,
+              title: project.name,
+              description: '',
+              txHash,
+              campaignId,
+              totalDonated: '0',
+              donationCount: 0,
+            }))
+            .catch((err) => {
+              // milestones service will throw BadRequest error if reviewer isn't whitelisted
+              if (err.name === 'BadRequest') throw new BreakSignal();
 
-          return data[ 0 ];
-        });
-    };
+              throw err;
+            });
+        }
 
-    return Promise.all([ findMilestone(), lppMilestone.maxAmount(), lppMilestone.milestoneReviewer(), lppMilestone.campaignReviewer(), lppMilestone.recipient(), lppMilestone.accepted(), lppMilestone.isCanceled() ])
-      .then(([ milestone, maxAmount, milestoneReviewer, campaignReviewer, recipient, accepted, canceled ]) => milestones.patch(milestone._id, {
+        if (data.length > 1) {
+          console.warn('more then 1 milestone with the same txHash found: ', data); // eslint-disable-line no-console
+        }
+
+        return data[0];
+      });
+
+    return Promise.all([findMilestone(), lppMilestone.maxAmount(), lppMilestone.milestoneReviewer(), lppMilestone.campaignReviewer(), lppMilestone.recipient(), lppMilestone.accepted(), lppMilestone.isCanceled()])
+      .then(([milestone, maxAmount, milestoneReviewer, campaignReviewer, recipient, accepted, canceled]) => milestones.patch(milestone._id, {
         projectId,
         maxAmount,
         reviewerAddress: milestoneReviewer,
@@ -327,13 +309,13 @@ class Admins {
         status: milestoneStatus(accepted, canceled),
         mined: true,
       }))
-      .then(milestone => {
+      .then((milestone) => {
         this._addPledgeAdmin(projectId, 'milestone', milestone._id)
           .then(() => milestone);
       })
-      .catch(err => {
+      .catch((err) => {
         if (err instanceof BreakSignal) return;
-        console.error('_addMilestone error ->', err); //eslint-disable-line no-console
+        console.error('_addMilestone error ->', err); // eslint-disable-line no-console
       });
   }
 
@@ -341,52 +323,49 @@ class Admins {
     const campaigns = this.app.service('/campaigns');
 
     // get_or_create campaign by title and ownerAddress
-    const findCampaign = () => {
-      return campaigns.find({ query: { txHash } })
-        .then(({ data }) => {
-
-          // create a campaign if necessary
-          if (data.length === 0) {
-            if (!retry) {
-              // this is really only useful when instant mining. Other then that, the campaign should always be
-              // created before the tx was mined.
-              setTimeout(() => this._addCampaign(project, projectId, txHash, true), 5000);
-              throw new BreakSignal();
-            }
-
-            return this.web3.eth.getTransaction(txHash)
-              .then(tx => campaigns.create({
-                ownerAddress: tx.from,
-                pluginAddress: project.plugin,
-                title: project.name,
-                description: '',
-                txHash,
-                totalDonated: '0',
-                donationCount: 0,
-              }))
-              .catch((err) => {
-                // campaigns service will throw BadRequest error if reviewer isn't whitelisted
-                if (err.name === 'BadRequest') throw new BreakSignal();
-
-                throw err;
-              });
+    const findCampaign = () => campaigns.find({ query: { txHash } })
+      .then(({ data }) => {
+        // create a campaign if necessary
+        if (data.length === 0) {
+          if (!retry) {
+            // this is really only useful when instant mining. Other then that, the campaign should always be
+            // created before the tx was mined.
+            setTimeout(() => this._addCampaign(project, projectId, txHash, true), 5000);
+            throw new BreakSignal();
           }
 
-          if (data.length > 1) {
-            console.warn('more then 1 campaign with the same title and ownerAddress found: ', data); // eslint-disable-line no-console
-          }
+          return this.web3.eth.getTransaction(txHash)
+            .then(tx => campaigns.create({
+              ownerAddress: tx.from,
+              pluginAddress: project.plugin,
+              title: project.name,
+              description: '',
+              txHash,
+              totalDonated: '0',
+              donationCount: 0,
+            }))
+            .catch((err) => {
+              // campaigns service will throw BadRequest error if reviewer isn't whitelisted
+              if (err.name === 'BadRequest') throw new BreakSignal();
 
-          return data[ 0 ];
-        });
-    };
+              throw err;
+            });
+        }
+
+        if (data.length > 1) {
+          console.warn('more then 1 campaign with the same title and ownerAddress found: ', data); // eslint-disable-line no-console
+        }
+
+        return data[0];
+      });
 
     const lppCampaign = new LPPCampaign(this.web3, project.plugin);
 
 
     const getTokenInfo = () => lppCampaign.token().then(addr => getTokenInformation(this.web3, addr));
 
-    return Promise.all([ findCampaign(), lppCampaign.isCanceled(), lppCampaign.reviewer(), getTokenInfo() ])
-      .then(([ campaign, canceled, reviewer, tokenInfo ]) => campaigns.patch(campaign._id, {
+    return Promise.all([findCampaign(), lppCampaign.isCanceled(), lppCampaign.reviewer(), getTokenInfo()])
+      .then(([campaign, canceled, reviewer, tokenInfo]) => campaigns.patch(campaign._id, {
         projectId,
         title: project.name,
         reviewerAddress: reviewer,
@@ -397,13 +376,13 @@ class Admins {
         tokenSymbol: tokenInfo.symbol,
         tokenName: tokenInfo.name,
       }))
-      .then(campaign => {
+      .then((campaign) => {
         this._addPledgeAdmin(projectId, 'campaign', campaign._id)
           .then(() => campaign);
       })
-      .catch(err => {
+      .catch((err) => {
         if (err instanceof BreakSignal) return;
-        console.error('_addCampaign error ->', err); //eslint-disable-line no-console
+        console.error('_addCampaign error ->', err); // eslint-disable-line no-console
       });
   }
 
@@ -414,39 +393,32 @@ class Admins {
 
     // we make the assumption that if there is a parentProject, then the project is a milestone, otherwise it is a campaign
     return this.liquidPledging.getPledgeAdmin(projectId)
-      .then(project => {
-        return (project.parentProject > 0) ? this._updateMilestone(project, projectId) : this._updateCampaign(project, projectId);
-      });
+      .then(project => ((project.parentProject > 0) ? this._updateMilestone(project, projectId) : this._updateCampaign(project, projectId)));
   }
 
   _updateMilestone(project, projectId) {
     const milestones = this.app.service('/milestones');
 
-    const getMilestone = () => {
-      return milestones.find({ query: { projectId } })
-        .then(({ data }) => {
+    const getMilestone = () => milestones.find({ query: { projectId } })
+      .then(({ data }) => {
+        if (data.length === 0) {
+          this._addMilestone(project, projectId);
+          throw new BreakSignal();
+        }
 
-          if (data.length === 0) {
-            this._addMilestone(project, projectId);
-            throw new BreakSignal();
-          }
+        if (data.length > 1) {
+          console.warn('more then 1 milestone with the same projectId found: ', data); // eslint-disable-line no-console
+        }
 
-          if (data.length > 1) {
-            console.warn('more then 1 milestone with the same projectId found: ', data); // eslint-disable-line no-console
-          }
-
-          return data[ 0 ];
-        });
-    };
+        return data[0];
+      });
 
     return getMilestone()
-      .then((milestone) => {
-        return milestones.patch(milestone._id, {
-          // ownerAddress: project.addr, // TODO project.addr is the milestone contract, need to fix
-          title: project.name,
-        });
-      })
-      .catch(err => {
+      .then(milestone => milestones.patch(milestone._id, {
+        // ownerAddress: project.addr, // TODO project.addr is the milestone contract, need to fix
+        title: project.name,
+      }))
+      .catch((err) => {
         if (err instanceof BreakSignal) return;
         console.error('_updateMilestone error ->', err); // eslint-disable-line no-console
       });
@@ -455,31 +427,26 @@ class Admins {
   _updateCampaign(project, projectId) {
     const campaigns = this.app.service('/campaigns');
 
-    const getCampaign = () => {
-      return campaigns.find({ query: { projectId } })
-        .then(({ data }) => {
+    const getCampaign = () => campaigns.find({ query: { projectId } })
+      .then(({ data }) => {
+        if (data.length === 0) {
+          this._addCampaign(project, projectId);
+          throw new BreakSignal();
+        }
 
-          if (data.length === 0) {
-            this._addCampaign(project, projectId);
-            throw new BreakSignal();
-          }
+        if (data.length > 1) {
+          console.warn('more then 1 campaign with the same projectId found: ', data); // eslint-disable-line no-console
+        }
 
-          if (data.length > 1) {
-            console.warn('more then 1 campaign with the same projectId found: ', data); // eslint-disable-line no-console
-          }
-
-          return data[ 0 ];
-        });
-    };
+        return data[0];
+      });
 
     return getCampaign()
-      .then((campaign) => {
-        return campaigns.patch(campaign._id, {
-          ownerAddress: project.addr,
-          title: project.name,
-        });
-      })
-      .catch(err => {
+      .then(campaign => campaigns.patch(campaign._id, {
+        ownerAddress: project.addr,
+        title: project.name,
+      }))
+      .catch((err) => {
         if (err instanceof BreakSignal) return;
         console.error('_updateCampaign error ->', err); // eslint-disable-line no-console
       });
@@ -491,8 +458,7 @@ class Admins {
     const projectId = event.returnValues.idProject;
 
     return this.app.service('pledgeAdmins').get(projectId)
-      .then(pledgeAdmin => {
-
+      .then((pledgeAdmin) => {
         let service;
         if (pledgeAdmin.type === 'campaign') {
           service = this.app.service('campaigns');
@@ -500,28 +466,28 @@ class Admins {
           this.app.service('milestones').patch(null, {
             status: 'Canceled',
             mined: true,
-            txHash: event.transactionHash
+            txHash: event.transactionHash,
           }, {
             query: {
               campaignId: pledgeAdmin.typeId,
               $not: {
-                status: 'Canceled'
-              }
-            }
+                status: 'Canceled',
+              },
+            },
           })
             .then(milestones => milestones.map(m => m._id))
-            .then(milestoneIds => {
+            .then((milestoneIds) => {
               this.app.service('donations').find({
                 paginate: false,
                 query: {
                   $or: [
-                    { ownerId:  { $in: milestoneIds } },
-                    { intendedProjectId:  { $in: milestoneIds } },
+                    { ownerId: { $in: milestoneIds } },
+                    { intendedProjectId: { $in: milestoneIds } },
                   ],
-                  paymentStatus: 'Pledged', //TODO what happens when paying?
+                  paymentStatus: 'Pledged', // TODO what happens when paying?
                 },
               })
-                .then((data) => data.forEach((donation) => this._revertDonation(donation)))
+                .then(data => data.forEach(donation => this._revertDonation(donation)))
                 .catch(console.error);
             });
         } else {
@@ -538,7 +504,7 @@ class Admins {
             ],
           },
         })
-          .then((data) => data.forEach((donation) => this._revertDonation(donation)))
+          .then(data => data.forEach(donation => this._revertDonation(donation)))
           .catch(console.error);
 
         // update admin entity
@@ -557,20 +523,7 @@ class Admins {
     const pledgeAdmins = this.app.service('pledgeAdmins');
     const donations = this.app.service('donations');
 
-    // This is the root level for a donation. Only need to remove the intendedProject if present
-    if (donation.ownerType === 'giver') {
-      if (donation.intendedProject) {
-        donations.patch(donation._id, {
-          $unset: {
-            intendedProject: true,
-            intendedProjectId: true,
-            intendedProjectType: true,
-          },
-        });
-      }
-    }
-
-    const getAdmin = (id) => pledgeAdmins.get(id)
+    const getAdmin = id => pledgeAdmins.get(id)
       .catch((error) => {
         if (error.name === 'NotFound') return undefined;
 
@@ -579,22 +532,19 @@ class Admins {
       });
 
     const getMostRecentPledgeNotCanceled = (pledgeId) => {
-      if (pledgeId === 0) return Promise.reject('pledgeId === 0, not sure what to do');
+      if (pledgeId === 0) return Promise.reject(new Error('pledgeId === 0, not sure what to do'));
 
       return this.liquidPledging.getPledge(pledgeId)
-        .then(pledge => Promise.all([ getAdmin(pledge.owner), getAdmin(pledge.intendedProject), pledge ]))
-        .then(([ pledgeOwnerAdmin, pledgeIntendedProjectAdmin, pledge ]) => {
-
-          // if pledgeAdmin is the giver, this is the furthest back we can go
-          if (pledgeOwnerAdmin.type !== 'giver') {
-            if (pledgeIntendedProjectAdmin && pledgeIntendedProjectAdmin.admin.status === 'Canceled') return getMostRecentPledgeNotCanceled(pledge.oldPledge);
-
-            if (pledgeOwnerAdmin && pledgeOwnerAdmin.admin.status === 'Canceled') return getMostRecentPledgeNotCanceled(pledge.oldPledge);
+        .then(pledge => Promise.all([getAdmin(pledge.owner), pledge]))
+        .then(([pledgeOwnerAdmin, pledge]) => {
+          // if pledgeOwnerAdmin is not a giver, then it is a campaign/milestone
+          // if the campaign/milestone is canceled, go back 1 pledge
+          if (pledgeOwnerAdmin.type !== 'giver' && pledgeOwnerAdmin.admin.status === 'Canceled') {
+            return getMostRecentPledgeNotCanceled(pledge.oldPledge);
           }
 
           const pledgeInfo = {
             pledgeOwnerAdmin,
-            pledgeIntendedProjectAdmin,
             pledge,
           };
 
@@ -607,29 +557,24 @@ class Admins {
     };
 
     return getMostRecentPledgeNotCanceled(donation.pledgeId)
-      .then(({ pledgeOwnerAdmin, pledgeIntendedProjectAdmin, pledge, pledgeDelegateAdmin }) => {
-
+      .then(({
+        pledgeOwnerAdmin, pledge, pledgeDelegateAdmin,
+      }) => {
         const status = (pledgeOwnerAdmin.type === 'giver' || pledgeDelegateAdmin) ? 'waiting' : 'committed';
 
         const mutation = {
-          paymentStatus: pledgePaymentStatus(pledge.paymentState),
+          paymentStatus: pledgeState(pledge.pledgeState),
           // updatedAt: //TODO get block time
           owner: pledge.owner,
           ownerId: pledgeOwnerAdmin.typeId,
           ownerType: pledgeOwnerAdmin.type,
-          intendedProject: pledge.intendedProject,
           commitTime: (pledge.commitTime) ? new Date(pledge.commitTime * 1000) : new Date(),
           status,
         };
 
-        if (pledgeIntendedProjectAdmin) {
-          Object.assign(mutation, {
-            intendedProjectId: pledgeIntendedProjectAdmin.typeId,
-            intendedProjectType: pledgeIntendedProjectAdmin.type,
-          });
-        }
-
-        if (!pledgeIntendedProjectAdmin && donation.intendedProject) {
+        // In liquidPledging, the oldPledge is only set in transferOwnershipToProject
+        // thus an oldPledge will never have an intendedProject, so we remove it if present
+        if (donation.intendedProject) {
           Object.assign(mutation, {
             $unset: {
               intendedProject: true,
@@ -646,18 +591,17 @@ class Admins {
           });
         }
 
-        if (pledge.paymentState !== '0') console.log('why does pledge have non `Pledged` paymentState? ->', pledge);
+        if (pledge.pledgeState !== '0') console.log('why does pledge have non `Pledged` pledgeState? ->', pledge);
 
         return donations.patch(donation._id, mutation);
       }).catch(console.error);
-
   }
 
   _addPledgeAdmin(id, type, typeId) {
     const pledgeAdmins = this.app.service('pledgeAdmins');
 
     return pledgeAdmins.create({ id, type, typeId })
-      .catch(err => {
+      .catch((err) => {
         // TODO if the pledgeAdmin already exists, then verify the type and typeId and return the admin
         console.log('create pledgeAdmin error =>', err);
       });
