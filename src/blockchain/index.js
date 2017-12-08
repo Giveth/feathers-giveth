@@ -26,8 +26,8 @@ const networks = {
     vaultAddress: '0x0',
   },
   giveth: {
-    liquidPledgingAddress: '0xf062a3d57660a96ace76cd01ddb632482a0a5d3f',
-    vaultAddress: '0xe638f21f2d3d7f37500d413e8ee8524eec912005',
+    liquidPledgingAddress: '0xc2E1c6cf5D18247d63618dABf58E14F058D02c7C',
+    vaultAddress: '0x98bE0A726C9937Ba5E0227E84E1ccCaceFee88b4',
   },
   default: {
     liquidPledgingAddress: '0x5b1869D9A4C187F2EAa108f3062412ecf0526b24',
