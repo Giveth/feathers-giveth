@@ -18,8 +18,8 @@ const networks = {
     vaultAddress: '0x547626030c9e9df93657a38075339f429e7a998b',
   },
   rinkeby: {
-    liquidPledgingAddress: '0x0',
-    vaultAddress: '0x0',
+    liquidPledgingAddress: '0x1B8F84E443668C81FeE5BEc266bc098e3c7fBC00',
+    vaultAddress: '0xBf0bA4c72daab5BFeF6B9C496db91e4614a57131',
   },
   kovan: {
     liquidPledgingAddress: '0x0',
