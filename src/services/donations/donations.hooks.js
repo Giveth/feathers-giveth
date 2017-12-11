@@ -6,19 +6,19 @@ import sanitizeAddress from '../../hooks/sanitizeAddress';
 import setAddress from '../../hooks/setAddress';
 
 
-const restrict = () => context => {
+const restrict = () => (context) => {
   // internal call are fine
   if (!context.params.provider) return context;
 
   const { data, service } = context;
-  const user = context.params.user;
+  const { user } = context.params;
 
   if (!user) throw new errors.NotAuthenticated();
 
 
   const getDonations = () => {
-    if (context.id) return service.get(context.id, {schema: 'includeTypeDetails'});
-    if (!context.id && context.params.query) return service.find({query: context.params.query, schema: 'includeTypeDetails'});
+    if (context.id) return service.get(context.id, { schema: 'includeTypeDetails' });
+    if (!context.id && context.params.query) return service.find({ query: context.params.query, schema: 'includeTypeDetails' });
     return undefined;
   };
 
@@ -33,8 +33,7 @@ const restrict = () => context => {
       const approvedKeys = ['txHash', 'status', 'delegate', 'delegateId', 'intendedProject', 'intendedProjectId', 'intendedProjectType'];
 
       const keysToRemove = Object.keys(data).map(key => !approvedKeys.includes(key));
-      keysToRemove.forEach(key => delete data[ key ]);
-
+      keysToRemove.forEach(key => delete data[key]);
     } else if ((donation.ownerType === 'giver' && user.address !== donation.ownerId) ||
       user.address !== donation.ownerEntity.ownerAddress) {
       throw new errors.Forbidden();
@@ -42,9 +41,7 @@ const restrict = () => context => {
   };
 
   return getDonations()
-    .then(donations => {
-      return (Array.isArray(donations)) ? donations.forEach(canUpdate) : canUpdate(donations);
-    });
+    .then(donations => ((Array.isArray(donations)) ? donations.forEach(canUpdate) : canUpdate(donations)));
 };
 
 const poSchemas = {
@@ -126,7 +123,7 @@ const poSchemas = {
 };
 
 // a bit of a hacky way to be able to revert donations if the tx failed.
-const stashDonationIfPending = () => context => {
+const stashDonationIfPending = () => (context) => {
   // only deal with single donation patchs
   if (!context.id) return context;
 
@@ -134,7 +131,7 @@ const stashDonationIfPending = () => context => {
 
   if (data.status === 'pending') {
     return context.app.service('donations').get(context.id)
-      .then(donation => {
+      .then((donation) => {
         data.previousState = donation;
 
         return context;
@@ -146,7 +143,7 @@ const stashDonationIfPending = () => context => {
     data.$unset.previousState = true;
   } else {
     data.$unset = {
-      previousState: true
+      previousState: true,
     };
   }
 
@@ -159,79 +156,71 @@ const joinDonationRecipient = (item, context) => {
   let ownerSchema;
   // if this is po-giver schema, we need to change the `nameAs` to ownerEntity
   if (item.ownerType.toLowerCase() === 'giver') {
-    ownerSchema = poSchemas[ 'po-giver-owner' ];
+    ownerSchema = poSchemas['po-giver-owner'];
   } else {
-    ownerSchema = poSchemas[ `po-${item.ownerType.toLowerCase()}` ];
+    ownerSchema = poSchemas[`po-${item.ownerType.toLowerCase()}`];
   }
 
   return commons.populate({ schema: ownerSchema })(newContext)
-    .then(context => {
-      return (item.delegate) ? commons.populate({ schema: poSchemas[ 'po-dac' ] })(context) : context;
-    })
-    .then(context => {
-      return (item.intendedProject > 0) ? commons.populate({ schema: poSchemas[ `po-${item.intendedProjectType.toLowerCase()}-intended` ] })(context) : context;
-    })
+    .then(context => ((item.delegate) ? commons.populate({ schema: poSchemas['po-dac'] })(context) : context))
+    .then(context => ((item.intendedProject > 0) ? commons.populate({ schema: poSchemas[`po-${item.intendedProjectType.toLowerCase()}-intended`] })(context) : context))
     .then(context => context.result);
 };
 
-const populateSchema = () => {
-  return (context) => {
-
-    if (context.params.schema === 'includeGiverDetails') {
-      return commons.populate({ schema: poSchemas[ 'po-giver' ] })(context);
-    } else if ([ 'includeTypeDetails', 'includeTypeAndGiverDetails' ].includes(context.params.schema)) {
-      if (context.params.schema === 'includeTypeAndGiverDetails') {
-        commons.populate({ schema: poSchemas[ 'po-giver' ] })(context);
-      }
-
-      const items = commons.getItems(context);
-
-      // items may be undefined if we are removing by id;
-      if (items === undefined) return context;
-
-
-      if (Array.isArray(items)) {
-        const promises = items.map(item => joinDonationRecipient(item, context));
-
-        return Promise.all(promises)
-          .then(results => {
-            commons.replaceItems(context, results);
-            return context;
-          });
-      } else {
-        return joinDonationRecipient(items, context)
-          .then(result => {
-            commons.replaceItems(context, result);
-            return context;
-          });
-      }
+const populateSchema = () => (context) => {
+  if (context.params.schema === 'includeGiverDetails') {
+    return commons.populate({ schema: poSchemas['po-giver'] })(context);
+  } else if (['includeTypeDetails', 'includeTypeAndGiverDetails'].includes(context.params.schema)) {
+    if (context.params.schema === 'includeTypeAndGiverDetails') {
+      commons.populate({ schema: poSchemas['po-giver'] })(context);
     }
 
-    return context;
-  };
+    const items = commons.getItems(context);
+
+    // items may be undefined if we are removing by id;
+    if (items === undefined) return context;
+
+
+    if (Array.isArray(items)) {
+      const promises = items.map(item => joinDonationRecipient(item, context));
+
+      return Promise.all(promises)
+        .then((results) => {
+          commons.replaceItems(context, results);
+          return context;
+        });
+    }
+    return joinDonationRecipient(items, context)
+      .then((result) => {
+        commons.replaceItems(context, result);
+        return context;
+      });
+  }
+
+  return context;
 };
 
 
 module.exports = {
   before: {
-    all: [ commons.paramsFromClient('schema') ],
-    find: [ sanitizeAddress('giverAddress') ],
+    all: [commons.paramsFromClient('schema')],
+    find: [sanitizeAddress('giverAddress')],
     get: [],
-    create: [ setAddress('giverAddress'), sanitizeAddress('giverAddress', {
+    create: [setAddress('giverAddress'), sanitizeAddress('giverAddress', {
       required: true,
       validate: true,
     }),
     (context) => {
       if (context.data.createdAt) return context;
       context.data.createdAt = new Date();
-    }, ],
-    update: [ restrict(), sanitizeAddress('giverAddress', { validate: true }), ],
-    patch: [ restrict(), sanitizeAddress('giverAddress', { validate: true }), stashDonationIfPending() ],
-    remove: [ commons.disallow() ],
+    }],
+    update: [restrict(), sanitizeAddress('giverAddress', { validate: true })],
+    patch: [restrict(), sanitizeAddress('giverAddress', { validate: true }), stashDonationIfPending()],
+    remove: [commons.disallow()],
   },
 
   after: {
-    all: [ populateSchema() ],
+    all: [populateSchema()],
     find: [],
     get: [],
     create: [],

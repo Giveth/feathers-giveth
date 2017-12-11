@@ -1,8 +1,10 @@
-import { pledgePaymentStatus } from './helpers';
+import { pledgeState } from './helpers';
 import { hexToNumber } from 'web3-utils';
 
 const ReProcessEvent = () => {
 };
+
+const has = Object.prototype.hasOwnProperty;
 
 class Pledges {
   constructor(app, liquidPledging, eventQueue) {
@@ -21,32 +23,32 @@ class Pledges {
     const { from, to, amount } = event.returnValues;
     const txHash = event.transactionHash;
 
-    const processEvent = (retry = false) => {
-      return this._getBlockTimestamp(event.blockNumber)
-        .then(ts => {
-          if (from === '0') return this._newDonation(to, amount, ts, txHash, retry)
+    const processEvent = (retry = false) => this._getBlockTimestamp(event.blockNumber)
+      .then((ts) => {
+        if (from === '0') {
+          return this._newDonation(to, amount, ts, txHash, retry)
             .then(() => this.queue.purge(txHash))
             .catch((err) => {
               if (err instanceof ReProcessEvent) {
-                // this is really only useful when instant mining. Other then that, the donation should always be
-                // created before the tx was mined.
+              // this is really only useful when instant mining. Other then that, the donation should always be
+              // created before the tx was mined.
                 setTimeout(() => processEvent(true), 5000);
                 return;
               }
 
               console.error('_newDonation error ->', err);
             });
+        }
 
-          return this._transfer(from, to, amount, ts, txHash)
-            .then(() => this.queue.purge(txHash));
-        });
-    };
+        return this._transfer(from, to, amount, ts, txHash)
+          .then(() => this.queue.purge(txHash));
+      });
 
-    // TODO update this to work w/ testrpc which only has logIndex. using only logIndex won't work outside of testrpc
-    if (hexToNumber(event.transactionLogIndex) > 0) {
+    const logIndex = (has.call(event, 'transactionLogIndex')) ? event.transactionLogIndex : event.logIndex;
+    if (hexToNumber(logIndex) > 0) {
       this.queue.add(
         event.transactionHash,
-        processEvent
+        processEvent,
       );
     } else {
       return processEvent();
@@ -58,13 +60,11 @@ class Pledges {
     const pledgeAdmins = this.app.service('pledgeAdmins');
 
     const findDonation = () => donations.find({ query: { txHash } })
-      .then(resp => {
-        return (resp.data.length > 0) ? resp.data[ 0 ] : undefined;
-      });
+      .then(resp => ((resp.data.length > 0) ? resp.data[0] : undefined));
 
     return this.liquidPledging.getPledge(pledgeId)
-      .then((pledge) => Promise.all([ pledgeAdmins.get(pledge.owner), pledge, findDonation() ]))
-      .then(([ giver, pledge, donation ]) => {
+      .then(pledge => Promise.all([pledgeAdmins.get(pledge.owner), pledge, findDonation()]))
+      .then(([giver, pledge, donation]) => {
         const mutation = {
           giverAddress: giver.admin.address, // giver is a user
           amount,
@@ -74,7 +74,7 @@ class Pledges {
           ownerId: giver.typeId,
           ownerType: giver.type,
           status: 'waiting', // waiting for delegation by owner or delegate
-          paymentStatus: pledgePaymentStatus(pledge.paymentState),
+          paymentStatus: pledgeState(pledge.pledgeState),
         };
 
         if (!donation) {
@@ -88,38 +88,35 @@ class Pledges {
 
         return donations.patch(donation._id, mutation);
       });
-
   }
 
   _transfer(from, to, amount, ts, txHash) {
     const donations = this.app.service('donations');
     const pledgeAdmins = this.app.service('pledgeAdmins');
 
-    const getDonation = () => {
-      return donations.find({ query: { pledgeId: from } })
-        .then(donations => {
-          if (donations.data.length === 1) return donations.data[ 0 ];
+    const getDonation = () => donations.find({ query: { pledgeId: from } })
+      .then((donations) => {
+        if (donations.data.length === 1) return donations.data[0];
 
-          // check for any donations w/ matching txHash
-          // this won't work when confirmPayment is called on the vault
-          const filteredDonationsByTxHash = donations.data.filter(donation => donation.txHash === txHash);
+        // check for any donations w/ matching txHash
+        // this won't work when confirmPayment is called on the vault
+        const filteredDonationsByTxHash = donations.data.filter(donation => donation.txHash === txHash);
 
-          if (filteredDonationsByTxHash.length === 1) return filteredDonationsByTxHash[ 0 ];
+        if (filteredDonationsByTxHash.length === 1) return filteredDonationsByTxHash[0];
 
-          const filteredDonationsByAmount = donations.data.filter(donation => donation.amount === amount);
+        const filteredDonationsByAmount = donations.data.filter(donation => donation.amount === amount);
 
-          // possible to have 2 donations w/ same pledgeId & amount. This would happen if a giver makes
-          // a donation to the same delegate/project w/ for the same amount multiple times. Currently there
-          // no way to tell which donation was acted on, so we just return the first
-          if (filteredDonationsByAmount.length > 0) return filteredDonationsByAmount[ 0 ];
+        // possible to have 2 donations w/ same pledgeId & amount. This would happen if a giver makes
+        // a donation to the same delegate/project w/ for the same amount multiple times. Currently there
+        // no way to tell which donation was acted on, so we just return the first
+        if (filteredDonationsByAmount.length > 0) return filteredDonationsByAmount[0];
 
-          // this is probably a split which happened outside of the ui
-          throw new Error(`unable to determine what donations entity to update -> from: ${from}, to: ${to}, amount: ${amount}, ts: ${ts}, txHash: ${txHash}`);
-        });
-    };
+        // this is probably a split which happened outside of the ui
+        throw new Error(`unable to determine what donations entity to update -> from: ${from}, to: ${to}, amount: ${amount}, ts: ${ts}, txHash: ${txHash}`);
+      });
 
-    return Promise.all([ this.liquidPledging.getPledge(from), this.liquidPledging.getPledge(to) ])
-      .then(([ fromPledge, toPledge ]) => {
+    return Promise.all([this.liquidPledging.getPledge(from), this.liquidPledging.getPledge(to)])
+      .then(([fromPledge, toPledge]) => {
         const promises = [
           pledgeAdmins.get(fromPledge.owner),
           pledgeAdmins.get(toPledge.owner),
@@ -131,10 +128,8 @@ class Pledges {
         // In lp any delegate in the chain can delegate (bug prevents that currently), but we only want the last delegate
         // to have that ability
         if (toPledge.nDelegates > 0) {
-          promises.push(
-            this.liquidPledging.getPledgeDelegate(to, toPledge.nDelegates)
-              .then(delegate => pledgeAdmins.get(delegate.idDelegate))
-          );
+          promises.push(this.liquidPledging.getPledgeDelegate(to, toPledge.nDelegates)
+            .then(delegate => pledgeAdmins.get(delegate.idDelegate)));
         } else {
           promises.push(undefined);
         }
@@ -148,8 +143,7 @@ class Pledges {
 
         return Promise.all(promises);
       })
-      .then(([ fromPledgeAdmin, toPledgeAdmin, fromPledge, toPledge, donation, delegate, intendedProject ]) => {
-
+      .then(([fromPledgeAdmin, toPledgeAdmin, fromPledge, toPledge, donation, delegate, intendedProject]) => {
         const transferInfo = {
           fromPledgeAdmin,
           toPledgeAdmin,
@@ -176,7 +170,6 @@ class Pledges {
         //       return this._doTransfer(transferInfo);
         //     }),
         // );
-
       })
       .catch((err) => {
         // if (err.name === 'NotFound') {
@@ -194,11 +187,14 @@ class Pledges {
 
   _doTransfer(transferInfo) {
     const donations = this.app.service('donations');
-    const { _fromPledgeAdmin, toPledgeAdmin, _fromPledge, toPledge, toPledgeId, delegate, intendedProject, donation, amount, ts } = transferInfo;
+    const {
+      _fromPledgeAdmin, toPledgeAdmin, _fromPledge, toPledge, toPledgeId, delegate, intendedProject, donation, amount, ts,
+    } = transferInfo;
 
+    console.log(toPledge);
     let status;
-    if (toPledge.paymentState === '1') status = 'paying';
-    else if (toPledge.paymentState === '2') status = 'paid';
+    if (toPledge.pledgeState === '1') status = 'paying';
+    else if (toPledge.pledgeState === '2') status = 'paid';
     else if (intendedProject) status = 'to_approve';
     else if (toPledgeAdmin.type === 'giver' || delegate) status = 'waiting';
     else status = 'committed';
@@ -208,7 +204,7 @@ class Pledges {
 
       const mutation = {
         amount,
-        paymentStatus: pledgePaymentStatus(toPledge.paymentState),
+        paymentStatus: pledgeState(toPledge.pledgeState),
         updatedAt: ts,
         owner: toPledge.owner,
         ownerId: toPledgeAdmin.typeId,
@@ -231,8 +227,8 @@ class Pledges {
           $unset: {
             intendedProject: true,
             intendedProjectId: true,
-            intendedProjectType: true
-          }
+            intendedProjectType: true,
+          },
         });
       }
 
@@ -243,63 +239,63 @@ class Pledges {
         });
       }
 
-      // if the paymentState === 'Paying', this means that the owner is withdrawing and the delegates can no longer
+      // if the pledgeState === 'Paying', this means that the owner is withdrawing and the delegates can no longer
       // delegate the pledge, so we drop them
-      if ((!delegate || toPledge.paymentState === '1') && donation.delegate) {
+      if ((!delegate || toPledge.pledgeState === '1') && donation.delegate) {
         Object.assign(mutation, {
           $unset: {
             delegate: true,
             delegateId: true,
-            delegateType: true
-          }
+            delegateType: true,
+          },
         });
       }
 
       // update milestone status if toPledge == paying or paid
-      if (['1', '2'].includes(toPledge.paymentState) && toPledgeAdmin.type === 'milestone') {
+      if (['1', '2'].includes(toPledge.pledgeState) && toPledgeAdmin.type === 'milestone') {
         this.app.service('milestones').patch(toPledgeAdmin.typeId, {
-          status: (toPledge.paymentState === '1') ? 'Paying' : 'CanWithdraw',
-          mined: true
+          status: (toPledge.pledgeState === '1') ? 'Paying' : 'CanWithdraw',
+          mined: true,
         });
       }
 
-      //TODO donationHistory entry
+      // TODO donationHistory entry
       return donations.patch(donation._id, mutation)
         .then(() => this._updateDonationHistory(transferInfo));
-    } else {
-      // this is a split
-
-      //TODO donationHistory entry
-      // donations.patch(donation._id, {
-      //     amount: donation.amount - amount,
-      //   })
-      //   //TODO update this
-      //   .then(() => donations.create({
-      //     giverAddress: donation.giverAddress,
-      //     amount,
-      //     toPledgeId,
-      //     createdAt: ts,
-      //     owner: toPledgeAdmin.typeId,
-      //     ownerType: toPledgeAdmin.type,
-      //     intendedProject: toPledge.intendedProject,
-      //     paymentState: this._paymentStatus(toPledge.paymentState),
-      //   }))
-      //   // now that this donation has been added, we can purge the transfer queue for this pledgeId
-      //   .then(() => this.queue.purge(toPledgeId));
     }
+    // this is a split
 
+    // TODO donationHistory entry
+    // donations.patch(donation._id, {
+    //     amount: donation.amount - amount,
+    //   })
+    //   //TODO update this
+    //   .then(() => donations.create({
+    //     giverAddress: donation.giverAddress,
+    //     amount,
+    //     toPledgeId,
+    //     createdAt: ts,
+    //     owner: toPledgeAdmin.typeId,
+    //     ownerType: toPledgeAdmin.type,
+    //     intendedProject: toPledge.intendedProject,
+    //     pledgeState: this._paymentStatus(toPledge.pledgeState),
+    //   }))
+    //   // now that this donation has been added, we can purge the transfer queue for this pledgeId
+    //   .then(() => this.queue.purge(toPledgeId));
   }
 
   _updateDonationHistory(transferInfo) {
     const donationsHistory = this.app.service('donations/history');
-    const { fromPledgeAdmin, toPledgeAdmin, fromPledge, toPledge, _toPledgeId, delegate, _intendedProject, donation, amount, ts } = transferInfo;
+    const {
+      fromPledgeAdmin, toPledgeAdmin, fromPledge, toPledge, _toPledgeId, delegate, _intendedProject, donation, amount, ts,
+    } = transferInfo;
 
     const isNewDonation = () => fromPledge.oldPledge === '0' && (toPledgeAdmin.type !== 'giver' || toPledge.nDelegates === '1') && toPledge.intendedProject === '0';
     const isCommittedDelegation = () => fromPledge.intendedProject !== '0' && fromPledge.intendedProject === toPledge.owner;
     const isCampaignToMilestone = () => fromPledgeAdmin.type === 'campaign' && toPledgeAdmin.type === 'milestone';
 
     // only handling new donations & committed delegations for now
-    if (toPledge.paymentState === '0' &&( isNewDonation() || isCommittedDelegation() || isCampaignToMilestone())) {
+    if (toPledge.pledgeState === '0' && (isNewDonation() || isCommittedDelegation() || isCampaignToMilestone())) {
       const history = {
         ownerId: toPledgeAdmin.typeId,
         ownerType: toPledgeAdmin.type,
@@ -307,7 +303,7 @@ class Pledges {
         amount,
         txHash: donation.txHash,
         donationId: donation._id,
-        giverAddress: donation.giverAddress
+        giverAddress: donation.giverAddress,
       };
 
       if (delegate) {
@@ -332,38 +328,37 @@ class Pledges {
     // vetoed delegation
 
     // regular transfer
-
   }
 
   _getBlockTimestamp(blockNumber) {
-    if (this.blockTimes[ blockNumber ]) return Promise.resolve(this.blockTimes[ blockNumber ]);
+    if (this.blockTimes[blockNumber]) return Promise.resolve(this.blockTimes[blockNumber]);
 
     // if we are already fetching the block, don't do it twice
-    if (this.fetchingBlocks[ blockNumber ]) {
-      return new Promise(resolve => {
+    if (this.fetchingBlocks[blockNumber]) {
+      return new Promise((resolve) => {
         // attach a listener which is executed when we get the block ts
-        this.fetchingBlocks[ blockNumber ].push(resolve);
+        this.fetchingBlocks[blockNumber].push(resolve);
       });
     }
 
-    this.fetchingBlocks[ blockNumber ] = [];
+    this.fetchingBlocks[blockNumber] = [];
 
     return this.web3.eth.getBlock(blockNumber)
-      .then(block => {
+      .then((block) => {
         const ts = new Date(block.timestamp * 1000);
 
-        this.blockTimes[ blockNumber ] = ts;
+        this.blockTimes[blockNumber] = ts;
 
         // only keep 50 block ts cached
         if (Object.keys(this.blockTimes).length > 50) {
           Object.keys(this.blockTimes)
             .sort((a, b) => b - a)
-            .forEach(key => delete this.blockTimes[ key ]);
+            .forEach(key => delete this.blockTimes[key]);
         }
 
         // execute any listeners for the block
-        this.fetchingBlocks[ blockNumber ].forEach(resolve => resolve(ts));
-        delete this.fetchingBlocks[ blockNumber ];
+        this.fetchingBlocks[blockNumber].forEach(resolve => resolve(ts));
+        delete this.fetchingBlocks[blockNumber];
 
         return ts;
       });

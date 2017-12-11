@@ -6,7 +6,7 @@ export const milestoneStatus = (accepted, canceled) => {
   return 'InProgress';
 };
 
-export const pledgePaymentStatus = (val) => {
+export const pledgeState = (val) => {
   switch (val) {
     case '0':
       return 'Pledged';

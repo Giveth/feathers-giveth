@@ -1,6 +1,6 @@
 import { hexToNumber } from 'web3-utils';
 import { LiquidPledgingAbi } from 'liquidpledging/build/LiquidPledging.sol';
-import { VaultAbi } from 'liquidpledging/build/Vault.sol';
+import { LPVaultAbi } from 'liquidpledging/build/LPVault.sol';
 import { LPPMilestoneAbi } from 'lpp-milestone/build/LPPMilestone.sol';
 import EventEmitter from 'events';
 
@@ -39,7 +39,7 @@ class FailedTxMonitor extends EventEmitter {
     LiquidPledgingAbi.filter(method => method.type === 'event')
       .forEach(event => this.decoders.lp[event.name] = this.web3.eth.Contract.prototype._decodeEventABI.bind(event));
 
-    VaultAbi.filter(method => method.type === 'event')
+    LPVaultAbi.filter(method => method.type === 'event')
       .forEach(event => this.decoders.vault[event.name] = this.web3.eth.Contract.prototype._decodeEventABI.bind(event));
 
     LPPMilestoneAbi.filter(method => method.type === 'event')
