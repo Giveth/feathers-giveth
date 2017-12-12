@@ -7,31 +7,17 @@
     "node": true,
     "mocha": true
   },
-  "extends": "eslint:recommended",
+  "extends": "airbnb",
   "rules": {
-    "indent": [
-      "error",
-      2,
-      {
-        "SwitchCase": 1
-      }
-    ],
-    "linebreak-style": [
-      "error",
-      "unix"
-    ],
-    "no-console": 0,
     "no-unused-vars": [
       "error",
-      { "varsIgnorePattern": "^_" }
+      {
+        "vars": "all",
+        "args": "after-used",
+        "ignoreRestSiblings": true,
+        "argsIgnorePattern": "^_"
+      }
     ],
-    "quotes": [
-      "error",
-      "single"
-    ],
-    "semi": [
-      "error",
-      "always"
-    ]
+    "linebreak-style": "off"
   }
 }
