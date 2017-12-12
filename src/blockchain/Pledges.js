@@ -191,7 +191,6 @@ class Pledges {
       _fromPledgeAdmin, toPledgeAdmin, _fromPledge, toPledge, toPledgeId, delegate, intendedProject, donation, amount, ts,
     } = transferInfo;
 
-    console.log(toPledge);
     let status;
     if (toPledge.pledgeState === '1') status = 'paying';
     else if (toPledge.pledgeState === '2') status = 'paid';

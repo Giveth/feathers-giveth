@@ -13,7 +13,6 @@ const defaultConfig = {
 };
 
 export default class {
-
   constructor(app, liquidPledging, txMonitor, opts) {
     this.app = app;
     this.web3 = liquidPledging.$web3;
@@ -61,12 +60,11 @@ export default class {
         // I think this is emitted when a chain reorg happens and the tx has been removed
         console.log('changed: ', event); // eslint-disable-line no-console
         this.liquidPledging.getState()
-          .then(state => {
-            console.log('liquidPledging state at changed event: ', JSON.stringify(state, null, 2)); //eslint-disable-line no-console
+          .then((state) => {
+            console.log('liquidPledging state at changed event: ', JSON.stringify(state, null, 2)); // eslint-disable-line no-console
           });
       })
-      // TODO if the connection dropped, do we need to try and reconnect?
-      .on('error', err => console.error('SUBSCRIPTION ERROR error: ', err));
+      .on('error', err => console.error('SUBSCRIPTION ERROR: ', err));
 
     // start a listener for all milestones associated with this liquidPledging contract
     this.web3.eth.subscribe('logs', {
@@ -75,15 +73,14 @@ export default class {
         this.web3.utils.keccak256('MilestoneAccepted(address)'), // hash of the event signature we're interested in
         this.web3.utils.padLeft(`0x${this.liquidPledging.$address.substring(2).toLowerCase()}`, 64), // remove leading 0x from address
       ],
-    }, () => {
-    }) // TODO fix web3 bug so we don't have to pass a cb
+    }, () => {}) // TODO fix web3 bug so we don't have to pass a cb
       .on('data', this.milestones.milestoneAccepted.bind(this.milestones))
       .on('changed', (event) => {
         // I think this is emitted when a chain reorg happens and the tx has been removed
         console.log('lpp-milestone changed: ', event); // eslint-disable-line no-console
         // TODO handle chain reorgs
       })
-      .on('error', err => console.error('error: ', err)); // eslint-disable-line no-console
+      .on('error', err => console.error('SUBSCRIPTION ERROR: ', err)); // eslint-disable-line no-console
 
     // starts a listener on the liquidPledging contract
     this.liquidPledging.$vault.$contract.events.allEvents({ fromBlock: this.config.lastBlock + 1 || 1 })
@@ -92,8 +89,7 @@ export default class {
         // I think this is emitted when a chain reorg happens and the tx has been removed
         console.log('vault changed: ', event); // eslint-disable-line no-console
       })
-      // TODO if the connection dropped, do we need to try and reconnect?
-      .on('error', err => console.error('error: ', err)); // eslint-disable-line no-console
+      .on('error', err => console.error('SUBSCRIPTION ERROR: ', err)); // eslint-disable-line no-console
 
     // start a listener for all GenerateToken events associated with this liquidPledging contract
     this.web3.eth.subscribe('logs', {
@@ -102,16 +98,14 @@ export default class {
         this.web3.utils.keccak256('GenerateTokens(address,address,uint256)'), // hash of the event signature we're interested in
         this.web3.utils.padLeft(`0x${this.liquidPledging.$address.substring(2).toLowerCase()}`, 64), // remove leading 0x from address
       ],
-    }, () => {
-    }) // TODO fix web3 bug so we don't have to pass a cb
+    }, () => {}) // TODO fix web3 bug so we don't have to pass a cb
       .on('data', this.tokens.tokensGenerated.bind(this.tokens))
       .on('changed', (event) => {
         // I think this is emitted when a chain reorg happens and the tx has been removed
         console.log('GenerateTokens changed: ', event); // eslint-disable-line no-console
         // TODO handle chain reorgs
       })
-      .on('error', err => console.error('error: ', err)); // eslint-disable-line no-console
-
+      .on('error', err => console.error('SUBSCRIPTION ERROR: ', err)); // eslint-disable-line no-console
   }
 
   /**
@@ -192,7 +186,7 @@ export default class {
         this.pledges.transfer(event);
         break;
       default:
-        console.error('Unknown event: ', event); //eslint-disable-line no-console
+        console.error('Unknown event: ', event); // eslint-disable-line no-console
     }
   }
 
