@@ -1,32 +1,43 @@
+import logger from 'winston';
+
+const has = Object.prototype.hasOwnProperty;
+
 class EventQueue {
   constructor() {
     this.queue = {};
   }
 
   add(txHash, fn) {
-    if (fn.then) throw new Error('queue fn must be a promise');
+    logger.debug('adding to queue ->', txHash);
 
-    console.log('adding to queue ->', txHash);
-    (this.queue[ txHash ]) ? this.queue[ txHash ].push(fn) : this.queue[ txHash ] = [ fn ];
+    if (this.queue[txHash]) {
+      this.queue[txHash].push(fn);
+    } else {
+      this.queue[txHash] = [fn];
+    }
   }
 
   purge(txHash) {
+    if (!this.queue[txHash]) return Promise.resolve();
 
-    if (!this.queue[ txHash ]) return Promise.resolve();
-
-    const queued = this.queue[ txHash ];
+    const queued = this.queue[txHash];
 
     if (queued.length > 0) {
-      console.log('purging queue ->', txHash);
-      return queued.splice(0, 1)[ 0 ]() // remove first function from list and run it
+      logger.debug('purging queue ->', txHash);
+      let result = queued.splice(0, 1)[0](); // remove first function from list and run it
+
+      if (!has.call(result, 'then')) {
+        result = Promise.resolve(result);
+      }
+
+      return result
         .then(() => {
-          console.log('returned from purge');
+          logger.debug('returned from purge');
         });
     }
 
     return Promise.resolve();
   }
-
 }
 
 export default EventQueue;

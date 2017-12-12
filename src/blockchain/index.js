@@ -1,4 +1,5 @@
 import Web3 from 'web3';
+import logger from 'winston';
 import { LiquidPledging, LPVault } from 'liquidpledging';
 
 import LiquidPledgingMonitor from './LiquidPledgingMonitor';
@@ -84,6 +85,8 @@ export default function () {
 
   let txMonitor;
   let lpMonitor;
+
+  // initialize the event listeners
   const init = () => {
     txMonitor = new FailedTxMonitor(web3, app);
     txMonitor.start();
@@ -95,19 +98,21 @@ export default function () {
       });
   };
 
+  // if the websocket connection drops, attempt to re-connect
+  // upon successful re-connection, we re-start all listeners
   const reconnectOnEnd = () => {
     web3.currentProvider.on('end', (e) => {
-      console.error(`connection closed reason: ${e.reason}, code: ${e.code}`);
+      logger.error(`connection closed reason: ${e.reason}, code: ${e.code}`);
 
       txMonitor.close();
 
       const intervalId = setInterval(() => {
-        console.log('attempting to reconnect');
+        logger.info('attempting to reconnect');
 
         const newProvider = new web3.providers.WebsocketProvider(blockchain.nodeUrl);
 
         newProvider.on('connect', () => {
-          console.log('successfully connected');
+          logger.info('successfully connected');
           clearInterval(intervalId);
           web3.setProvider(newProvider);
           reconnectOnEnd();
@@ -132,5 +137,7 @@ export default function () {
   };
 
   init();
+
+  // attach the re-connection logic to the current web3 provider
   reconnectOnEnd();
 }

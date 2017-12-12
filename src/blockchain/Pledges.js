@@ -1,5 +1,6 @@
-import { pledgeState } from './helpers';
+import logger from 'winston';
 import { hexToNumber } from 'web3-utils';
+import { pledgeState } from './helpers';
 
 const ReProcessEvent = () => {
 };
@@ -30,13 +31,13 @@ class Pledges {
             .then(() => this.queue.purge(txHash))
             .catch((err) => {
               if (err instanceof ReProcessEvent) {
-              // this is really only useful when instant mining. Other then that, the donation should always be
-              // created before the tx was mined.
+              // this is really only useful when instant mining. Other then that, the
+              // donation should always be created before the tx was mined.
                 setTimeout(() => processEvent(true), 5000);
                 return;
               }
 
-              console.error('_newDonation error ->', err);
+              logger.error('_newDonation error ->', err);
             });
         }
 
@@ -44,6 +45,7 @@ class Pledges {
           .then(() => this.queue.purge(txHash));
       });
 
+    // testrpc only uses logIndex, where as real nodes use transactionLogIndex
     const logIndex = (has.call(event, 'transactionLogIndex')) ? event.transactionLogIndex : event.logIndex;
     if (hexToNumber(logIndex) > 0) {
       this.queue.add(
@@ -157,7 +159,7 @@ class Pledges {
           ts,
         };
 
-        if (!donation) console.error('missing donation for ->', JSON.stringify(transferInfo, null, 2));
+        if (!donation) logger.error('missing donation for ->', JSON.stringify(transferInfo, null, 2));
 
         return this._doTransfer(transferInfo);
 
@@ -177,11 +179,11 @@ class Pledges {
         //   // this can happen b/c when donating in liquidPledging, if the giverId === 0, the donate method will create a
         //   // giver. Thus the tx will emit 3 events. AddGiver, and 2 x Transfer. Since these are processed asyncrounously
         //   // calling pledgeAdmins.get(from) could result in a 404 as the AddGiver event hasn't finished processing
-        //   console.log('retrying in 10 seconds, missing pledgeAdmin fromPledgeId:', from);
+        //   logger.info('retrying in 10 seconds, missing pledgeAdmin fromPledgeId:', from);
         //   setTimeout(() => this._transfer(from, to, amount, ts, txHash), 10000);
         //   return;
         // }
-        console.error(err);
+        logger.error(err);
       });
   }
 
