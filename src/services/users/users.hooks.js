@@ -43,6 +43,9 @@ const notifyParents = [
   },
 ];
 
+
+// TODO write a hook to prevent overwriting a non-zero giverId with 0
+
 module.exports = {
   before: {
     all: [],
