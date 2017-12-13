@@ -291,7 +291,7 @@ class Pledges {
       return Promise.all([updateDonation, createDonation])
         .then(([updated, created]) => {
           // TODO track donation histories
-        };
+        });
     }
   }
 
