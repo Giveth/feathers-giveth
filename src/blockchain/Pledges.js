@@ -287,10 +287,11 @@ class Pledges {
       // create a new donation
       const newDonation = Object.assign({}, donation, this._createDonationMutation(transferInfo));
       delete newDonation._id;
+      delete newDonation.$unset;
 
       const createDonation = () => donations.create(newDonation);
 
-      return Promise.all([updateDonation, createDonation])
+      return Promise.all([updateDonation(), createDonation()])
         .then(([updated, created]) => {
           // TODO track donation histories
         });
