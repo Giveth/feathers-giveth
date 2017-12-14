@@ -24,6 +24,7 @@ class Pledges {
     this.queue = eventQueue;
     this.blockTimes = {};
     this.fetchingBlocks = {};
+    this.processing = {};
   }
 
   // handle liquidPledging Transfer event
@@ -35,6 +36,8 @@ class Pledges {
 
     const processEvent = (retry = false) => this._getBlockTimestamp(event.blockNumber)
       .then((ts) => {
+        this.processing[ txHash ] = true;
+
         if (from === '0') {
           return this._newDonation(to, amount, ts, txHash, retry)
             .then(() => this.queue.purge(txHash))
@@ -52,14 +55,18 @@ class Pledges {
 
         return this._transfer(from, to, amount, ts, txHash)
           .then(() => this.queue.purge(txHash));
-      });
+      })
+      .then(() => delete this.processing[ txHash ]);
 
-    // testrpc only uses logIndex, where as real nodes use transactionLogIndex
-    const logIndex = (has.call(event, 'transactionLogIndex')) ? event.transactionLogIndex : event.logIndex;
+    // parity uses transactionLogIndex
+    const logIndex = (has.call(event, 'transactionLogIndex')) ? event.transactionLogIndex : undefined;
 
     // there will be multiple events in a single transaction
     // we need to process them in order so we use a queue
-    if (hexToNumber(logIndex) > 0) {
+    // if logIndex is not undefined, then use that otherwise
+    // b/c geth doesn't include transactionLogIndex, we are
+    // making the assumption that events will be passed in order.
+    if ((logIndex !== undefined && hexToNumber(logIndex) > 0) || this.processing[ txHash ]) {
       this.queue.add(
         event.transactionHash,
         processEvent,
