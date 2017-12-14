@@ -69,9 +69,6 @@ export default (web3) => {
           network = Object.assign({}, networks.default);
           break;
       }
-      network.liquidPledging = new LiquidPledging(web3, network.liquidPledgingAddress);
-      network.liquidPledging.$vault = new LPVault(web3, network.vaultAddress);
-      network.cappedMilestones = new LPPCappedMilestones(web3, network.cappedMilestoneAddress);
       return network;
     });
 };
