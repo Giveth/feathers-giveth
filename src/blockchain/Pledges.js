@@ -261,6 +261,8 @@ class Pledges {
         mined: true,
       });
     }
+
+    return mutation;
   }
 
 
