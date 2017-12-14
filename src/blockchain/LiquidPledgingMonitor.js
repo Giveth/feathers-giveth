@@ -15,12 +15,12 @@ const defaultConfig = {
 };
 
 export default class {
-  constructor(app, web3, network, txMonitor, opts) {
+  constructor(app, web3, liquidPledging, cappedMilestones, txMonitor, opts) {
     this.app = app;
     this.web3 = web3;
     this.txMonitor = txMonitor;
-    this.network = network;
-    this.liquidPledging = network.liquidPledging;
+    this.cappedMilestonesContract = cappedMilestones;
+    this.liquidPledging = liquidPledging;
 
     const eventQueue = new EventQueue();
 
@@ -81,7 +81,7 @@ export default class {
    * subscribe to lpp-capped-milestone events associated with the this lp contract
    */
   subscribeCappedMilestones() {
-    this.network.cappedMilestones.$contract.events.allEvents({ fromBlock: this.config.lastBlock + 1 || 1 })
+    this.cappedMilestonesContract.$contract.events.allEvents({ fromBlock: this.config.lastBlock + 1 || 1 })
       .on('data', this.handleEvent.bind(this))
       .on('changed', (event) => {
         // I think this is emitted when a chain reorg happens and the tx has been removed
