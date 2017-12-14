@@ -20,7 +20,7 @@ const networks = {
   rinkeby: {
     vaultAddress: '0xBf0bA4c72daab5BFeF6B9C496db91e4614a57131',
     liquidPledgingAddress: '0x1B8F84E443668C81FeE5BEc266bc098e3c7fBC00',
-    cappedMilestoneAddress: '0x0',
+    cappedMilestoneAddress: '0x137802c8F48294331654108dd64d8acD48b3321d',
   },
   kovan: {
     vaultAddress: '0x0',
