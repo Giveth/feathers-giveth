@@ -40,6 +40,9 @@ class EventQueue {
       return result
         .then(() => {
           logger.debug('returned from purge');
+          if (this.queue[txHash].length === 0) {
+            delete this.queue[txHash];
+          }
         });
     }
 
