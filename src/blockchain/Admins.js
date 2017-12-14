@@ -1,6 +1,8 @@
+import logger from 'winston';
+
 import { LPPDac } from 'lpp-dac';
-import { LPPMilestone } from 'lpp-milestone';
-import { LPPMilestoneRuntimeByteCode } from 'lpp-milestone/build/LPPMilestoneFactory.sol';
+import { LPPCappedMilestones } from 'lpp-capped-milestone';
+import { LPPCappedMilestonesRuntimeByteCode } from 'lpp-capped-milestone/build/LPPCappedMilestones.sol';
 import { LPPCampaign } from 'lpp-campaign';
 import { LPPCampaignRuntimeByteCode } from 'lpp-campaign/build/LPPCampaignFactory.sol';
 
@@ -27,7 +29,7 @@ class Admins {
 
     this.liquidPledging.getPledgeAdmin(returnValues.idGiver)
       .then(giver => this._addGiver(giver, returnValues.idGiver, event.transactionHash))
-      .catch(err => console.error('addGiver error ->', err)); // eslint-disable-line no-console
+      .catch(err => logger.error('addGiver error ->', err));
   }
 
   updateGiver(event) {
@@ -42,22 +44,22 @@ class Admins {
         if (data.length === 0) {
           this.liquidPledging.getPledgeAdmin(giverId)
             .then(giver => this._addGiver(giver, giverId, 0))
-            .catch(err => console.error('updateGiver error ->', err)); // eslint-disable-line no-console
+            .catch(err => logger.error('updateGiver error ->', err));
           throw new BreakSignal();
         }
 
         if (data.length > 1) {
-          console.warn('more then 1 user with the same giverId found: ', data); // eslint-disable-line no-console
+          logger.info('more then 1 user with the same giverId found: ', data);
         }
 
-        return data[0];
+        return data[ 0 ];
       });
 
-    Promise.all([getUser(), this.liquidPledging.getPledgeAdmin(giverId)])
-      .then(([user, giver]) => {
+    Promise.all([ getUser(), this.liquidPledging.getPledgeAdmin(giverId) ])
+      .then(([ user, giver ]) => {
         // If a giver changes address, update users to reflect the change.
         if (giver.addr !== user.address) {
-          console.log(`giver address "${giver.addr}" differs from users address "${user.address}". Updating users to match`); // eslint-disable-line no-console
+          logger.info(`giver address "${giver.addr}" differs from users address "${user.address}". Updating users to match`);
           users.patch(user.address, { $unset: { giverId: true } });
           return this._addGiver(giver, giverId, 0);
         }
@@ -71,7 +73,7 @@ class Admins {
       })
       .catch((err) => {
         if (err instanceof BreakSignal) return;
-        console.error('updateGiver error ->', err); // eslint-disable-line no-console
+        logger.error('updateGiver error ->', err);
       });
   }
 
@@ -94,7 +96,7 @@ class Admins {
       .then((u) => {
         user = u;
         if (user.giverId && user.giverId !== 0) {
-          console.error(`user already has a giverId set. existing giverId: ${user.giverId}, new giverId: ${giverId}`);
+          logger.error(`user already has a giverId set. existing giverId: ${user.giverId}, new giverId: ${giverId}`);
         }
 
         const mutation = { commitTime, giverId };
@@ -106,7 +108,7 @@ class Admins {
       .then(user => this._addPledgeAdmin(giverId, 'giver', user.address))
       .then(() => this.queue.purge(txHash))
       .then(() => user)
-      .catch(err => console.error('_addGiver error ->', err));
+      .catch(err => logger.error('_addGiver error ->', err));
   }
 
 
@@ -132,19 +134,19 @@ class Admins {
         }
 
         if (data.length > 1) {
-          console.warn('more then 1 dac with the same delegateId found: ', data); // eslint-disable-line no-console
+          logger.warn('more then 1 dac with the same delegateId found: ', data);
         }
 
-        return data[0];
+        return data[ 0 ];
       });
 
-    Promise.all([getDAC(), this.liquidPledging.getPledgeAdmin(delegateId)])
-      .then(([dac, delegate]) => dacs.patch(dac._id, {
+    Promise.all([ getDAC(), this.liquidPledging.getPledgeAdmin(delegateId) ])
+      .then(([ dac, delegate ]) => dacs.patch(dac._id, {
         title: delegate.name,
       }))
       .catch((err) => {
         if (err instanceof BreakSignal) return;
-        console.error('updateDelegate error ->', err); // eslint-disable-line no-console
+        logger.error('updateDelegate error ->', err);
       });
   }
 
@@ -179,10 +181,10 @@ class Admins {
         }
 
         if (data.length > 1) {
-          console.warn('more then 1 dac with the same ownerAddress and title found: ', data); // eslint-disable-line no-console
+          logger.info('more then 1 dac with the same ownerAddress and title found: ', data);
         }
 
-        return data[0];
+        return data[ 0 ];
       });
 
     const getTokenInfo = (delegate) => {
@@ -192,8 +194,8 @@ class Admins {
     };
 
     return this.liquidPledging.getPledgeAdmin(delegateId)
-      .then(delegate => Promise.all([delegate, findDAC(delegate), getTokenInfo(delegate)]))
-      .then(([delegate, dac, tokenInfo]) => dacs.patch(dac._id, {
+      .then(delegate => Promise.all([ delegate, findDAC(delegate), getTokenInfo(delegate) ]))
+      .then(([ delegate, dac, tokenInfo ]) => dacs.patch(dac._id, {
         delegateId,
         pluginAddress: delegate.plugin,
         tokenAddress: tokenInfo.address,
@@ -206,7 +208,7 @@ class Admins {
       })
       .catch((err) => {
         if (err instanceof BreakSignal) return;
-        console.error('_addDelegate error ->', err); // eslint-disable-line no-console
+        logger.error('_addDelegate error ->', err);
       });
   }
 
@@ -218,12 +220,12 @@ class Admins {
     const txHash = event.transactionHash;
 
     return this.liquidPledging.getPledgeAdmin(projectId)
-      .then(project => Promise.all([project, this.web3.eth.getCode(project.plugin)]))
-      .then(([project, byteCode]) => {
-        if (byteCode === LPPMilestoneRuntimeByteCode) return this._addMilestone(project, projectId, txHash);
+      .then(project => Promise.all([ project, this.web3.eth.getCode(project.plugin) ]))
+      .then(([ project, byteCode ]) => {
+        if (byteCode === LPPCappedMilestonesRuntimeByteCode) return this._addMilestone(project, projectId, txHash);
         if (byteCode === LPPCampaignRuntimeByteCode) return this._addCampaign(project, projectId, txHash);
 
-        console.error('AddProject event with unknown plugin byteCode ->', event); // eslint-disable-line no-console
+        logger.error('AddProject event with unknown plugin byteCode ->', event);
       });
   }
 
@@ -231,7 +233,7 @@ class Admins {
     const milestones = this.app.service('/milestones');
     const campaigns = this.app.service('/campaigns');
 
-    const lppMilestone = new LPPMilestone(this.web3, project.plugin);
+    const cappedMilestones = new LPPCappedMilestones(this.web3, project.plugin);
 
     // get_or_create campaign by projectId
     const findCampaign = campaignProjectId => campaigns.find({ query: { projectId: campaignProjectId } })
@@ -252,10 +254,10 @@ class Admins {
         }
 
         if (data.length > 1) {
-          console.warn('more then 1 campaign with the same projectId found: ', data); // eslint-disable-line no-console
+          logger.info('more then 1 campaign with the same projectId found: ', data);
         }
 
-        return data[0]._id;
+        return data[ 0 ]._id;
       });
 
     // get_or_create milestone by title and ownerAddress
@@ -269,12 +271,12 @@ class Admins {
             throw new BreakSignal();
           }
 
-          return Promise.all([findCampaign(project.parentProject), this.web3.eth.getTransaction(txHash), lppMilestone.milestoneReviewer(), lppMilestone.campaignReviewer()])
-            .then(([campaignId, tx, mReviewer, cReviewer]) => milestones.create({
+          return Promise.all([ findCampaign(project.parentProject), this.web3.eth.getTransaction(txHash) ])
+            .then(([ campaignId, tx ]) => milestones.create({
               ownerAddress: tx.from,
               pluginAddress: project.plugin,
-              reviewerAddress: mReviewer,
-              campaignReviewerAddress: cReviewer,
+              reviewerAddress: "0x0000000000000000000000000000000000000000", // these will be set in the patch
+              campaignReviewerAddress: "0x0000000000000000000000000000000000000000",
               title: project.name,
               description: '',
               txHash,
@@ -291,22 +293,22 @@ class Admins {
         }
 
         if (data.length > 1) {
-          console.warn('more then 1 milestone with the same txHash found: ', data); // eslint-disable-line no-console
+          logger.error('more then 1 milestone with the same txHash found: ', data);
         }
 
-        return data[0];
+        return data[ 0 ];
       });
 
-    return Promise.all([findMilestone(), lppMilestone.maxAmount(), lppMilestone.milestoneReviewer(), lppMilestone.campaignReviewer(), lppMilestone.recipient(), lppMilestone.accepted(), lppMilestone.isCanceled()])
-      .then(([milestone, maxAmount, milestoneReviewer, campaignReviewer, recipient, accepted, canceled]) => milestones.patch(milestone._id, {
+    return Promise.all([ findMilestone(), cappedMilestones.getMilestone(projectId), this.liquidPledging.isProjectCanceled(projectId) ])
+      .then(([ milestone, bMilestone, canceled ]) => milestones.patch(milestone._id, {
         projectId,
-        maxAmount,
-        reviewerAddress: milestoneReviewer,
-        campaignReviewerAddress: campaignReviewer,
-        recipientAddress: recipient,
+        maxAmount: bMilestone.maxAmount,
+        reviewerAddress: bMilestone.reviewer,
+        campaignReviewerAddress: bMilestone.campaignReviewer,
+        recipientAddress: bMilestone.recipient,
         title: project.name,
         pluginAddress: project.plugin,
-        status: milestoneStatus(accepted, canceled),
+        status: milestoneStatus(bMilestone.accepted, canceled),
         mined: true,
       }))
       .then((milestone) => {
@@ -315,7 +317,7 @@ class Admins {
       })
       .catch((err) => {
         if (err instanceof BreakSignal) return;
-        console.error('_addMilestone error ->', err); // eslint-disable-line no-console
+        logger.error('_addMilestone error ->', err);
       });
   }
 
@@ -353,10 +355,10 @@ class Admins {
         }
 
         if (data.length > 1) {
-          console.warn('more then 1 campaign with the same title and ownerAddress found: ', data); // eslint-disable-line no-console
+          logger.info('more then 1 campaign with the same title and ownerAddress found: ', data);
         }
 
-        return data[0];
+        return data[ 0 ];
       });
 
     const lppCampaign = new LPPCampaign(this.web3, project.plugin);
@@ -364,8 +366,8 @@ class Admins {
 
     const getTokenInfo = () => lppCampaign.token().then(addr => getTokenInformation(this.web3, addr));
 
-    return Promise.all([findCampaign(), lppCampaign.isCanceled(), lppCampaign.reviewer(), getTokenInfo()])
-      .then(([campaign, canceled, reviewer, tokenInfo]) => campaigns.patch(campaign._id, {
+    return Promise.all([ findCampaign(), lppCampaign.isCanceled(), lppCampaign.reviewer(), getTokenInfo() ])
+      .then(([ campaign, canceled, reviewer, tokenInfo ]) => campaigns.patch(campaign._id, {
         projectId,
         title: project.name,
         reviewerAddress: reviewer,
@@ -382,7 +384,7 @@ class Admins {
       })
       .catch((err) => {
         if (err instanceof BreakSignal) return;
-        console.error('_addCampaign error ->', err); // eslint-disable-line no-console
+        logger.error('_addCampaign error ->', err);
       });
   }
 
@@ -407,10 +409,10 @@ class Admins {
         }
 
         if (data.length > 1) {
-          console.warn('more then 1 milestone with the same projectId found: ', data); // eslint-disable-line no-console
+          logger.info('more then 1 milestone with the same projectId found: ', data);
         }
 
-        return data[0];
+        return data[ 0 ];
       });
 
     return getMilestone()
@@ -420,7 +422,7 @@ class Admins {
       }))
       .catch((err) => {
         if (err instanceof BreakSignal) return;
-        console.error('_updateMilestone error ->', err); // eslint-disable-line no-console
+        logger.error('_updateMilestone error ->', err);
       });
   }
 
@@ -435,10 +437,10 @@ class Admins {
         }
 
         if (data.length > 1) {
-          console.warn('more then 1 campaign with the same projectId found: ', data); // eslint-disable-line no-console
+          logger.info('more then 1 campaign with the same projectId found: ', data);
         }
 
-        return data[0];
+        return data[ 0 ];
       });
 
     return getCampaign()
@@ -448,7 +450,7 @@ class Admins {
       }))
       .catch((err) => {
         if (err instanceof BreakSignal) return;
-        console.error('_updateCampaign error ->', err); // eslint-disable-line no-console
+        logger.error('_updateCampaign error ->', err);
       });
   }
 
@@ -464,31 +466,31 @@ class Admins {
           service = this.app.service('campaigns');
           // cancel all milestones
           this.app.service('milestones').patch(null, {
-            status: 'Canceled',
-            mined: true,
-            txHash: event.transactionHash,
-          }, {
-            query: {
-              campaignId: pledgeAdmin.typeId,
-              $not: {
-                status: 'Canceled',
+              status: 'Canceled',
+              mined: true,
+              txHash: event.transactionHash,
+            }, {
+              query: {
+                campaignId: pledgeAdmin.typeId,
+                $not: {
+                  status: 'Canceled',
+                },
               },
-            },
-          })
+            })
             .then(milestones => milestones.map(m => m._id))
             .then((milestoneIds) => {
               this.app.service('donations').find({
-                paginate: false,
-                query: {
-                  $or: [
-                    { ownerId: { $in: milestoneIds } },
-                    { intendedProjectId: { $in: milestoneIds } },
-                  ],
-                  paymentStatus: 'Pledged', // TODO what happens when paying?
-                },
-              })
+                  paginate: false,
+                  query: {
+                    $or: [
+                      { ownerId: { $in: milestoneIds } },
+                      { intendedProjectId: { $in: milestoneIds } },
+                    ],
+                    paymentStatus: 'Pledged', // TODO what happens when paying?
+                  },
+                })
                 .then(data => data.forEach(donation => this._revertDonation(donation)))
-                .catch(console.error);
+                .catch(logger.error);
             });
         } else {
           service = this.app.service('milestones');
@@ -496,16 +498,16 @@ class Admins {
 
         // revert donations
         this.app.service('donations').find({
-          paginate: false,
-          query: {
-            $or: [
-              { ownerId: pledgeAdmin.typeId },
-              { intendedProjectId: pledgeAdmin.typeId },
-            ],
-          },
-        })
+            paginate: false,
+            query: {
+              $or: [
+                { ownerId: pledgeAdmin.typeId },
+                { intendedProjectId: pledgeAdmin.typeId },
+              ],
+            },
+          })
           .then(data => data.forEach(donation => this._revertDonation(donation)))
-          .catch(console.error);
+          .catch(logger.error);
 
         // update admin entity
         return service.patch(pledgeAdmin.typeId, {
@@ -515,7 +517,7 @@ class Admins {
       })
       .catch((error) => {
         if (error.name === 'NotFound') return;
-        console.log(error);
+        logger.error(error);
       });
   }
 
@@ -527,7 +529,7 @@ class Admins {
       .catch((error) => {
         if (error.name === 'NotFound') return undefined;
 
-        console.error(error);
+        logger.error(error);
         return undefined;
       });
 
@@ -535,8 +537,8 @@ class Admins {
       if (pledgeId === 0) return Promise.reject(new Error('pledgeId === 0, not sure what to do'));
 
       return this.liquidPledging.getPledge(pledgeId)
-        .then(pledge => Promise.all([getAdmin(pledge.owner), pledge]))
-        .then(([pledgeOwnerAdmin, pledge]) => {
+        .then(pledge => Promise.all([ getAdmin(pledge.owner), pledge ]))
+        .then(([ pledgeOwnerAdmin, pledge ]) => {
           // if pledgeOwnerAdmin is not a giver, then it is a campaign/milestone
           // if the campaign/milestone is canceled, go back 1 pledge
           if (pledgeOwnerAdmin.type !== 'giver' && pledgeOwnerAdmin.admin.status === 'Canceled') {
@@ -558,8 +560,8 @@ class Admins {
 
     return getMostRecentPledgeNotCanceled(donation.pledgeId)
       .then(({
-        pledgeOwnerAdmin, pledge, pledgeDelegateAdmin,
-      }) => {
+               pledgeOwnerAdmin, pledge, pledgeDelegateAdmin,
+             }) => {
         const status = (pledgeOwnerAdmin.type === 'giver' || pledgeDelegateAdmin) ? 'waiting' : 'committed';
 
         const mutation = {
@@ -591,10 +593,10 @@ class Admins {
           });
         }
 
-        if (pledge.pledgeState !== '0') console.log('why does pledge have non `Pledged` pledgeState? ->', pledge);
+        if (pledge.pledgeState !== '0') logger.error('why does pledge have non `Pledged` pledgeState? ->', pledge);
 
         return donations.patch(donation._id, mutation);
-      }).catch(console.error);
+      }).catch(logger.error);
   }
 
   _addPledgeAdmin(id, type, typeId) {
@@ -602,8 +604,20 @@ class Admins {
 
     return pledgeAdmins.create({ id, type, typeId })
       .catch((err) => {
-        // TODO if the pledgeAdmin already exists, then verify the type and typeId and return the admin
-        console.log('create pledgeAdmin error =>', err);
+        // console.log(err);
+        if (err.errorType === 'uniqueViolated') {
+          // TODO specify schema here so the 'admin' object isn't attached to the fetched pledgeAdmin
+          return pledgeAdmins.get(id)
+            .then((admin) => {
+              if (admin.type !== type || admin.typeId !== typeId) {
+                logger.error(`existing pledgeAdmin id: ${id} -> type/typeId: ${admin.type}/${admin.typeId} does not match expected: ${type}/${typeId}`);
+              }
+
+              return admin;
+            })
+            .catch(logger.error);
+        }
+        logger.error('create pledgeAdmin error =>', err);
       });
   }
 }

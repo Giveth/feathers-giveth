@@ -37,12 +37,12 @@ const updateType = () => context => {
   if (data.ownerType.toLowerCase() === 'campaign') {
     serviceName = 'campaigns';
     id = data.ownerId;
-    donationQuery = { ownerId: id, $select: [ 'ownerId' ] }        
+    donationQuery = { ownerId: id, $select: [ 'ownerId' ] }
   }
   else if (data.ownerType.toLowerCase() === 'milestone') {
     serviceName = 'milestones';
     id = data.ownerId;
-    donationQuery = { ownerId: id, $select: [ 'ownerId' ] }    
+    donationQuery = { ownerId: id, $select: [ 'ownerId' ] }
   } else if (data.delegateId) {
     serviceName = 'dacs';
     id = data.delegateId;
@@ -58,6 +58,10 @@ const updateType = () => context => {
       let totalDonated = entity.totalDonated || 0;
       let donationCount = entity.donationCount || 0;
       let peopleCount = entity.peopleCount || 0;
+
+      if (typeof donationCount !== 'number') {
+        donationCount = parseInt(donationCount);
+      }
 
       context.app.service('donations/history').find({
         query: donationQuery,

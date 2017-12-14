@@ -2,10 +2,11 @@ import logger from 'winston';
 import Admins from './Admins';
 import Pledges from './Pledges';
 import Payments from './Payments';
-import Milestones from './Milestones';
+import CappedMilestones from './CappedMilestones';
 import Tokens from './Tokens';
 import createModel from '../models/blockchain.model';
 import EventQueue from './EventQueue';
+import { LiquidPledgingState } from "liquidpledging";
 
 
 // Storing this in the db ensures that we don't miss any events on a restart
@@ -14,19 +15,19 @@ const defaultConfig = {
 };
 
 export default class {
-  constructor(app, liquidPledging, txMonitor, opts) {
+  constructor(app, web3, network, txMonitor, opts) {
     this.app = app;
-    this.web3 = liquidPledging.$web3;
-    this.contract = liquidPledging.$contract;
-    this.liquidPledging = liquidPledging;
+    this.web3 = web3;
     this.txMonitor = txMonitor;
+    this.network = network;
+    this.liquidPledging = network.liquidPledging;
 
     const eventQueue = new EventQueue();
 
-    this.payments = new Payments(app, liquidPledging.$vault);
-    this.admins = new Admins(app, liquidPledging, eventQueue);
-    this.pledges = new Pledges(app, liquidPledging, eventQueue);
-    this.milestones = new Milestones(app, this.web3);
+    this.payments = new Payments(app, this.liquidPledging.$vault);
+    this.admins = new Admins(app, this.liquidPledging, eventQueue);
+    this.pledges = new Pledges(app, this.liquidPledging, eventQueue);
+    this.cappedMilestones = new CappedMilestones(app, this.web3);
     this.tokens = new Tokens(app, this.web3);
     this.model = createModel(app);
 
@@ -45,16 +46,13 @@ export default class {
       .then((config) => {
         this.config = config;
         this.subscribeLP();
-        this.subscribeMilestones();
+        this.subscribeCappedMilestones();
         this.subscribeVault();
         this.subscribeTokens();
       });
 
     this.txMonitor.on(this.txMonitor.LP_EVENT, this.handleEvent.bind(this));
-    this.txMonitor.on(
-      this.txMonitor.MILESTONE_EVENT,
-      this.milestones.milestoneAccepted.bind(this.milestones),
-    );
+    this.txMonitor.on(this.txMonitor.MILESTONE_EVENT, this.handleEvent.bind(this));
     this.txMonitor.on(this.txMonitor.VAULT_EVENT, this.handleEvent.bind(this));
   }
 
@@ -65,12 +63,13 @@ export default class {
    */
   subscribeLP() {
     // starts a listener on the liquidPledging contract
-    this.contract.events.allEvents({ fromBlock: this.config.lastBlock + 1 || 1 })
+    this.liquidPledging.$contract.events.allEvents({ fromBlock: this.config.lastBlock + 1 || 1 })
       .on('data', this.handleEvent.bind(this))
       .on('changed', (event) => {
         // I think this is emitted when a chain reorg happens and the tx has been removed
         logger.info('changed: ', event);
-        this.liquidPledging.getState()
+        new LiquidPledgingState(this.liquidPledging)
+          .getState()
           .then((state) => {
             logger.info('liquidPledging state at changed event: ', JSON.stringify(state, null, 2));
           });
@@ -79,22 +78,14 @@ export default class {
   }
 
   /**
-   * subscribe to milestone events associated with the this lp contract
+   * subscribe to lpp-capped-milestone events associated with the this lp contract
    */
-  subscribeMilestones() {
-    // start a listener for all milestones associated with this liquidPledging contract
-    this.web3.eth.subscribe('logs', {
-      fromBlock: this.web3.utils.toHex(this.config.lastBlock + 1) || this.web3.utils.toHex(1), // convert to hex due to web3 bug https://github.com/ethereum/web3.js/issues/1097
-      topics: [
-        this.web3.utils.keccak256('MilestoneAccepted(address)'), // hash of the event signature we're interested in
-        this.web3.utils.padLeft(`0x${this.liquidPledging.$address.substring(2).toLowerCase()}`, 64), // remove leading 0x from address
-      ],
-    }, () => {
-    }) // TODO fix web3 bug so we don't have to pass a cb
-      .on('data', this.milestones.milestoneAccepted.bind(this.milestones))
+  subscribeCappedMilestones() {
+    this.network.cappedMilestones.$contract.events.allEvents({ fromBlock: this.config.lastBlock + 1 || 1 })
+      .on('data', this.handleEvent.bind(this))
       .on('changed', (event) => {
-      // I think this is emitted when a chain reorg happens and the tx has been removed
-        logger.log('lpp-milestone changed: ', event);
+        // I think this is emitted when a chain reorg happens and the tx has been removed
+        logger.error('lpp-capped-milestone changed: ', event);
         // TODO handle chain reorgs
       })
       .on('error', err => logger.error('SUBSCRIPTION ERROR: ', err));
@@ -121,13 +112,13 @@ export default class {
   subscribeTokens() {
     // start a listener for all GenerateToken events associated with this liquidPledging contract
     this.web3.eth.subscribe('logs', {
-      fromBlock: this.web3.utils.toHex(this.config.lastBlock + 1) || this.web3.utils.toHex(1), // convert to hex due to web3 bug https://github.com/ethereum/web3.js/issues/1097
-      topics: [
-        this.web3.utils.keccak256('GenerateTokens(address,address,uint256)'), // hash of the event signature we're interested in
-        this.web3.utils.padLeft(`0x${this.liquidPledging.$address.substring(2).toLowerCase()}`, 64), // remove leading 0x from address
-      ],
-    }, () => {
-    }) // TODO fix web3 bug so we don't have to pass a cb
+        fromBlock: this.web3.utils.toHex(this.config.lastBlock + 1) || this.web3.utils.toHex(1), // convert to hex due to web3 bug https://github.com/ethereum/web3.js/issues/1097
+        topics: [
+          this.web3.utils.keccak256('GenerateTokens(address,address,uint256)'), // hash of the event signature we're interested in
+          this.web3.utils.padLeft(`0x${this.liquidPledging.$address.substring(2).toLowerCase()}`, 64), // remove leading 0x from address
+        ],
+      }, () => {
+      }) // TODO fix web3 bug so we don't have to pass a cb
       .on('data', this.tokens.tokensGenerated.bind(this.tokens))
       .on('changed', (event) => {
         // I think this is emitted when a chain reorg happens and the tx has been removed
@@ -234,6 +225,12 @@ export default class {
         break;
       case 'CancelPayment':
         this.payments.cancelPayment(event);
+        break;
+      case 'MilestoneAccepted':
+        this.cappedMilestones.milestoneAccepted(event);
+        break;
+      case 'PaymentCollected':
+        this.cappedMilestones.paymentCollected(event);
         break;
       default:
         logger.error('Unknown event: ', event);
