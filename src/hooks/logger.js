@@ -9,7 +9,11 @@ export default function () {
       message += `: ${hook.error.message}`;
     }
 
-    logger.info(message);
+    if (hook.params.provider) {
+      logger.info(message);
+    } else {
+      logger.debug(`INTERNAL_CALL -> ${message}`);
+    }
     logger.debug('hook.data', hook.data);
     logger.debug('hook.params', hook.params);
 
@@ -18,7 +22,11 @@ export default function () {
     }
 
     if (hook.error) {
-      logger.error(hook.error);
+      if (hook.path === 'authentication/challenges' && hook.error.message.includes('Challenge =')) {
+        logger.debug(hook.error);
+      } else {
+        logger.error(hook.error);
+      }
     }
   };
 }

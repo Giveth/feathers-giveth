@@ -1,40 +1,11 @@
 import Web3 from 'web3';
-import { LiquidPledging, LPVault } from 'liquidpledging';
+import logger from 'winston';
 
 import LiquidPledgingMonitor from './LiquidPledgingMonitor';
 import FailedTxMonitor from './FailedTxMonitor';
+import getNetwork from "./getNetwork";
 
-const networks = {
-  main: {
-    liquidPledgingAddress: '0x0',
-    vaultAddress: '0x0',
-  },
-  morden: {
-    liquidPledgingAddress: '0x0',
-    vaultAddress: '0x0',
-  },
-  ropsten: {
-    liquidPledgingAddress: '0x9a3e76a27e18994ebdb1ab813e87f4315d8faa5e',
-    vaultAddress: '0x547626030c9e9df93657a38075339f429e7a998b',
-  },
-  rinkeby: {
-    liquidPledgingAddress: '0x1B8F84E443668C81FeE5BEc266bc098e3c7fBC00',
-    vaultAddress: '0xBf0bA4c72daab5BFeF6B9C496db91e4614a57131',
-  },
-  kovan: {
-    liquidPledgingAddress: '0x0',
-    vaultAddress: '0x0',
-  },
-  giveth: {
-    liquidPledgingAddress: '0xc2E1c6cf5D18247d63618dABf58E14F058D02c7C',
-    vaultAddress: '0x98bE0A726C9937Ba5E0227E84E1ccCaceFee88b4',
-  },
-  default: {
-    liquidPledgingAddress: '0x5b1869D9A4C187F2EAa108f3062412ecf0526b24',
-    vaultAddress: '0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab',
-  },
-
-};
+const ONE_MINUTE = 60 * 1000;
 
 export default function () {
   const app = this;
@@ -46,58 +17,61 @@ export default function () {
     startingBlock: blockchain.startingBlock,
   };
 
-  web3.currentProvider.connection.onerror = (e) => console.error('connection error ->', e);
-  web3.currentProvider.connection.onclose = (e) => console.error('connection closed ->', e);
+  let txMonitor;
+  let lpMonitor;
 
+  // initialize the event listeners
   const init = () => {
-    const txMonitor = new FailedTxMonitor(web3, app);
+    txMonitor = new FailedTxMonitor(web3, app);
     txMonitor.start();
 
-    getLiquidPledging(web3)
-      .then(liquidPledging => {
-        const lpMonitor = new LiquidPledgingMonitor(app, liquidPledging, txMonitor, opts);
-        lpMonitor.start();
-      });
+    getNetwork(web3).then((network) => {
+      lpMonitor = new LiquidPledgingMonitor(app, web3, network, txMonitor, opts);
+      lpMonitor.start();
+    })
+
+  };
+
+  // if the websocket connection drops, attempt to re-connect
+  // upon successful re-connection, we re-start all listeners
+  const reconnectOnEnd = () => {
+    web3.currentProvider.on('end', (e) => {
+      logger.error(`connection closed reason: ${e.reason}, code: ${e.code}`);
+
+      txMonitor.close();
+
+      const intervalId = setInterval(() => {
+        logger.info('attempting to reconnect');
+
+        const newProvider = new web3.providers.WebsocketProvider(blockchain.nodeUrl);
+
+        newProvider.on('connect', () => {
+          logger.info('successfully connected');
+          clearInterval(intervalId);
+          web3.setProvider(newProvider);
+          reconnectOnEnd();
+
+          // TODO fix bug that prevents the following from working
+          // lpMonitor.start will throw "connection not open on send()" for each subscribe
+          // not sure of the cause, but it appears the the subscriptions are not updated
+          // with the latest provider. https://github.com/ethereum/web3.js/issues/1188 may
+          // be something to look into
+
+          // txMonitor.start();
+          // if (lpMonitor) {
+          // web3.setProvider will clear any existing subscriptions, so we need to re-subscribe
+          // lpMonitor.start();
+          // }
+
+          // using this instead of the above.
+          init();
+        });
+      }, ONE_MINUTE);
+    });
   };
 
   init();
+
+  // attach the re-connection logic to the current web3 provider
+  reconnectOnEnd();
 }
-
-const getLiquidPledging = (web3) => {
-  return web3.eth.net.getId()
-    .then(id => {
-      let liquidPledging;
-      switch (id) {
-        case 1:
-          liquidPledging = new LiquidPledging(web3, networks.main.liquidPledgingAddress);
-          liquidPledging.$vault = new LPVault(web3, networks.main.vaultAddress);
-          break;
-        case 2:
-          liquidPledging = new LiquidPledging(web3, networks.morden.liquidPledgingAddress);
-          liquidPledging.$vault = new LPVault(web3, networks.morden.vaultAddress);
-          break;
-        case 3:
-          liquidPledging = new LiquidPledging(web3, networks.ropsten.liquidPledgingAddress);
-          liquidPledging.$vault = new LPVault(web3, networks.ropsten.vaultAddress);
-          break;
-        case 4:
-          liquidPledging = new LiquidPledging(web3, networks.rinkeby.liquidPledgingAddress);
-          liquidPledging.$vault = new LPVault(web3, networks.rinkeby.vaultAddress);
-          break;
-        case 33:
-          liquidPledging = new LiquidPledging(web3, networks.giveth.liquidPledgingAddress);
-          liquidPledging.$vault = new LPVault(web3, networks.giveth.vaultAddress);
-          break;
-        case 42:
-          liquidPledging = new LiquidPledging(web3, networks.kovan.liquidPledgingAddress);
-          liquidPledging.$vault = new LPVault(web3, networks.kovan.vaultAddress);
-          break;
-        default:
-          liquidPledging = new LiquidPledging(web3, networks.default.liquidPledgingAddress);
-          liquidPledging.$vault = new LPVault(web3, networks.default.vaultAddress);
-          break;
-      }
-
-      return liquidPledging;
-    });
-};

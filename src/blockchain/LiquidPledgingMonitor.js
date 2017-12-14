@@ -1,10 +1,12 @@
+import logger from 'winston';
 import Admins from './Admins';
 import Pledges from './Pledges';
 import Payments from './Payments';
-import Milestones from './Milestones';
+import CappedMilestones from './CappedMilestones';
 import Tokens from './Tokens';
 import createModel from '../models/blockchain.model';
 import EventQueue from './EventQueue';
+import { LiquidPledgingState } from "liquidpledging";
 
 
 // Storing this in the db ensures that we don't miss any events on a restart
@@ -13,20 +15,19 @@ const defaultConfig = {
 };
 
 export default class {
-
-  constructor(app, liquidPledging, txMonitor, opts) {
+  constructor(app, web3, network, txMonitor, opts) {
     this.app = app;
-    this.web3 = liquidPledging.$web3;
-    this.contract = liquidPledging.$contract;
-    this.liquidPledging = liquidPledging;
+    this.web3 = web3;
     this.txMonitor = txMonitor;
+    this.network = network;
+    this.liquidPledging = network.liquidPledging;
 
     const eventQueue = new EventQueue();
 
-    this.payments = new Payments(app, liquidPledging.$vault);
-    this.admins = new Admins(app, liquidPledging, eventQueue);
-    this.pledges = new Pledges(app, liquidPledging, eventQueue);
-    this.milestones = new Milestones(app, this.web3);
+    this.payments = new Payments(app, this.liquidPledging.$vault);
+    this.admins = new Admins(app, this.liquidPledging, eventQueue);
+    this.pledges = new Pledges(app, this.liquidPledging, eventQueue);
+    this.cappedMilestones = new CappedMilestones(app, this.web3);
     this.tokens = new Tokens(app, this.web3);
     this.model = createModel(app);
 
@@ -36,82 +37,95 @@ export default class {
   }
 
   /**
-   * start monitoring contract events
+   * subscribe to all events that we are interested in
    */
   start() {
-    // starts listening to all events emitted by liquidPledging and delegates to the appropriate class
-    this._getConfig()
-      .then(config => this.config = config)
-      .then(() => this._startListeners());
+    // starts listening to all events emitted by liquidPledging and delegates
+    // to the appropriate class
+    this.getConfig()
+      .then((config) => {
+        this.config = config;
+        this.subscribeLP();
+        this.subscribeCappedMilestones();
+        this.subscribeVault();
+        this.subscribeTokens();
+      });
 
-    this.txMonitor.on(this.txMonitor.LP_EVENT, this._handleEvent.bind(this));
-    this.txMonitor.on(this.txMonitor.MILESTONE_EVENT, this.milestones.milestoneAccepted.bind(this.milestones));
-    this.txMonitor.on(this.txMonitor.VAULT_EVENT, this._handleVaultEvent.bind(this));
+    this.txMonitor.on(this.txMonitor.LP_EVENT, this.handleEvent.bind(this));
+    this.txMonitor.on(this.txMonitor.MILESTONE_EVENT, this.handleEvent.bind(this));
+    this.txMonitor.on(this.txMonitor.VAULT_EVENT, this.handleEvent.bind(this));
+  }
+
+  // semi-private methods:
+
+  /**
+   * subscribe to LP events
+   */
+  subscribeLP() {
+    // starts a listener on the liquidPledging contract
+    this.liquidPledging.$contract.events.allEvents({ fromBlock: this.config.lastBlock + 1 || 1 })
+      .on('data', this.handleEvent.bind(this))
+      .on('changed', (event) => {
+        // I think this is emitted when a chain reorg happens and the tx has been removed
+        logger.info('changed: ', event);
+        new LiquidPledgingState(this.liquidPledging)
+          .getState()
+          .then((state) => {
+            logger.info('liquidPledging state at changed event: ', JSON.stringify(state, null, 2));
+          });
+      })
+      .on('error', err => logger.error('SUBSCRIPTION ERROR: ', err));
   }
 
   /**
-   * start listening to allEvents on the contract
-   * @private
+   * subscribe to lpp-capped-milestone events associated with the this lp contract
    */
-  _startListeners() {
-    // starts a listener on the liquidPledging contract
-    this.contract.events.allEvents({ fromBlock: this.config.lastBlock + 1 || 1 })
-      .on('data', this._handleEvent.bind(this))
+  subscribeCappedMilestones() {
+    this.network.cappedMilestones.$contract.events.allEvents({ fromBlock: this.config.lastBlock + 1 || 1 })
+      .on('data', this.handleEvent.bind(this))
       .on('changed', (event) => {
         // I think this is emitted when a chain reorg happens and the tx has been removed
-        console.log('changed: ', event); // eslint-disable-line no-console
-        this.liquidPledging.getState()
-          .then(state => {
-            console.log('liquidPledging state at changed event: ', JSON.stringify(state, null, 2)); //eslint-disable-line no-console
-          });
-      })
-      // TODO if the connection dropped, do we need to try and reconnect?
-      .on('error', err => console.error('SUBSCRIPTION ERROR error: ', err));
-
-    // start a listener for all milestones associated with this liquidPledging contract
-    this.web3.eth.subscribe('logs', {
-      fromBlock: this.web3.utils.toHex(this.config.lastBlock + 1) || this.web3.utils.toHex(1), // convert to hex due to web3 bug https://github.com/ethereum/web3.js/issues/1097
-      topics: [
-        this.web3.utils.keccak256('MilestoneAccepted(address)'), // hash of the event signature we're interested in
-        this.web3.utils.padLeft(`0x${this.liquidPledging.$address.substring(2).toLowerCase()}`, 64), // remove leading 0x from address
-      ],
-    }, () => {
-    }) // TODO fix web3 bug so we don't have to pass a cb
-      .on('data', this.milestones.milestoneAccepted.bind(this.milestones))
-      .on('changed', (event) => {
-        // I think this is emitted when a chain reorg happens and the tx has been removed
-        console.log('lpp-milestone changed: ', event); // eslint-disable-line no-console
+        logger.error('lpp-capped-milestone changed: ', event);
         // TODO handle chain reorgs
       })
-      .on('error', err => console.error('error: ', err)); // eslint-disable-line no-console
+      .on('error', err => logger.error('SUBSCRIPTION ERROR: ', err));
+  }
 
-    // starts a listener on the liquidPledging contract
-    this.liquidPledging.$vault.$contract.events.allEvents({ fromBlock: this.config.lastBlock + 1 || 1 })
-      .on('data', this._handleVaultEvent.bind(this))
+  /**
+   * subscribe to the lp vault events
+   */
+  subscribeVault() {
+    // starts a listener on the vault contract
+    const fromBlock = this.config.lastBlock + 1 || 1;
+    this.liquidPledging.$vault.$contract.events.allEvents({ fromBlock })
+      .on('data', this.handleEvent.bind(this))
       .on('changed', (event) => {
         // I think this is emitted when a chain reorg happens and the tx has been removed
-        console.log('vault changed: ', event); // eslint-disable-line no-console
+        logger.info('vault changed: ', event);
       })
-      // TODO if the connection dropped, do we need to try and reconnect?
-      .on('error', err => console.error('error: ', err)); // eslint-disable-line no-console
+      .on('error', err => logger.error('SUBSCRIPTION ERROR: ', err));
+  }
 
+  /**
+   * subscribe to GenerateTokens event for any liquidPledgine plugins
+   */
+  subscribeTokens() {
     // start a listener for all GenerateToken events associated with this liquidPledging contract
     this.web3.eth.subscribe('logs', {
-      fromBlock: this.web3.utils.toHex(this.config.lastBlock + 1) || this.web3.utils.toHex(1), // convert to hex due to web3 bug https://github.com/ethereum/web3.js/issues/1097
-      topics: [
-        this.web3.utils.keccak256('GenerateTokens(address,address,uint256)'), // hash of the event signature we're interested in
-        this.web3.utils.padLeft(`0x${this.liquidPledging.$address.substring(2).toLowerCase()}`, 64), // remove leading 0x from address
-      ],
-    }, () => {
-    }) // TODO fix web3 bug so we don't have to pass a cb
+        fromBlock: this.web3.utils.toHex(this.config.lastBlock + 1) || this.web3.utils.toHex(1), // convert to hex due to web3 bug https://github.com/ethereum/web3.js/issues/1097
+        topics: [
+          this.web3.utils.keccak256('GenerateTokens(address,address,uint256)'), // hash of the event signature we're interested in
+          this.web3.utils.padLeft(`0x${this.liquidPledging.$address.substring(2).toLowerCase()}`, 64), // remove leading 0x from address
+        ],
+      }, () => {
+      }) // TODO fix web3 bug so we don't have to pass a cb
       .on('data', this.tokens.tokensGenerated.bind(this.tokens))
       .on('changed', (event) => {
         // I think this is emitted when a chain reorg happens and the tx has been removed
-        console.log('GenerateTokens changed: ', event); // eslint-disable-line no-console
+        logger.info('GenerateTokens changed: ', event);
         // TODO handle chain reorgs
       })
-      .on('error', err => console.error('error: ', err)); // eslint-disable-line no-console
-
+      .on('error', err => logger.error('SUBSCRIPTION ERROR: ', err));
   }
 
   /**
@@ -120,12 +134,18 @@ export default class {
    * @return {Promise}
    * @private
    */
-  _getConfig() {
+  getConfig() {
     return new Promise((resolve, reject) => {
       this.model.findOne({}, (err, doc) => {
-        if (err) return reject(err);
+        if (err) {
+          reject(err);
+          return;
+        }
 
-        if (!doc) return resolve(defaultConfig);
+        if (!doc) {
+          resolve(defaultConfig);
+          return;
+        }
 
         resolve(doc);
       });
@@ -138,33 +158,39 @@ export default class {
    * @param blockNumber
    * @private
    */
-  _updateConfig(blockNumber) {
-    if (this._initializingConfig) {
-      this._onConfigInitialization = () => this._updateConfig(blockNumber);
+  updateConfig(blockNumber) {
+    let onConfigInitialization;
+    if (this.initializingConfig) {
+      onConfigInitialization = () => this.updateConfig(blockNumber);
       return;
     }
 
     if (!this.config.lastBlock || this.config.lastBlock < blockNumber) {
       this.config.lastBlock = blockNumber;
 
-      if (!this.config._id) this._initializingConfig = true;
+      if (!this.config._id) this.initializingConfig = true;
 
-      this.model.update({ _id: this.config._id }, this.config, { upsert: true }, (err, numAffected, affectedDocs, upsert) => {
-        if (err) console.error('updateConfig ->', err); // eslint-disable-line no-console
+      this.model.update(
+        { _id: this.config._id },
+        this.config,
+        { upsert: true },
+        (err, numAffected, affectedDocs, upsert) => {
+          if (err) logger.error('updateConfig ->', err);
 
-        if (upsert) {
-          this.config._id = affectedDocs._id;
-          this._initializingConfig = false;
-          if (this._onConfigInitialization) this._onConfigInitialization();
-        }
-      });
+          if (upsert) {
+            this.config._id = affectedDocs._id;
+            this.initializingConfig = false;
+            if (onConfigInitialization) onConfigInitialization();
+          }
+        },
+      );
     }
   }
 
-  _handleEvent(event) {
-    this._updateConfig(event.blockNumber);
+  handleEvent(event) {
+    this.updateConfig(event.blockNumber);
 
-    console.log('handlingEvent: ', event);
+    logger.info('handlingEvent: ', event);
 
     switch (event.event) {
       case 'GiverAdded':
@@ -191,17 +217,6 @@ export default class {
       case 'Transfer':
         this.pledges.transfer(event);
         break;
-      default:
-        console.error('Unknown event: ', event); //eslint-disable-line no-console
-    }
-  }
-
-  _handleVaultEvent(event) {
-    this._updateConfig(event.blockNumber);
-
-    console.log('handling vault event ->', event);
-
-    switch (event.event) {
       case 'AuthorizePayment':
         this.payments.authorizePayment(event);
         break;
@@ -211,8 +226,14 @@ export default class {
       case 'CancelPayment':
         this.payments.cancelPayment(event);
         break;
+      case 'MilestoneAccepted':
+        this.cappedMilestones.milestoneAccepted(event);
+        break;
+      case 'PaymentCollected':
+        this.cappedMilestones.paymentCollected(event);
+        break;
       default:
-        console.error('Unknown event: ', event); // eslint-disable-line no-console
+        logger.error('Unknown event: ', event);
     }
   }
 }

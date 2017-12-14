@@ -35,7 +35,7 @@ const restrict = () => (context) => {
       const keysToRemove = Object.keys(data).map(key => !approvedKeys.includes(key));
       keysToRemove.forEach(key => delete data[key]);
     } else if ((donation.ownerType === 'giver' && user.address !== donation.ownerId) ||
-      user.address !== donation.ownerEntity.ownerAddress) {
+      (donation.ownerType !== 'giver' && user.address !== donation.ownerEntity.ownerAddress)) {
       throw new errors.Forbidden();
     }
   };

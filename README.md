@@ -87,6 +87,12 @@ The `feathers-giveth/scripts` directory contains a few scripts to help developme
 
 Simply run `yarn test` and all your tests in the `test/` directory will be run.
 
+## Debugging
+
+You can control the logging level with the `LOG_LEVEL` env variable. Available levels can be found at: https://github.com/winstonjs/winston/tree/2.x#logging-levels
+
+To enable debug logging simply start the server with `LOG_LEVEL=debug yarn start`
+
 ## Usage
 
 Each of these services are available via rest or websockets:
