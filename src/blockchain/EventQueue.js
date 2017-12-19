@@ -5,6 +5,7 @@ const has = Object.prototype.hasOwnProperty;
 class EventQueue {
   constructor() {
     this.queue = {};
+    this.processing = {};
 
     // for debugging purposes. check if there are any stuck txs every 5 mins
     setInterval(() => {
@@ -12,6 +13,18 @@ class EventQueue {
         logger.info('current QUEUE status ->', JSON.stringify(this.queue, null, 2));
       }
     }, 1000 * 60 * 5);
+  }
+
+  isProcessing(txHash) {
+    return this.processing[ txHash ] || false;
+  }
+
+  startProcessing(txHash) {
+    this.processing[ txHash ] = true;
+  }
+
+  finishedProcessing(txHash) {
+    delete this.processing[ txHash ];
   }
 
   add(txHash, fn) {
@@ -40,7 +53,7 @@ class EventQueue {
       return result
         .then(() => {
           logger.debug('returned from purge');
-          if (this.queue[txHash].length === 0) {
+          if (this.queue[txHash] && this.queue[txHash].length === 0) {
             delete this.queue[txHash];
           }
         });

@@ -34,29 +34,31 @@ class Pledges {
     const { from, to, amount } = event.returnValues;
     const txHash = event.transactionHash;
 
-    const processEvent = (retry = false) => this._getBlockTimestamp(event.blockNumber)
-      .then((ts) => {
-        this.processing[ txHash ] = true;
+    const processEvent = (retry = false) => {
+      this.queue.startProcessing(txHash);
+      return this._getBlockTimestamp(event.blockNumber)
+        .then((ts) => {
 
-        if (from === '0') {
-          return this._newDonation(to, amount, ts, txHash, retry)
-            .then(() => this.queue.purge(txHash))
-            .catch((err) => {
-              if (err instanceof ReProcessEvent) {
-                // this is really only useful when instant mining. Other then that, the
-                // donation should always be created before the tx was mined.
-                setTimeout(() => processEvent(true), 5000);
-                return;
-              }
+          if (from === '0') {
+            return this._newDonation(to, amount, ts, txHash, retry)
+              .then(() => this.queue.purge(txHash))
+              .catch((err) => {
+                if (err instanceof ReProcessEvent) {
+                  // this is really only useful when instant mining. Other then that, the
+                  // donation should always be created before the tx was mined.
+                  setTimeout(() => processEvent(true), 5000);
+                  return;
+                }
 
-              logger.error('_newDonation error ->', err);
-            });
-        }
+                logger.error('_newDonation error ->', err);
+              });
+          }
 
-        return this._transfer(from, to, amount, ts, txHash)
-          .then(() => this.queue.purge(txHash));
-      })
-      .then(() => delete this.processing[ txHash ]);
+          return this._transfer(from, to, amount, ts, txHash)
+            .then(() => this.queue.purge(txHash));
+        })
+        .then(() => this.queue.finishedProcessing(txHash));
+    };
 
     // parity uses transactionLogIndex
     const logIndex = (has.call(event, 'transactionLogIndex')) ? event.transactionLogIndex : undefined;
@@ -66,7 +68,7 @@ class Pledges {
     // if logIndex is not undefined, then use that otherwise
     // b/c geth doesn't include transactionLogIndex, we are
     // making the assumption that events will be passed in order.
-    if ((logIndex !== undefined && hexToNumber(logIndex) > 0) || this.processing[ txHash ]) {
+    if ((logIndex !== undefined && hexToNumber(logIndex) > 0) || this.queue.isProcessing(txHash)) {
       this.queue.add(
         event.transactionHash,
         processEvent,
@@ -106,8 +108,8 @@ class Pledges {
             return donations.create(Object.assign(mutation, { txHash }));
           }
 
-          // this is really only useful when instant mining. Other then that, the donation should always be
-          // created before the tx was mined.
+          // this is really only useful when instant mining. and re-syncing feathers w/ past events.
+          // Other then that, the donation should always be created before the tx was mined.
           throw new ReProcessEvent();
         }
 

@@ -27,6 +27,7 @@ class Admins {
 
     const { returnValues } = event;
 
+    this.queue.startProcessing(event.transactionHash);
     this.liquidPledging.getPledgeAdmin(returnValues.idGiver)
       .then(giver => this._addGiver(giver, returnValues.idGiver, event.transactionHash))
       .catch(err => logger.error('addGiver error ->', err));
@@ -107,6 +108,7 @@ class Admins {
       })
       .then(user => this._addPledgeAdmin(giverId, 'giver', user.address))
       .then(() => this.queue.purge(txHash))
+      .then(() => this.queue.finishedProcessing(txHash))
       .then(() => user)
       .catch(err => logger.error('_addGiver error ->', err));
   }
@@ -604,7 +606,6 @@ class Admins {
 
     return pledgeAdmins.create({ id, type, typeId })
       .catch((err) => {
-        // console.log(err);
         if (err.errorType === 'uniqueViolated') {
           // TODO specify schema here so the 'admin' object isn't attached to the fetched pledgeAdmin
           return pledgeAdmins.get(id)
