@@ -41,8 +41,7 @@
     "0xffcf8fdee72ac11b5c542428b35eef5769c409f0",
     "0x22d491bde2303f2f43325b2108d26f1eaba1e32b",
     "0xe11ba2b4d45eaed5996cd0823791e0c93114882d",
-    "0xd03ea8624c8c5987235048901fb614fdca89b117",
-    "0xd19eb38cf858D78cffBd4CD8C45de8597315ed3A"
+    "0xd03ea8624c8c5987235048901fb614fdca89b117"
   ],
   "useDelegateWhitelist": true,
   "delegateWhitelist": [
@@ -50,8 +49,7 @@
     "0xffcf8fdee72ac11b5c542428b35eef5769c409f0",
     "0x22d491bde2303f2f43325b2108d26f1eaba1e32b",
     "0xe11ba2b4d45eaed5996cd0823791e0c93114882d",
-    "0xd03ea8624c8c5987235048901fb614fdca89b117",
-    "0xd19eb38cf858D78cffBd4CD8C45de8597315ed3A"
+    "0xd03ea8624c8c5987235048901fb614fdca89b117"
   ],
   "useProjectOwnerWhitelist": true,
   "projectOwnerWhitelist": [
@@ -59,7 +57,6 @@
     "0xffcf8fdee72ac11b5c542428b35eef5769c409f0",
     "0x22d491bde2303f2f43325b2108d26f1eaba1e32b",
     "0xe11ba2b4d45eaed5996cd0823791e0c93114882d",
-    "0xd03ea8624c8c5987235048901fb614fdca89b117",
-    "0xd19eb38cf858D78cffBd4CD8C45de8597315ed3A"
+    "0xd03ea8624c8c5987235048901fb614fdca89b117"
   ]
 }
