@@ -1,6 +1,5 @@
 import logger from 'winston';
 
-import { LPPDac } from 'lpp-dac';
 import { LPPCappedMilestones } from 'lpp-capped-milestone';
 import { LPPCappedMilestonesRuntimeByteCode } from 'lpp-capped-milestone/build/LPPCappedMilestones.sol';
 import { LPPCampaign } from 'lpp-campaign';
@@ -15,10 +14,11 @@ const BreakSignal = () => {
  * class to keep feathers cache in sync with liquidpledging admins
  */
 class Admins {
-  constructor(app, liquidPledging, eventQueue) {
+  constructor(app, liquidPledging, lppdacs, eventQueue) {
     this.app = app;
     this.web3 = liquidPledging.$web3;
     this.liquidPledging = liquidPledging;
+    this.lppdacs = lppdacs;
     this.queue = eventQueue;
   }
 
@@ -189,11 +189,8 @@ class Admins {
         return data[ 0 ];
       });
 
-    const getTokenInfo = (delegate) => {
-      const dac = new LPPDac(this.web3, delegate.plugin);
-
-      return dac.token().then(addr => getTokenInformation(this.web3, addr));
-    };
+    const getTokenInfo = () => this.lppdacs.getDac(delegateId)
+      .then(({ token }) => getTokenInformation(this.web3, token));
 
     return this.liquidPledging.getPledgeAdmin(delegateId)
       .then(delegate => Promise.all([ delegate, findDAC(delegate), getTokenInfo(delegate) ]))

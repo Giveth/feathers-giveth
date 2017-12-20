@@ -4,8 +4,9 @@ import logger from 'winston';
 import LiquidPledgingMonitor from './LiquidPledgingMonitor';
 import FailedTxMonitor from './FailedTxMonitor';
 import getNetwork from "./getNetwork";
-import { LiquidPledging, LPVault } from "liquidpledging";
+import { LiquidPledging, LPVault } from "giveth-liquidpledging";
 import { LPPCappedMilestones } from "lpp-capped-milestone";
+import { LPPDacs } from "lpp-dacs";
 
 const ONE_MINUTE = 60 * 1000;
 
@@ -40,8 +41,9 @@ export default function () {
       const liquidPledging = new LiquidPledging(web3, network.liquidPledgingAddress);
       liquidPledging.$vault = new LPVault(web3, network.vaultAddress);
       const cappedMilestones = new LPPCappedMilestones(web3, network.cappedMilestoneAddress);
+      const lppdacs = new LPPDacs(web3, network.dacsAddress);
 
-      lpMonitor = new LiquidPledgingMonitor(app, web3, liquidPledging, cappedMilestones, txMonitor, opts);
+      lpMonitor = new LiquidPledgingMonitor(app, web3, liquidPledging, lppdacs, cappedMilestones, txMonitor, opts);
       lpMonitor.start();
     })
 
