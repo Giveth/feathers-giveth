@@ -1,6 +1,7 @@
 import Contract from 'web3-eth-contract';
 import { toBN } from 'web3-utils';
 import { LPPCampaign } from 'lpp-campaign';
+import { LPPDacs } from 'lpp-dacs';
 
 import { getTokenInformation } from './helpers';
 import getNetwork from "./getNetwork";
@@ -40,21 +41,21 @@ class Tokens {
   }
 
   dacTokensGenerated(event) {
-    console.log('handling dac GenerateTokens Event: ', event); // eslint-disable-line no-console
+    if (event.event !== 'GenerateTokens') throw new Error('dacTokensGenerated only handles GenerateTokens events');
 
     getNetwork()
       .then(network => new LPPDacs(this.web3, network.dacsAddress)
-        .getDac(event.idDelegate))
+        .getDac(event.returnValues.idDelegate))
       .then(({ token }) => this.updateTokens(token, event.returnValues.addr, event.returnValues.amount))
       .catch(console.error); // eslint-disable-line no-console
   }
 
   dacTokensDestroyed(event) {
-    console.log('handling dac GenerateTokens Event: ', event); // eslint-disable-line no-console
+    if (event.event !== 'DestroyTokens') throw new Error('dacTokensDestroyed only handles DestroyTokens events');
 
     getNetwork()
       .then(network => new LPPDacs(this.web3, network.dacsAddress)
-        .getDac(event.idDelegate))
+        .getDac(event.returnValues.idDelegate))
       .then(({ token }) => this.updateTokens(token, event.returnValues.addr, event.returnValues.amount, false))
       .catch(console.error); // eslint-disable-line no-console
   }

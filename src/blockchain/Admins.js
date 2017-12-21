@@ -14,11 +14,11 @@ const BreakSignal = () => {
  * class to keep feathers cache in sync with liquidpledging admins
  */
 class Admins {
-  constructor(app, liquidPledging, lppdacs, eventQueue) {
+  constructor(app, liquidPledging, lppDacs, eventQueue) {
     this.app = app;
     this.web3 = liquidPledging.$web3;
     this.liquidPledging = liquidPledging;
-    this.lppdacs = lppdacs;
+    this.lppDacs = lppDacs;
     this.queue = eventQueue;
   }
 
@@ -189,7 +189,7 @@ class Admins {
         return data[ 0 ];
       });
 
-    const getTokenInfo = () => this.lppdacs.getDac(delegateId)
+    const getTokenInfo = () => this.lppDacs.getDac(delegateId)
       .then(({ token }) => getTokenInformation(this.web3, token));
 
     return this.liquidPledging.getPledgeAdmin(delegateId)

@@ -41,9 +41,9 @@ export default function () {
       const liquidPledging = new LiquidPledging(web3, network.liquidPledgingAddress);
       liquidPledging.$vault = new LPVault(web3, network.vaultAddress);
       const cappedMilestones = new LPPCappedMilestones(web3, network.cappedMilestoneAddress);
-      const lppdacs = new LPPDacs(web3, network.dacsAddress);
+      const lppDacs = new LPPDacs(web3, network.dacsAddress);
 
-      lpMonitor = new LiquidPledgingMonitor(app, web3, liquidPledging, lppdacs, cappedMilestones, txMonitor, opts);
+      lpMonitor = new LiquidPledgingMonitor(app, web3, liquidPledging, cappedMilestones, lppDacs, txMonitor, opts);
       lpMonitor.start();
     })
 

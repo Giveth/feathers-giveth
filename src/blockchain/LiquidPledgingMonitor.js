@@ -15,18 +15,18 @@ const defaultConfig = {
 };
 
 export default class {
-  constructor(app, web3, liquidPledging, cappedMilestones, lppdacs, txMonitor, opts) {
+  constructor(app, web3, liquidPledging, cappedMilestones, lppDacs, txMonitor, opts) {
     this.app = app;
     this.web3 = web3;
     this.txMonitor = txMonitor;
     this.cappedMilestonesContract = cappedMilestones;
     this.liquidPledging = liquidPledging;
-    this.lppdacs = lppdacs;
+    this.lppDacs = lppDacs;
 
     const eventQueue = new EventQueue();
 
     this.payments = new Payments(app, this.liquidPledging.$vault);
-    this.admins = new Admins(app, this.liquidPledging, lppdacs, eventQueue);
+    this.admins = new Admins(app, this.liquidPledging, this.lppDacs, eventQueue);
     this.pledges = new Pledges(app, this.liquidPledging, eventQueue);
     this.cappedMilestones = new CappedMilestones(app, this.web3);
     this.tokens = new Tokens(app, this.web3);
@@ -136,11 +136,11 @@ export default class {
   subscribeDacTokens() {
     // starts a listener on the vault contract
     const fromBlock = this.config.lastBlock + 1 || 1;
-    this.lppdacs.$contract.events.allEvents({ fromBlock })
+    this.lppDacs.$contract.events.allEvents({ fromBlock })
       .on('data', this.handleEvent.bind(this))
       .on('changed', (event) => {
         // I think this is emitted when a chain reorg happens and the tx has been removed
-        logger.info('lppdacs changed: ', event);
+        logger.info('lppDacs changed: ', event);
       })
       .on('error', err => logger.error('SUBSCRIPTION ERROR: ', err));
   }
