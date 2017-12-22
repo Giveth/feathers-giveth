@@ -1,8 +1,10 @@
 import Contract from 'web3-eth-contract';
 import { toBN } from 'web3-utils';
-import { LPPDac } from 'lpp-dac';
+import { LPPCampaign } from 'lpp-campaign';
+import { LPPDacs } from 'lpp-dacs';
 
 import { getTokenInformation } from './helpers';
+import getNetwork from "./getNetwork";
 
 const GenerateTokenEvent = {
   anonymous: false,
@@ -28,37 +30,60 @@ class Tokens {
     this.tokens = this.app.service('tokens');
   }
 
-  tokensGenerated(event) {
+  campaignTokensGenerated(event) {
     const decodedEvent = decodeEventABI(event);
-    console.log('handling GenerateTokens Event: ', decodedEvent); // eslint-disable-line no-console
+    console.log('handling campaign GenerateTokens Event: ', decodedEvent); // eslint-disable-line no-console
 
-    // This is a hacky solution for now, but should define an interface for these token plugins
-    // TODO define token plugin interface or fetch token address from dacs/campains service
-    new LPPDac(this.web3, decodedEvent.address)
+    new LPPCampaign(this.web3, decodedEvent.address)
       .token()
-      .then(tokenAddress =>
-        this.tokens.find({
-          query: { tokenAddress, userAddress: decodedEvent.returnValues.addr },
-          paginate: false,
-        })
-          .then((data) => {
-            if (data.length === 0) {
-              return getTokenInformation(this.web3, tokenAddress)
-                .then(tokenInfo => this.tokens.create({
-                  tokenAddress,
-                  tokenName: tokenInfo.name,
-                  tokenSymbol: tokenInfo.symbol,
-                  balance: decodedEvent.returnValues.amount,
-                  userAddress: decodedEvent.returnValues.addr,
-                }));
-            }
-            const t = data[0];
-
-            const balance = toBN(t.balance).add(toBN(decodedEvent.returnValues.amount)).toString();
-
-            return this.tokens.patch(t._id, { balance });
-          }))
+      .then(token => this.updateTokens(token, decodedEvent.returnValues.addr, decodedEvent.returnValues.amount))
       .catch(console.error); // eslint-disable-line no-console
+  }
+
+  dacTokensGenerated(event) {
+    if (event.event !== 'GenerateTokens') throw new Error('dacTokensGenerated only handles GenerateTokens events');
+
+    getNetwork()
+      .then(network => new LPPDacs(this.web3, network.dacsAddress)
+        .getDac(event.returnValues.idDelegate))
+      .then(({ token }) => this.updateTokens(token, event.returnValues.addr, event.returnValues.amount))
+      .catch(console.error); // eslint-disable-line no-console
+  }
+
+  dacTokensDestroyed(event) {
+    if (event.event !== 'DestroyTokens') throw new Error('dacTokensDestroyed only handles DestroyTokens events');
+
+    getNetwork()
+      .then(network => new LPPDacs(this.web3, network.dacsAddress)
+        .getDac(event.returnValues.idDelegate))
+      .then(({ token }) => this.updateTokens(token, event.returnValues.addr, event.returnValues.amount, false))
+      .catch(console.error); // eslint-disable-line no-console
+  }
+
+  updateTokens(tokenAddress, addr, amount, generated = true) {
+    return this.tokens.find({
+        query: { tokenAddress, userAddress: addr },
+        paginate: false,
+      })
+      .then((data) => {
+        if (data.length === 0) {
+          return getTokenInformation(this.web3, tokenAddress)
+            .then(tokenInfo => this.tokens.create({
+              tokenAddress,
+              tokenName: tokenInfo.name,
+              tokenSymbol: tokenInfo.symbol,
+              balance: amount,
+              userAddress: addr,
+            }));
+        }
+        const t = data[ 0 ];
+
+        const balance = (generated) ?
+          toBN(t.balance).add(toBN(amount)).toString() :
+          toBN(t.balance).sub(toBN(amount)).toString();
+
+        return this.tokens.patch(t._id, { balance });
+      });
   }
 }
 

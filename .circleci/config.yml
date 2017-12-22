@@ -40,6 +40,7 @@ jobs:
           name: Production Deploy
           command: |
             if [ "${CIRCLE_BRANCH}" == "master" ]; then
-            ssh -o "StrictHostKeyChecking no" deploy@95.85.4.133 'cd feathers-giveth/; git checkout master; git pull; npm install; yarn serve-restart;'
-            ssh -o "StrictHostKeyChecking no" deploy@146.185.156.117 'cd feathers-giveth/; git checkout master; git pull; npm install; yarn serve-restart;'
+            #ssh -o "StrictHostKeyChecking no" deploy@95.85.4.133 'cd feathers-giveth/; git checkout master; git pull; npm install; yarn serve-restart;'
+            ssh -o "StrictHostKeyChecking no" deploy@159.89.22.129 'cd feathers-giveth/; git checkout master; git pull; npm install; yarn serve-restart;'
+            #ssh -o "StrictHostKeyChecking no" deploy@146.185.156.117 'cd feathers-giveth/; git checkout master; git pull; npm install; yarn serve-restart;'
             fi
