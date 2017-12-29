@@ -3,7 +3,7 @@ const networks = {
     vaultAddress: '0x91a973BEE89225c6c186419B5Bab1944Fc5736C7',
     liquidPledgingAddress: '0x3f45D2D5FeB6b4b000d2d3B84442eeDDF54A735a',
     cappedMilestoneAddress: '0x61Dc072691041d411bDa8CE5B4090feb45788a8C',
-    dacsAddress: '0x869ed845F8D4B436fFE778ADC0E9ab253E53f0F2',
+    dacsAddress: '0x79bddecb728afda275923998701bac34d277fb19',
   },
   morden: {
     vaultAddress: '0x0',
@@ -12,8 +12,8 @@ const networks = {
     dacsAddress: '0x0',
   },
   ropsten: {
-    vaultAddress: '0x547626030c9e9df93657a38075339f429e7a998b',
-    liquidPledgingAddress: '0x9a3e76a27e18994ebdb1ab813e87f4315d8faa5e',
+    vaultAddress: '0x4736De42c4263d2E12ee2d01Fed35E7454f844b3',
+    liquidPledgingAddress: '',
     cappedMilestoneAddress: '0x0',
     dacsAddress: '0x0',
   },
@@ -30,8 +30,8 @@ const networks = {
     dacsAddress: '0x0',
   },
   giveth: {
-    vaultAddress: '0x98bE0A726C9937Ba5E0227E84E1ccCaceFee88b4',
-    liquidPledgingAddress: '0xc2E1c6cf5D18247d63618dABf58E14F058D02c7C',
+    vaultAddress: '0x0',
+    liquidPledgingAddress: '0x0',
     cappedMilestoneAddress: '0x0',
     dacsAddress: '0x0',
   },
