@@ -12,16 +12,16 @@ const networks = {
     dacsAddress: '0x0',
   },
   ropsten: {
-    vaultAddress: '0x4736De42c4263d2E12ee2d01Fed35E7454f844b3',
-    liquidPledgingAddress: '',
+    vaultAddress: '0x0',
+    liquidPledgingAddress: '0x0',
     cappedMilestoneAddress: '0x0',
     dacsAddress: '0x0',
   },
   rinkeby: {
-    vaultAddress: '0xBf0bA4c72daab5BFeF6B9C496db91e4614a57131',
-    liquidPledgingAddress: '0x1B8F84E443668C81FeE5BEc266bc098e3c7fBC00',
-    cappedMilestoneAddress: '0x137802c8F48294331654108dd64d8acD48b3321d',
-    dacsAddress: '0x0',
+    vaultAddress: '0xc9Dc801aaEc6016282Da53e341f7f843f531eCfD',
+    liquidPledgingAddress: '0x40de47F30Bac30dDB151948591030fe543Cdd43D',
+    cappedMilestoneAddress: '0xfd39a5C81452C061e28B7aeD4E05a7bB9105c462',
+    dacsAddress: '0x55D8284F19A70955b9785a2a06d410C789474B5b',
   },
   kovan: {
     vaultAddress: '0x0',
