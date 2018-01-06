@@ -4,8 +4,8 @@ import logger from 'winston';
 import LiquidPledgingMonitor from './LiquidPledgingMonitor';
 import FailedTxMonitor from './FailedTxMonitor';
 import getNetwork from "./getNetwork";
-import { LiquidPledging, LPVault } from "giveth-liquidpledging";
-import { LPPCappedMilestones } from "lpp-capped-milestone";
+import { LiquidPledging, LPVault } from "giveth-liquidpledging-token";
+import { LPPCappedMilestones } from "lpp-capped-milestone-token";
 import { LPPDacs } from "lpp-dacs";
 
 const ONE_MINUTE = 60 * 1000;
