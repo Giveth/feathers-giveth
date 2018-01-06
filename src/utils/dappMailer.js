@@ -28,9 +28,38 @@ export default {
     })
 
     data.amount = utils.fromWei(data.amount);
-
     _sendEmail(app, data);
   },
+
+  donationReceived: (app, data) => {
+    _.extend(data, {
+      subject: "Giveth - You've received a donation!",       
+      type: "donation-received"    
+    })
+
+    data.amount = utils.fromWei(data.amount);
+    _sendEmail(app, data);
+  },  
+
+  delegationRequired: (app, data) => {
+    _.extend(data, {
+      subject: "Giveth - Delegation required for new donation!",       
+      type: "delegation-required"    
+    })
+
+    data.amount = utils.fromWei(data.amount);
+    _sendEmail(app, data);
+  }, 
+
+  milestoneProposed: (app, data) => {
+    _.extend(data, {
+      subject: "Giveth - A milestone has been proposed!",       
+      type: "milestone-proposed"    
+    })
+
+    data.amount = utils.fromWei(data.amount);
+    _sendEmail(app, data);
+  },       
 
 
   review: (app, data) => {

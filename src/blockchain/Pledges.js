@@ -283,6 +283,7 @@ class Pledges {
       const mutation = this._createDonationMutation(transferInfo);
 
       if(mutation.status === 'committed') {
+        // send a receipt to the donor
         Notifications.donation(this.app, {
           recipient: donation.ownerEntity.email,
           user: donation.ownerEntity.name,
@@ -291,6 +292,34 @@ class Pledges {
           donatedToTitle: toPledgeAdmin.admin.title,
           amount: donation.amount
         }); 
+
+  
+        console.log('toPledgeAdmin.type', toPledgeAdmin.type);
+        /** 
+         * send a notification to the admin of the dac / campaign / milestone
+         **/
+
+        // if this is a DAC or a campaign, then the donation needs delegation
+        if(['dac', 'campaign'].indexOf(toPledgeAdmin.type) > -1) {
+          Notifications.delegationRequired(this.app, {
+            recipient: toPledgeAdmin.admin.owner.email,
+            user: toPledgeAdmin.admin.owner.name,
+            txHash: donation.txHash,
+            donationType: toPledgeAdmin.type, // dac / campaign
+            donatedToTitle: toPledgeAdmin.admin.title,
+            amount: donation.amount
+          }); 
+        } else {
+          // if this is a milestone then no action is required
+          Notifications.donationReceived(this.app, {
+            recipient: toPledgeAdmin.admin.owner.email,
+            user: toPledgeAdmin.admin.owner.name,
+            txHash: donation.txHash,
+            donationType: toPledgeAdmin.type, // milestone
+            donatedToTitle: toPledgeAdmin.admin.title,
+            amount: donation.amount
+          });            
+        }
       }
 
       return donations.patch(donation._id, mutation)

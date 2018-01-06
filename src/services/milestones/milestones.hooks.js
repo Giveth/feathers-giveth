@@ -5,6 +5,7 @@ import sanitizeAddress from '../../hooks/sanitizeAddress';
 import setAddress from '../../hooks/setAddress';
 import sanitizeHtml from '../../hooks/sanitizeHtml';
 import isProjectAllowed from '../../hooks/isProjectAllowed';
+import Notifications from './../../utils/dappMailer';
 
 
 const restrict = () => (context) => {
@@ -60,6 +61,26 @@ const restrict = () => (context) => {
   return getMilestones()
     .then(milestones => ((Array.isArray(milestones)) ? milestones.forEach(canUpdate) : canUpdate(milestones)));
 };
+
+const sendNotification = () => (context) => {
+  const { data, app } = context;
+  if(data.status === 'proposed') {
+    // find the campaign admin and send a notification that milestone is proposed
+    app.service('users').find({query: { address: data.campaignOwnerAddress }})
+      .then((users) => {
+        console.log('campaignOwner', users)
+
+        Notifications.milestoneProposed(app, {
+          recipient: users.data[0].email,
+          user: users.data[0].name,
+          milestoneTitle: data.title,
+          amount: data.maxAmount
+        });  
+      })
+      .catch((e) => console.error('error sending proposed milestone notification', e));
+  };
+};
+
 
 const address = [
   sanitizeAddress('pluginAddress', { required: true, validate: true }),
@@ -117,9 +138,9 @@ module.exports = {
     all: [commons.populate({ schema })],
     find: [],
     get: [],
-    create: [],
+    create: [sendNotification()],
     update: [],
-    patch: [],
+    patch: [sendNotification()],
     remove: [],
   },
 
