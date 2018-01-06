@@ -114,7 +114,45 @@ const sendNotification = () => (context) => {
         user: result.owner.name,
         milestoneTitle: result.title,
       });    
+    } 
+
+    if(result.status === 'NeedsReview') {
+      console.log('result>>>', result);
+      // find the milestone reviewer owner and send a notification that this milestone is been marked as complete and needs review
+      Notifications.milestoneRequestReview(app, {
+        recipient: result.reviewer.email,
+        user: result.reviewer.name,
+        milestoneTitle: result.title,
+      });    
     }  
+
+    // TO DO: Not sure about this one
+    if(result.status === 'Completed') {
+      // find the milestone owner and send a notification that his/her milestone is marked complete
+      Notifications.milestoneMarkedCompleted(app, {
+        recipient: result.owner.email,
+        user: result.owner.name,
+        milestoneTitle: result.title,
+      });    
+    } 
+
+    if(result.prevStatus === 'NeedsReview' && result.status === 'inProgress') {
+      // find the milestone owner and send a notification that his/her milestone has been rejected by reviewer
+      Notifications.milestoneReviewRejected(app, {
+        recipient: result.reviewer.email,
+        user: result.reviewer.name,
+        milestoneTitle: result.title,
+      });    
+    }    
+
+    if(result.status === 'Canceled') {
+      // find the milestone owner and send a notification that his/her milestone is canceled
+      Notifications.milestoneCanceled(app, {
+        recipient: result.owner.email,
+        user: result.owner.name,
+        milestoneTitle: result.title,
+      });    
+    }                  
   }
 };
 

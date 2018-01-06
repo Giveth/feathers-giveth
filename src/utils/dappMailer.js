@@ -24,12 +24,13 @@ export default {
   donation: (app, data) => {
     _.extend(data, {
       subject: "Giveth - Thank you for your donation!",       
-      type: "donation"    
+      type: "donation-receipt"    
     })
 
     data.amount = utils.fromWei(data.amount);
     _sendEmail(app, data);
   },
+
 
   donationReceived: (app, data) => {
     _.extend(data, {
@@ -41,15 +42,17 @@ export default {
     _sendEmail(app, data);
   },  
 
+
   delegationRequired: (app, data) => {
     _.extend(data, {
       subject: "Giveth - Delegation required for new donation!",       
-      type: "delegation-required"    
+      type: "request-delegation"    
     })
 
     data.amount = utils.fromWei(data.amount);
     _sendEmail(app, data);
   }, 
+
 
   milestoneProposed: (app, data) => {
     _.extend(data, {
@@ -61,34 +64,64 @@ export default {
     _sendEmail(app, data);
   },  
 
+
   proposedMilestoneAccepted: (app, data) => {
     _.extend(data, {
       subject: "Giveth - Your proposed milestone is accepted!",       
-      type: "milestone-proposed-accepted"    
+      type: "proposed-milestone-accepted"    
     })
 
     data.amount = utils.fromWei(data.amount);
     _sendEmail(app, data);
   },
 
+
   proposedMilestoneRejected: (app, data) => {
     _.extend(data, {
       subject: "Giveth - Your proposed milestone is rejected :-(",       
-      type: "milestone-proposed-rejected"    
+      type: "proposed-milestone-rejected"    
     })
 
     _sendEmail(app, data);
   },              
 
-
-  review: (app, data) => {
+  milestoneRequestReview: (app, data) => {
     _.extend(data, {
       subject: "Giveth - Time to review!",       
-      type: "review-required"    
+      type: "milestone-request-review"    
     })
 
     _sendEmail(app, data);  
   },
+
+  milestoneMarkedCompleted: (app, data) => {
+    _.extend(data, {
+      subject: "Giveth - Your milestone is finished!",       
+      type: "milestone-review-approved"    
+    })
+
+    _sendEmail(app, data);  
+  },  
+
+
+  milestoneReviewRejected: (app, data) => {
+    _.extend(data, {
+      subject: "Giveth - Milestone rejected by reviewer :-(",       
+      type: "milestone-review-rejected"    
+    })
+    // not implemented yet
+    // _sendEmail(app, data);  
+  },  
+
+  milestoneCanceled: (app, data) => {
+    _.extend(data, {
+      subject: "Giveth - Milestone canceled by campaign owner :-(",       
+      type: "milestone-canceled"    
+    })
+
+    // not implemented yet
+    // _sendEmail(app, data);  
+  },    
 
   donationCancelled: (app, data) => {
     _.extend(data, {
@@ -96,6 +129,8 @@ export default {
       type: "donation-cancelled"    
     })
 
+    // not implemented yet
+    // _sendEmail(app, data);  
     _sendEmail(app, data);     
   } 
 }
