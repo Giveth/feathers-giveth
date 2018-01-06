@@ -245,7 +245,7 @@ class FailedTxMonitor extends EventEmitter {
               // if canceled, it's possible that the milestone was markedComplete,
               // but b/c that process is off-chain
               // we just reset to InProgress, and the recipient can mark complete again.
-              mutation = { status: 'InProgress', mined: true };
+              mutation = { status: 'InProgress', mined: true, prevStatus: milestone.prevStatus };
             } else if (milestone.status === 'Paying') {
               mutation = { status: 'Completed', mined: true };
             } else if (milestone.status === 'Paid') {

@@ -59,7 +59,26 @@ export default {
 
     data.amount = utils.fromWei(data.amount);
     _sendEmail(app, data);
-  },       
+  },  
+
+  proposedMilestoneAccepted: (app, data) => {
+    _.extend(data, {
+      subject: "Giveth - Your proposed milestone is accepted!",       
+      type: "milestone-proposed-accepted"    
+    })
+
+    data.amount = utils.fromWei(data.amount);
+    _sendEmail(app, data);
+  },
+
+  proposedMilestoneRejected: (app, data) => {
+    _.extend(data, {
+      subject: "Giveth - Your proposed milestone is rejected :-(",       
+      type: "milestone-proposed-rejected"    
+    })
+
+    _sendEmail(app, data);
+  },              
 
 
   review: (app, data) => {
