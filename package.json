@@ -68,7 +68,7 @@
     "request-promise": "^4.2.2",
     "sanitize-html": "^1.14.1",
     "serve-favicon": "^2.4.3",
-    "web3": "git://github.com/perissology/web3.js.git#04bc79f",
+    "web3": "^1.0.0-beta.27",
     "web3-eth-accounts": "^1.0.0-beta.18",
     "web3-eth-contract": "^1.0.0-beta.24",
     "web3-utils": "^1.0.0-beta.17",
