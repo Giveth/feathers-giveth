@@ -7,9 +7,9 @@ const _sendEmail = (app, data) => {
 
   rp({
     method: 'POST',
-    url: app.get('dappMailerUrl').dev + '/send',
+    url: app.get('dappMailerUrl') + '/send',
     headers: {
-      'Authorization': app.get('dappMailerSecret').dev
+      'Authorization': app.get('dappMailerSecret')
     },
     form: data
   }).then( res => { 
