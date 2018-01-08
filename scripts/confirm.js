@@ -1,5 +1,5 @@
 const Web3 = require('web3');
-const { LPVault } = require('liquidpledging');
+const { LPVault } = require('giveth-liquidpledging');
 
 const web3 = new Web3("ws://localhost:8546");
 
