@@ -85,6 +85,7 @@ const sendNotification = () => (context) => {
             recipient: users.data[0].email,
             user: users.data[0].name,
             milestoneTitle: data.title,
+            campaignTitle: result.campaign.title,
             amount: data.maxAmount
           });  
         })
@@ -113,6 +114,7 @@ const sendNotification = () => (context) => {
         recipient: result.owner.email,
         user: result.owner.name,
         milestoneTitle: result.title,
+        campaignTitle: result.campaign.title        
       });    
     } 
 
@@ -123,6 +125,7 @@ const sendNotification = () => (context) => {
         recipient: result.reviewer.email,
         user: result.reviewer.name,
         milestoneTitle: result.title,
+        campaignTitle: result.campaign.title
       });    
     }  
 
@@ -133,15 +136,17 @@ const sendNotification = () => (context) => {
         recipient: result.owner.email,
         user: result.owner.name,
         milestoneTitle: result.title,
+        campaignTitle: result.campaign.title        
       });    
     } 
 
     if(result.prevStatus === 'NeedsReview' && result.status === 'inProgress') {
-      // find the milestone owner and send a notification that his/her milestone has been rejected by reviewer
+      // find the milestone reviewer and send a notification that his/her milestone has been rejected by reviewer
       Notifications.milestoneReviewRejected(app, {
         recipient: result.reviewer.email,
         user: result.reviewer.name,
         milestoneTitle: result.title,
+        campaignTitle: result.campaign.title        
       });    
     }    
 
@@ -151,6 +156,7 @@ const sendNotification = () => (context) => {
         recipient: result.owner.email,
         user: result.owner.name,
         milestoneTitle: result.title,
+        campaignTitle: result.campaign.title        
       });    
     }                  
   }

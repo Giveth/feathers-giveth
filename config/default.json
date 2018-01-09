@@ -1,6 +1,7 @@
 {
   "host": "localhost",
   "port": 3030,
+  "dappUrl": "localhost:3010",
   "public": "../public/",
   "paginate": {
     "default": 10,
@@ -60,5 +61,5 @@
     "0xd03ea8624c8c5987235048901fb614fdca89b117"
   ],
   "dappMailerUrl": "http://127.0.0.1:3050",
-  "dappMailerSecret": "",
+  "dappMailerSecret": ""
 }
