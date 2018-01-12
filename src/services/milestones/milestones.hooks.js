@@ -6,6 +6,7 @@ import setAddress from '../../hooks/setAddress';
 import sanitizeHtml from '../../hooks/sanitizeHtml';
 import isProjectAllowed from '../../hooks/isProjectAllowed';
 import Notifications from './../../utils/dappMailer';
+import logger from 'winston';
 
 
 const restrict = () => (context) => {
@@ -87,7 +88,7 @@ const sendNotification = () => (context) => {
             amount: data.maxAmount
           });  
         })
-        .catch((e) => console.error('error sending proposed milestone notification', e));
+        .catch((e) => logger.error('error sending proposed milestone notification', e));
     };  
   }
 
