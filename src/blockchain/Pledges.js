@@ -294,9 +294,7 @@ class Pledges {
           donatedToTitle: toPledgeAdmin.admin.title,
           amount: donation.amount
         }); 
-
   
-        console.log('toPledgeAdmin.type', toPledgeAdmin.type);
         /** 
          * send a notification to the admin of the dac / campaign / milestone
          **/

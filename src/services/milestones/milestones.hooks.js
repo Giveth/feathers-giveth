@@ -79,8 +79,6 @@ const sendNotification = () => (context) => {
       // find the campaign admin and send a notification that milestone is proposed
       app.service('users').find({query: { address: data.campaignOwnerAddress }})
         .then((users) => {
-          console.log('campaignOwner', users)
-
           Notifications.milestoneProposed(app, {
             recipient: users.data[0].email,
             user: users.data[0].name,
@@ -119,7 +117,6 @@ const sendNotification = () => (context) => {
     } 
 
     if(result.status === 'NeedsReview') {
-      console.log('result>>>', result);
       // find the milestone reviewer owner and send a notification that this milestone is been marked as complete and needs review
       Notifications.milestoneRequestReview(app, {
         recipient: result.reviewer.email,
@@ -129,8 +126,7 @@ const sendNotification = () => (context) => {
       });    
     }  
 
-    // TO DO: Not sure about this one
-    if(result.status === 'Completed') {
+    if(result.status === 'Completed' && result.mined) {
       // find the milestone owner and send a notification that his/her milestone is marked complete
       Notifications.milestoneMarkedCompleted(app, {
         recipient: result.owner.email,
@@ -150,7 +146,7 @@ const sendNotification = () => (context) => {
       });    
     }    
 
-    if(result.status === 'Canceled') {
+    if(result.status === 'Canceled' && result.mined) {
       // find the milestone owner and send a notification that his/her milestone is canceled
       Notifications.milestoneCanceled(app, {
         recipient: result.owner.email,

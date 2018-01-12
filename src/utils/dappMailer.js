@@ -1,12 +1,12 @@
 const rp = require('request-promise');
-const _ = require('lodash');
 import { utils } from 'web3';
+import logger from 'winston';
 
 const _sendEmail = (app, data) => {
   // add the dapp url that this feathers serves for
-  _.extend(data, { dappUrl: app.get('dappUrl')});
+  Object.assign(data, { dappUrl: app.get('dappUrl')});
 
-  console.log('send notification', data);
+  logger.info(`sending email notification to ${data.recipient} > ${data.unsubscribeType}`);
 
   rp({
     method: 'POST',
@@ -17,9 +17,9 @@ const _sendEmail = (app, data) => {
     form: data,
     json: true
   }).then( res => { 
-    console.log('send email', res)
-  }).catch( err => {    
-    console.log('error sending email', err)
+    logger.info(`email sent to ${data.recipient}: `, res);
+  }).catch( err => {   
+    logger.error(`error sending email to ${data.recipient}`, err);
   });      
 }
 
@@ -28,7 +28,7 @@ export default {
   donation: (app, data) => {
     data.amount = utils.fromWei(data.amount);
 
-    _.extend(data, {
+    Object.assign(data, {
       template: "notification",
       subject: "Giveth - Thank you for your donation!",             
       secretIntro: `Thank you for your donation of ${data.amount}Ξ to the ${data.donationType} "${data.donatedToTitle}"!`,
@@ -45,7 +45,7 @@ export default {
       ctaRelativeUrl: "/my-donations",
       unsubscribeType: "donation-receipt",
       unsubscribeReason: "You receive this email from Giveth because you have made a donation"    
-    })
+    });
 
     _sendEmail(app, data);
   },
@@ -54,7 +54,7 @@ export default {
   donationReceived: (app, data) => {
     data.amount = utils.fromWei(data.amount);
 
-    _.extend(data, {
+    Object.assign(data, {
       template: "notification",
       subject: "Giveth - You've received a donation!",             
       secretIntro: `You have received a donation of ${data.amount}Ξ for the ${data.donationType} "${data.donatedToTitle}"!`,
@@ -72,7 +72,7 @@ export default {
       ctaRelativeUrl: `/my-${data.donationType}s`,
       unsubscribeType: "donation-received",
       unsubscribeReason: `You receive this email because you run a ${data.donationType}`    
-    })
+    });
 
     _sendEmail(app, data);
   },  
@@ -81,7 +81,7 @@ export default {
   delegationRequired: (app, data) => {
     data.amount = utils.fromWei(data.amount);
 
-    _.extend(data, {
+    Object.assign(data, {
       template: "notification",
       subject: "Giveth - Delegation required for new donation!",       
       secretIntro: `Take action! Please delegate a new donation of ${data.amount}Ξ for the ${data.donationType} "${data.donatedToTitle}"!`,
@@ -103,7 +103,7 @@ export default {
       ctaRelativeUrl: `/my-donations`,
       unsubscribeType: "request-delegation",
       unsubscribeReason: `You receive this email because you run a ${data.donationType}`    
-    })    
+    });
 
     _sendEmail(app, data);
   }, 
@@ -111,8 +111,8 @@ export default {
 
   milestoneProposed: (app, data) => {
     data.amount = utils.fromWei(data.amount);
-
-    _.extend(data, {
+    
+    Object.assign(data, {
       template: "notification",
       subject: "Giveth - A milestone has been proposed!",       
       secretIntro: `Take action! A milestone has been proposed for your campaign! Please accept or reject.`,
@@ -130,15 +130,14 @@ export default {
       ctaRelativeUrl: `/my-milestones`,
       unsubscribeType: "milestone-proposed",
       unsubscribeReason: `You receive this email because you run a campaign`    
-    })  
+    }); 
 
-    data.amount = utils.fromWei(data.amount);
     _sendEmail(app, data);
   },  
 
 
   proposedMilestoneAccepted: (app, data) => {
-    _.extend(data, {
+    Object.assign(data, {
       template: "notification",
       subject: "Giveth - Your proposed milestone is accepted!",       
       secretIntro: `Your milestone ${data.milestoneTitle} has been accepted by the campaign owner. You can now receive donations.`,
@@ -156,14 +155,14 @@ export default {
       ctaRelativeUrl: `/my-milestones`,
       unsubscribeType: "proposed-milestone-accepted",
       unsubscribeReason: `You receive this email because you run a milestone`    
-    }) 
+    }); 
 
     _sendEmail(app, data);
   },
 
 
   proposedMilestoneRejected: (app, data) => {
-    _.extend(data, {
+    Object.assign(data, {
       template: "notification",
       subject: "Giveth - Your proposed milestone is rejected :-(",       
       secretIntro: `Your milestone ${data.milestoneTitle} has been rejected by the campaign owner :-(`,
@@ -181,13 +180,13 @@ export default {
       ctaRelativeUrl: `/my-milestones`,
       unsubscribeType: "proposed-milestone-rejected",
       unsubscribeReason: `You receive this email because you proposed a milestone`    
-    })     
+    });     
 
     _sendEmail(app, data);
   },              
 
   milestoneRequestReview: (app, data) => {
-    _.extend(data, {
+    Object.assign(data, {
       template: "notification",
       subject: "Giveth - Time to review!",       
       secretIntro: `Take action: you are requested to review the milestone ${data.milestoneTitle} within 3 days.`,
@@ -209,13 +208,13 @@ export default {
       ctaRelativeUrl: `/my-milestones`,
       unsubscribeType: "milestone-request-review",
       unsubscribeReason: `You receive this email because you run a milestone`    
-    })       
+    });      
 
     _sendEmail(app, data);  
   },
 
   milestoneMarkedCompleted: (app, data) => {
-    _.extend(data, {
+    Object.assign(data, {
       template: "notification",
       subject: "Giveth - Your milestone is finished!",       
       secretIntro: `Your milestone ${data.milestoneTitle} has been marked complete by the reviewer. The recipient can now collect the payment.`,
@@ -234,36 +233,36 @@ export default {
       ctaRelativeUrl: `/my-milestones`,
       unsubscribeType: "milestone-review-approved",
       unsubscribeReason: `You receive this email because you run a milestone`    
-    })       
+    });       
 
     _sendEmail(app, data);  
   },  
 
 
   milestoneReviewRejected: (app, data) => {
-    _.extend(data, {
+    Object.assign(data, {
       subject: "Giveth - Milestone rejected by reviewer :-(",       
       type: "milestone-review-rejected"    
-    })
+    });
     // not implemented yet
     // _sendEmail(app, data);  
   },  
 
   milestoneCanceled: (app, data) => {
-    _.extend(data, {
+    Object.assign(data, {
       subject: "Giveth - Milestone canceled by campaign owner :-(",       
       type: "milestone-canceled"    
-    })
+    });
 
     // not implemented yet
     // _sendEmail(app, data);  
   },    
 
   donationCancelled: (app, data) => {
-    _.extend(data, {
+    Object.assign(data, {
       subject: "Giveth - Oh no, you lost a giver!",       
       type: "donation-cancelled"    
-    })
+    });
 
     // not implemented yet
     // _sendEmail(app, data);  
