@@ -137,7 +137,7 @@ const sendNotification = () => (context) => {
       });    
     } 
 
-    if(result.prevStatus === 'NeedsReview' && result.status === 'inProgress') {
+    if(result.prevStatus === 'NeedsReview' && result.status === 'InProgress') {
       // find the milestone reviewer and send a notification that his/her milestone has been rejected by reviewer
       Notifications.milestoneReviewRejected(app, {
         recipient: result.reviewer.email,
