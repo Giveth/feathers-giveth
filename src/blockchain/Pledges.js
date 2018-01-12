@@ -284,7 +284,7 @@ class Pledges {
       // this is a complete pledge transfer
       const mutation = this._createDonationMutation(transferInfo);
 
-      if(mutation.status === 'committed') {
+      if (mutation.status === 'committed' || mutation.status === 'waiting' && delegate) {
         // send a receipt to the donor
         Notifications.donation(this.app, {
           recipient: donation.ownerEntity.email,
@@ -293,9 +293,9 @@ class Pledges {
           donationType: toPledgeAdmin.type, // dac / campaign / milestone
           donatedToTitle: toPledgeAdmin.admin.title,
           amount: donation.amount
-        }); 
-  
-        /** 
+        });
+
+        /**
          * send a notification to the admin of the dac / campaign / milestone
          **/
 
@@ -308,7 +308,7 @@ class Pledges {
             donationType: toPledgeAdmin.type, // dac / campaign
             donatedToTitle: toPledgeAdmin.admin.title,
             amount: donation.amount
-          }); 
+          });
         } else {
           // if this is a milestone then no action is required
           Notifications.donationReceived(this.app, {
@@ -318,7 +318,7 @@ class Pledges {
             donationType: toPledgeAdmin.type, // milestone
             donatedToTitle: toPledgeAdmin.admin.title,
             amount: donation.amount
-          });            
+          });
         }
       }
 
