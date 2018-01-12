@@ -53,8 +53,8 @@
     "feathers-socketio": "^2.0.0",
     "feathers-swagger": "^0.5.0",
     "fs-blob-store": "^5.2.1",
-    "helmet": "^3.8.1",
     "giveth-liquidpledging": "0.0.10",
+    "helmet": "^3.8.1",
     "lpp-campaign": "0.0.14",
     "lpp-capped-milestone": "0.0.3",
     "lpp-dacs": "0.0.3",
@@ -71,7 +71,7 @@
     "web3": "git://github.com/perissology/web3.js.git#04bc79f",
     "web3-eth-accounts": "^1.0.0-beta.18",
     "web3-eth-contract": "^1.0.0-beta.24",
-    "web3-utils": "^1.0.0-beta.17",
+    "web3-utils": "^1.0.0-beta.26",
     "winston": "^2.3.1"
   },
   "devDependencies": {
@@ -83,8 +83,6 @@
     "eslint-config-airbnb": "^16.1.0",
     "ethereumjs-testrpc": "git://github.com/perissology/ganache-cli.git#963aa7d",
     "lerna": "^2.2.0",
-    "mocha": "^3.5.0",
-    "request": "^2.81.0",
-    "request-promise": "^4.2.1"
+    "mocha": "^3.5.0"
   }
 }
