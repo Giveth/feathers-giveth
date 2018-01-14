@@ -285,15 +285,18 @@ class Pledges {
       const mutation = this._createDonationMutation(transferInfo);
 
       if (mutation.status === 'committed' || mutation.status === 'waiting' && delegate) {
-        // send a receipt to the donor
-        Notifications.donation(this.app, {
-          recipient: donation.ownerEntity.email,
-          user: donation.ownerEntity.name,
-          txHash: donation.txHash,
-          donationType: toPledgeAdmin.type, // dac / campaign / milestone
-          donatedToTitle: toPledgeAdmin.admin.title,
-          amount: donation.amount
-        });
+        
+        if(donation.ownerEntity.email) {
+          // send a receipt to the donor, if donor isn't anomynous
+          Notifications.donation(this.app, {
+            recipient: donation.ownerEntity.email,
+            user: donation.ownerEntity.name,
+            txHash: donation.txHash,
+            donationType: toPledgeAdmin.type, // dac / campaign / milestone
+            donatedToTitle: toPledgeAdmin.admin.title,
+            amount: donation.amount
+          });
+        }
 
         /**
          * send a notification to the admin of the dac / campaign / milestone
