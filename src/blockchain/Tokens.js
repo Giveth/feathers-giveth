@@ -4,14 +4,13 @@ import { LPPCampaign } from 'lpp-campaign';
 import { LPPDacs } from 'lpp-dacs';
 
 import { getTokenInformation } from './helpers';
-import getNetwork from "./getNetwork";
 
 const GenerateTokenEvent = {
   anonymous: false,
   inputs:
-    [{ indexed: true, name: 'liquidPledging', type: 'address' },
+    [ { indexed: true, name: 'liquidPledging', type: 'address' },
       { indexed: false, name: 'addr', type: 'address' },
-      { indexed: false, name: 'amount', type: 'uint256' }],
+      { indexed: false, name: 'amount', type: 'uint256' } ],
   name: 'GenerateTokens',
   type: 'event',
   signature: '0xf8a6cdb77a67632a46c21be3e7ca9b2519ecd39d21e514f9222c5b2f19ce23ed',
@@ -43,9 +42,8 @@ class Tokens {
   dacTokensGenerated(event) {
     if (event.event !== 'GenerateTokens') throw new Error('dacTokensGenerated only handles GenerateTokens events');
 
-    getNetwork()
-      .then(network => new LPPDacs(this.web3, network.dacsAddress)
-        .getDac(event.returnValues.idDelegate))
+    new LPPDacs(this.web3, this.app.get('blockchain.dacsAddress'))
+      .getDac(event.returnValues.idDelegate)
       .then(({ token }) => this.updateTokens(token, event.returnValues.addr, event.returnValues.amount))
       .catch(console.error); // eslint-disable-line no-console
   }
@@ -53,9 +51,8 @@ class Tokens {
   dacTokensDestroyed(event) {
     if (event.event !== 'DestroyTokens') throw new Error('dacTokensDestroyed only handles DestroyTokens events');
 
-    getNetwork()
-      .then(network => new LPPDacs(this.web3, network.dacsAddress)
-        .getDac(event.returnValues.idDelegate))
+    new LPPDacs(this.web3, this.app.get('blockchain.dacsAddress'))
+      .getDac(event.returnValues.idDelegate)
       .then(({ token }) => this.updateTokens(token, event.returnValues.addr, event.returnValues.amount, false))
       .catch(console.error); // eslint-disable-line no-console
   }
