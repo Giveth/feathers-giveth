@@ -27,7 +27,7 @@
     "build": "npm run clean && npm run build-server",
     "test": "npm run eslint && npm run mocha",
     "eslint": "eslint src/. test/. --config .eslintrc.json",
-    "testrpc": "mkdirp data/testrpc && node node_modules/ethereumjs-testrpc/build/cli.node.js -d --ws --gasLimit 6700000 --db data/testrpc",
+    "testrpc": "mkdirp data/testrpc && node node_modules/ganache-cli/build/cli.node.js -d --gasLimit 6700000 --db data/testrpc",
     "start": "babel-watch src",
     "serve": "npm run build && pm2 startOrRestart ecosystem.config.js --env production",
     "serve-restart": "npm run build && pm2 startOrRestart ecosystem.config.js --env production",
@@ -38,7 +38,6 @@
     "compression": "^1.7.0",
     "cors": "^2.8.4",
     "dauria": "^2.0.0",
-    "duplexer3": "git://github.com/floatdrop/duplexer3.git#810f45",
     "feathers": "^2.1.7",
     "feathers-authentication": "^1.2.7",
     "feathers-authentication-hooks": "^0.1.4",
@@ -82,7 +81,7 @@
     "babel-watch": "^2.0.7",
     "eslint": "^4.10.0",
     "eslint-config-airbnb": "^16.1.0",
-    "ethereumjs-testrpc": "git://github.com/perissology/ganache-cli.git#963aa7d",
+    "ganache-cli": "^7.0.0-beta.0",
     "lerna": "^2.2.0",
     "mocha": "^3.5.0"
   }
