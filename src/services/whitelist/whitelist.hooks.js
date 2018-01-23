@@ -1,30 +1,42 @@
-const getUsersByAddress = (app, addresses) => {
-  return app.service('/users').find({ query: { 
-    address: { $in: addresses }, 
-    $select: [ '_id', 'name', 'email', 'address', 'avatar' ]
-  }}).then((users) => users.data);
-}
+const getUsersByAddress = (app, addresses) =>
+  app
+    .service('/users')
+    .find({
+      query: {
+        address: { $in: addresses },
+        $select: ['_id', 'name', 'email', 'address', 'avatar'],
+      },
+    })
+    .then(users => users.data);
 
-const getWhitelist = () => (context) => {
+const getWhitelist = () => context => {
   const { app } = context;
 
   // fetch whitelisted addresses from default.json
-  const reviewers = app.get('useReviewerWhitelist') ? app.get('reviewerWhitelist') : [];
-  const delegates = app.get('useDelegateWhitelist') ? app.get('delegateWhitelist') : [];
-  const projectOwners = app.get('useProjectOwnerWhitelist') ? app.get('projectOwnerWhitelist') : [];
+  const reviewers = app.get('useReviewerWhitelist')
+    ? app.get('reviewerWhitelist')
+    : [];
+  const delegates = app.get('useDelegateWhitelist')
+    ? app.get('delegateWhitelist')
+    : [];
+  const projectOwners = app.get('useProjectOwnerWhitelist')
+    ? app.get('projectOwnerWhitelist')
+    : [];
 
   // find all the users
-  return Promise.all([getUsersByAddress(app, reviewers), getUsersByAddress(app, delegates), getUsersByAddress(app, projectOwners)])
-    .then(([reviewerUsers, delegateUsers, projectOwnerUsers]) => {
+  return Promise.all([
+    getUsersByAddress(app, reviewers),
+    getUsersByAddress(app, delegates),
+    getUsersByAddress(app, projectOwners),
+  ]).then(([reviewerUsers, delegateUsers, projectOwnerUsers]) => {
+    context.result = {
+      reviewerWhitelist: reviewerUsers,
+      delegateWhitelist: delegateUsers,
+      projectOwnerWhitelist: projectOwnerUsers,
+    };
 
-      context.result = {
-        reviewerWhitelist: reviewerUsers,
-        delegateWhitelist: delegateUsers,
-        projectOwnerWhitelist: projectOwnerUsers
-      }
-
-      return context;
-    });
+    return context;
+  });
 };
 
 export default {
@@ -40,7 +52,7 @@ export default {
 
   after: {
     all: [],
-    find: [ getWhitelist()],
+    find: [getWhitelist()],
     get: [],
     create: [],
     update: [],
