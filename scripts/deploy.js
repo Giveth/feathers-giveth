@@ -5,7 +5,7 @@ const { LPPCampaignFactory, LPPCampaignRuntimeByteCode } = require('lpp-campaign
 const { LPPCappedMilestones, LPPCappedMilestonesRuntimeByteCode} = require('lpp-capped-milestone-token');
 const { MiniMeToken, MiniMeTokenFactory } = require('minimetoken');
 
-const web3 = new Web3('ws://localhost:8546');
+const web3 = new Web3('ws://localhost:8545');
 
 async function deploy() {
   const accounts = await web3.eth.getAccounts();
