@@ -33,8 +33,7 @@ const restrict = () => context => {
     ];
 
     // reviewers can mark Completed or Canceled
-    if (['Completed', 'Canceled'].includes(data.status) &&
-          data.mined === false) {
+    if (['Completed', 'Canceled'].includes(data.status) && data.mined === false) {
 
       if (!reviewers.includes(user.address)) {
         throw new errors.Forbidden(
@@ -49,9 +48,7 @@ const restrict = () => context => {
         key => !approvedKeys.includes(key),
       );
       keysToRemove.forEach(key => delete data[key]);
-    } else if (data.status === 'InProgress' &&
-        milestone.status !== data.status) {
-
+    } else if (data.status === 'InProgress' && milestone.status !== data.status) {
       // reject milestone
       if (!reviewers.includes(user.address)) {
         throw new errors.Forbidden('Only the reviewer reject a milestone');
@@ -64,7 +61,7 @@ const restrict = () => context => {
         key => !approvedKeys.includes(key),
       );
       keysToRemove.forEach(key => delete data[key]);
-    } else if (milestone.status === 'proposed') {
+    } else if (milestone.status === 'proposed' && data.status === 'pending') {
       // accept proposed milestone
       if (user.address !== milestone.campaignOwnerAddress) {
         throw new errors.Forbidden(
@@ -74,18 +71,20 @@ const restrict = () => context => {
 
       const approvedKeys = ['txHash', 'status', 'mined', 'ownerAddress'];
 
-      // data.ownerAddress = user.address
-
       const keysToRemove = Object.keys(data).map(
         key => !approvedKeys.includes(key),
       );
       keysToRemove.forEach(key => delete data[key]);
-    } else if (!milestone.status && user.address !== milestone.ownerAddress) {
+    } else if (user.address !== milestone.ownerAddress) {
       throw new errors.Forbidden();
-    } else {
-
+    } else if (milestone.status !== 'proposed') {
       // this data is stored on-chain & can't be updated
-      const keysToRemove = ['maxAmount', 'reviewerAddress', 'recipientAddress', 'campaignReviewerAddress'];
+      const keysToRemove = [
+        'maxAmount',
+        'reviewerAddress',
+        'recipientAddress',
+        'campaignReviewerAddress',
+      ];
       keysToRemove.forEach(key => delete data[key]);
     }
   };
