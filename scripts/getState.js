@@ -1,7 +1,7 @@
 const Web3 = require('web3');
 const { LiquidPledging, LiquidPledgingState, LPVault } = require('giveth-liquidpledging-token');
 
-const web3 = new Web3('ws://localhost:8545');
+const web3 = new Web3('ws://localhost:8546');
 
 async function printState() {
   const liquidPledging = new LiquidPledging(web3, '0x5b1869D9A4C187F2EAa108f3062412ecf0526b24');

@@ -11,7 +11,7 @@
   "uploads": "../uploads",
   "uploadsBaseUrl": "http://localhost:3030/uploads/",
   "blockchain": {
-    "nodeUrl": "ws://localhost:8545",
+    "nodeUrl": "ws://localhost:8546",
     "startingBlock": 0
   },
   "authentication": {

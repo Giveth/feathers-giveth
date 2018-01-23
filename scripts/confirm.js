@@ -1,7 +1,7 @@
 const Web3 = require('web3');
 const { LPVault } = require('giveth-liquidpledging-token');
 
-const web3 = new Web3("ws://localhost:8545");
+const web3 = new Web3("ws://localhost:8546");
 
 async function confirmPayments() {
   const from = '0x90f8bf6a479f320ead074411a4b0e7944ea8c9c1';
