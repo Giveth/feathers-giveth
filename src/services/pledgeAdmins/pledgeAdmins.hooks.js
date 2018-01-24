@@ -1,5 +1,6 @@
 import commons from 'feathers-hooks-common';
 import onlyInternal from '../../hooks/onlyInternal';
+import { updatedAt, createdAt } from '../../hooks/timestamps';
 
 const populateAdmin = () => (context) => {
   const fetchAdmin = (item) => {
@@ -33,9 +34,9 @@ export default {
     all: [],
     find: [],
     get: [],
-    create: [ onlyInternal() ],
-    update: [ onlyInternal() ],
-    patch: [ onlyInternal() ],
+    create: [ onlyInternal(), createdAt ],
+    update: [ onlyInternal(), updatedAt ],
+    patch: [ onlyInternal(), updatedAt ],
     remove: [ commons.disallow() ],
   },
 

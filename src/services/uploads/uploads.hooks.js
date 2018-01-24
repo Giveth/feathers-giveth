@@ -1,5 +1,6 @@
 import dauria from 'dauria';
 import { disallow } from 'feathers-hooks-common';
+import { updatedAt, createdAt } from '../../hooks/timestamps';
 
 const transformFile = () => {
   return context => {
@@ -35,7 +36,7 @@ module.exports = {
   before: {
     all: [],
     get: [ disallow() ],
-    create: [ transformFile() ],
+    create: [ transformFile(), createdAt ],
     remove: [ disallow() ],
   },
 

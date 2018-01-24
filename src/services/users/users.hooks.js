@@ -5,6 +5,7 @@ import { toChecksumAddress } from 'web3-utils';
 import notifyOfChange from '../../hooks/notifyOfChange';
 import sanitizeAddress from '../../hooks/sanitizeAddress';
 import setAddress from '../../hooks/setAddress';
+import { updatedAt, createdAt } from '../../hooks/timestamps';
 
 const normalizeId = () => {
   return context => {
@@ -51,9 +52,9 @@ module.exports = {
     all: [],
     find: [ sanitizeAddress('address') ],
     get: [ normalizeId() ],
-    create: [ commons.discard('_id'), ...address ],
-    update: [ ...restrict, commons.stashBefore() ],
-    patch: [ ...restrict, commons.stashBefore() ],
+    create: [ commons.discard('_id'), ...address, createdAt ],
+    update: [ ...restrict, commons.stashBefore(), updatedAt ],
+    patch: [ ...restrict, commons.stashBefore(), updatedAt ],
     remove: [ commons.disallow() ],
   },
 

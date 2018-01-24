@@ -7,6 +7,7 @@ import setAddress from '../../hooks/setAddress';
 import sanitizeHtml from '../../hooks/sanitizeHtml';
 import isProjectAllowed from '../../hooks/isProjectAllowed';
 import Notifications from './../../utils/dappMailer';
+import { updatedAt, createdAt } from '../../hooks/timestamps';
 
 const restrict = () => context => {
   // internal call are fine
@@ -261,8 +262,9 @@ module.exports = {
       ...address,
       isProjectAllowed(),
       sanitizeHtml('description'),
+      createdAt
     ],
-    update: [restrict(), ...address, sanitizeHtml('description')],
+    update: [restrict(), ...address, sanitizeHtml('description'), updatedAt],
     patch: [
       restrict(),
       sanitizeAddress(
@@ -275,6 +277,7 @@ module.exports = {
         { validate: true },
       ),
       sanitizeHtml('description'),
+      updatedAt
     ],
     remove: [commons.disallow()],
   },

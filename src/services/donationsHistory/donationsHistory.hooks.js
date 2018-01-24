@@ -4,6 +4,7 @@ import onlyInternal from '../../hooks/onlyInternal';
 import { populate } from 'feathers-hooks-common';
 import { toBN } from 'web3-utils';
 import _ from 'underscore'
+import { updatedAt, createdAt } from '../../hooks/timestamps';
 
 // // A hook that updates `data` with the route parameter
 // const mapDonationIdToQuery = () => (context) => {
@@ -99,7 +100,7 @@ export default {
     all: [],
     find: [],
     get: [],
-    create: [ onlyInternal(), updateType() ],
+    create: [ onlyInternal(), updateType(), createdAt ],
     update: [ disallow() ],
     patch: [ disallow() ],
     remove: [ disallow() ],

@@ -5,6 +5,7 @@ import sanitizeAddress from '../../hooks/sanitizeAddress';
 import setAddress from '../../hooks/setAddress';
 import sanitizeHtml from '../../hooks/sanitizeHtml';
 import isProjectAllowed from '../../hooks/isProjectAllowed';
+import { updatedAt, createdAt } from '../../hooks/timestamps';
 
 const restrict = () => context => {
   // internal call are fine
@@ -87,12 +88,12 @@ module.exports = {
     all: [],
     find: [ sanitizeAddress('ownerAddress') ],
     get: [],
-    create: [ setAddress('ownerAddress'), sanitizeAddress('ownerAddress', {
+    create: [ createdAt, setAddress('ownerAddress'), sanitizeAddress('ownerAddress', {
       required: true,
       validate: true,
     }), isProjectAllowed(), sanitizeHtml('description') ],
-    update: [ restrict(), sanitizeAddress('ownerAddress', { required: true, validate: true }), sanitizeHtml('description') ],
-    patch: [ restrict(), sanitizeAddress('ownerAddress', { validate: true }), sanitizeHtml('description') ],
+    update: [ restrict(), sanitizeAddress('ownerAddress', { required: true, validate: true }), sanitizeHtml('description'), updatedAt ],
+    patch: [ restrict(), sanitizeAddress('ownerAddress', { validate: true }), sanitizeHtml('description'), updatedAt ],
     remove: [ commons.disallow() ],
   },
 

@@ -4,6 +4,7 @@ import { restrictToOwner } from 'feathers-authentication-hooks';
 import sanitizeAddress from '../../hooks/sanitizeAddress';
 import setAddress from '../../hooks/setAddress';
 import sanitizeHtml from '../../hooks/sanitizeHtml';
+import { updatedAt, createdAt } from '../../hooks/timestamps';
 
 const restrict = [
   restrictToOwner({
@@ -82,9 +83,9 @@ module.exports = {
     all: [],
     find: [ sanitizeAddress('ownerAddress') ],
     get: [],
-    create: [ setAddress('ownerAddress'), isDacAllowed(), sanitizeAddress('ownerAddress', { required: true, validate: true, }), sanitizeHtml('description') ],
-    update: [ ...restrict, sanitizeAddress('ownerAddress', { required: true, validate: true }), sanitizeHtml('description') ],
-    patch: [ ...restrict, sanitizeAddress('ownerAddress', { validate: true }), sanitizeHtml('description') ],
+    create: [ setAddress('ownerAddress'), isDacAllowed(), sanitizeAddress('ownerAddress', { required: true, validate: true, }), sanitizeHtml('description'), createdAt ],
+    update: [ ...restrict, sanitizeAddress('ownerAddress', { required: true, validate: true }), sanitizeHtml('description'), updatedAt ],
+    patch: [ ...restrict, sanitizeAddress('ownerAddress', { validate: true }), sanitizeHtml('description'), updatedAt ],
     remove: [ commons.disallow() ],
   },
 
