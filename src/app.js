@@ -46,9 +46,10 @@ app.configure(logger);
 // Configure other middleware (see `middleware/index.js`)
 app.configure(middleware);
 app.configure(authentication);
-app.configure(blockchain);
 // Set up our services (see `services/index.js`)
 app.configure(services);
+// blockchain must be initialized after services
+app.configure(blockchain);
 // Configure a middleware for 404s and the error handler
 app.use(notFound());
 app.use(handler());
