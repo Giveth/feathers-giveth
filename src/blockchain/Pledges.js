@@ -1,6 +1,7 @@
 import logger from 'winston';
 import { hexToNumber, toBN } from 'web3-utils';
 import { pledgeState } from './helpers';
+import Notifications from './../utils/dappMailer';
 
 const ReProcessEvent = () => {
 };
@@ -121,7 +122,7 @@ class Pledges {
     const donations = this.app.service('donations');
     const pledgeAdmins = this.app.service('pledgeAdmins');
 
-    const getDonation = () => donations.find({ query: { pledgeId: from } })
+    const getDonation = () => donations.find({schema: 'includeTypeAndGiverDetails', query: { pledgeId: from } })
       .then((donations) => {
         if (donations.data.length === 1) return donations.data[ 0 ];
 
@@ -277,11 +278,60 @@ class Pledges {
 
   _doTransfer(transferInfo) {
     const donations = this.app.service('donations');
-    const { donation, amount } = transferInfo;
+    const { toPledgeAdmin, toPledge, toPledgeId, delegate, intendedProject, donation, amount, ts } = transferInfo;
 
     if (donation.amount === amount) {
       // this is a complete pledge transfer
       const mutation = this._createDonationMutation(transferInfo);
+
+      //TODO fix the logic here so it sends the correct notifications
+      // if (mutation.status === 'committed' || mutation.status === 'waiting' && delegate) {
+      //
+      //   if (donation.ownerEntity.email) {
+      //     // send a receipt to the donor, if donor isn't anonymous
+      //     Notifications.donation(this.app, {
+      //       recipient: donation.ownerEntity.email,
+      //       user: donation.ownerEntity.name,
+      //       txHash: donation.txHash,
+      //       donationType: toPledgeAdmin.type, // dac / campaign / milestone
+      //       donatedToTitle: toPledgeAdmin.admin.title,
+      //       amount: donation.amount
+      //     });
+      //   }
+      //
+      //   /**
+      //    * send a notification to the admin of the dac / campaign / milestone
+      //    **/
+      //
+      //   // if this is a DAC or a campaign, then the donation needs delegation
+      //   if(toPledgeAdmin.type === 'campaign' || mutation.status === 'waiting') {
+      //     let donatedToTitle;
+      //     if (toPledgeAdmin.type === 'campaign') {
+      //       donatedToTitle = toPledgeAdmin.admin.title;
+      //     } else {
+      //       donatedToTitle = donation.delegateEntity.title;
+      //     }
+      //
+      //     Notifications.delegationRequired(this.app, {
+      //       recipient: toPledgeAdmin.admin.email,
+      //       user: toPledgeAdmin.admin.name,
+      //       txHash: donation.txHash,
+      //       donationType: toPledgeAdmin.type, // dac / campaign
+      //       donatedToTitle: toPledgeAdmin.admin.title,
+      //       amount: donation.amount
+      //     });
+      //   } else if (toPledgeAdmin.type === 'milestone') {
+      //     // if this is a milestone then no action is required
+      //     Notifications.donationReceived(this.app, {
+      //       recipient: toPledgeAdmin.admin.email,
+      //       user: toPledgeAdmin.admin.name,
+      //       txHash: donation.txHash,
+      //       donationType: toPledgeAdmin.type, // milestone
+      //       donatedToTitle: toPledgeAdmin.admin.title,
+      //       amount: donation.amount
+      //     });
+      //   }
+      // }
 
       return donations.patch(donation._id, mutation)
         .then(() => this._trackDonationHistory(transferInfo));

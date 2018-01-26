@@ -127,8 +127,9 @@ export class Web3Challenger {
             .catch(done);
 
           return;
+        } else {
+          done(err);
         }
-        done(err);
       });
   }
 

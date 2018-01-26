@@ -1,10 +1,11 @@
 const Web3 = require('web3');
-const { LPVault } = require('giveth-liquidpledging');
+const { LPVault } = require('giveth-liquidpledging-token');
 
 const web3 = new Web3("ws://localhost:8546");
 
 async function confirmPayments() {
-  const vault = new LPVault(web3, '0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab');
+  const from = '0x90f8bf6a479f320ead074411a4b0e7944ea8c9c1';
+  const vault = new LPVault(web3, '0xCfEB869F69431e42cdB54A4F4f105C19C080A601');
 
   const nPayments = await vault.nPayments();
   const paymentsToConfirm = [];
@@ -18,7 +19,7 @@ async function confirmPayments() {
   }
 
   if (paymentsToConfirm.length > 0) {
-    await vault.multiConfirm(paymentsToConfirm);
+    await vault.multiConfirm(paymentsToConfirm, {from});
   }
 
   console.log('confirmedPayments:', paymentsToConfirm);
