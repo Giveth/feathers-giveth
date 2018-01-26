@@ -11,7 +11,7 @@
   "uploads": "../uploads",
   "uploadsBaseUrl": "http://localhost:3030/uploads/",
   "blockchain": {
-    "nodeUrl": "ws://localhost:8546",
+    "nodeUrl": "ws://localhost:8545",
     "startingBlock": 0,
     "vaultAddress": "0xCfEB869F69431e42cdB54A4F4f105C19C080A601",
     "liquidPledgingAddress": "0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B",
