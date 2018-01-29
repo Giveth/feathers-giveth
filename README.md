@@ -41,7 +41,7 @@ Welcome to the server code for Giveth's [dapp](https://github.com/Giveth/giveth-
 
 ### Run server
 The feathers server will need to connect to an ethereum node via websockets. Typically this will be a local TestRPC instance. 
-The configuration param `blockchain.nodeUrl` is used to establish a connection. The default nodeUrl is `ws://localhost:8546`
+The configuration param `blockchain.nodeUrl` is used to establish a connection. The default nodeUrl is `ws://localhost:8545`
 
 1. We provide an easy way to start a TestRPC instance.
   
