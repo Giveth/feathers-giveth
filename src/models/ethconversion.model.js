@@ -8,5 +8,7 @@ module.exports = function (app) {
     autoload: true
   });
 
+  Model.ensureIndex({ fieldName: 'timestamp', unique: true });
+
   return Model;
 };

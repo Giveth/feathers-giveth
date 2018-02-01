@@ -1,17 +1,34 @@
+import onlyInternal from '../../hooks/onlyInternal';
+import { getEthConversion } from './getEthConversionService';
+
+const getConversionRates = () => (context) => {
+  const { app, params } = context;
+
+  // block internal calls
+  if (!params.provider) return context
+
+  return getEthConversion(app, params.query.date)
+    .then((res) => {
+      context.result = res;
+      return context;
+    })
+}
+
+
 module.exports = {
   before: {
     all: [],
     find: [],
     get: [],
-    create: [],
-    update: [],
-    patch: [],
-    remove: []
+    create: [onlyInternal()],
+    update: [onlyInternal()],
+    patch: [onlyInternal()],
+    remove: [onlyInternal()]
   },
 
   after: {
     all: [],
-    find: [],
+    find: [getConversionRates()],
     get: [],
     create: [],
     update: [],
