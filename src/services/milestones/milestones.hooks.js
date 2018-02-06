@@ -201,6 +201,49 @@ const sendNotification = () => context => {
   }
 };
 
+/***
+ * This function checks that the maxAmount in the milestone is based on the correct conversion rate of the milestone date
+ **/
+const checkEthConversion = () => (context) => {
+  const { data, app } = context;
+  let maxAmount = 0;
+  const items = data.items;
+
+  console.log(data);
+
+  const calculateCorrectEther = (conversionRate, fiatAmount, etherToCheck, selectedFiatType) => {
+    // calculate the converion of the item, make sure that fiat-eth is correct
+    const rate = conversionRate.rates[selectedFiatType];
+    const ether = fiatAmount / rate;
+
+    if (ether !== etherToCheck) {
+      throw new errors.Forbidden(
+        'Cheating with conversion rate!',
+      );
+    }    
+  }
+
+  if(items && items.length > 0) {
+    return new Promise((resolve, reject) =>
+      items.forEach((item, index) => {
+        app.service('ethconversion')
+          .find({ query: { date: item.ethConversionRateTimestamp }, internal: true })
+          .then((conversionRate) => {
+            // calculate the converion of the item, make sure that fiat-eth is correct
+            calculateCorrectEther(conversionRate, item.fiatAmount, item.etherAmount, item.selectedFiatType);
+            if(index === 0) resolve('done');
+          })
+      })
+    );
+  } else {
+    return app.service('ethconversion')
+      .find({ query: { date: data.ethConversionRateTimestamp }, internal: true })
+      .then((conversionRate) =>
+        calculateCorrectEther(conversionRate, data.fiatAmount, data.maxAmount, data.selectedFiatType)
+      );
+  }
+}
+
 const address = [
   sanitizeAddress('pluginAddress', { required: true, validate: true }),
   sanitizeAddress(
@@ -286,7 +329,7 @@ module.exports = {
     all: [commons.populate({ schema })],
     find: [],
     get: [],
-    create: [sendNotification()],
+    create: [checkEthConversion(), sendNotification()],
     update: [],
     patch: [sendNotification()],
     remove: [],

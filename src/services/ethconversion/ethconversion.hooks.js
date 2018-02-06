@@ -4,8 +4,12 @@ import { getEthConversion } from './getEthConversionService';
 const getConversionRates = () => (context) => {
   const { app, params } = context;
 
+  console.log(params);
+
   // block internal calls
-  if (!params.provider) return context
+  if (!params.provider && !params.internal) return context
+
+  console.log('getting conversion')
 
   return getEthConversion(app, params.query.date)
     .then((res) => {
