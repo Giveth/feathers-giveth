@@ -1,48 +1,43 @@
 import dauria from 'dauria';
 import { disallow } from 'feathers-hooks-common';
 
-const transformFile = () => {
-  return context => {
-    if (!context.data.uri && context.params.file) {
-      const file = context.params.file;
-      const uri = dauria.getBase64DataURI(file.buffer, file.mimetype);
-      context.data = { uri: uri };
-    }
-
-  };
+const transformFile = () => context => {
+  if (!context.data.uri && context.params.file) {
+    const file = context.params.file;
+    const uri = dauria.getBase64DataURI(file.buffer, file.mimetype);
+    context.data = { uri };
+  }
 };
 
-const transformCreateResponse = () => {
-  return context => {
-    let { uploadsBaseUrl } = context.app.settings;
+const transformCreateResponse = () => context => {
+  let { uploadsBaseUrl } = context.app.settings;
 
-    if (!uploadsBaseUrl.endsWith('/')) {
-      uploadsBaseUrl = uploadsBaseUrl + '/';
-    }
+  if (!uploadsBaseUrl.endsWith('/')) {
+    uploadsBaseUrl = `${uploadsBaseUrl}/`;
+  }
 
-    const id = context.result.id;
+  const id = context.result.id;
 
-    delete context.result.id;
-    delete context.result.uri;
+  delete context.result.id;
+  delete context.result.uri;
 
-    context.result.url = `${uploadsBaseUrl}${id}`;
+  context.result.url = `${uploadsBaseUrl}${id}`;
 
-    return context;
-  };
+  return context;
 };
 
 module.exports = {
   before: {
     all: [],
-    get: [ disallow() ],
-    create: [ transformFile() ],
-    remove: [ disallow() ],
+    get: [disallow()],
+    create: [transformFile()],
+    remove: [disallow()],
   },
 
   after: {
     all: [],
     get: [],
-    create: [ transformCreateResponse() ],
+    create: [transformCreateResponse()],
     remove: [],
   },
 

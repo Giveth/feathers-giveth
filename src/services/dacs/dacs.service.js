@@ -4,7 +4,7 @@ const createModel = require('../../models/dacs.model');
 const hooks = require('./dacs.hooks');
 const filters = require('./dacs.filters');
 
-module.exports = function () {
+module.exports = function() {
   const app = this;
   const Model = createModel(app);
   const paginate = app.get('paginate');
@@ -12,7 +12,7 @@ module.exports = function () {
   const options = {
     name: 'dacs',
     Model,
-    paginate
+    paginate,
   };
 
   // Initialize our service with any options it requires

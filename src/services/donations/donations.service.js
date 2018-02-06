@@ -6,46 +6,49 @@ const filters = require('./donations.filters');
 
 // If a donation has a intendedProject & the commitTime has passed, we need to update the donation to reflect
 // that the intendedProject is now the owner
-const pollForCommittedDonations = (service) => {
+const pollForCommittedDonations = service => {
   const interval = 1000 * 30; // check every 30 seconds
 
   const doUpdate = () => {
-
-    service.find({
-      paginate: false,
-      query: {
-        intendedProject: {
-          $gt: '0',
+    service
+      .find({
+        paginate: false,
+        query: {
+          intendedProject: {
+            $gt: '0',
+          },
+          commitTime: {
+            $lte: new Date(),
+          },
         },
-        commitTime: {
-          $lte: new Date(),
-        },
-      },
-    })
-      .then((data) => {
-        data.forEach(donation => service.patch(donation._id, {
-          status: 'committed',
-          owner: donation.intendedProject,
-          ownerId: donation.intendedProjectId,
-          ownerType: donation.intendedProjectType,
-          $unset: {
-            intendedProject: true,
-            intendedProjectId: true,
-            intendedProjectType: true,
-            delegate: true,
-            delegateId: true,
-            delegateType: true,
-          }
-        })
-          .catch(console.error)); //eslint-disable-line no-console
       })
-      .catch(console.error); //eslint-disable-line no-console
+      .then(data => {
+        data.forEach(donation =>
+          service
+            .patch(donation._id, {
+              status: 'committed',
+              owner: donation.intendedProject,
+              ownerId: donation.intendedProjectId,
+              ownerType: donation.intendedProjectType,
+              $unset: {
+                intendedProject: true,
+                intendedProjectId: true,
+                intendedProjectType: true,
+                delegate: true,
+                delegateId: true,
+                delegateType: true,
+              },
+            })
+            .catch(console.error),
+        ); // eslint-disable-line no-console
+      })
+      .catch(console.error); // eslint-disable-line no-console
   };
 
   setInterval(doUpdate, interval);
 };
 
-module.exports = function () {
+module.exports = function() {
   const app = this;
   const Model = createModel(app);
   const paginate = app.get('paginate');

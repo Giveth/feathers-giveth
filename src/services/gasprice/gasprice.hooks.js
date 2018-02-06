@@ -1,4 +1,4 @@
-const getGasPrice = () => (context) => {
+const getGasPrice = () => context => {
   context.result = context.app.get('gasPrice') || 10;
   return context;
 };
@@ -11,17 +11,17 @@ module.exports = {
     create: [],
     update: [],
     patch: [],
-    remove: []
+    remove: [],
   },
 
   after: {
     all: [],
-    find: [ getGasPrice() ],
+    find: [getGasPrice()],
     get: [],
     create: [],
     update: [],
     patch: [],
-    remove: []
+    remove: [],
   },
 
   error: {
@@ -31,6 +31,6 @@ module.exports = {
     create: [],
     update: [],
     patch: [],
-    remove: []
-  }
+    remove: [],
+  },
 };

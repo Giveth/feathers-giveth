@@ -9,18 +9,20 @@ class Payments {
   }
 
   authorizePayment(event, retry = false) {
-    if (event.event !== 'AuthorizePayment') throw new Error('authorizePayment only handles AuthorizePayment events');
+    if (event.event !== 'AuthorizePayment')
+      throw new Error('authorizePayment only handles AuthorizePayment events');
 
     const { returnValues } = event;
     const paymentId = returnValues.idPayment;
     const pledgeId = this.web3.utils.hexToNumberString(returnValues.ref);
 
     const donations = this.app.service('donations');
-    donations.find({
-      query: {
-        pledgeId,
-      },
-    })
+    donations
+      .find({
+        query: {
+          pledgeId,
+        },
+      })
       .then(({ data }) => {
         if (data.length === 0) {
           if (retry) {
@@ -32,17 +34,22 @@ class Payments {
           return;
         }
 
-        donations.patch(null, { paymentId }, {
-          query: {
-            pledgeId
-          }
-        });
+        donations.patch(
+          null,
+          { paymentId },
+          {
+            query: {
+              pledgeId,
+            },
+          },
+        );
       })
-      .catch((error) => console.log('authorizePayment error ->', error)); // eslint-disable-line no-console
+      .catch(error => console.log('authorizePayment error ->', error)); // eslint-disable-line no-console
   }
 
   confirmPayment(event) {
-    if (event.event !== 'ConfirmPayment') throw new Error('confirmPayment only handles ConfirmPayment events');
+    if (event.event !== 'ConfirmPayment')
+      throw new Error('confirmPayment only handles ConfirmPayment events');
 
     // const { returnValues } = event;
     // const paymentId = returnValues.idPayment;
@@ -70,7 +77,8 @@ class Payments {
   }
 
   cancelPayment(event) {
-    if (event.event !== 'CancelPayment') throw new Error('cancelPayment only handles CancelPayment events');
+    if (event.event !== 'CancelPayment')
+      throw new Error('cancelPayment only handles CancelPayment events');
 
     // const { returnValues } = event;
 

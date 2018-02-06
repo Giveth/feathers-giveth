@@ -16,15 +16,15 @@ class EventQueue {
   }
 
   isProcessing(txHash) {
-    return this.processing[ txHash ] || false;
+    return this.processing[txHash] || false;
   }
 
   startProcessing(txHash) {
-    this.processing[ txHash ] = true;
+    this.processing[txHash] = true;
   }
 
   finishedProcessing(txHash) {
-    delete this.processing[ txHash ];
+    delete this.processing[txHash];
   }
 
   add(txHash, fn) {
@@ -50,13 +50,12 @@ class EventQueue {
         result = Promise.resolve(result);
       }
 
-      return result
-        .then(() => {
-          logger.debug('returned from purge');
-          if (this.queue[txHash] && this.queue[txHash].length === 0) {
-            delete this.queue[txHash];
-          }
-        });
+      return result.then(() => {
+        logger.debug('returned from purge');
+        if (this.queue[txHash] && this.queue[txHash].length === 0) {
+          delete this.queue[txHash];
+        }
+      });
     }
 
     return Promise.resolve();

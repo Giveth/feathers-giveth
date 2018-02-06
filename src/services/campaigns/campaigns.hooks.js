@@ -22,26 +22,25 @@ const restrict = () => context => {
     return undefined;
   };
 
-  const canUpdate = (campaign) => {
+  const canUpdate = campaign => {
     if (!campaign) throw new errors.Forbidden();
 
     // reviewer Canceled
     if (data.status === 'Canceled' && data.mined === false) {
-      if (user.address !== campaign.reviewerAddress && user.address !== campaign.ownerAddress) throw new errors.Forbidden();
+      if (user.address !== campaign.reviewerAddress && user.address !== campaign.ownerAddress)
+        throw new errors.Forbidden();
 
       // whitelist of what the reviewer can update
       const approvedKeys = ['txHash', 'status', 'mined'];
 
       const keysToRemove = Object.keys(data).map(key => !approvedKeys.includes(key));
-      keysToRemove.forEach(key => delete data[ key ]);
-
+      keysToRemove.forEach(key => delete data[key]);
     } else if (user.address !== campaign.ownerAddress) throw new errors.Forbidden();
   };
 
-  return getCampaigns()
-    .then(campaigns => {
-      return (Array.isArray(campaigns)) ? campaigns.forEach(canUpdate) : canUpdate(campaigns);
-    });
+  return getCampaigns().then(
+    campaigns => (Array.isArray(campaigns) ? campaigns.forEach(canUpdate) : canUpdate(campaigns)),
+  );
 };
 
 const schema = {
@@ -54,20 +53,21 @@ const schema = {
     },
   ],
 };
-const countMilestones = (item, service) => {
-  return service.find({
-    query: {
-      campaignId: item._id,
-      projectId: {
-        $gt: '0' // 0 is a pending milestone
+const countMilestones = (item, service) =>
+  service
+    .find({
+      query: {
+        campaignId: item._id,
+        projectId: {
+          $gt: '0', // 0 is a pending milestone
+        },
+        $limit: 0,
       },
-      $limit: 0
-    }
-  }).then(count => Object.assign(item, { milestonesCount: count.total }));
-};
+    })
+    .then(count => Object.assign(item, { milestonesCount: count.total }));
 
 // add milestonesCount to each DAC object
-const addMilestoneCounts = () => (context) => {
+const addMilestoneCounts = () => context => {
   const service = context.app.service('milestones');
 
   const items = commons.getItems(context);
@@ -76,31 +76,51 @@ const addMilestoneCounts = () => (context) => {
   if (Array.isArray(items)) {
     promises = items.map(item => countMilestones(item, service));
   } else {
-    promises = [ countMilestones(items, service) ];
+    promises = [countMilestones(items, service)];
   }
 
-  return Promise.all(promises)
-    .then(results => (Array.isArray(items)) ? commons.replaceItems(context, results) : commons.replaceItems(context, results[ 0 ]));
+  return Promise.all(promises).then(
+    results =>
+      Array.isArray(items)
+        ? commons.replaceItems(context, results)
+        : commons.replaceItems(context, results[0]),
+  );
 };
 
 module.exports = {
   before: {
     all: [],
-    find: [ sanitizeAddress('ownerAddress') ],
+    find: [sanitizeAddress('ownerAddress')],
     get: [],
-    create: [ createdAt, setAddress('ownerAddress'), sanitizeAddress('ownerAddress', {
-      required: true,
-      validate: true,
-    }), isProjectAllowed(), sanitizeHtml('description') ],
-    update: [ restrict(), sanitizeAddress('ownerAddress', { required: true, validate: true }), sanitizeHtml('description'), updatedAt ],
-    patch: [ restrict(), sanitizeAddress('ownerAddress', { validate: true }), sanitizeHtml('description'), updatedAt ],
-    remove: [ commons.disallow() ],
+    create: [
+      createdAt,
+      setAddress('ownerAddress'),
+      sanitizeAddress('ownerAddress', {
+        required: true,
+        validate: true,
+      }),
+      isProjectAllowed(),
+      sanitizeHtml('description'),
+    ],
+    update: [
+      restrict(),
+      sanitizeAddress('ownerAddress', { required: true, validate: true }),
+      sanitizeHtml('description'),
+      updatedAt,
+    ],
+    patch: [
+      restrict(),
+      sanitizeAddress('ownerAddress', { validate: true }),
+      sanitizeHtml('description'),
+      updatedAt,
+    ],
+    remove: [commons.disallow()],
   },
 
   after: {
-    all: [ commons.populate({ schema }) ],
-    find: [ addMilestoneCounts() ],
-    get: [ addMilestoneCounts() ],
+    all: [commons.populate({ schema })],
+    find: [addMilestoneCounts()],
+    get: [addMilestoneCounts()],
     create: [],
     update: [],
     patch: [],

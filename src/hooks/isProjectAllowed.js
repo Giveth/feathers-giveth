@@ -1,7 +1,7 @@
 import commons from 'feathers-hooks-common';
 import errors from 'feathers-errors';
 
-const checkReviewer = (context) => {
+const checkReviewer = context => {
   if (!context.app.get('useReviewerWhitelist')) {
     return context;
   }
@@ -10,15 +10,20 @@ const checkReviewer = (context) => {
 
   const items = commons.getItems(context);
 
-  const inWhitelist = (project) => {
+  const inWhitelist = project => {
     if (reviewerWhitelist.includes(project.reviewerAddress.toLowerCase())) {
       // milestones have a campaignReviewerAddress
-      if (!Object.keys(project).includes('campaignReviewerAddress') || reviewerWhitelist.includes(project.campaignReviewerAddress.toLowerCase())) {
+      if (
+        !Object.keys(project).includes('campaignReviewerAddress') ||
+        reviewerWhitelist.includes(project.campaignReviewerAddress.toLowerCase())
+      ) {
         return;
       }
     }
 
-    throw new errors.BadRequest(`project reviewer address ${project.reviewerAddress} is not in the whitelist`);
+    throw new errors.BadRequest(
+      `project reviewer address ${project.reviewerAddress} is not in the whitelist`,
+    );
   };
 
   if (Array.isArray(items)) {
@@ -28,7 +33,7 @@ const checkReviewer = (context) => {
   }
 };
 
-const checkOwner = (context) => {
+const checkOwner = context => {
   if (!context.app.get('useProjectOwnerWhitelist')) {
     return context;
   }
@@ -37,12 +42,14 @@ const checkOwner = (context) => {
 
   const items = commons.getItems(context);
 
-  const inWhitelist = (project) => {
+  const inWhitelist = project => {
     if (ownerWhitelist.includes(project.ownerAddress.toLowerCase())) {
       return;
     }
 
-    throw new errors.BadRequest(`project owner address ${project.ownerAddress} is not in the whitelist`);
+    throw new errors.BadRequest(
+      `project owner address ${project.ownerAddress} is not in the whitelist`,
+    );
   };
 
   if (Array.isArray(items)) {
@@ -52,7 +59,7 @@ const checkOwner = (context) => {
   }
 };
 
-export default () => (context) => {
+export default () => context => {
   checkOwner(context);
   checkReviewer(context);
 };

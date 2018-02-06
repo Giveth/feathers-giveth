@@ -13,15 +13,9 @@ const getWhitelist = () => context => {
   const { app } = context;
 
   // fetch whitelisted addresses from default.json
-  const reviewers = app.get('useReviewerWhitelist')
-    ? app.get('reviewerWhitelist')
-    : [];
-  const delegates = app.get('useDelegateWhitelist')
-    ? app.get('delegateWhitelist')
-    : [];
-  const projectOwners = app.get('useProjectOwnerWhitelist')
-    ? app.get('projectOwnerWhitelist')
-    : [];
+  const reviewers = app.get('useReviewerWhitelist') ? app.get('reviewerWhitelist') : [];
+  const delegates = app.get('useDelegateWhitelist') ? app.get('delegateWhitelist') : [];
+  const projectOwners = app.get('useProjectOwnerWhitelist') ? app.get('projectOwnerWhitelist') : [];
 
   // find all the users
   return Promise.all([

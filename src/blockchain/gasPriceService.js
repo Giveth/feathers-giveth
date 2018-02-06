@@ -7,8 +7,8 @@ const app = require('./../app');
 const queryGasPrice = () => {
   console.log('fetching gas price from ethgasstation');
   return rp('https://ethgasstation.info/json/ethgasAPI.json')
-    .then((resp) => app.set('gasPrice', JSON.parse(resp)))
-    .catch((e) => console.error('could not fetch gas from ethgasstation', e));
+    .then(resp => app.set('gasPrice', JSON.parse(resp)))
+    .catch(e => console.error('could not fetch gas from ethgasstation', e));
 };
 
 // query gas price every minute

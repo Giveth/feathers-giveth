@@ -7,17 +7,11 @@ const sendEmail = (app, data) => {
   Object.assign(data, { dappUrl: app.get('dappUrl') });
 
   if (!data.recipient) {
-    logger.info(
-      `skipping email notification to ${data.recipient} > ${
-        data.unsubscribeType
-      }`,
-    );
+    logger.info(`skipping email notification to ${data.recipient} > ${data.unsubscribeType}`);
     return;
   }
 
-  logger.info(
-    `sending email notification to ${data.recipient} > ${data.unsubscribeType}`,
-  );
+  logger.info(`sending email notification to ${data.recipient} > ${data.unsubscribeType}`);
 
   rp({
     method: 'POST',
@@ -43,15 +37,13 @@ export default {
     Object.assign(data, {
       template: 'notification',
       subject: 'Giveth - Thank you for your donation!',
-      secretIntro: `Thank you for your donation of ${data.amount}Ξ to the ${
-        data.donationType
-      } "${data.donatedToTitle}"!`,
+      secretIntro: `Thank you for your donation of ${data.amount}Ξ to the ${data.donationType} "${
+        data.donatedToTitle
+      }"!`,
       title: 'You are so awesome!',
       image: 'Giveth-donation-banner-email.png',
       text: `
-        <p><span style="line-height: 33px; font-size: 22px;">Hi ${
-          data.user
-        }</span></p>
+        <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
           Thank you very much for your donation of ${data.amount}Ξ to the ${
         data.donationType
@@ -62,8 +54,7 @@ export default {
       cta: 'Manage your Donations',
       ctaRelativeUrl: '/my-donations',
       unsubscribeType: 'donation-receipt',
-      unsubscribeReason:
-        'You receive this email from Giveth because you have made a donation',
+      unsubscribeReason: 'You receive this email from Giveth because you have made a donation',
     });
 
     sendEmail(app, data);
@@ -75,15 +66,13 @@ export default {
     Object.assign(data, {
       template: 'notification',
       subject: "Giveth - You've received a donation!",
-      secretIntro: `You have received a donation of ${data.amount}Ξ for the ${
-        data.donationType
-      } "${data.donatedToTitle}"!`,
+      secretIntro: `You have received a donation of ${data.amount}Ξ for the ${data.donationType} "${
+        data.donatedToTitle
+      }"!`,
       title: 'You are so awesome!',
       image: 'Giveth-donation-banner-email.png',
       text: `
-        <p><span style="line-height: 33px; font-size: 22px;">Hi ${
-          data.user
-        }</span></p>
+        <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
           You have received a donation of 
           <span>${data.amount}Ξ</span>
@@ -93,9 +82,7 @@ export default {
       cta: `Manage your ${data.donationType}`,
       ctaRelativeUrl: `/my-${data.donationType}s`,
       unsubscribeType: 'donation-received',
-      unsubscribeReason: `You receive this email because you run a ${
-        data.donationType
-      }`,
+      unsubscribeReason: `You receive this email because you run a ${data.donationType}`,
     });
 
     sendEmail(app, data);
@@ -107,15 +94,13 @@ export default {
     Object.assign(data, {
       template: 'notification',
       subject: 'Giveth - Delegation required for new donation!',
-      secretIntro: `Take action! Please delegate a new donation of ${
-        data.amount
-      }Ξ for the ${data.donationType} "${data.donatedToTitle}"!`,
+      secretIntro: `Take action! Please delegate a new donation of ${data.amount}Ξ for the ${
+        data.donationType
+      } "${data.donatedToTitle}"!`,
       title: "Take action! You've received a donation, please delegate!",
       image: 'Giveth-donation-banner-email.png',
       text: `
-        <p><span style="line-height: 33px; font-size: 22px;">Hi ${
-          data.user
-        }</span></p>
+        <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
           You have received a donation of 
           <span style="display: block; color: rgb(53, 184, 209); line-height: 72px; font-size: 48px;">${
@@ -131,9 +116,7 @@ export default {
       cta: `Delegate Donation`,
       ctaRelativeUrl: `/my-donations`,
       unsubscribeType: 'request-delegation',
-      unsubscribeReason: `You receive this email because you run a ${
-        data.donationType
-      }`,
+      unsubscribeReason: `You receive this email because you run a ${data.donationType}`,
     });
 
     sendEmail(app, data);
@@ -149,15 +132,11 @@ export default {
       title: 'Take action: Milestone proposed!',
       image: 'Giveth-suggest-milestone-banner.png',
       text: `
-        <p><span style="line-height: 33px; font-size: 22px;">Hi ${
-          data.user
-        }</span></p>
+        <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
           A milestone <em>${data.milestoneTitle}</em> of ${
         data.amount
-      }Ξ has been proposed for your campaign of the campaign <em>${
-        data.campaignTitle
-      }</em>. 
+      }Ξ has been proposed for your campaign of the campaign <em>${data.campaignTitle}</em>. 
           If you think this is a great idea, then <strong>please approve this milestone within 3 days</strong> to add it to your campaign. 
           If not, then please reject it.
         </p>
@@ -181,13 +160,9 @@ export default {
       title: 'Take action: Milestone proposed!',
       image: 'Giveth-milestone-review-approved-banner-email.png',
       text: `
-        <p><span style="line-height: 33px; font-size: 22px;">Hi ${
-          data.user
-        }</span></p>
+        <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
-          Your proposed milestone <em>${
-            data.milestoneTitle
-          }</em> of the campaign <em>${
+          Your proposed milestone <em>${data.milestoneTitle}</em> of the campaign <em>${
         data.campaignTitle
       }</em> has been accepted by the campaign owner!
           <br/><br/>
@@ -213,9 +188,7 @@ export default {
       title: 'Milestone rejected :-(',
       image: 'Giveth-milestone-review-approved-banner-email.png',
       text: `
-        <p><span style="line-height: 33px; font-size: 22px;">Hi ${
-          data.user
-        }</span></p>
+        <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
           Unfortunately your proposed milestone <em>${
             data.milestoneTitle
@@ -245,9 +218,7 @@ export default {
       title: 'Milestone review requested',
       image: 'Giveth-review-banner-email.png',
       text: `
-        <p><span style="line-height: 33px; font-size: 22px;">Hi ${
-          data.user
-        }</span></p>
+        <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
           The milestone <em>${data.milestoneTitle}</em> of the campaign <em>${
         data.campaignTitle
@@ -279,9 +250,7 @@ export default {
       title: 'Milestone completed! Time to collect Ether.',
       image: 'Giveth-milestone-review-approved-banner-email.png',
       text: `
-        <p><span style="line-height: 33px; font-size: 22px;">Hi ${
-          data.user
-        }</span></p>
+        <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
           The milestone <em>${data.milestoneTitle}</em> of the campaign <em>${
         data.campaignTitle

@@ -1,7 +1,7 @@
 import { hexToNumber } from 'web3-utils';
 import { LiquidPledgingAbi } from 'giveth-liquidpledging-token/build/LiquidPledging.sol';
 import { LPVaultAbi } from 'giveth-liquidpledging-token/build/LPVault.sol';
-import { LPPCappedMilestonesAbi } from 'lpp-capped-milestone-token/build/LPPCappedMilestones.sol'
+import { LPPCappedMilestonesAbi } from 'lpp-capped-milestone-token/build/LPPCappedMilestones.sol';
 import EventEmitter from 'events';
 import logger from 'winston';
 
@@ -46,253 +46,297 @@ class FailedTxMonitor extends EventEmitter {
   }
 
   setDecoders() {
-    LiquidPledgingAbi.filter(method => method.type === 'event')
-      .forEach((event) => {
-        this.decoders.lp[event.name] = this.web3.eth.Contract.prototype._decodeEventABI.bind(event);
-      });
+    LiquidPledgingAbi.filter(method => method.type === 'event').forEach(event => {
+      this.decoders.lp[event.name] = this.web3.eth.Contract.prototype._decodeEventABI.bind(event);
+    });
 
-    LPVaultAbi.filter(method => method.type === 'event')
-      .forEach((event) => {
-        this.decoders.vault[event.name] =
-          this.web3.eth.Contract.prototype._decodeEventABI.bind(event);
-      });
+    LPVaultAbi.filter(method => method.type === 'event').forEach(event => {
+      this.decoders.vault[event.name] = this.web3.eth.Contract.prototype._decodeEventABI.bind(
+        event,
+      );
+    });
 
-    LPPCappedMilestonesAbi.filter(method => method.type === 'event')
-      .forEach((event) => {
-        this.decoders.milestone[event.name] =
-          this.web3.eth.Contract.prototype._decodeEventABI.bind(event);
-      });
+    LPPCappedMilestonesAbi.filter(method => method.type === 'event').forEach(event => {
+      this.decoders.milestone[event.name] = this.web3.eth.Contract.prototype._decodeEventABI.bind(
+        event,
+      );
+    });
   }
 
   checkPendingDonations() {
     const donations = this.app.service('donations');
 
-    const revertDonationIfFailed = (donation) => {
+    const revertDonationIfFailed = donation => {
       if (!donation.previousState || !donation.txHash) return;
 
-      this.web3.eth.getTransactionReceipt(donation.txHash)
-        .then((receipt) => {
-          if (!receipt) return;
+      this.web3.eth.getTransactionReceipt(donation.txHash).then(receipt => {
+        if (!receipt) return;
 
-          // 0 status if failed tx
-          logger.info(receipt);
-          if (hexToNumber(receipt.status) === 0) {
-            donations.patch(
+        // 0 status if failed tx
+        logger.info(receipt);
+        if (hexToNumber(receipt.status) === 0) {
+          donations
+            .patch(
               donation._id,
               Object.assign({}, donation.previousState, { $unset: { previousState: true } }),
-            ).catch(logger.error);
-            return;
+            )
+            .catch(logger.error);
+          return;
+        }
+
+        const topics = [
+          { name: 'Transfer', hash: this.web3.utils.keccak256('Transfer(uint64,uint64,uint256)') },
+          {
+            name: 'AuthorizePayment',
+            hash: this.web3.utils.keccak256('AuthorizePayment(uint256,bytes32,address,uint256)'),
+          },
+        ];
+
+        // get logs we're interested in.
+        const logs = receipt.logs.filter(log => topics.some(t => t.hash === log.topics[0]));
+
+        if (logs.length === 0) {
+          logger.error(
+            'donation has status === `pending` but transaction was successful donation:',
+            donation,
+            'receipt:',
+            receipt,
+          );
+        }
+
+        logs.forEach(log => {
+          logger.info(
+            'donation has status === `pending` but transaction was successful. re-emitting event donation:',
+            donation,
+            'receipt:',
+            receipt,
+          );
+
+          const topic = topics.find(t => t.hash === log.topics[0]);
+
+          if (topic.name === 'AuthorizePayment') {
+            this.emit(this.VAULT_EVENT, this.decoders.vault[topic.name](log));
+          } else {
+            this.emit(this.LP_EVENT, this.decoders.lp[topic.name](log));
           }
-
-          const topics = [
-            { name: 'Transfer', hash: this.web3.utils.keccak256('Transfer(uint64,uint64,uint256)') },
-            {
-              name: 'AuthorizePayment',
-              hash: this.web3.utils.keccak256('AuthorizePayment(uint256,bytes32,address,uint256)'),
-            },
-          ];
-
-          // get logs we're interested in.
-          const logs = receipt.logs.filter(log => topics.some(t => t.hash === log.topics[0]));
-
-          if (logs.length === 0) {
-            logger.error('donation has status === `pending` but transaction was successful donation:', donation, 'receipt:', receipt);
-          }
-
-          logs.forEach((log) => {
-            logger.info('donation has status === `pending` but transaction was successful. re-emitting event donation:', donation, 'receipt:', receipt);
-
-            const topic = topics.find(t => t.hash === log.topics[0]);
-
-            if (topic.name === 'AuthorizePayment') {
-              this.emit(this.VAULT_EVENT, this.decoders.vault[topic.name](log));
-            } else {
-              this.emit(this.LP_EVENT, this.decoders.lp[topic.name](log));
-            }
-          });
         });
+      });
     };
 
-    donations.find({
-      paginate: false,
-      query: {
-        status: 'pending',
-      },
-    }).then(pendingDonations => pendingDonations.forEach(revertDonationIfFailed))
+    donations
+      .find({
+        paginate: false,
+        query: {
+          status: 'pending',
+        },
+      })
+      .then(pendingDonations => pendingDonations.forEach(revertDonationIfFailed))
       .catch(logger.error);
   }
 
   checkPendingDACS() {
     const dacs = this.app.service('dacs');
 
-    const updateDACIfFailed = (dac) => {
+    const updateDACIfFailed = dac => {
       if (!dac.txHash) return;
 
-      this.web3.eth.getTransactionReceipt(dac.txHash)
-        .then((receipt) => {
-          if (!receipt) return;
+      this.web3.eth.getTransactionReceipt(dac.txHash).then(receipt => {
+        if (!receipt) return;
 
-          // 0 status if failed tx
-          if (hexToNumber(receipt.status) === 0) {
-            dacs.patch(dac._id, {
+        // 0 status if failed tx
+        if (hexToNumber(receipt.status) === 0) {
+          dacs
+            .patch(dac._id, {
               status: 'failed',
             })
-              .catch(logger.error);
+            .catch(logger.error);
 
-            return;
-          }
+          return;
+        }
 
-          const topics = [
-            { name: 'DelegateAdded', hash: this.web3.utils.keccak256('DelegateAdded(uint64)') },
-          ];
+        const topics = [
+          { name: 'DelegateAdded', hash: this.web3.utils.keccak256('DelegateAdded(uint64)') },
+        ];
 
-          // get logs we're interested in.
-          const logs = receipt.logs.filter(log => topics.some(t => t.hash === log.topics[0]));
+        // get logs we're interested in.
+        const logs = receipt.logs.filter(log => topics.some(t => t.hash === log.topics[0]));
 
-          if (logs.length === 0) {
-            logger.error('dac has no delegateId but transaction was successful dac:', dac, 'receipt:', receipt);
-          }
+        if (logs.length === 0) {
+          logger.error(
+            'dac has no delegateId but transaction was successful dac:',
+            dac,
+            'receipt:',
+            receipt,
+          );
+        }
 
-          logs.forEach((log) => {
-            logger.info('dac has no delegateId but transaction was successful. re-emitting AddDelegate event. dac:', dac, 'receipt:', receipt);
+        logs.forEach(log => {
+          logger.info(
+            'dac has no delegateId but transaction was successful. re-emitting AddDelegate event. dac:',
+            dac,
+            'receipt:',
+            receipt,
+          );
 
-            const topic = topics.find(t => t.hash === log.topics[0]);
-            this.emit(this.LP_EVENT, this.decoders.lp[topic.name](log));
-          });
+          const topic = topics.find(t => t.hash === log.topics[0]);
+          this.emit(this.LP_EVENT, this.decoders.lp[topic.name](log));
         });
+      });
     };
 
-    dacs.find({
-      paginate: false,
-      query: {
-        $not: { delegateId: { $gt: '0' } },
-      },
-    }).then(pendingDACs => pendingDACs.forEach(updateDACIfFailed))
+    dacs
+      .find({
+        paginate: false,
+        query: {
+          $not: { delegateId: { $gt: '0' } },
+        },
+      })
+      .then(pendingDACs => pendingDACs.forEach(updateDACIfFailed))
       .catch(logger.error);
   }
 
   checkPendingCampaigns() {
     const campaigns = this.app.service('campaigns');
 
-    const updateCampaignIfFailed = (campaign) => {
+    const updateCampaignIfFailed = campaign => {
       if (!campaign.txHash) return;
 
-      this.web3.eth.getTransactionReceipt(campaign.txHash)
-        .then((receipt) => {
-          if (!receipt) return;
+      this.web3.eth.getTransactionReceipt(campaign.txHash).then(receipt => {
+        if (!receipt) return;
 
-          // 0 status if failed tx
-          if (hexToNumber(receipt.status) === 0) {
-            // if status !== pending, then the cancel campaign transaction failed, so reset
-            const mutation = (campaign.status === 'pending') ? { status: 'failed' } : { status: 'Active', mined: true };
+        // 0 status if failed tx
+        if (hexToNumber(receipt.status) === 0) {
+          // if status !== pending, then the cancel campaign transaction failed, so reset
+          const mutation =
+            campaign.status === 'pending'
+              ? { status: 'failed' }
+              : { status: 'Active', mined: true };
 
-            campaigns.patch(campaign._id, mutation)
-              .catch(logger.error);
-            return;
-          }
+          campaigns.patch(campaign._id, mutation).catch(logger.error);
+          return;
+        }
 
-          const topics = [
-            { name: 'ProjectAdded', hash: this.web3.utils.keccak256('ProjectAdded(uint64)') },
-            { name: 'CancelProject', hash: this.web3.utils.keccak256('CancelProject(uint64)') },
-          ];
+        const topics = [
+          { name: 'ProjectAdded', hash: this.web3.utils.keccak256('ProjectAdded(uint64)') },
+          { name: 'CancelProject', hash: this.web3.utils.keccak256('CancelProject(uint64)') },
+        ];
 
-          // get logs we're interested in.
-          const logs = receipt.logs.filter(log => topics.some(t => t.hash === log.topics[0]));
+        // get logs we're interested in.
+        const logs = receipt.logs.filter(log => topics.some(t => t.hash === log.topics[0]));
 
-          if (logs.length === 0) {
-            logger.error('campaign status === `pending` or mined === false but transaction was successful campaign:', campaign, 'receipt:', receipt);
-          }
+        if (logs.length === 0) {
+          logger.error(
+            'campaign status === `pending` or mined === false but transaction was successful campaign:',
+            campaign,
+            'receipt:',
+            receipt,
+          );
+        }
 
-          logs.forEach((log) => {
-            logger.info('campaign status === `pending` or mined === false but transaction was successful. re-emitting event. campaign:', campaign, 'receipt:', receipt);
+        logs.forEach(log => {
+          logger.info(
+            'campaign status === `pending` or mined === false but transaction was successful. re-emitting event. campaign:',
+            campaign,
+            'receipt:',
+            receipt,
+          );
 
-            const topic = topics.find(t => t.hash === log.topics[0]);
-            this.emit(this.LP_EVENT, this.decoders.lp[topic.name](log));
-          });
+          const topic = topics.find(t => t.hash === log.topics[0]);
+          this.emit(this.LP_EVENT, this.decoders.lp[topic.name](log));
         });
+      });
     };
 
-    campaigns.find({
-      paginate: false,
-      query: {
-        $or: [
-          { status: 'pending' },
-          { mined: false },
-        ],
-      },
-    }).then(pendingCampaigns => pendingCampaigns.forEach(updateCampaignIfFailed))
+    campaigns
+      .find({
+        paginate: false,
+        query: {
+          $or: [{ status: 'pending' }, { mined: false }],
+        },
+      })
+      .then(pendingCampaigns => pendingCampaigns.forEach(updateCampaignIfFailed))
       .catch(logger.error);
   }
 
   checkPendingMilestones() {
     const milestones = this.app.service('milestones');
 
-    const updateMilestoneIfFailed = (milestone) => {
+    const updateMilestoneIfFailed = milestone => {
       if (!milestone.txHash) return; // we can't revert
 
-      this.web3.eth.getTransactionReceipt(milestone.txHash)
-        .then((receipt) => {
-          if (!receipt) return;
+      this.web3.eth.getTransactionReceipt(milestone.txHash).then(receipt => {
+        if (!receipt) return;
 
-          // 0 status if failed tx
-          if (hexToNumber(receipt.status) === 0) {
-            let mutation;
+        // 0 status if failed tx
+        if (hexToNumber(receipt.status) === 0) {
+          let mutation;
 
-            if (milestone.status === 'pending') {
-              // was never created in liquidPledging
-              mutation = { status: 'failed' };
-            } else if (['Completed', 'Canceled'].includes(milestone.status)) {
-              // if canceled, it's possible that the milestone was markedComplete,
-              // but b/c that process is off-chain
-              // we just reset to InProgress, and the recipient can mark complete again.
-              mutation = { status: 'InProgress', mined: true };
-            } else if (milestone.status === 'Paying') {
-              mutation = { status: 'Completed', mined: true };
-            } else if (milestone.status === 'Paid') {
-              mutation = { status: 'CanWithdraw', mined: true };
-            }
-
-            milestones.patch(milestone._id, mutation)
-              .catch(logger.error);
-            return;
+          if (milestone.status === 'pending') {
+            // was never created in liquidPledging
+            mutation = { status: 'failed' };
+          } else if (['Completed', 'Canceled'].includes(milestone.status)) {
+            // if canceled, it's possible that the milestone was markedComplete,
+            // but b/c that process is off-chain
+            // we just reset to InProgress, and the recipient can mark complete again.
+            mutation = { status: 'InProgress', mined: true };
+          } else if (milestone.status === 'Paying') {
+            mutation = { status: 'Completed', mined: true };
+          } else if (milestone.status === 'Paid') {
+            mutation = { status: 'CanWithdraw', mined: true };
           }
 
-          const topics = [
-            { name: 'ProjectAdded', hash: this.web3.utils.keccak256('ProjectAdded(uint64)') },
-            { name: 'MilestoneAccepted', hash: this.web3.utils.keccak256('MilestoneAccepted(address)') },
-            { name: 'CancelProject', hash: this.web3.utils.keccak256('CancelProject(uint64)') },
-          ];
+          milestones.patch(milestone._id, mutation).catch(logger.error);
+          return;
+        }
 
-          // get logs we're interested in.
-          const logs = receipt.logs.filter(log => topics.some(t => t.hash === log.topics[0]));
+        const topics = [
+          { name: 'ProjectAdded', hash: this.web3.utils.keccak256('ProjectAdded(uint64)') },
+          {
+            name: 'MilestoneAccepted',
+            hash: this.web3.utils.keccak256('MilestoneAccepted(address)'),
+          },
+          { name: 'CancelProject', hash: this.web3.utils.keccak256('CancelProject(uint64)') },
+        ];
 
-          if (logs.length === 0) {
-            logger.error('milestone status === `pending` or mined === false but transaction was successful milestone:', milestone, 'receipt:', receipt);
+        // get logs we're interested in.
+        const logs = receipt.logs.filter(log => topics.some(t => t.hash === log.topics[0]));
+
+        if (logs.length === 0) {
+          logger.error(
+            'milestone status === `pending` or mined === false but transaction was successful milestone:',
+            milestone,
+            'receipt:',
+            receipt,
+          );
+        }
+
+        logs.forEach(log => {
+          logger.info(
+            'milestone status === `pending` or mined === false but transaction was successful. re-emitting event. milestone:',
+            milestone,
+            'receipt:',
+            receipt,
+          );
+
+          const topic = topics.find(t => t.hash === log.topics[0]);
+
+          if (topic.name === 'MilestoneAccepted') {
+            this.emit(this.MILESTONE_EVENT, this.decoders.milestone[topic.name](log));
+          } else {
+            this.emit(this.LP_EVENT, this.decoders.lp[topic.name](log));
           }
-
-          logs.forEach((log) => {
-            logger.info('milestone status === `pending` or mined === false but transaction was successful. re-emitting event. milestone:', milestone, 'receipt:', receipt);
-
-            const topic = topics.find(t => t.hash === log.topics[0]);
-
-            if (topic.name === 'MilestoneAccepted') {
-              this.emit(this.MILESTONE_EVENT, this.decoders.milestone[topic.name](log));
-            } else {
-              this.emit(this.LP_EVENT, this.decoders.lp[topic.name](log));
-            }
-          });
         });
+      });
     };
 
-    milestones.find({
-      paginate: false,
-      query: {
-        $or: [
-          { status: 'pending' },
-          { mined: false },
-        ],
-      },
-    }).then(pendingMilestones => pendingMilestones.forEach(updateMilestoneIfFailed))
+    milestones
+      .find({
+        paginate: false,
+        query: {
+          $or: [{ status: 'pending' }, { mined: false }],
+        },
+      })
+      .then(pendingMilestones => pendingMilestones.forEach(updateMilestoneIfFailed))
       .catch(logger.error);
   }
 }

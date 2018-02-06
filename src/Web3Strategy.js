@@ -6,7 +6,7 @@ import { isAddress, toChecksumAddress } from 'web3-utils';
 
 const debug = Debug('passportjs:Web3Strategy');
 
-//TODO clean this up and split to separate package
+// TODO clean this up and split to separate package
 
 /**
  * The Web3 authentication strategy authenticates requests based on a signed message from an ethereum account.
@@ -31,7 +31,9 @@ class Web3Strategy extends Strategy {
     this.challenger = challenger;
 
     if (!this.challenger || !this.challenger.getMessage || !this.challenger.generateMessage) {
-      throw new Error('Web3Strategy was given an invalid challenger. Expected an object implementing \'verify\', \'getMessage\' and \'setMessage\'');
+      throw new Error(
+        "Web3Strategy was given an invalid challenger. Expected an object implementing 'verify', 'getMessage' and 'setMessage'",
+      );
     }
   }
 
@@ -50,7 +52,6 @@ class Web3Strategy extends Strategy {
     if (!signature) return this._issueChallenge(address);
 
     this.challenger.getMessage(address, (err, message) => {
-
       if (err) {
         if (err.name === 'NotFound') return this._issueChallenge(address);
 
@@ -63,7 +64,8 @@ class Web3Strategy extends Strategy {
       const recoveredAddress = this._recoverAddress(message, signature);
       const cAddress = toChecksumAddress(address);
 
-      if (recoveredAddress !== cAddress) return this.fail('Recovered address does not match provided address');
+      if (recoveredAddress !== cAddress)
+        return this.fail('Recovered address does not match provided address');
 
       this.challenger.verify(cAddress, (err, user, info) => {
         if (!user) return this.fail('Recovered address rejected');
@@ -82,7 +84,6 @@ class Web3Strategy extends Strategy {
 
   _issueChallenge(address) {
     this.challenger.generateMessage(address, (err, message) => {
-
       if (err) return this.fail('Error generating challenge', 500);
 
       if (!message) return this.fail('Failed to generate challenge message', 500);
@@ -93,5 +94,3 @@ class Web3Strategy extends Strategy {
 }
 
 export default Web3Strategy;
-
-

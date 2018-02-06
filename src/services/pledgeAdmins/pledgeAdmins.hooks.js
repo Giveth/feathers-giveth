@@ -2,8 +2,8 @@ import commons from 'feathers-hooks-common';
 import onlyInternal from '../../hooks/onlyInternal';
 import { updatedAt, createdAt } from '../../hooks/timestamps';
 
-const populateAdmin = () => (context) => {
-  const fetchAdmin = (item) => {
+const populateAdmin = () => context => {
+  const fetchAdmin = item => {
     let serviceName;
     if (item.type === 'giver') serviceName = 'users';
     else if (item.type === 'dac') serviceName = 'dacs';
@@ -16,32 +16,34 @@ const populateAdmin = () => (context) => {
 
   const items = commons.getItems(context);
 
-  const promise = Array.isArray(items) ? Promise.all(items.map((item) => {
-    return fetchAdmin(item)
-      .then((admin) => {
-        item.admin = admin;
+  const promise = Array.isArray(items)
+    ? Promise.all(
+        items.map(item =>
+          fetchAdmin(item).then(admin => {
+            item.admin = admin;
+          }),
+        ),
+      )
+    : fetchAdmin(items).then(admin => {
+        items.admin = admin;
       });
-  })) : fetchAdmin(items).then((admin) => {
-    items.admin = admin;
-  });
 
   return promise.then(() => commons.replaceItems(items));
 };
-
 
 export default {
   before: {
     all: [],
     find: [],
     get: [],
-    create: [ onlyInternal(), createdAt ],
-    update: [ onlyInternal(), updatedAt ],
-    patch: [ onlyInternal(), updatedAt ],
-    remove: [ commons.disallow() ],
+    create: [onlyInternal(), createdAt],
+    update: [onlyInternal(), updatedAt],
+    patch: [onlyInternal(), updatedAt],
+    remove: [commons.disallow()],
   },
 
   after: {
-    all: [ populateAdmin(), commons.discard('_id') ],
+    all: [populateAdmin(), commons.discard('_id')],
     find: [],
     get: [],
     create: [],
