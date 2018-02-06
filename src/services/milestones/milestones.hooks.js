@@ -34,8 +34,10 @@ const restrict = () => context => {
     ];
 
     // reviewers can mark Completed or Canceled
-    if (['Completed', 'Canceled'].includes(data.status) && data.mined === false) {
-
+    if (
+      ['Completed', 'Canceled'].includes(data.status) &&
+      data.mined === false
+    ) {
       if (!reviewers.includes(user.address)) {
         throw new errors.Forbidden(
           'Only the reviewer accept or cancel a milestone',
@@ -56,6 +58,7 @@ const restrict = () => context => {
         throw new errors.Forbidden(
           'Only the owner or recipient can mark a milestone complete',
         );
+      }
 
       // whitelist of what can be updated
       const approvedKeys = ['status'];
