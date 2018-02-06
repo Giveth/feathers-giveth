@@ -49,8 +49,24 @@ const restrict = () => context => {
         key => !approvedKeys.includes(key),
       );
       keysToRemove.forEach(key => delete data[key]);
+
+    // mark complete
+    } else if (data.status === 'NeedsReview' && milestone.status !== data.status) {
+      if (![m.recipientAddress, m.ownerAddress].includes(user.address)) {
+        throw new errors.Forbidden(
+          'Only the owner or recipient can mark a milestone complete',
+        );
+
+      // whitelist of what can be updated
+      const approvedKeys = ['status'];
+
+      const keysToRemove = Object.keys(data).map(
+        key => !approvedKeys.includes(key),
+      );
+      keysToRemove.forEach(key => delete data[key]);
+
+    // reject the milestone
     } else if (data.status === 'InProgress' && milestone.status !== data.status) {
-      // reject milestone
       if (!reviewers.includes(user.address)) {
         throw new errors.Forbidden('Only the reviewer reject a milestone');
       }
@@ -62,8 +78,9 @@ const restrict = () => context => {
         key => !approvedKeys.includes(key),
       );
       keysToRemove.forEach(key => delete data[key]);
+
+    // accept proposed milestone
     } else if (milestone.status === 'proposed' && data.status === 'pending') {
-      // accept proposed milestone
       if (user.address !== milestone.campaignOwnerAddress) {
         throw new errors.Forbidden(
           'Only the campaign owner can accept a milestone',
@@ -262,7 +279,7 @@ module.exports = {
       ...address,
       isProjectAllowed(),
       sanitizeHtml('description'),
-      createdAt
+      createdAt,
     ],
     update: [restrict(), ...address, sanitizeHtml('description'), updatedAt],
     patch: [
@@ -277,7 +294,7 @@ module.exports = {
         { validate: true },
       ),
       sanitizeHtml('description'),
-      updatedAt
+      updatedAt,
     ],
     remove: [commons.disallow()],
   },
