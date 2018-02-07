@@ -24,6 +24,8 @@ export const getEthConversion = (app, requestedDate) => {
   const startDate = date.setUTCHours(0,0,0,0);      // set at start of the day
   const timestamp = Math.round(startDate) / 1000;   // create timestamp in seconds, as accepted by cryptocompare
 
+  logger.info(`request eth conversion for timestamp ${timestamp}`);
+
   return new Promise((resolve, reject) => {
     // check if we already have this exchange rate for this timestamp, if not we save it
     app.service('ethconversion').find({query: { timestamp: timestamp}})
