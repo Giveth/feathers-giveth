@@ -207,11 +207,15 @@ const sendNotification = () => context => {
  * This function checks that the maxAmount in the milestone is based on the correct conversion rate of the milestone date
  **/
 const checkEthConversion = () => (context) => {
+  // abort check for internal calls
+  if (!context.params.provider) return context;
+
   const { data, app } = context;
   let maxAmount = 0;
   const items = data.items;
 
   const calculateCorrectEther = (conversionRate, fiatAmount, etherToCheck, selectedFiatType) => {
+    logger.info('calculating correct ether conversion', conversionRate.rates[selectedFiatType], fiatAmount, etherToCheck);
     // calculate the converion of the item, make sure that fiat-eth is correct
     const rate = conversionRate.rates[selectedFiatType];
     const ether = utils.toWei((fiatAmount / rate).toFixed(18));
@@ -222,24 +226,33 @@ const checkEthConversion = () => (context) => {
   }
 
   if(items && items.length > 0) {
+    // check total amount of milestone, make sure it is correct
+    let totalItemEtherAmount = 0;
+    items.forEach((item) => totalItemEtherAmount += parseFloat(item.etherAmount))
+
+    if (utils.toWei(totalItemEtherAmount.toFixed(18)) !== data.maxAmount) {
+      throw new errors.Forbidden('Total amount in ether is incorrect');
+    } 
+
+    // now check that the conversion rate for each milestone is correct
     return new Promise((resolve, reject) =>
       items.forEach((item, index) => {
-
         app.service('ethconversion')
           .find({ query: { date: item.date }, internal: true })
           .then((conversionRate) => {
-            // calculate the converion of the item, make sure that fiat-eth is correct
             calculateCorrectEther(conversionRate, item.fiatAmount, utils.toWei(item.etherAmount.toFixed(18)), item.selectedFiatType);
+            
             if(index === 0) resolve(context);
           })
       })
     );
   } else {
+    // check that the conversion rate for the milestone is correct
     return app.service('ethconversion')
       .find({ query: { date: data.date }, internal: true })
       .then((conversionRate) => {
         calculateCorrectEther(conversionRate, data.fiatAmount, data.maxAmount, data.selectedFiatType)
-        resolve(context);
+        return context;
       });
   }
 }
@@ -301,6 +314,7 @@ module.exports = {
     ],
     get: [],
     create: [
+      checkEthConversion(), 
       setAddress('ownerAddress'),
       ...address,
       isProjectAllowed(),
@@ -309,6 +323,7 @@ module.exports = {
     ],
     update: [restrict(), ...address, sanitizeHtml('description'), updatedAt],
     patch: [
+      checkEthConversion(),     
       restrict(),
       sanitizeAddress(
         [
@@ -329,7 +344,7 @@ module.exports = {
     all: [commons.populate({ schema })],
     find: [],
     get: [],
-    create: [checkEthConversion(), sendNotification()],
+    create: [sendNotification()],
     update: [],
     patch: [sendNotification()],
     remove: [],
