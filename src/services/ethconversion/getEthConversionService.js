@@ -24,7 +24,7 @@ export const getEthConversion = (app, requestedDate) => {
   const startDate = date.setUTCHours(0,0,0,0);      // set at start of the day
   const timestamp = Math.round(startDate) / 1000;   // create timestamp in seconds, as accepted by cryptocompare
 
-  logger.info(`request eth conversion for timestamp ${timestamp}`);
+  logger.debug(`request eth conversion for timestamp ${timestamp}`);
 
   // check if we already have this exchange rate for this timestamp, if not we save it
   return new Promise((resolve, reject) => {  
@@ -38,8 +38,6 @@ export const getEthConversion = (app, requestedDate) => {
           // fetch daily avg for each fiat
           let promises = fiat.map(f => rp(`https://min-api.cryptocompare.com/data/dayAvg?fsym=ETH&tsym=${f}&toTs=${timestamp}&extraParams=giveth`))
           let exchangeRates = {};
-
-          console.log(promises.length)
 
           Promise.all(promises)
             .then(responses => {
