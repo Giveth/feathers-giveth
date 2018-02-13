@@ -1,15 +1,13 @@
 import onlyInternal from '../../hooks/onlyInternal';
 import { getEthConversion } from './getEthConversionService';
+import { disallow } from 'feathers-hooks-common';
 
 const getConversionRates = () => (context) => {
   const { app, params } = context;
 
-  console.log(params);
-
-  // block internal calls
-  if (!params.provider && !params.internal) return context
-
-  console.log('getting conversion')
+  // return context to avoid recursion
+  // getEthConversion also calls this hook
+  if (params.internal) return context
 
   return getEthConversion(app, params.query.date)
     .then((res) => {
@@ -23,11 +21,11 @@ module.exports = {
   before: {
     all: [],
     find: [],
-    get: [],
+    get: [disallow()],
     create: [onlyInternal()],
-    update: [onlyInternal()],
-    patch: [onlyInternal()],
-    remove: [onlyInternal()]
+    update: [disallow()],
+    patch: [disallow()],
+    remove: [disallow()]
   },
 
   after: {

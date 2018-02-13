@@ -26,25 +26,20 @@ export const getEthConversion = (app, requestedDate) => {
 
   logger.info(`request eth conversion for timestamp ${timestamp}`);
 
-  return new Promise((resolve, reject) => {
-    // check if we already have this exchange rate for this timestamp, if not we save it
-    app.service('ethconversion').find({query: { timestamp: timestamp}})
+  // check if we already have this exchange rate for this timestamp, if not we save it
+  return new Promise((resolve, reject) => {  
+    app.service('ethconversion').find({query: { timestamp: timestamp}, internal: true})
       .then((rates) => {
         if(rates.data.length > 0) {
-          resolve(_buildResponse(rates.data[0].timestamp, rates.data[0].rates));
+          resolve(_buildResponse(rates.data[0].timestamp, rates.data[0].rates));          
         } else {
-          logger.info('fetching eth coversion from crypto compare');
+          logger.debug('fetching eth coversion from crypto compare');
 
           // fetch daily avg for each fiat
-          let promises = [];
-
-          fiat.forEach((f) =>
-            promises.push(
-              rp(`https://min-api.cryptocompare.com/data/dayAvg?fsym=ETH&tsym=${f}&toTs=${timestamp}&extraParams=giveth`)
-            )
-          )
-
+          let promises = fiat.map(f => rp(`https://min-api.cryptocompare.com/data/dayAvg?fsym=ETH&tsym=${f}&toTs=${timestamp}&extraParams=giveth`))
           let exchangeRates = {};
+
+          console.log(promises.length)
 
           Promise.all(promises)
             .then(responses => {
@@ -52,7 +47,7 @@ export const getEthConversion = (app, requestedDate) => {
                 resp = JSON.parse(resp);
 
                 Object.keys(resp).forEach((key) => {
-                  if(fiat.indexOf(key) > -1) {
+                  if(fiat.includes(key)) {
                     exchangeRates[key] = resp[key]
                   }
                 })
@@ -63,7 +58,7 @@ export const getEthConversion = (app, requestedDate) => {
                 rates: exchangeRates
               }).then(() => {
                 resolve(_buildResponse(timestamp, exchangeRates));
-              });
+              })
             })
             .catch((e) => {
               logger.error('could not fetch eth conversions from crypto compare', e);

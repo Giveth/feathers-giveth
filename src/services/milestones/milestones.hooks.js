@@ -215,10 +215,10 @@ const checkEthConversion = () => (context) => {
   const items = data.items;
 
   const calculateCorrectEther = (conversionRate, fiatAmount, etherToCheck, selectedFiatType) => {
-    logger.info('calculating correct ether conversion', conversionRate.rates[selectedFiatType], fiatAmount, etherToCheck);
+    logger.debug('calculating correct ether conversion', conversionRate.rates[selectedFiatType], fiatAmount, etherToCheck);
     // calculate the converion of the item, make sure that fiat-eth is correct
     const rate = conversionRate.rates[selectedFiatType];
-    const ether = utils.toWei((fiatAmount / rate).toFixed(18));
+    const ether = utils.toWei((fiatAmount / rate).toString().substr(0,18));
 
     if (ether !== etherToCheck) {
       throw new errors.Forbidden('Conversion rate is incorrect');
@@ -230,31 +230,60 @@ const checkEthConversion = () => (context) => {
     let totalItemEtherAmount = 0;
     items.forEach((item) => totalItemEtherAmount += parseFloat(item.etherAmount))
 
-    if (utils.toWei(totalItemEtherAmount.toFixed(18)) !== data.maxAmount) {
+    if (utils.toWei(totalItemEtherAmount.toString().substr(0, 18)) !== data.maxAmount) {
       throw new errors.Forbidden('Total amount in ether is incorrect');
     } 
 
     // now check that the conversion rate for each milestone is correct
-    return new Promise((resolve, reject) =>
-      items.forEach((item, index) => {
-        app.service('ethconversion')
-          .find({ query: { date: item.date }, internal: true })
-          .then((conversionRate) => {
-            calculateCorrectEther(conversionRate, item.fiatAmount, utils.toWei(item.etherAmount.toFixed(18)), item.selectedFiatType);
-            
-            if(index === 0) resolve(context);
-          })
-      })
-    );
+    let promises = items.map(item => {
+      app.service('ethconversion')
+        .find({ query: { date: item.date }})
+        .then((conversionRate) => {
+          calculateCorrectEther(conversionRate, item.fiatAmount, utils.toWei(item.etherAmount.toString().substr(0, 18)), item.selectedFiatType);
+        })
+    })
+
+    return Promise.all(promises).then( () => context )
   } else {
     // check that the conversion rate for the milestone is correct
     return app.service('ethconversion')
-      .find({ query: { date: data.date }, internal: true })
+      .find({ query: { date: data.date }})
       .then((conversionRate) => {
         calculateCorrectEther(conversionRate, data.fiatAmount, data.maxAmount, data.selectedFiatType)
         return context;
       });
   }
+}
+
+
+/**
+ * This function checks that milestones and items are not created in the future, which we disallow at the moment
+ **/
+const checkMilestoneDates = () => (context) => {
+  // abort check for internal calls
+  if (!context.params.provider) return context;
+
+  const { data, app } = context;
+  const items = data.items;   
+
+  const today = new Date().setUTCHours(0,0,0,0)
+  const todaysTimestamp = Math.round(today) / 1000;
+
+  const checkFutureTimestamp = (requestedDate) => {
+    const date = new Date(requestedDate)
+    const timestamp = Math.round(date) / 1000;
+
+    if(todaysTimestamp - timestamp < 0 ) {
+      throw new errors.Forbidden('Future items are not allowd');
+    }
+  }
+
+  if((items && items.length) > 0) {
+    items.forEach( item => checkFutureTimestamp(item.date))
+  } else {
+    checkFutureTimestamp(data.date)
+  }
+  return context;
 }
 
 const address = [
@@ -315,13 +344,21 @@ module.exports = {
     get: [],
     create: [
       checkEthConversion(), 
+      checkMilestoneDates(),
       setAddress('ownerAddress'),
       ...address,
       isProjectAllowed(),
       sanitizeHtml('description'),
       createdAt
     ],
-    update: [restrict(), ...address, sanitizeHtml('description'), updatedAt],
+    update: [
+      restrict(), 
+      checkEthConversion(),
+      checkMilestoneDates(),
+      ...address, 
+      sanitizeHtml('description'), 
+      updatedAt
+    ],
     patch: [
       checkEthConversion(),     
       restrict(),
