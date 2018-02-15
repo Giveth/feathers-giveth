@@ -10,6 +10,8 @@ import Notifications from './../../utils/dappMailer';
 import { updatedAt, createdAt } from '../../hooks/timestamps';
 
 import { utils } from 'web3';
+const BigNumber = require('bignumber.js');
+BigNumber.config({ DECIMAL_PLACES: 18 })
 
 const restrict = () => context => {
   // internal call are fine
@@ -218,7 +220,7 @@ const checkEthConversion = () => (context) => {
     logger.debug('calculating correct ether conversion', conversionRate.rates[selectedFiatType], fiatAmount, etherToCheck);
     // calculate the converion of the item, make sure that fiat-eth is correct
     const rate = conversionRate.rates[selectedFiatType];
-    const ether = utils.toWei((fiatAmount / rate).toString().substr(0,18));
+    const ether = utils.toWei(new BigNumber(fiatAmount).div(rate).toFixed(18));
 
     if (ether !== etherToCheck) {
       throw new errors.Forbidden('Conversion rate is incorrect');
@@ -227,10 +229,10 @@ const checkEthConversion = () => (context) => {
 
   if(items && items.length > 0) {
     // check total amount of milestone, make sure it is correct
-    let totalItemEtherAmount = 0;
-    items.forEach((item) => totalItemEtherAmount += parseFloat(item.etherAmount))
+    let totalItemEtherAmount = new BigNumber(0);
+    items.forEach((item) => totalItemEtherAmount = totalItemEtherAmount.plus(new BigNumber(item.etherAmount)))
 
-    if (utils.toWei(totalItemEtherAmount.toString().substr(0, 18)) !== data.maxAmount) {
+    if (utils.toWei(totalItemEtherAmount.toFixed(18)) !== data.maxAmount) {
       throw new errors.Forbidden('Total amount in ether is incorrect');
     } 
 
@@ -239,7 +241,7 @@ const checkEthConversion = () => (context) => {
       app.service('ethconversion')
         .find({ query: { date: item.date }})
         .then((conversionRate) => {
-          calculateCorrectEther(conversionRate, item.fiatAmount, utils.toWei(item.etherAmount.toString().substr(0, 18)), item.selectedFiatType);
+          calculateCorrectEther(conversionRate, item.fiatAmount, item.wei, item.selectedFiatType);
         })
     })
 
