@@ -2,7 +2,7 @@ import { when, disallow } from 'feathers-hooks-common';
 
 export default {
   before: {
-    all: [ when(context => context.method !== 'remove', disallow('external')) ],
+    all: [when(context => context.method !== 'remove', disallow('external'))],
     find: [],
     get: [],
     create: [],

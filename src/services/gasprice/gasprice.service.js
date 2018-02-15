@@ -3,13 +3,13 @@ const createService = require('feathers-memory');
 const hooks = require('./gasprice.hooks');
 const filters = require('./gasprice.filters');
 
-module.exports = function () {
+module.exports = function() {
   const app = this;
   const paginate = app.get('paginate');
 
   const options = {
     name: 'gasprice',
-    paginate
+    paginate,
   };
 
   // Initialize our service with any options it requires

@@ -3,13 +3,13 @@ import logger from 'winston';
 
 import LiquidPledgingMonitor from './LiquidPledgingMonitor';
 import FailedTxMonitor from './FailedTxMonitor';
-import { LiquidPledging, LPVault } from "giveth-liquidpledging-token";
-import { LPPCappedMilestones } from "lpp-capped-milestone-token";
-import { LPPDacs } from "lpp-dacs";
+import { LiquidPledging, LPVault } from 'giveth-liquidpledging-token';
+import { LPPCappedMilestones } from 'lpp-capped-milestone-token';
+import { LPPDacs } from 'lpp-dacs';
 
 const ONE_MINUTE = 60 * 1000;
 
-export default function () {
+export default function() {
   const app = this;
   const blockchain = app.get('blockchain');
 
@@ -41,15 +41,22 @@ export default function () {
     const cappedMilestones = new LPPCappedMilestones(web3, blockchain.cappedMilestoneAddress);
     const lppDacs = new LPPDacs(web3, blockchain.dacsAddress);
 
-    lpMonitor = new LiquidPledgingMonitor(app, web3, liquidPledging, cappedMilestones, lppDacs, txMonitor, opts);
+    lpMonitor = new LiquidPledgingMonitor(
+      app,
+      web3,
+      liquidPledging,
+      cappedMilestones,
+      lppDacs,
+      txMonitor,
+      opts,
+    );
     lpMonitor.start();
-
   };
 
   // if the websocket connection drops, attempt to re-connect
   // upon successful re-connection, we re-start all listeners
   const reconnectOnEnd = () => {
-    web3.currentProvider.on('end', (e) => {
+    web3.currentProvider.on('end', e => {
       logger.error(`connection closed reason: ${e.reason}, code: ${e.code}`);
 
       txMonitor.close();

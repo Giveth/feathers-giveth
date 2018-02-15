@@ -11,16 +11,18 @@ class CappedMilestones {
   }
 
   milestoneAccepted(event) {
-    if (event.event !== 'MilestoneAccepted') throw new Error('milestoneAccepted only handles MilestoneAccepted events');
+    if (event.event !== 'MilestoneAccepted')
+      throw new Error('milestoneAccepted only handles MilestoneAccepted events');
 
     const { idProject } = event.returnValues;
 
-    this.milestones.find({ query: { projectId: idProject } })
+    this.milestones
+      .find({ query: { projectId: idProject } })
       .then(({ data }) => {
         // not interested in any milestones we aren't aware of.
         if (data.length === 0) return;
 
-        const m = data[ 0 ];
+        const m = data[0];
 
         return this.milestones.patch(m._id, {
           status: 'Completed',
@@ -31,16 +33,18 @@ class CappedMilestones {
   }
 
   paymentCollected(event) {
-    if (event.event !== 'PaymentCollected') throw new Error('paymentCollected only handles PaymentCollected events');
+    if (event.event !== 'PaymentCollected')
+      throw new Error('paymentCollected only handles PaymentCollected events');
 
     const { idProject } = event.returnValues;
 
-    this.milestones.find({ query: { projectId: idProject } })
+    this.milestones
+      .find({ query: { projectId: idProject } })
       .then(({ data }) => {
         // not interested in any milestones we aren't aware of.
         if (data.length === 0) return;
 
-        const m = data[ 0 ];
+        const m = data[0];
 
         return this.milestones.patch(m._id, {
           status: 'Paid',

@@ -4,9 +4,7 @@
   "version": "0.0.0",
   "homepage": "",
   "main": "src",
-  "keywords": [
-    "feathers"
-  ],
+  "keywords": ["feathers"],
   "author": {
     "name": "ojones",
     "email": "wakeupoj@gmail.com"
@@ -26,12 +24,15 @@
     "build-server": "babel -d ./build src",
     "build": "npm run clean && npm run build-server",
     "test": "npm run eslint && npm run mocha",
-    "eslint": "eslint src/. test/. --config .eslintrc.json",
+    "eslint": "eslint src/. test/.",
+    "eslint:fix": "eslint src/. test/. --fix",
     "testrpc": "mkdirp data/testrpc && node node_modules/ganache-cli/build/cli.node.js -d --gasLimit 6700000 --db data/testrpc -b 5",
     "start": "babel-watch src",
     "serve": "npm run build && pm2 startOrRestart ecosystem.config.js --env production",
     "serve-restart": "npm run build && pm2 startOrRestart ecosystem.config.js --env production",
-    "mocha": "mocha test/ --recursive --compilers js:babel-core/register"
+    "mocha": "mocha test/ --recursive --compilers js:babel-core/register",
+    "prettier": "prettier 'src/**/*.js*' -l",
+    "prettier:write": "prettier 'src/app/**/*.js' --write"
   },
   "dependencies": {
     "bignumber.js": "^6.0.0",
@@ -81,9 +82,14 @@
     "babel-preset-env": "^1.6.0",
     "babel-watch": "^2.0.7",
     "eslint": "^4.10.0",
-    "eslint-config-airbnb": "^16.1.0",
+    "eslint-config-airbnb-base": "^12.1.0",
+    "eslint-config-prettier": "^2.9.0",
+    "eslint-loader": "^1.9.0",
+    "eslint-plugin-import": "^2.8.0",
+    "eslint-plugin-prettier": "^2.4.0",
     "ganache-cli": "^7.0.0-beta.0",
     "lerna": "^2.2.0",
-    "mocha": "^3.5.0"
+    "mocha": "^3.5.0",
+    "prettier": "1.9.2"
   }
 }

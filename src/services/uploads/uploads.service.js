@@ -8,7 +8,7 @@ import { multipartTransfer } from '../../middleware/upload';
 const hooks = require('./uploads.hooks');
 const filters = require('./uploads.filters');
 
-module.exports = function () {
+module.exports = function() {
   const app = this;
 
   const blobStorage = fs(app.get('uploads'));
@@ -19,10 +19,11 @@ module.exports = function () {
   app.use('/uploads', feathers.static(app.get('uploads')));
 
   // Initialize our service with any options it requires
-  app.use('/uploads',
+  app.use(
+    '/uploads',
     multipartMiddleware.single('uri'),
     multipartTransfer,
-    blobService({ Model: blobStorage })
+    blobService({ Model: blobStorage }),
   );
 
   // Get our initialized service so that we can register hooks and filters

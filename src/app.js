@@ -9,6 +9,7 @@ const feathers = require('feathers');
 const configuration = require('feathers-configuration');
 const hooks = require('feathers-hooks');
 const rest = require('feathers-rest');
+
 import socketsConfig from './socketsConfig';
 import logger from './utils/logger';
 
@@ -20,7 +21,6 @@ import services from './services';
 import appHooks from './app.hooks';
 import authentication from './authentication';
 import blockchain from './blockchain';
-
 
 const app = feathers();
 

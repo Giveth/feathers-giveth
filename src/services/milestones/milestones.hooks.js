@@ -24,37 +24,41 @@ const restrict = () => context => {
 
   const getMilestones = () => {
     if (context.id) return service.get(context.id);
-    if (!context.id && context.params.query)
-      return service.find(context.params.query);
+    if (!context.id && context.params.query) return service.find(context.params.query);
     return undefined;
   };
 
   const canUpdate = milestone => {
     if (!milestone) throw new errors.Forbidden();
 
-    const reviewers = [
-      milestone.reviewerAddress,
-      milestone.campaignReviewerAddress,
-    ];
+    const reviewers = [milestone.reviewerAddress, milestone.campaignReviewerAddress];
 
     // reviewers can mark Completed or Canceled
     if (['Completed', 'Canceled'].includes(data.status) && data.mined === false) {
-
       if (!reviewers.includes(user.address)) {
-        throw new errors.Forbidden(
-          'Only the reviewer accept or cancel a milestone',
-        );
+        throw new errors.Forbidden('Only the reviewer accept or cancel a milestone');
       }
 
       // whitelist of what the reviewer can update
       const approvedKeys = ['txHash', 'status', 'mined', 'prevStatus'];
 
-      const keysToRemove = Object.keys(data).map(
-        key => !approvedKeys.includes(key),
-      );
+      const keysToRemove = Object.keys(data).map(key => !approvedKeys.includes(key));
       keysToRemove.forEach(key => delete data[key]);
+
+      // mark complete
+    } else if (data.status === 'NeedsReview' && milestone.status !== data.status) {
+      if (![milestone.recipientAddress, milestone.ownerAddress].includes(user.address)) {
+        throw new errors.Forbidden('Only the owner or recipient can mark a milestone complete');
+      }
+
+      // whitelist of what can be updated
+      const approvedKeys = ['status'];
+
+      const keysToRemove = Object.keys(data).map(key => !approvedKeys.includes(key));
+      keysToRemove.forEach(key => delete data[key]);
+
+      // reject the milestone
     } else if (data.status === 'InProgress' && milestone.status !== data.status) {
-      // reject milestone
       if (!reviewers.includes(user.address)) {
         throw new errors.Forbidden('Only the reviewer reject a milestone');
       }
@@ -62,23 +66,18 @@ const restrict = () => context => {
       // whitelist of what the reviewer can update
       const approvedKeys = ['status'];
 
-      const keysToRemove = Object.keys(data).map(
-        key => !approvedKeys.includes(key),
-      );
+      const keysToRemove = Object.keys(data).map(key => !approvedKeys.includes(key));
       keysToRemove.forEach(key => delete data[key]);
-    } else if (milestone.status === 'proposed' && data.status === 'pending') {
+
       // accept proposed milestone
+    } else if (milestone.status === 'proposed' && data.status === 'pending') {
       if (user.address !== milestone.campaignOwnerAddress) {
-        throw new errors.Forbidden(
-          'Only the campaign owner can accept a milestone',
-        );
+        throw new errors.Forbidden('Only the campaign owner can accept a milestone');
       }
 
       const approvedKeys = ['txHash', 'status', 'mined', 'ownerAddress'];
 
-      const keysToRemove = Object.keys(data).map(
-        key => !approvedKeys.includes(key),
-      );
+      const keysToRemove = Object.keys(data).map(key => !approvedKeys.includes(key));
       keysToRemove.forEach(key => delete data[key]);
     } else if (user.address !== milestone.ownerAddress) {
       throw new errors.Forbidden();
@@ -96,9 +95,7 @@ const restrict = () => context => {
 
   return getMilestones().then(
     milestones =>
-      Array.isArray(milestones)
-        ? milestones.forEach(canUpdate)
-        : canUpdate(milestones),
+      Array.isArray(milestones) ? milestones.forEach(canUpdate) : canUpdate(milestones),
   );
 };
 
@@ -128,9 +125,7 @@ const sendNotification = () => context => {
             amount: data.maxAmount,
           });
         })
-        .catch(e =>
-          logger.error('error sending proposed milestone notification', e),
-        );
+        .catch(e => logger.error('error sending proposed milestone notification', e));
     }
   }
 
@@ -138,11 +133,7 @@ const sendNotification = () => context => {
    * Notifications when a milestone get patches
    * */
   if (context.method === 'patch') {
-    if (
-      result.prevStatus === 'proposed' &&
-      result.status === 'InProgress' &&
-      result.mined
-    ) {
+    if (result.prevStatus === 'proposed' && result.status === 'InProgress' && result.mined) {
       // find the milestone owner and send a notification that his/her proposed milestone is approved
       Notifications.proposedMilestoneAccepted(app, {
         recipient: result.owner.email,
@@ -290,10 +281,10 @@ const checkMilestoneDates = () => (context) => {
 
 const address = [
   sanitizeAddress('pluginAddress', { required: true, validate: true }),
-  sanitizeAddress(
-    ['reviewerAddress', 'campaignReviewerAddress', 'recipientAddress'],
-    { required: false, validate: true },
-  ),
+  sanitizeAddress(['reviewerAddress', 'campaignReviewerAddress', 'recipientAddress'], {
+    required: false,
+    validate: true,
+  }),
 ];
 
 const schema = {
@@ -351,7 +342,7 @@ module.exports = {
       ...address,
       isProjectAllowed(),
       sanitizeHtml('description'),
-      createdAt
+      createdAt,
     ],
     update: [
       restrict(), 
@@ -365,16 +356,11 @@ module.exports = {
       checkEthConversion(),     
       restrict(),
       sanitizeAddress(
-        [
-          'pluginAddress',
-          'reviewerAddress',
-          'campaignReviewerAddress',
-          'recipientAddress',
-        ],
+        ['pluginAddress', 'reviewerAddress', 'campaignReviewerAddress', 'recipientAddress'],
         { validate: true },
       ),
       sanitizeHtml('description'),
-      updatedAt
+      updatedAt,
     ],
     remove: [commons.disallow()],
   },

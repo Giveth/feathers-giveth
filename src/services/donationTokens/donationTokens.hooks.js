@@ -5,10 +5,10 @@ export default {
     all: [],
     find: [],
     get: [],
-    create: [ onlyInternal() ],
-    update: [ onlyInternal() ],
-    patch: [ onlyInternal() ],
-    remove: [ onlyInternal() ],
+    create: [onlyInternal()],
+    update: [onlyInternal()],
+    patch: [onlyInternal()],
+    remove: [onlyInternal()],
   },
 
   after: {

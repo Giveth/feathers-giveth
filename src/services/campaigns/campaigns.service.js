@@ -4,7 +4,7 @@ const createModel = require('../../models/campaigns.model');
 const hooks = require('./campaigns.hooks');
 const filters = require('./campaigns.filters');
 
-module.exports = function () {
+module.exports = function() {
   const app = this;
   const Model = createModel(app);
   const paginate = app.get('paginate');
@@ -12,7 +12,7 @@ module.exports = function () {
   const options = {
     name: 'campaigns',
     Model,
-    paginate
+    paginate,
   };
 
   // Initialize our service with any options it requires

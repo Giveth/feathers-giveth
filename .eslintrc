@@ -7,17 +7,20 @@
     "node": true,
     "mocha": true
   },
-  "extends": "airbnb",
+  "extends": ["airbnb-base", "plugin:prettier/recommended"],
   "rules": {
-    "no-unused-vars": [
-      "error",
-      {
+    "no-unused-vars": ["error", {
         "vars": "all",
         "args": "after-used",
         "ignoreRestSiblings": true,
         "argsIgnorePattern": "^_"
       }
     ],
-    "linebreak-style": "off"
+    "linebreak-style": "off",
+    "prettier/prettier": ["error", {
+      "singleQuote": true,
+      "trailingComma": "all",
+      "printWidth": 100
+    }]
   }
 }

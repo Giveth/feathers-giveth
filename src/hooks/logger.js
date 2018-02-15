@@ -1,8 +1,8 @@
 // A hook that logs service method before, after and error
 import logger from 'winston';
 
-export default function () {
-  return function (hook) {
+export default function() {
+  return function(hook) {
     let message = `${hook.type}: ${hook.path} - Method: ${hook.method}`;
 
     if (hook.type === 'error') {

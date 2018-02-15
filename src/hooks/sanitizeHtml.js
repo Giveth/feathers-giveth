@@ -1,24 +1,39 @@
 import commons from 'feathers-hooks-common';
 import sanitizeHtml from 'sanitize-html';
 
-export default (...fieldNames) => (context) => {
-  commons.checkContext(context, 'before', [ 'create', 'update', 'patch']);
+export default (...fieldNames) => context => {
+  commons.checkContext(context, 'before', ['create', 'update', 'patch']);
 
   const items = commons.getItems(context);
 
   const sanitize = item => {
     fieldNames.forEach(fieldName => {
-      if (item[ fieldName ]) {
-        item[ fieldName ] = sanitizeHtml(item[ fieldName ], {
-          allowedTags: [ 'p', 'h1', 'h2', 'strong', 'em', 'u', 's', 'blockquote', 'ol', 'ul', 'li', 'img', 'iframe', 'a' ],
+      if (item[fieldName]) {
+        item[fieldName] = sanitizeHtml(item[fieldName], {
+          allowedTags: [
+            'p',
+            'h1',
+            'h2',
+            'strong',
+            'em',
+            'u',
+            's',
+            'blockquote',
+            'ol',
+            'ul',
+            'li',
+            'img',
+            'iframe',
+            'a',
+          ],
           allowedAttributes: {
-            'iframe': [ 'src', 'allowfullscreen', 'frameborder' ],
-            'a': [ 'target', 'href']
+            iframe: ['src', 'allowfullscreen', 'frameborder'],
+            a: ['target', 'href'],
           },
           allowedClasses: {
-            '*': [ 'ql-indent-*' ],
-            'iframe': [ 'ql-video' ],
-          }
+            '*': ['ql-indent-*'],
+            iframe: ['ql-video'],
+          },
         });
       }
     });

@@ -5,7 +5,7 @@ import hooks from './donationsHistory.hooks';
 
 import filters from './donationsHistory.filters';
 
-export default function () {
+export default function() {
   const app = this;
   const Model = createModel(app);
   const paginate = app.get('paginate');
@@ -37,4 +37,3 @@ export default function () {
   //   nestedService.filter(filters);
   // }
 }
-

@@ -3,7 +3,6 @@ import { checkContext, getByDot } from 'feathers-hooks-common';
 const notifyParent = (context, opts) => {
   const watchFields = opts.watchFields || [];
 
-
   if (!opts.childField || !opts.parentField || !opts.service) {
     throw new Error('childField, parentFiled, and service are required');
   }
@@ -15,26 +14,22 @@ const notifyParent = (context, opts) => {
     return beforeVal !== afterVal;
   };
 
-  const changed = (context.method === 'remove') || watchFields.some(field => valChanged(field));
+  const changed = context.method === 'remove' || watchFields.some(field => valChanged(field));
 
   if (changed) {
-
     const service = context.app.service(opts.service);
 
     const params = {
       query: {},
     };
 
-    params.query[ opts.parentField ] = getByDot(context.result, opts.childField);
+    params.query[opts.parentField] = getByDot(context.result, opts.childField);
 
-    return service.find(params)
-      .then(resp => {
-
-        resp.data.forEach(item => {
-          service.emit('updated', item);
-        });
-
+    return service.find(params).then(resp => {
+      resp.data.forEach(item => {
+        service.emit('updated', item);
       });
+    });
   }
 
   return Promise.resolve();
@@ -52,20 +47,20 @@ const notifyParent = (context, opts) => {
  *             watchFields: // array of child fields to notify parent of changes
  *           }
  */
-export default (...notify) => {
-  return context => {
-    checkContext(context, 'after', [ 'remove', 'update', 'patch' ]);
+export default (...notify) => context => {
+  checkContext(context, 'after', ['remove', 'update', 'patch']);
 
-    if (!context.params.before) {
-      throw new Error('The remove-uploads hook expects context.before to have the entity before mutation. Use the ' +
-        'stashBefore hook to populate context.before with the entity being mutated');
-    }
+  if (!context.params.before) {
+    throw new Error(
+      'The remove-uploads hook expects context.before to have the entity before mutation. Use the ' +
+        'stashBefore hook to populate context.before with the entity being mutated',
+    );
+  }
 
-    return Promise.all(notify.map(opts => notifyParent(context, opts)))
-      .then(() => (context))
-      .catch(err => {
-        console.error(err); // eslint-disable-line no-console
-        return context;
-      });
-  };
+  return Promise.all(notify.map(opts => notifyParent(context, opts)))
+    .then(() => context)
+    .catch(err => {
+      console.error(err); // eslint-disable-line no-console
+      return context;
+    });
 };

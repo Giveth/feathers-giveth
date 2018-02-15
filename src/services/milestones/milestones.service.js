@@ -4,7 +4,7 @@ const createModel = require('../../models/milestones.model');
 const hooks = require('./milestones.hooks');
 const filters = require('./milestones.filters');
 
-module.exports = function () {
+module.exports = function() {
   const app = this;
   const Model = createModel(app);
   const paginate = app.get('paginate');
@@ -12,7 +12,7 @@ module.exports = function () {
   const options = {
     name: 'milestones',
     Model,
-    paginate
+    paginate,
   };
 
   // Initialize our service with any options it requires
