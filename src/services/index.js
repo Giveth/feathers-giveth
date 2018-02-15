@@ -14,7 +14,10 @@ import pledgeAdmins from './pledgeAdmins/pledgeAdmins.service';
 import donationsHistory from './donationsHistory/donationsHistory.service';
 import donationTokens from './donationTokens/donationTokens.service';
 
-module.exports = function() {
+const ethconversion = require('./ethconversion/ethconversion.service.js');
+
+
+module.exports = function () {
   const app = this;
   app.configure(dacs);
   app.configure(milestones);
@@ -28,4 +31,5 @@ module.exports = function() {
   app.configure(donationTokens);
   app.configure(whitelist);
   app.configure(gasprice);
+  app.configure(ethconversion);
 };

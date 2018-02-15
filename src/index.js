@@ -5,6 +5,7 @@ const app = require('./app');
 const port = app.get('port');
 const server = app.listen(port);
 import queryGasPrice from './blockchain/gasPriceService';
+import { queryEthConversion } from './services/ethconversion/getEthConversionService';
 
 process.on('unhandledRejection', (reason, p) =>
   logger.error('Unhandled Rejection at: Promise ', p, reason),
@@ -16,3 +17,4 @@ server.on('listening', () => {
 });
 
 queryGasPrice();
+queryEthConversion(app);
