@@ -1,7 +1,7 @@
 const rp = require('request-promise');
 const logger = require('winston');
 
-const fiat = ['USD', 'EUR', 'GBP', 'CHF', 'MXN', 'THB'];
+const fiat = ['USD', 'EUR', 'GBP', 'CHF', 'MXN', 'THB', 'CZK', 'BRL'];
 const MINUTE = 1000 * 60;
 
 
