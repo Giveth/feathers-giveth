@@ -4,7 +4,9 @@
   "version": "0.0.0",
   "homepage": "",
   "main": "src",
-  "keywords": ["feathers"],
+  "keywords": [
+    "feathers"
+  ],
   "author": {
     "name": "ojones",
     "email": "wakeupoj@gmail.com"
@@ -50,7 +52,7 @@
     "feathers-hooks": "^2.0.2",
     "feathers-hooks-common": "^3.6.1",
     "feathers-memory": "^1.1.0",
-    "feathers-nedb": "^3.0.0",
+    "feathers-nedb": "^2.6.2",
     "feathers-rest": "^1.8.0",
     "feathers-socketio": "^2.0.0",
     "feathers-swagger": "^0.5.0",
