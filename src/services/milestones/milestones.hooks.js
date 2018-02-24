@@ -1,6 +1,8 @@
 import commons from 'feathers-hooks-common';
 import errors from 'feathers-errors';
 import logger from 'winston';
+import { utils } from 'web3';
+import BigNumber from 'bignumber.js';
 
 import sanitizeAddress from '../../hooks/sanitizeAddress';
 import setAddress from '../../hooks/setAddress';
@@ -9,9 +11,7 @@ import isProjectAllowed from '../../hooks/isProjectAllowed';
 import Notifications from './../../utils/dappMailer';
 import { updatedAt, createdAt } from '../../hooks/timestamps';
 
-import { utils } from 'web3';
-const BigNumber = require('bignumber.js');
-BigNumber.config({ DECIMAL_PLACES: 18 })
+BigNumber.config({ DECIMAL_PLACES: 18 });
 
 const restrict = () => context => {
   // internal call are fine
@@ -196,88 +196,94 @@ const sendNotification = () => context => {
   }
 };
 
-/***
+/** *
  * This function checks that the maxAmount in the milestone is based on the correct conversion rate of the milestone date
- **/
-const checkEthConversion = () => (context) => {
+ * */
+const checkEthConversion = () => context => {
   // abort check for internal calls
   if (!context.params.provider) return context;
 
   const { data, app } = context;
-  let maxAmount = 0;
-  const items = data.items;
+  const { items } = data;
 
   const calculateCorrectEther = (conversionRate, fiatAmount, etherToCheck, selectedFiatType) => {
-    logger.debug('calculating correct ether conversion', conversionRate.rates[selectedFiatType], fiatAmount, etherToCheck);
+    logger.debug(
+      'calculating correct ether conversion',
+      conversionRate.rates[selectedFiatType],
+      fiatAmount,
+      etherToCheck,
+    );
     // calculate the converion of the item, make sure that fiat-eth is correct
     const rate = conversionRate.rates[selectedFiatType];
     const ether = utils.toWei(new BigNumber(fiatAmount).div(rate).toFixed(18));
 
     if (ether !== etherToCheck) {
       throw new errors.Forbidden('Conversion rate is incorrect');
-    }    
-  }
+    }
+  };
 
-  if(items && items.length > 0) {
+  if (items && items.length > 0) {
     // check total amount of milestone, make sure it is correct
-    let totalItemEtherAmount = new BigNumber(0);
-    items.forEach((item) => totalItemEtherAmount = totalItemEtherAmount.plus(new BigNumber(item.etherAmount)))
+    const totalItemEtherAmount = items.reduce(
+      (sum, item) => sum.plus(new BigNumber(item.etherAmount)),
+      new BigNumber('0'),
+    );
 
     if (utils.toWei(totalItemEtherAmount.toFixed(18)) !== data.maxAmount) {
       throw new errors.Forbidden('Total amount in ether is incorrect');
-    } 
+    }
 
     // now check that the conversion rate for each milestone is correct
-    let promises = items.map(item => {
-      app.service('ethconversion')
-        .find({ query: { date: item.date }})
-        .then((conversionRate) => {
+    const promises = items.map(item => {
+      app
+        .service('ethconversion')
+        .find({ query: { date: item.date } })
+        .then(conversionRate => {
           calculateCorrectEther(conversionRate, item.fiatAmount, item.wei, item.selectedFiatType);
-        })
-    })
+        });
+    });
 
-    return Promise.all(promises).then( () => context )
-  } else {
-    // check that the conversion rate for the milestone is correct
-    return app.service('ethconversion')
-      .find({ query: { date: data.date }})
-      .then((conversionRate) => {
-        calculateCorrectEther(conversionRate, data.fiatAmount, data.maxAmount, data.selectedFiatType)
-        return context;
-      });
+    return Promise.all(promises).then(() => context);
   }
-}
-
+  // check that the conversion rate for the milestone is correct
+  return app
+    .service('ethconversion')
+    .find({ query: { date: data.date } })
+    .then(conversionRate => {
+      calculateCorrectEther(conversionRate, data.fiatAmount, data.maxAmount, data.selectedFiatType);
+      return context;
+    });
+};
 
 /**
  * This function checks that milestones and items are not created in the future, which we disallow at the moment
- **/
-const checkMilestoneDates = () => (context) => {
+ * */
+const checkMilestoneDates = () => context => {
   // abort check for internal calls
   if (!context.params.provider) return context;
 
   const { data, app } = context;
-  const items = data.items;   
+  const { items } = data;
 
-  const today = new Date().setUTCHours(0,0,0,0)
+  const today = new Date().setUTCHours(0, 0, 0, 0);
   const todaysTimestamp = Math.round(today) / 1000;
 
-  const checkFutureTimestamp = (requestedDate) => {
-    const date = new Date(requestedDate)
+  const checkFutureTimestamp = requestedDate => {
+    const date = new Date(requestedDate);
     const timestamp = Math.round(date) / 1000;
 
-    if(todaysTimestamp - timestamp < 0 ) {
+    if (todaysTimestamp - timestamp < 0) {
       throw new errors.Forbidden('Future items are not allowd');
     }
-  }
+  };
 
-  if((items && items.length) > 0) {
-    items.forEach( item => checkFutureTimestamp(item.date))
+  if ((items && items.length) > 0) {
+    items.forEach(item => checkFutureTimestamp(item.date));
   } else {
-    checkFutureTimestamp(data.date)
+    checkFutureTimestamp(data.date);
   }
   return context;
-}
+};
 
 const address = [
   sanitizeAddress('pluginAddress', { required: true, validate: true }),
@@ -336,7 +342,7 @@ module.exports = {
     ],
     get: [],
     create: [
-      checkEthConversion(), 
+      checkEthConversion(),
       checkMilestoneDates(),
       setAddress('ownerAddress'),
       ...address,
@@ -345,15 +351,15 @@ module.exports = {
       createdAt,
     ],
     update: [
-      restrict(), 
+      restrict(),
       checkEthConversion(),
       checkMilestoneDates(),
-      ...address, 
-      sanitizeHtml('description'), 
-      updatedAt
+      ...address,
+      sanitizeHtml('description'),
+      updatedAt,
     ],
     patch: [
-      checkEthConversion(),     
+      checkEthConversion(),
       restrict(),
       sanitizeAddress(
         ['pluginAddress', 'reviewerAddress', 'campaignReviewerAddress', 'recipientAddress'],

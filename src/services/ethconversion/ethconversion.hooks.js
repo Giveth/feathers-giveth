@@ -2,20 +2,18 @@ import onlyInternal from '../../hooks/onlyInternal';
 import { getEthConversion } from './getEthConversionService';
 import { disallow } from 'feathers-hooks-common';
 
-const getConversionRates = () => (context) => {
+const getConversionRates = () => context => {
   const { app, params } = context;
 
   // return context to avoid recursion
   // getEthConversion also calls this hook
-  if (params.internal) return context
+  if (params.internal) return context;
 
-  return getEthConversion(app, params.query.date)
-    .then((res) => {
-      context.result = res;
-      return context;
-    })
-}
-
+  return getEthConversion(app, params.query.date).then(res => {
+    context.result = res;
+    return context;
+  });
+};
 
 module.exports = {
   before: {
@@ -25,7 +23,7 @@ module.exports = {
     create: [onlyInternal()],
     update: [disallow()],
     patch: [disallow()],
-    remove: [disallow()]
+    remove: [disallow()],
   },
 
   after: {
@@ -35,7 +33,7 @@ module.exports = {
     create: [],
     update: [],
     patch: [],
-    remove: []
+    remove: [],
   },
 
   error: {
@@ -45,6 +43,6 @@ module.exports = {
     create: [],
     update: [],
     patch: [],
-    remove: []
-  }
+    remove: [],
+  },
 };
