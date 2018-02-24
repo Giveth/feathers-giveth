@@ -206,6 +206,10 @@ const checkEthConversion = () => context => {
   const { data, app } = context;
   const { items } = data;
 
+  // skip check if the milestone has been already created
+  // FIXME: Even single expense should be stored in data.items. Unnecessary duplicity in code on both frontend and feathers.
+  if (!items && !data.fiatAmount && !data.maxAmount && !data.selectedFiatType) return context;
+
   const calculateCorrectEther = (conversionRate, fiatAmount, etherToCheck, selectedFiatType) => {
     logger.debug(
       'calculating correct ether conversion',
@@ -234,14 +238,14 @@ const checkEthConversion = () => context => {
     }
 
     // now check that the conversion rate for each milestone is correct
-    const promises = items.map(item => {
+    const promises = items.map(item =>
       app
         .service('ethconversion')
         .find({ query: { date: item.date } })
         .then(conversionRate => {
           calculateCorrectEther(conversionRate, item.fiatAmount, item.wei, item.selectedFiatType);
-        });
-    });
+        }),
+    );
 
     return Promise.all(promises).then(() => context);
   }
@@ -262,7 +266,7 @@ const checkMilestoneDates = () => context => {
   // abort check for internal calls
   if (!context.params.provider) return context;
 
-  const { data, app } = context;
+  const { data } = context;
   const { items } = data;
 
   const today = new Date().setUTCHours(0, 0, 0, 0);
