@@ -1,7 +1,7 @@
 const assert = require('assert');
 const app = require('../../src/app');
 
-describe('\'whitelist\' service', () => {
+describe("'whitelist' service", () => {
   it('registered the service', () => {
     const service = app.service('whitelist');
 

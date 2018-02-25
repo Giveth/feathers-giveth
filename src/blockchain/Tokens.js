@@ -4,21 +4,20 @@ import { LPPCampaign } from 'lpp-campaign';
 import { LPPDacs } from 'lpp-dacs';
 
 import { getTokenInformation } from './helpers';
-import getNetwork from "./getNetwork";
 
 const GenerateTokenEvent = {
   anonymous: false,
-  inputs:
-    [{ indexed: true, name: 'liquidPledging', type: 'address' },
-      { indexed: false, name: 'addr', type: 'address' },
-      { indexed: false, name: 'amount', type: 'uint256' }],
+  inputs: [
+    { indexed: true, name: 'liquidPledging', type: 'address' },
+    { indexed: false, name: 'addr', type: 'address' },
+    { indexed: false, name: 'amount', type: 'uint256' },
+  ],
   name: 'GenerateTokens',
   type: 'event',
   signature: '0xf8a6cdb77a67632a46c21be3e7ca9b2519ecd39d21e514f9222c5b2f19ce23ed',
 };
 
 const decodeEventABI = Contract.prototype._decodeEventABI.bind(GenerateTokenEvent);
-
 
 /**
  * class to track donation token balances
@@ -36,51 +35,63 @@ class Tokens {
 
     new LPPCampaign(this.web3, decodedEvent.address)
       .token()
-      .then(token => this.updateTokens(token, decodedEvent.returnValues.addr, decodedEvent.returnValues.amount))
+      .then(token =>
+        this.updateTokens(token, decodedEvent.returnValues.addr, decodedEvent.returnValues.amount),
+      )
       .catch(console.error); // eslint-disable-line no-console
   }
 
   dacTokensGenerated(event) {
-    if (event.event !== 'GenerateTokens') throw new Error('dacTokensGenerated only handles GenerateTokens events');
+    if (event.event !== 'GenerateTokens')
+      throw new Error('dacTokensGenerated only handles GenerateTokens events');
 
-    getNetwork()
-      .then(network => new LPPDacs(this.web3, network.dacsAddress)
-        .getDac(event.returnValues.idDelegate))
-      .then(({ token }) => this.updateTokens(token, event.returnValues.addr, event.returnValues.amount))
+    new LPPDacs(this.web3, this.app.get('blockchain.dacsAddress'))
+      .getDac(event.returnValues.idDelegate)
+      .then(({ token }) =>
+        this.updateTokens(token, event.returnValues.addr, event.returnValues.amount),
+      )
       .catch(console.error); // eslint-disable-line no-console
   }
 
   dacTokensDestroyed(event) {
-    if (event.event !== 'DestroyTokens') throw new Error('dacTokensDestroyed only handles DestroyTokens events');
+    if (event.event !== 'DestroyTokens')
+      throw new Error('dacTokensDestroyed only handles DestroyTokens events');
 
-    getNetwork()
-      .then(network => new LPPDacs(this.web3, network.dacsAddress)
-        .getDac(event.returnValues.idDelegate))
-      .then(({ token }) => this.updateTokens(token, event.returnValues.addr, event.returnValues.amount, false))
+    new LPPDacs(this.web3, this.app.get('blockchain.dacsAddress'))
+      .getDac(event.returnValues.idDelegate)
+      .then(({ token }) =>
+        this.updateTokens(token, event.returnValues.addr, event.returnValues.amount, false),
+      )
       .catch(console.error); // eslint-disable-line no-console
   }
 
   updateTokens(tokenAddress, addr, amount, generated = true) {
-    return this.tokens.find({
+    return this.tokens
+      .find({
         query: { tokenAddress, userAddress: addr },
         paginate: false,
       })
-      .then((data) => {
+      .then(data => {
         if (data.length === 0) {
-          return getTokenInformation(this.web3, tokenAddress)
-            .then(tokenInfo => this.tokens.create({
+          return getTokenInformation(this.web3, tokenAddress).then(tokenInfo =>
+            this.tokens.create({
               tokenAddress,
               tokenName: tokenInfo.name,
               tokenSymbol: tokenInfo.symbol,
               balance: amount,
               userAddress: addr,
-            }));
+            }),
+          );
         }
-        const t = data[ 0 ];
+        const t = data[0];
 
-        const balance = (generated) ?
-          toBN(t.balance).add(toBN(amount)).toString() :
-          toBN(t.balance).sub(toBN(amount)).toString();
+        const balance = generated
+          ? toBN(t.balance)
+              .add(toBN(amount))
+              .toString()
+          : toBN(t.balance)
+              .sub(toBN(amount))
+              .toString();
 
         return this.tokens.patch(t._id, { balance });
       });

@@ -4,15 +4,20 @@
   "dappUrl": "localhost:3010",
   "public": "../public/",
   "paginate": {
-    "default": 10,
-    "max": 50
+    "default": 25,
+    "max": 100
   },
   "nedb": "../data",
   "uploads": "../uploads",
   "uploadsBaseUrl": "http://localhost:3030/uploads/",
   "blockchain": {
-    "nodeUrl": "ws://localhost:8546",
-    "startingBlock": 0
+    "nodeUrl": "ws://localhost:8545",
+    "startingBlock": 0,
+    "vaultAddress": "0xCfEB869F69431e42cdB54A4F4f105C19C080A601",
+    "liquidPledgingAddress": "0x254dffcd3277C0b1660F6d42EFbB754edaBAbC2B",
+    "cappedMilestoneAddress": "0xe982E462b094850F12AF94d21D470e21bE9D0E9C",
+    "dacsAddress": "0xD833215cBcc3f914bD1C9ece3EE7BF8B14f841bb",
+    "tokenAddress": "0x5b1869D9A4C187F2EAa108f3062412ecf0526b24"
   },
   "authentication": {
     "secret": "fc04928dc74759168bf7cbc58bd2e43983e050342a82d25af4b93396d904020006b84e67cb45030fe906db9039d4aba720b6dc68564a3577cb1e6e34c9c8a1b6cbc6e3f824ead946ab9f66180647deb5ad097378b1e40440dc9e102a8113b904931481133a80aac801a2f65970e02edaf579b4cfee10cf704d86adbb819cae14578cc4d9f126bae6cad65ae4ad243c550f4af42ad743b2d4061ec54b80e64978a98a0283d99ee2489b9059ca9ac0681f4bd54eb8052ab2a11a5b96e58a171dde225e182913ae4cb60c34cc8b54f93986ffa2c57284a3cd2710170e0cfd272f303d6852447d6a2863fb644d02465b2f2be667c9fbd7798b4f5cc2e70749840f2c",

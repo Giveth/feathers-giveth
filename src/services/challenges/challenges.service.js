@@ -8,21 +8,20 @@ import createModel from '../../models/challenges.model';
 import hooks from './challenges.hooks';
 import filters from './challenges.filters';
 
-//TODO clean this up and move to separate package feathers-authentication-web3
+// TODO clean this up and move to separate package feathers-authentication-web3
 
 const validFor = 1000 * 60 * 5; // valid for 5 minutes
 const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
 class ChallengeService extends Service {
   get(address, params) {
-    return super.get(toChecksumAddress(address), params)
-      .then(entity => {
-        if (entity.expirationDate <= new Date()) {
-          throw new errors.NotFound(`No challenge message found for address ${address}`);
-        }
+    return super.get(toChecksumAddress(address), params).then(entity => {
+      if (entity.expirationDate <= new Date()) {
+        throw new errors.NotFound(`No challenge message found for address ${address}`);
+      }
 
-        return entity.message;
-      });
+      return entity.message;
+    });
   }
 
   create(data, params) {
@@ -36,8 +35,7 @@ class ChallengeService extends Service {
     data.message = this._randomMessage(20);
 
     // we call update here b/c we want to use upsert.
-    return super.update(data.address, data, params)
-      .then(entity => entity.message);
+    return super.update(data.address, data, params).then(entity => entity.message);
   }
 
   find() {
@@ -54,7 +52,7 @@ class ChallengeService extends Service {
 
   _randomMessage(length) {
     let result = '';
-    for (let i = length; i > 0; --i) result += chars[ Math.floor(Math.random() * chars.length) ];
+    for (let i = length; i > 0; --i) result += chars[Math.floor(Math.random() * chars.length)];
     return result;
   }
 
@@ -63,7 +61,7 @@ class ChallengeService extends Service {
   }
 }
 
-export default function () {
+export default function() {
   const app = this;
   const Model = createModel(app);
   const paginate = app.get('paginate');
