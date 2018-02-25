@@ -16,8 +16,7 @@ import donationTokens from './donationTokens/donationTokens.service';
 
 const ethconversion = require('./ethconversion/ethconversion.service.js');
 
-
-module.exports = function () {
+module.exports = function() {
   const app = this;
   app.configure(dacs);
   app.configure(milestones);

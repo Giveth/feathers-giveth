@@ -4,7 +4,7 @@ const createModel = require('../../models/ethconversion.model');
 const hooks = require('./ethconversion.hooks');
 const filters = require('./ethconversion.filters');
 
-module.exports = function () {
+module.exports = function() {
   const app = this;
   const Model = createModel(app);
   const paginate = app.get('paginate');
@@ -12,7 +12,7 @@ module.exports = function () {
   const options = {
     name: 'ethconversion',
     Model,
-    paginate
+    paginate,
   };
 
   // Initialize our service with any options it requires

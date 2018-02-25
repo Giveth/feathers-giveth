@@ -3,7 +3,6 @@ const app = require('./../app');
 
 const FIVE_MINUTES = 1000 * 60 * 5;
 
-
 // Fetching gasprice and making it available within feathers as app.gasPrice
 // Usage within app: app.get('gasPrice')
 // Returns a full json at the moment
