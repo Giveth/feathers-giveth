@@ -79,6 +79,10 @@ const restrict = () => context => {
 
       const keysToRemove = Object.keys(data).map(key => !approvedKeys.includes(key));
       keysToRemove.forEach(key => delete data[key]);
+
+      // Reject proposed milestone
+    } else if (milestone.status === 'proposed' && user.address === milestone.campaignOwnerAddress) {
+      logger.info(`Rejecting proposed milestone with id: ${milestone._id}`);
     } else if (user.address !== milestone.ownerAddress) {
       throw new errors.Forbidden();
     } else if (milestone.status !== 'proposed') {
