@@ -102,7 +102,7 @@ class Admins {
       })
       .then(u => {
         user = u;
-        if (user.giverId && user.giverId !== 0) {
+        if (user.giverId && (user.giverId !== 0 || user.giverId !== '0')) {
           logger.error(
             `user already has a giverId set. existing giverId: ${
               user.giverId
@@ -391,7 +391,7 @@ class Admins {
         }
 
         if (data.length > 1) {
-          logger.info('more then 1 campaign with the same title and ownerAddress found: ', data);
+          logger.error('more then 1 campaign with the same title and ownerAddress found: ', data);
         }
 
         return data[0];
