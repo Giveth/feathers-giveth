@@ -5,6 +5,7 @@ const getUsersByAddress = (app, addresses) =>
       query: {
         address: { $in: addresses },
         $select: ['_id', 'name', 'email', 'address', 'avatar'],
+        $limit: addresses.length,
       },
     })
     .then(users => users.data);
