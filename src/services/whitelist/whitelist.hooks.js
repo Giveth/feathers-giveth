@@ -1,14 +1,11 @@
 const getUsersByAddress = (app, addresses) =>
-  app
-    .service('/users')
-    .find({
-      query: {
-        address: { $in: addresses },
-        $select: ['_id', 'name', 'email', 'address', 'avatar'],
-        $limit: addresses.length,
-      },
-    })
-    .then(users => users.data);
+  app.service('/users').find({
+    paginate: false,
+    query: {
+      address: { $in: addresses },
+      $select: ['_id', 'name', 'email', 'address', 'avatar'],
+    },
+  });
 
 const getWhitelist = () => context => {
   const { app } = context;
