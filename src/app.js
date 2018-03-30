@@ -30,8 +30,12 @@ app.configure(configuration());
 app.use(cors());
 app.use(helmet());
 app.use(compress());
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json({ limit: '10mb' }));
+app.use(bodyParser.urlencoded({
+    limit: '10mb',
+    extended: true
+}));
+
 app.use(favicon(path.join(app.get('public'), 'favicon.ico')));
 // Host the public folder
 app.use('/', feathers.static(app.get('public')));
