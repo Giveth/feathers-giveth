@@ -11,7 +11,7 @@ import isProjectAllowed from '../../hooks/isProjectAllowed';
 import Notifications from './../../utils/dappMailer';
 import { updatedAt, createdAt } from '../../hooks/timestamps';
 
-BigNumber.config({ DECIMAL_PLACES: 18 });
+BigNumber.config({ DECIMAL_PLACES: 8 });
 
 const getMilestones = context => {
   if (context.id) return context.service.get(context.id);
