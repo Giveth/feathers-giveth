@@ -90,21 +90,47 @@ const restrict = () => context => {
       keysToRemove.forEach(key => delete data[key]);
     } else if (user.address !== milestone.ownerAddress) {
       throw new errors.Forbidden();
-    } else if (milestone.status !== 'proposed') {
+    } else if (['proposed', 'rejected'].includes(milestone.status)) {
+      return checkEthConversion()(context);
+    } else {
       // this data is stored on-chain & can't be updated
       const keysToRemove = [
         'maxAmount',
         'reviewerAddress',
         'recipientAddress',
         'campaignReviewerAddress',
+        'ethConversionRateTimestamp',
+        'fiatAmount',
+        'conversionRate',
+        'selectedFiatType',
+        'date',
       ];
       keysToRemove.forEach(key => delete data[key]);
+
+      if (data.items) {
+        data.items = data.items.map(({ date, description, image }) =>
+          Object.assign(
+            {},
+            {
+              date,
+              description,
+              image,
+            },
+          ),
+        );
+      }
     }
+
+    // needed b/c we need to call checkEthConversion for proposed milestones
+    // which is async
+    return Promise.resolve();
   };
 
   return getMilestones(context).then(
     milestones =>
-      Array.isArray(milestones) ? milestones.forEach(canUpdate) : canUpdate(milestones),
+      Array.isArray(milestones)
+        ? Promise.all(milestones.forEach(canUpdate))
+        : canUpdate(milestones),
   );
 };
 
@@ -379,16 +405,8 @@ module.exports = {
       sanitizeHtml('description'),
       createdAt,
     ],
-    update: [
-      restrict(),
-      checkEthConversion(),
-      checkMilestoneDates(),
-      ...address,
-      sanitizeHtml('description'),
-      updatedAt,
-    ],
+    update: [restrict(), checkMilestoneDates(), ...address, sanitizeHtml('description'), updatedAt],
     patch: [
-      checkEthConversion(),
       restrict(),
       sanitizeAddress(
         ['pluginAddress', 'reviewerAddress', 'campaignReviewerAddress', 'recipientAddress'],
