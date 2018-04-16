@@ -19,10 +19,9 @@ const checkReviewer = context => {
 
     if (reviewerWhitelist.includes(project.reviewerAddress.toLowerCase())) {
       // milestones have a campaignReviewerAddress
-      if (
-        !Object.keys(project).includes('campaignReviewerAddress') ||
-        reviewerWhitelist.includes(project.campaignReviewerAddress.toLowerCase())
-      ) {
+      if (!Object.keys(project).includes('campaignReviewerAddress')) {
+        return;
+      } else if (reviewerWhitelist.includes(project.campaignReviewerAddress.toLowerCase())) {
         return;
       }
     }
