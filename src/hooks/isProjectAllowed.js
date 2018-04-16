@@ -1,5 +1,7 @@
 import commons from 'feathers-hooks-common';
 import errors from 'feathers-errors';
+import logger from 'winston';
+
 
 const checkReviewer = context => {
   if (!context.app.get('useReviewerWhitelist')) {
@@ -11,6 +13,10 @@ const checkReviewer = context => {
   const items = commons.getItems(context);
 
   const inWhitelist = project => {
+    logger.info('inWhitelist');
+    logger.info(project);
+    logger.info(reviewerWhitelist);
+
     if (reviewerWhitelist.includes(project.reviewerAddress.toLowerCase())) {
       // milestones have a campaignReviewerAddress
       if (
