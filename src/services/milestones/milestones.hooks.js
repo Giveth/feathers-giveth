@@ -13,20 +13,20 @@ import { updatedAt, createdAt } from '../../hooks/timestamps';
 
 BigNumber.config({ DECIMAL_PLACES: 18 });
 
+const getMilestones = context => {
+  if (context.id) return context.service.get(context.id);
+  if (!context.id && context.params.query) return context.service.find(context.params.query);
+  return Promise.resolve();
+};
+
 const restrict = () => context => {
   // internal call are fine
   if (!context.params.provider) return context;
 
-  const { data, service } = context;
+  const { data } = context;
   const { user } = context.params;
 
   if (!user) throw new errors.NotAuthenticated();
-
-  const getMilestones = () => {
-    if (context.id) return service.get(context.id);
-    if (!context.id && context.params.query) return service.find(context.params.query);
-    return undefined;
-  };
 
   const canUpdate = milestone => {
     if (!milestone) throw new errors.Forbidden();
@@ -90,21 +90,47 @@ const restrict = () => context => {
       keysToRemove.forEach(key => delete data[key]);
     } else if (user.address !== milestone.ownerAddress) {
       throw new errors.Forbidden();
-    } else if (milestone.status !== 'proposed') {
+    } else if (['proposed', 'rejected'].includes(milestone.status)) {
+      return checkEthConversion()(context);
+    } else {
       // this data is stored on-chain & can't be updated
       const keysToRemove = [
         'maxAmount',
         'reviewerAddress',
         'recipientAddress',
         'campaignReviewerAddress',
+        'ethConversionRateTimestamp',
+        'fiatAmount',
+        'conversionRate',
+        'selectedFiatType',
+        'date',
       ];
       keysToRemove.forEach(key => delete data[key]);
+
+      if (data.items) {
+        data.items = data.items.map(({ date, description, image }) =>
+          Object.assign(
+            {},
+            {
+              date,
+              description,
+              image,
+            },
+          ),
+        );
+      }
     }
+
+    // needed b/c we need to call checkEthConversion for proposed milestones
+    // which is async
+    return Promise.resolve();
   };
 
-  return getMilestones().then(
+  return getMilestones(context).then(
     milestones =>
-      Array.isArray(milestones) ? milestones.forEach(canUpdate) : canUpdate(milestones),
+      Array.isArray(milestones)
+        ? Promise.all(milestones.forEach(canUpdate))
+        : canUpdate(milestones),
   );
 };
 
@@ -286,7 +312,7 @@ const checkMilestoneDates = () => context => {
     const timestamp = Math.round(date) / 1000;
 
     if (todaysTimestamp - timestamp < 0) {
-      throw new errors.Forbidden('Future items are not allowd');
+      throw new errors.Forbidden('Future items are not allowed');
     }
   };
 
@@ -305,6 +331,22 @@ const address = [
     validate: true,
   }),
 ];
+
+const canDelete = () => context => {
+  const isDeletable = milestone => {
+    if (!milestone) throw new errors.NotFound();
+
+    if (!['proposed', 'rejected'].includes(milestone.status)) {
+      throw new errors.Forbidden('only proposed milestones can be removed');
+    }
+  };
+
+  return getMilestones(context).then(milestones => {
+    if (Array.isArray(milestones)) milestones.forEach(isDeletable);
+    else isDeletable(milestones);
+    return context;
+  });
+};
 
 const schema = {
   include: [
@@ -363,16 +405,8 @@ module.exports = {
       sanitizeHtml('description'),
       createdAt,
     ],
-    update: [
-      restrict(),
-      checkEthConversion(),
-      checkMilestoneDates(),
-      ...address,
-      sanitizeHtml('description'),
-      updatedAt,
-    ],
+    update: [restrict(), checkMilestoneDates(), ...address, sanitizeHtml('description'), updatedAt],
     patch: [
-      checkEthConversion(),
       restrict(),
       sanitizeAddress(
         ['pluginAddress', 'reviewerAddress', 'campaignReviewerAddress', 'recipientAddress'],
@@ -381,7 +415,7 @@ module.exports = {
       sanitizeHtml('description'),
       updatedAt,
     ],
-    remove: [commons.disallow()],
+    remove: [canDelete()],
   },
 
   after: {
