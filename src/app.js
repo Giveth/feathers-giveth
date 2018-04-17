@@ -26,8 +26,14 @@ const app = feathers();
 
 // Load app configuration
 app.configure(configuration());
-// Enable CORS, security, compression, favicon and body parsing
-app.use(cors());
+
+// Enable and configure CORS, security, compression, favicon and body parsing
+var corsOptions = {
+  origin: app.get('dappUrl'),
+  optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
+}
+app.use(cors(corsOptions));
+
 app.use(helmet());
 app.use(compress());
 app.use(bodyParser.json({ limit: '10mb' }));
