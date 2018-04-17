@@ -30,6 +30,7 @@ app.configure(configuration());
 // Enable and configure CORS, security, compression, favicon and body parsing
 let corsUrl = app.get('dappUrl');
 corsUrl = corsUrl.includes('localhost') ? corsUrl = "http://" + corsUrl : corsUrl = "https://feathers." + corsUrl;
+console.log('corsUrl', corsUrl);
 
 var corsOptions = {
   origin: corsUrl,
