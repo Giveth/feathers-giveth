@@ -4,10 +4,14 @@ const logger = require('winston');
 const fiat = ['USD', 'EUR', 'GBP', 'CHF', 'MXN', 'THB', 'CZK', 'BRL'];
 const MINUTE = 1000 * 60;
 
-const _buildResponse = (timestamp, rates) => ({
-  timestamp,
-  rates,
-});
+const _buildResponse = (timestamp, rates) => {
+  rates["ETH"] = 1; // adding eth-eth conversion in the response
+
+  return {
+    timestamp,
+    rates
+  }
+};
 
 /**
  Fetching eth conversion based on daily average from cryptocompare
