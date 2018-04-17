@@ -1,7 +1,7 @@
 {
   "host": "localhost",
   "port": 3030,
-  "dappUrl": "localhost:3010",
+  "dappUrl": "http://localhost:3010",
   "public": "../public/",
   "paginate": {
     "default": 25,
