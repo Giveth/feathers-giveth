@@ -28,10 +28,17 @@ const app = feathers();
 app.configure(configuration());
 
 // Enable and configure CORS, security, compression, favicon and body parsing
+let origin;
+
+app.get('env') === 'production' ? origin = app.get('dappUrl') : origin = "*"; 
+console.log('origin', origin);
+
 var corsOptions = {
-  origin: app.get('dappUrl'),
+  origin: origin,
   optionsSuccessStatus: 200 // some legacy browsers (IE11, various SmartTVs) choke on 204
 }
+
+
 app.use(cors(corsOptions));
 
 app.use(helmet());
