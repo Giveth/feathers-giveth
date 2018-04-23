@@ -28,7 +28,6 @@ export default (...fieldNames) => context => {
           ],
           allowedAttributes: {
             iframe: ['src', 'allowfullscreen', 'frameborder'],
-            img: ['src'],
             a: ['target', 'href'],
           },
           allowedClasses: {
