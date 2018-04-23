@@ -1,7 +1,7 @@
 import logger from 'winston';
 
-import { LPPCappedMilestones } from 'lpp-capped-milestone-token';
-import { LPPCappedMilestonesRuntimeByteCode } from 'lpp-capped-milestone-token/build/LPPCappedMilestones.sol';
+import { LPPCappedMilestones } from 'lpp-capped-milestone';
+import { LPPCappedMilestonesRuntimeByteCode } from 'lpp-capped-milestone/build/LPPCappedMilestones.sol';
 import { LPPCampaign } from 'lpp-campaign';
 import { LPPCampaignRuntimeByteCode } from 'lpp-campaign/build/LPPCampaignFactory.sol';
 

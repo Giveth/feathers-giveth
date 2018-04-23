@@ -6,7 +6,7 @@ import CappedMilestones from './CappedMilestones';
 import Tokens from './Tokens';
 import createModel from '../models/blockchain.model';
 import EventQueue from './EventQueue';
-import { LiquidPledgingState } from 'giveth-liquidpledging-token';
+import { LiquidPledgingState } from 'giveth-liquidpledging';
 
 // Storing this in the db ensures that we don't miss any events on a restart
 const defaultConfig = {
@@ -85,7 +85,7 @@ export default class {
       .on('data', this.handleEvent.bind(this))
       .on('changed', event => {
         // I think this is emitted when a chain reorg happens and the tx has been removed
-        logger.error('lpp-capped-milestone-token changed: ', event);
+        logger.error('lpp-capped-milestone changed: ', event);
         // TODO handle chain reorgs
       })
       .on('error', err => logger.error('SUBSCRIPTION ERROR: ', err));
@@ -137,7 +137,7 @@ export default class {
   }
 
   /**
-   * subscribe to GenerateTokens event for lpp-dacs plugin
+   * subscribe to GenerateTokens event for lpp-dac plugin
    */
   subscribeDacTokens() {
     // starts a listener on the vault contract

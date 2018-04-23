@@ -1,7 +1,7 @@
 import Contract from 'web3-eth-contract';
 import { toBN } from 'web3-utils';
 import { LPPCampaign } from 'lpp-campaign';
-import { LPPDacs } from 'lpp-dacs';
+import { LPPDacs } from 'lpp-dac';
 
 import { getTokenInformation } from './helpers';
 

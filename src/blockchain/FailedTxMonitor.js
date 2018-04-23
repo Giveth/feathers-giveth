@@ -1,6 +1,6 @@
 import { hexToNumber } from 'web3-utils';
-import { LiquidPledgingAbi } from 'giveth-liquidpledging-token/build/LiquidPledging.sol';
-import { LPVaultAbi } from 'giveth-liquidpledging-token/build/LPVault.sol';
+import { LiquidPledgingAbi } from 'giveth-liquidpledging/build/LiquidPledging.sol';
+import { LPVaultAbi } from 'giveth-liquidpledging/build/LPVault.sol';
 import { LPPCappedMilestonesAbi } from 'lpp-capped-milestone-token/build/LPPCappedMilestones.sol';
 import EventEmitter from 'events';
 import logger from 'winston';
