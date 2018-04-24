@@ -46,7 +46,7 @@ export default class {
       this.config = config;
       this.subscribeApps();
       this.subscribeLP();
-      // this.subscribeCappedMilestones();
+      this.subscribeCappedMilestones();
       this.subscribeVault();
       this.subscribeGenerateTokens();
       this.subscribeDestroyTokens();
@@ -81,9 +81,7 @@ export default class {
    * subscribe to SetApp events for lpp-capped-milestone & lpp-campaign
    */
   subscribeApps() {
-    console.log('lp', this.liquidPledging.$address);
     this.liquidPledging.kernel().then(kernel => {
-      console.log('kernel', kernel);
       new Kernel(this.web3, kernel).$contract.events
         .SetApp({
           fromBlock: this.config.lastBlock + 1 || 1,
@@ -104,19 +102,18 @@ export default class {
    * subscribe to lpp-capped-milestone events associated with the this lp contract
    */
   subscribeCappedMilestones() {
-    // this.cappedMilestonesContract.$contract.events
-    //   .allEvents({ fromBlock: this.config.lastBlock + 1 || 1 })
-    //   .on('data', this.handleEvent.bind(this))
-    //   .on('changed', event => {
-    //     // I think this is emitted when a chain reorg happens and the tx has been removed
-    //     logger.error('lpp-capped-milestone changed: ', event);
-    //     // TODO handle chain reorgs
-    //   })
-    //   .on('error', err => logger.error('SUBSCRIPTION ERROR: ', err));
-
     this.subscribeLogs([
-      [keccak256('GenerateTokens(address,address,uint256)')], // hash of the event signatures we're interested in
-      // utils.padLeft(`0x${this.liquidPledging.$address.substring(2).toLowerCase()}`, 64), // remove leading 0x from address
+      [
+        keccak256('MilestoneCompleteRequested(address,uint64)'),
+        keccak256('MilestoneCompleteRequestRejected(address,uint64)'),
+        keccak256('MilestoneCompleteRequestApproved(address,uint64)'),
+        keccak256('MilestoneChangeReviewerRequested(address,uint64,address)'),
+        keccak256('MilestoneReviewerChanged(address,uint64,address)'),
+        keccak256('MilestoneChangeRecipientRequested(address,uint64,address)'),
+        keccak256('MilestoneRecipientChanged(address,uint64,address)'),
+        keccak256('PaymentCollected(address,uint64)'),
+      ],
+      utils.padLeft(`0x${this.liquidPledging.$address.substring(2).toLowerCase()}`, 64), // remove leading 0x from address
     ]).on('data', this.handleEvent.bind(this.tokens));
   }
 
@@ -277,12 +274,24 @@ export default class {
       case 'SetApp':
         this.admins.setApp(event);
         break;
-      // case 'MilestoneAccepted':
-      //   this.cappedMilestones.milestoneAccepted(event);
-      //   break;
-      // case 'PaymentCollected':
-      //   this.cappedMilestones.paymentCollected(event);
-      //   break;
+      case 'MilestoneCompleteRequested':
+        this.cappedMilestones.reviewRequested(event);
+        break;
+      case 'MilestoneCompleteRequestRejected':
+        this.cappedMilestones.rejected(event);
+        break;
+      case 'MilestoneCompleteRequestApproved':
+        this.cappedMilestones.accepted(event);
+        break;
+      case 'MilestoneChangeReviewerRequested':
+      case 'MilestoneReviewerChanged':
+      case 'MilestoneChangeRecipientRequested':
+      case 'MilestoneRecipientChanged':
+        logger.warn(`unhandled event: ${event.event}`, event);
+        break;
+      case 'PaymentCollected':
+        this.cappedMilestones.paymentCollected(event);
+        break;
       default:
         logger.error('Unknown event: ', event);
     }
