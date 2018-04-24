@@ -1,6 +1,6 @@
 import logger from 'winston';
 
-import { AppProxyUpgradeable } from 'giveth-liquidpledging/build/contracts';
+import { Kernel, AppProxyUpgradeable } from 'giveth-liquidpledging/build/contracts';
 import { LPPCappedMilestone } from 'lpp-capped-milestone';
 import { LPPCampaign } from 'lpp-campaign';
 import { LPPDac } from 'lpp-dac';
@@ -14,7 +14,6 @@ const BreakSignal = () => {};
  */
 class Admins {
   constructor(app, liquidPledging, eventQueue) {
-;
     this.web3 = liquidPledging.$web3;
     this.liquidPledging = liquidPledging;
     this.queue = eventQueue;
@@ -236,21 +235,26 @@ class Admins {
     const projectId = event.returnValues.idProject;
     const txHash = event.transactionHash;
 
-    // TODO need to fetch current CAMPAIGN_APP address from kernel, and check if project.plugin.Proxy.getCode is CAMPAIGN_APP or DAC_APP
-    // maybe setup an litsteer for changes to CAMPAIGN_APP & DAC_APP
-    return this.liquidPledging
-      .getPledgeAdmin(projectId)
-      .then(project =>
-        Promise.all([project, new AppProxyUpgradeable(this.web3, project.plugin).getCode()]),
-      )
-      .then(([project, baseCode]) => {
-        if (!this.milestoneBase || !this.campaignBase)
-          logger.error('missing milestone or camapign base', this.milestoneBase, this.campaignBase);
-        if (baseCode === this.milestoneBase) return this._addMilestone(project, projectId, txHash);
-        if (baseCode === this.campaignBase) return this._addCampaign(project, projectId, txHash);
+    return this.getAndSetAppBases().then(() =>
+      this.liquidPledging
+        .getPledgeAdmin(projectId)
+        .then(project =>
+          Promise.all([project, new AppProxyUpgradeable(this.web3, project.plugin).getCode()]),
+        )
+        .then(([project, baseCode]) => {
+          if (!this.milestoneBase || !this.campaignBase)
+            logger.error(
+              'missing milestone or camapign base',
+              this.milestoneBase,
+              this.campaignBase,
+            );
+          if (baseCode === this.milestoneBase)
+            return this._addMilestone(project, projectId, txHash);
+          if (baseCode === this.campaignBase) return this._addCampaign(project, projectId, txHash);
 
-        logger.error('AddProject event with unknown plugin baseCode ->', event, baseCode);
-      });
+          logger.error('AddProject event with unknown plugin baseCode ->', event, baseCode);
+        }),
+    );
   }
 
   _addMilestone(project, projectId, txHash, retry = false) {
@@ -524,6 +528,27 @@ class Admins {
     } else {
       logger.warn(`Unkonwn name in SetApp event:`, event);
     }
+  }
+
+  getAndSetAppBases() {
+    if (this.campaignBase && this.milestoneBase) return Promise.resolve();
+
+    const { keccak256 } = this.web3.utils;
+
+    return this.liquidPledging
+      .kernel()
+      .then(kernel => {
+        const k = new Kernel(this.web3, kernel);
+
+        return Promise.all(
+          k.getApp(keccak256(keccak256('base') + keccak256('lpp-campaign').substr(2))),
+          k.getApp(keccak256(keccak256('base') + keccak256('lpp-capped-milestone').substr(2))),
+        );
+      })
+      .then(([campaignBase, milestoneBase]) => {
+        this.campaignBase = campaignBase;
+        this.milestoneBase = milestoneBase;
+      });
   }
 
   cancelProject(event) {
