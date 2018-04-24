@@ -1,4 +1,5 @@
 const Web3 = require('web3');
+const path = require('path');
 const GanacheCLI = require('ganache-cli');
 const { LPVault, LiquidPledging, LPFactory, test } = require('giveth-liquidpledging');
 const lpContracts = require('giveth-liquidpledging/build/contracts');
@@ -147,6 +148,8 @@ async function deploy() {
   await token.mint(accounts[1], web3.utils.toWei('100'), { from });
   await token.mint(accounts[2], web3.utils.toWei('100'), { from });
 
+  console.log(await liquidPledging.kernel());
+  console.log(await liquidPledging.vault());
   console.log('\n\n', {
     token: token.$address,
     vault: vault.$address,
@@ -165,6 +168,7 @@ else {
     gasLimit: 6700000,
     total_accounts: 10,
     seed: 'TestRPC is awesome!',
+    db_path: path.join(__dirname, '../data/ganache-cli'),
     logger: console,
   });
 

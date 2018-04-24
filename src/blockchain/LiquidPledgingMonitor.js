@@ -1,4 +1,7 @@
 import logger from 'winston';
+import { utils } from 'Web3';
+import { LiquidPledgingState } from 'giveth-liquidpledging';
+import { Kernel } from 'giveth-liquidpledging/build/contracts';
 import Admins from './Admins';
 import Pledges from './Pledges';
 import Payments from './Payments';
@@ -6,7 +9,8 @@ import CappedMilestones from './CappedMilestones';
 import Tokens from './Tokens';
 import createModel from '../models/blockchain.model';
 import EventQueue from './EventQueue';
-import { LiquidPledgingState } from 'giveth-liquidpledging';
+
+const { keccak256 } = utils;
 
 // Storing this in the db ensures that we don't miss any events on a restart
 const defaultConfig = {
@@ -14,18 +18,16 @@ const defaultConfig = {
 };
 
 export default class {
-  constructor(app, web3, liquidPledging, cappedMilestones, lppDacs, txMonitor, opts) {
+  constructor(app, web3, liquidPledging, txMonitor, opts) {
     this.app = app;
     this.web3 = web3;
     this.txMonitor = txMonitor;
-    this.cappedMilestonesContract = cappedMilestones;
     this.liquidPledging = liquidPledging;
-    this.lppDacs = lppDacs;
 
     const eventQueue = new EventQueue();
 
     this.payments = new Payments(app, this.liquidPledging.$vault);
-    this.admins = new Admins(app, this.liquidPledging, this.lppDacs, eventQueue);
+    this.admins = new Admins(app, this.liquidPledging, eventQueue);
     this.pledges = new Pledges(app, this.liquidPledging, eventQueue);
     this.cappedMilestones = new CappedMilestones(app, this.web3);
     this.tokens = new Tokens(app, this.web3);
@@ -40,15 +42,14 @@ export default class {
    * subscribe to all events that we are interested in
    */
   start() {
-    // starts listening to all events emitted by liquidPledging and delegates
-    // to the appropriate class
     this.getConfig().then(config => {
       this.config = config;
+      this.subscribeApps();
       this.subscribeLP();
-      this.subscribeCappedMilestones();
+      // this.subscribeCappedMilestones();
       this.subscribeVault();
-      this.subscribeCampaignTokens();
-      this.subscribeDacTokens();
+      this.subscribeGenerateTokens();
+      this.subscribeDestroyTokens();
     });
 
     this.txMonitor.on(this.txMonitor.LP_EVENT, this.handleEvent.bind(this));
@@ -77,18 +78,46 @@ export default class {
   }
 
   /**
+   * subscribe to SetApp events for lpp-capped-milestone & lpp-campaign
+   */
+  subscribeApps() {
+    console.log('lp', this.liquidPledging.$address);
+    this.liquidPledging.kernel().then(kernel => {
+      console.log('kernel', kernel);
+      new Kernel(this.web3, kernel).$contract.events
+        .SetApp({
+          fromBlock: this.config.lastBlock + 1 || 1,
+          filter: {
+            namespace: keccak256('base'),
+            name: [keccak256('lpp-capped-milestone'), keccak256('lpp-campaign')],
+          },
+        })
+        .on('data', this.handleEvent.bind(this))
+        .on('changed', event => {
+          logger.info('SetApp event changed: ', event);
+        })
+        .on('error', err => logger.error('SUBSCRIPTION ERROR: ', err));
+    });
+  }
+
+  /**
    * subscribe to lpp-capped-milestone events associated with the this lp contract
    */
   subscribeCappedMilestones() {
-    this.cappedMilestonesContract.$contract.events
-      .allEvents({ fromBlock: this.config.lastBlock + 1 || 1 })
-      .on('data', this.handleEvent.bind(this))
-      .on('changed', event => {
-        // I think this is emitted when a chain reorg happens and the tx has been removed
-        logger.error('lpp-capped-milestone changed: ', event);
-        // TODO handle chain reorgs
-      })
-      .on('error', err => logger.error('SUBSCRIPTION ERROR: ', err));
+    // this.cappedMilestonesContract.$contract.events
+    //   .allEvents({ fromBlock: this.config.lastBlock + 1 || 1 })
+    //   .on('data', this.handleEvent.bind(this))
+    //   .on('changed', event => {
+    //     // I think this is emitted when a chain reorg happens and the tx has been removed
+    //     logger.error('lpp-capped-milestone changed: ', event);
+    //     // TODO handle chain reorgs
+    //   })
+    //   .on('error', err => logger.error('SUBSCRIPTION ERROR: ', err));
+
+    this.subscribeLogs([
+      [keccak256('GenerateTokens(address,address,uint256)')], // hash of the event signatures we're interested in
+      // utils.padLeft(`0x${this.liquidPledging.$address.substring(2).toLowerCase()}`, 64), // remove leading 0x from address
+    ]).on('data', this.handleEvent.bind(this.tokens));
   }
 
   /**
@@ -108,46 +137,41 @@ export default class {
   }
 
   /**
-   * subscribe to GenerateTokens event for any liquidPledging lpp-campaign plugins
+   * subscribe to GenerateTokens event for any liquidPledging lpp-campaign & lpp-dac plugins
    */
-  subscribeCampaignTokens() {
-    // start a listener for all GenerateToken events associated with this liquidPledging contract
-    this.web3.eth
-      .subscribe(
-        'logs',
-        {
-          fromBlock: this.web3.utils.toHex(this.config.lastBlock + 1) || this.web3.utils.toHex(1), // convert to hex due to web3 bug https://github.com/ethereum/web3.js/issues/1097
-          topics: [
-            this.web3.utils.keccak256('GenerateTokens(address,address,uint256)'), // hash of the event signature we're interested in
-            this.web3.utils.padLeft(
-              `0x${this.liquidPledging.$address.substring(2).toLowerCase()}`,
-              64,
-            ), // remove leading 0x from address
-          ],
-        },
-        () => {},
-      ) // TODO fix web3 bug so we don't have to pass a cb
-      .on('data', this.tokens.campaignTokensGenerated.bind(this.tokens))
-      .on('changed', event => {
-        // I think this is emitted when a chain reorg happens and the tx has been removed
-        logger.info('GenerateTokens changed: ', event);
-        // TODO handle chain reorgs
-      })
-      .on('error', err => logger.error('SUBSCRIPTION ERROR: ', err));
+  subscribeGenerateTokens() {
+    this.subscribeLogs([
+      keccak256('GenerateTokens(address,address,uint256)'), // hash of the event signature we're interested in
+      utils.padLeft(`0x${this.liquidPledging.$address.substring(2).toLowerCase()}`, 64), // remove leading 0x from address
+    ]).on('data', this.tokens.tokensGenerated.bind(this.tokens));
   }
 
   /**
-   * subscribe to GenerateTokens event for lpp-dac plugin
+   * subscribe to DestroyTokens event for any liquidPledging lpp-dac plugins
    */
-  subscribeDacTokens() {
-    // starts a listener on the vault contract
-    const fromBlock = this.config.lastBlock + 1 || 1;
-    this.lppDacs.$contract.events
-      .allEvents({ fromBlock })
-      .on('data', this.handleEvent.bind(this))
+  subscribeDestroyTokens() {
+    this.subscribeLogs([
+      keccak256('DestroyTokens(address,address,uint256)'), // hash of the event signature we're interested in
+      utils.padLeft(`0x${this.liquidPledging.$address.substring(2).toLowerCase()}`, 64), // remove leading 0x from address
+    ]).on('data', this.tokens.tokensDestroyed.bind(this.tokens));
+  }
+
+  subscribeLogs(topics) {
+    const { lastBlock } = this.config;
+    // start a listener for all DestroyToken events associated with this liquidPledging contract
+    return this.web3.eth
+      .subscribe(
+        'logs',
+        {
+          fromBlock: lastBlock ? utils.toHex(lastBlock + 1) : utils.toHex(1), // convert to hex due to web3 bug https://github.com/ethereum/web3.js/issues/1097
+          topics,
+        },
+        () => {},
+      ) // TODO fix web3 bug so we don't have to pass a cb
       .on('changed', event => {
-        // I think this is emitted when a chain reorg happens and the tx has been removed
-        logger.info('lppDacs changed: ', event);
+        // this is emitted when a chain reorg happens and the tx may have been removed or mined in another block
+        logger.info(`${event.event} changed: `, event);
+        // TODO handle chain reorgs
       })
       .on('error', err => logger.error('SUBSCRIPTION ERROR: ', err));
   }
@@ -250,18 +274,15 @@ export default class {
       case 'CancelPayment':
         this.payments.cancelPayment(event);
         break;
-      case 'MilestoneAccepted':
-        this.cappedMilestones.milestoneAccepted(event);
+      case 'SetApp':
+        this.admins.setApp(event);
         break;
-      case 'PaymentCollected':
-        this.cappedMilestones.paymentCollected(event);
-        break;
-      case 'GenerateTokens':
-        this.tokens.dacTokensGenerated(event);
-        break;
-      case 'DestroyTokens':
-        this.tokens.dacTokensDestroyed(event);
-        break;
+      // case 'MilestoneAccepted':
+      //   this.cappedMilestones.milestoneAccepted(event);
+      //   break;
+      // case 'PaymentCollected':
+      //   this.cappedMilestones.paymentCollected(event);
+      //   break;
       default:
         logger.error('Unknown event: ', event);
     }

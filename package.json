@@ -29,7 +29,7 @@
     "eslint": "eslint src/. test/.",
     "eslint:fix": "eslint src/. test/. --fix",
     "ganache-cli": "mkdirp data/ganache-cli && node node_modules/ganache-cli/build/cli.node.js -d --gasLimit 6700000 --db data/ganache-cli -b 5",
-    "deploy-local": "rm -rf data && node scripts/deploy.js",
+    "deploy-local": "rm -rf data && mkdirp data/ganache-cli && node scripts/deploy.js",
     "start": "babel-watch src",
     "serve": "npm run build && pm2 startOrRestart ecosystem.config.js --env production",
     "mocha": "mocha test/ --recursive --compilers js:babel-core/register",

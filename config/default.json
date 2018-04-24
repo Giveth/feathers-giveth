@@ -14,10 +14,7 @@
     "nodeUrl": "ws://localhost:8545",
     "startingBlock": 0,
     "vaultAddress": "0x6098441760E4614AAc6e6bb3Ec7A254C2a600b5d",
-    "liquidPledgingAddress": "0xBeFdf675cb73813952C5A9E4B84ea8B866DBA592",
-    "cappedMilestoneAddress": "0xe982E462b094850F12AF94d21D470e21bE9D0E9C",
-    "dacsAddress": "0xD833215cBcc3f914bD1C9ece3EE7BF8B14f841bb",
-    "tokenAddress": "0x5b1869D9A4C187F2EAa108f3062412ecf0526b24"
+    "liquidPledgingAddress": "0xBeFdf675cb73813952C5A9E4B84ea8B866DBA592"
   },
   "authentication": {
     "secret":

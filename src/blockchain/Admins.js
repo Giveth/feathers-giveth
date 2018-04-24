@@ -1,9 +1,9 @@
 import logger from 'winston';
 
-import { LPPCappedMilestones } from 'lpp-capped-milestone';
-import { LPPCappedMilestonesRuntimeByteCode } from 'lpp-capped-milestone/build/LPPCappedMilestones.sol';
+import { AppProxyUpgradeable } from 'giveth-liquidpledging/build/contracts';
+import { LPPCappedMilestone } from 'lpp-capped-milestone';
 import { LPPCampaign } from 'lpp-campaign';
-import { LPPCampaignRuntimeByteCode } from 'lpp-campaign/build/LPPCampaignFactory.sol';
+import { LPPDac } from 'lpp-dac';
 
 import { getTokenInformation, milestoneStatus, pledgeState } from './helpers';
 
@@ -13,11 +13,10 @@ const BreakSignal = () => {};
  * class to keep feathers cache in sync with liquidpledging admins
  */
 class Admins {
-  constructor(app, liquidPledging, lppDacs, eventQueue) {
-    this.app = app;
+  constructor(app, liquidPledging, eventQueue) {
+;
     this.web3 = liquidPledging.$web3;
     this.liquidPledging = liquidPledging;
-    this.lppDacs = lppDacs;
     this.queue = eventQueue;
   }
 
@@ -123,7 +122,6 @@ class Admins {
       .catch(err => logger.error('_addGiver error ->', err));
   }
 
-  // TODO support delegates other then dacs
   addDelegate(event) {
     if (event.event !== 'DelegateAdded')
       throw new Error('addDelegate only handles DelegateAdded events');
@@ -205,8 +203,10 @@ class Admins {
         return data[0];
       });
 
-    const getTokenInfo = () =>
-      this.lppDacs.getDac(delegateId).then(({ token }) => getTokenInformation(this.web3, token));
+    const getTokenInfo = delegate =>
+      new LPPDac(this.web3, delegate.plugin)
+        .dacToken()
+        .then(({ token }) => getTokenInformation(this.web3, token));
 
     return this.liquidPledging
       .getPledgeAdmin(delegateId)
@@ -236,16 +236,20 @@ class Admins {
     const projectId = event.returnValues.idProject;
     const txHash = event.transactionHash;
 
+    // TODO need to fetch current CAMPAIGN_APP address from kernel, and check if project.plugin.Proxy.getCode is CAMPAIGN_APP or DAC_APP
+    // maybe setup an litsteer for changes to CAMPAIGN_APP & DAC_APP
     return this.liquidPledging
       .getPledgeAdmin(projectId)
-      .then(project => Promise.all([project, this.web3.eth.getCode(project.plugin)]))
-      .then(([project, byteCode]) => {
-        if (byteCode === LPPCappedMilestonesRuntimeByteCode)
-          return this._addMilestone(project, projectId, txHash);
-        if (byteCode === LPPCampaignRuntimeByteCode)
-          return this._addCampaign(project, projectId, txHash);
+      .then(project =>
+        Promise.all([project, new AppProxyUpgradeable(this.web3, project.plugin).getCode()]),
+      )
+      .then(([project, baseCode]) => {
+        if (!this.milestoneBase || !this.campaignBase)
+          logger.error('missing milestone or camapign base', this.milestoneBase, this.campaignBase);
+        if (baseCode === this.milestoneBase) return this._addMilestone(project, projectId, txHash);
+        if (baseCode === this.campaignBase) return this._addCampaign(project, projectId, txHash);
 
-        logger.error('AddProject event with unknown plugin byteCode ->', event);
+        logger.error('AddProject event with unknown plugin baseCode ->', event, baseCode);
       });
   }
 
@@ -253,7 +257,7 @@ class Admins {
     const milestones = this.app.service('/milestones');
     const campaigns = this.app.service('/campaigns');
 
-    const cappedMilestones = new LPPCappedMilestones(this.web3, project.plugin);
+    const cappedMilestones = new LPPCappedMilestone(this.web3, project.plugin);
 
     // get_or_create campaign by projectId
     const findCampaign = campaignProjectId =>
@@ -400,7 +404,7 @@ class Admins {
     const lppCampaign = new LPPCampaign(this.web3, project.plugin);
 
     const getTokenInfo = () =>
-      lppCampaign.token().then(addr => getTokenInformation(this.web3, addr));
+      lppCampaign.campaignToken().then(addr => getTokenInformation(this.web3, addr));
 
     return Promise.all([
       findCampaign(),
@@ -505,6 +509,21 @@ class Admins {
         if (err instanceof BreakSignal) return;
         logger.error('_updateCampaign error ->', err);
       });
+  }
+
+  setApp(event) {
+    if (event.event !== 'SetApp') throw new Error('setApp only handles SetApp events');
+
+    const { name, app } = event.returnValues;
+    const { keccak256 } = this.web3.utils;
+
+    if (name === keccak256('lpp-capped-milestone')) {
+      this.milestoneBase = app;
+    } else if (name === keccak256('lpp-campaign')) {
+      this.campaignBase = app;
+    } else {
+      logger.warn(`Unkonwn name in SetApp event:`, event);
+    }
   }
 
   cancelProject(event) {
