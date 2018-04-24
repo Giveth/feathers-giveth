@@ -2675,6 +2675,12 @@ eth-contract-class@0.0.6:
   dependencies:
     web3-core-promievent "^1.0.0-beta.21"
 
+eth-contract-class@0.0.8:
+  version "0.0.8"
+  resolved "https://registry.yarnpkg.com/eth-contract-class/-/eth-contract-class-0.0.8.tgz#0ba4590e6185f156c08b7f44b0581fd8d6b7c5b0"
+  dependencies:
+    web3-core-promievent "^1.0.0-beta.21"
+
 eth-lib@0.1.27, eth-lib@^0.1.26, eth-lib@^0.1.27:
   version "0.1.27"
   resolved "https://registry.yarnpkg.com/eth-lib/-/eth-lib-0.1.27.tgz#f0b0fd144f865d2d6bf8257a40004f2e75ca1dd6"
@@ -3464,6 +3470,16 @@ giveth-liquidpledging@0.1.0:
     async "^2.4.0"
     chai "^4.1.0"
     eth-contract-class "0.0.6"
+    giveth-common-contracts "^0.4.0"
+
+giveth-liquidpledging@0.1.1:
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/giveth-liquidpledging/-/giveth-liquidpledging-0.1.1.tgz#77fbfec2b5b501f205a8af9ed0ac0977c81e64c6"
+  dependencies:
+    "@aragon/os" "3.0.1"
+    async "^2.4.0"
+    chai "^4.1.0"
+    eth-contract-class "0.0.8"
     giveth-common-contracts "^0.4.0"
 
 "gkt@https://tgz.pm2.io/gkt-1.0.0.tgz":
@@ -4819,9 +4835,9 @@ lowercase-keys@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/lowercase-keys/-/lowercase-keys-1.0.0.tgz#4e3366b39e7f5457e35f1324bdf6f88d0bfc7306"
 
-lpp-campaign@0.1.0:
-  version "0.1.0"
-  resolved "https://registry.yarnpkg.com/lpp-campaign/-/lpp-campaign-0.1.0.tgz#1482822f0bb1a6fe0436f73c16a149a000839906"
+lpp-campaign@0.1.1:
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/lpp-campaign/-/lpp-campaign-0.1.1.tgz#d5d7580e131ca7391b30cb08dd5b9e9521d8a6f6"
   dependencies:
     "@aragon/os" "3.0.4"
     chai "^4.1.2"
@@ -4829,9 +4845,9 @@ lpp-campaign@0.1.0:
     giveth-liquidpledging "0.1.0"
     minimetoken "0.2.0"
 
-lpp-capped-milestone@0.1.0:
-  version "0.1.0"
-  resolved "https://registry.yarnpkg.com/lpp-capped-milestone/-/lpp-capped-milestone-0.1.0.tgz#6d8d48d30915d03bb132070cefed77e8b695a47f"
+lpp-capped-milestone@0.1.1:
+  version "0.1.1"
+  resolved "https://registry.yarnpkg.com/lpp-capped-milestone/-/lpp-capped-milestone-0.1.1.tgz#376b6f849bc11200348734ac39051eaff9cbbf6e"
   dependencies:
     "@aragon/os" "3.0.4"
     chai "^4.1.2"
@@ -4839,9 +4855,9 @@ lpp-capped-milestone@0.1.0:
     giveth-liquidpledging "0.1.0"
     minimetoken "^0.2.0"
 
-lpp-dac@0.1.0:
-  version "0.1.0"
-  resolved "https://registry.yarnpkg.com/lpp-dac/-/lpp-dac-0.1.0.tgz#2a770c27b297cf0721b57141ed91a6a2a7ce569c"
+lpp-dac@0.1.5:
+  version "0.1.5"
+  resolved "https://registry.yarnpkg.com/lpp-dac/-/lpp-dac-0.1.5.tgz#caadec452d8107525481f7a69010c297fe4691c5"
   dependencies:
     "@aragon/os" "3.0.4"
     chai "^4.1.2"

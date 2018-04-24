@@ -1,8 +1,7 @@
 const Web3 = require('web3');
 const path = require('path');
 const GanacheCLI = require('ganache-cli');
-const { LPVault, LiquidPledging, LPFactory, test } = require('giveth-liquidpledging');
-const lpContracts = require('giveth-liquidpledging/build/contracts');
+const { Kernel, ACL, LPVault, LiquidPledging, LPFactory, test } = require('giveth-liquidpledging');
 const { LPPDac, LPPDacFactory } = require('lpp-dac');
 const { LPPCampaign, LPPCampaignFactory } = require('lpp-campaign');
 const { LPPCappedMilestone, LPPCappedMilestoneFactory } = require('lpp-capped-milestone');
@@ -30,8 +29,8 @@ async function deploy() {
   const liquidPledging = new LiquidPledging(web3, lpAddress);
 
   // set permissions
-  const kernel = new lpContracts.Kernel(web3, await liquidPledging.kernel());
-  const acl = new lpContracts.ACL(web3, await kernel.acl());
+  const kernel = new Kernel(web3, await liquidPledging.kernel());
+  const acl = new ACL(web3, await kernel.acl());
   await acl.createPermission(
     accounts[0],
     vault.$address,

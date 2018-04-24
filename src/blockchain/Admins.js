@@ -14,6 +14,7 @@ const BreakSignal = () => {};
  */
 class Admins {
   constructor(app, liquidPledging, eventQueue) {
+    this.app = app;
     this.web3 = liquidPledging.$web3;
     this.liquidPledging = liquidPledging;
     this.queue = eventQueue;
@@ -205,7 +206,7 @@ class Admins {
     const getTokenInfo = delegate =>
       new LPPDac(this.web3, delegate.plugin)
         .dacToken()
-        .then(({ token }) => getTokenInformation(this.web3, token));
+        .then(token => getTokenInformation(this.web3, token));
 
     return this.liquidPledging
       .getPledgeAdmin(delegateId)
@@ -377,12 +378,14 @@ class Admins {
             throw new BreakSignal();
           }
 
-          return this.web3.eth
-            .getTransaction(txHash)
-            .then(tx =>
+          const lppCampaign = new LPPCampaign(this.web3, project.plugin);
+
+          return Promise.all([this.web3.eth.getTransaction(txHash), lppCampaign.reviewer()])
+            .then(([tx, reviewerAddress]) =>
               campaigns.create({
                 ownerAddress: tx.from,
                 pluginAddress: project.plugin,
+                reviewerAddress,
                 title: project.name,
                 description: '',
                 txHash,
@@ -540,10 +543,10 @@ class Admins {
       .then(kernel => {
         const k = new Kernel(this.web3, kernel);
 
-        return Promise.all(
+        return Promise.all([
           k.getApp(keccak256(keccak256('base') + keccak256('lpp-campaign').substr(2))),
           k.getApp(keccak256(keccak256('base') + keccak256('lpp-capped-milestone').substr(2))),
-        );
+        ]);
       })
       .then(([campaignBase, milestoneBase]) => {
         this.campaignBase = campaignBase;
