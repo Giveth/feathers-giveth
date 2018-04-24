@@ -1,5 +1,5 @@
 import logger from 'winston';
-import { utils } from 'Web3';
+import { utils } from 'web3';
 import { LiquidPledgingState } from 'giveth-liquidpledging';
 import { Kernel } from 'giveth-liquidpledging/build/contracts';
 import Admins from './Admins';
