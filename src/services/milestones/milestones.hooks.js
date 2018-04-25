@@ -15,6 +15,9 @@ import { updatedAt, createdAt } from '../../hooks/timestamps';
 
 BigNumber.config({ DECIMAL_PLACES: 18 });
 
+/**
+ * Milestone states enum
+ */
 const MILESTONE = {
   PROPOSED: 'proposed',
   REJECTED: 'rejected',
@@ -25,9 +28,17 @@ const MILESTONE = {
   CANCELED: 'Canceled',
 };
 
+/**
+ * Get keys that can be updated based on the state of the milestone and the user's permission
+ *
+ * @param milestone  Current milestone data that are saved
+ * @param data       New milestone data that are being saved
+ * @param user       Address of the user making the modification
+ */
 const getApprovedKeys = (milestone, data, user) => {
   const reviewers = [milestone.reviewerAddress, milestone.campaignReviewerAddress];
 
+  // Fields that can be editted BEFORE milestone is created on the blockchain
   const editMilestoneKeys = [
     'title',
     'description',
@@ -43,6 +54,7 @@ const getApprovedKeys = (milestone, data, user) => {
     'items',
   ];
 
+  // Fields that can be editted once milestone stored on the blockchain
   const editMilestoneKeysOnChain = ['title', 'description', 'summary'];
 
   switch (milestone.status) {
@@ -104,7 +116,7 @@ const getApprovedKeys = (milestone, data, user) => {
           throw new errors.Forbidden('Only the Milestone Manager can repropose rejected milestone');
         }
         logger.info(`Reproposing rejected milestone with id: ${milestone._id} by: ${user.address}`);
-        return 'status';
+        return ['status'];
       }
       break;
 
@@ -132,18 +144,13 @@ const getApprovedKeys = (milestone, data, user) => {
         return ['txHash', 'status', 'mined', 'prevStatus'];
       }
 
-      // Editing milestone can be done by Milestone Manager
+      // Editing milestone can be done by Campaign or Milestone Manager
       if (data.status === MILESTONE.INPROGRESS) {
         if (![milestone.ownerAddress, milestone.campaign.ownerAddress].includes(user.address)) {
           throw new errors.Forbidden('Only the Milestone and Campaign Manager can edit milestone');
         }
         logger.info(`Editing milestone In Progress with id: ${milestone._id} by: ${user.address}`);
         return editMilestoneKeysOnChain;
-      }
-
-      // Edit milestone by Milestone or Campaign Manager
-      if (![milestone.ownerAddress].includes(user.address)) {
-        throw new errors.Forbidden('Only the Milestone and Campaign Managers can edit a milestone');
       }
       break;
 
@@ -236,10 +243,11 @@ const restrict = () => context => {
       if (!approvedKeys.includes(key)) delete data[key];
     });
 
+    // Milestone is not yet on chain, check the ETH conversion
     if (['proposed', 'rejected'].includes(milestone.status)) {
       return checkEthConversion()(context);
     }
-    // this data is stored on-chain & can't be updated
+    // Milestone is on chain, remove data stored on-chain that can't be updated
     const keysToRemove = [
       'maxAmount',
       'reviewerAddress',
