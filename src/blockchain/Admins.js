@@ -245,7 +245,7 @@ class Admins {
         .then(([project, baseCode]) => {
           if (!this.milestoneBase || !this.campaignBase)
             logger.error(
-              'missing milestone or camapign base',
+              'missing milestone or campaign base',
               this.milestoneBase,
               this.campaignBase,
             );
@@ -261,8 +261,6 @@ class Admins {
   _addMilestone(project, projectId, txHash, retry = false) {
     const milestones = this.app.service('/milestones');
     const campaigns = this.app.service('/campaigns');
-
-    const cappedMilestones = new LPPCappedMilestone(this.web3, project.plugin);
 
     // get_or_create campaign by projectId
     const findCampaign = campaignProjectId =>
@@ -336,23 +334,29 @@ class Admins {
         return data[0];
       });
 
+    const cappedMilestone = new LPPCappedMilestone(this.web3, project.plugin);
+
     return Promise.all([
       findMilestone(),
-      cappedMilestones.getMilestone(projectId),
+      cappedMilestone.maxAmount(),
+      cappedMilestone.reviewer(),
+      cappedMilestone.campaignReviewer(),
+      cappedMilestone.recipient(),
+      cappedMilestone.completed(),
       this.liquidPledging.isProjectCanceled(projectId),
     ])
-      .then(([milestone, bMilestone, canceled]) =>
+      .then(([milestone, maxAmount, reviewer, campaignReviewer, recipient, completed, canceled]) =>
         milestones.patch(milestone._id, {
           projectId,
-          maxAmount: bMilestone.maxAmount,
-          reviewerAddress: bMilestone.reviewer,
-          campaignReviewerAddress: bMilestone.campaignReviewer,
-          recipientAddress: bMilestone.recipient,
+          maxAmount: maxAmount,
+          reviewerAddress: reviewer,
+          campaignReviewerAddress: campaignReviewer,
+          recipientAddress: recipient,
           title: project.name,
           pluginAddress: project.plugin,
-          status: milestoneStatus(bMilestone.accepted, canceled),
+          status: milestoneStatus(completed, canceled),
           mined: true,
-        }),
+        })
       )
       .then(milestone => {
         this._addPledgeAdmin(projectId, 'milestone', milestone._id).then(() => milestone);
