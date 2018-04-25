@@ -159,7 +159,7 @@ const getApprovedKeys = (milestone, data, user) => {
       if (data.status === MILESTONE.COMPLETED && data.mined === false) {
         if (!reviewers.includes(user.address)) {
           throw new errors.Forbidden(
-            'Only the Milestone or Campaign Reviewer can approve reject milestone has been completed',
+            'Only the Milestone or Campaign Reviewer can approve milestone has been completed',
           );
         }
         logger.info(`Approving milestone complete with id: ${milestone._id} by: ${user.address}`);
