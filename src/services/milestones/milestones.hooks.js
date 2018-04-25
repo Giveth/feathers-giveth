@@ -40,6 +40,7 @@ const getApprovedKeys = (milestone, data, user) => {
     'date',
     'fiatAmount',
     'conversionRate',
+    'items',
   ];
 
   const editMilestoneKeysOnChain = ['title', 'description', 'summary'];
