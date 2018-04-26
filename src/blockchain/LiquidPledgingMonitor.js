@@ -1,7 +1,7 @@
 import logger from 'winston';
 import { utils } from 'web3';
-import { LiquidPledgingState } from 'giveth-liquidpledging';
-import { Kernel } from 'giveth-liquidpledging/build/contracts';
+import { Kernel, LiquidPledgingState } from 'giveth-liquidpledging';
+import { LPPCappedMilestone } from 'lpp-capped-milestone';
 import Admins from './Admins';
 import Pledges from './Pledges';
 import Payments from './Payments';
@@ -102,6 +102,12 @@ export default class {
    * subscribe to lpp-capped-milestone events associated with the this lp contract
    */
   subscribeCappedMilestones() {
+    const c = new LPPCappedMilestone(this.web3).$contract;
+    const decodeEventABI = c._decodeEventABI.bind({
+      name: 'ALLEVENTS',
+      jsonInterface: c._jsonInterface,
+    });
+
     this.subscribeLogs([
       [
         keccak256('MilestoneCompleteRequested(address,uint64)'),
@@ -114,7 +120,9 @@ export default class {
         keccak256('PaymentCollected(address,uint64)'),
       ],
       utils.padLeft(`0x${this.liquidPledging.$address.substring(2).toLowerCase()}`, 64), // remove leading 0x from address
-    ]).on('data', this.handleEvent.bind(this));
+    ]).on('data', e => {
+      this.handleEvent(decodeEventABI(e));
+    });
   }
 
   /**
