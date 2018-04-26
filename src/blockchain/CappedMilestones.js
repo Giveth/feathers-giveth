@@ -28,7 +28,7 @@ class CappedMilestones {
     if (event.event !== 'MilestoneCompleteRequestApproved')
       throw new Error('accepted only handles MilestoneCompleteRequestApproved events');
 
-    this.updateMilestoneStatus(event.returnValues.idProject, 'Complete');
+    this.updateMilestoneStatus(event.returnValues.idProject, 'Completed');
   }
 
   paymentCollected(event) {
