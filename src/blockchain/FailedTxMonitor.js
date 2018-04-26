@@ -269,33 +269,50 @@ class FailedTxMonitor extends EventEmitter {
 
         // 0 status if failed tx
         if (hexToNumber(receipt.status) === 0) {
-          let mutation;
 
-          if (milestone.status === 'pending') {
-            // was never created in liquidPledging
-            mutation = { status: 'failed' };
-          } else if (['Completed', 'Canceled'].includes(milestone.status)) {
-            // if canceled, it's possible that the milestone was markedComplete,
-            // but b/c that process is off-chain
-            // we just reset to InProgress, and the recipient can mark complete again.
-            mutation = { status: 'InProgress', mined: true };
-          } else if (milestone.status === 'Paying') {
-            mutation = { status: 'Completed', mined: true };
-          } else if (milestone.status === 'Paid') {
-            mutation = { status: 'CanWithdraw', mined: true };
-          }
-
-          milestones.patch(milestone._id, mutation).catch(logger.error);
+          // Here we simply revert back to the previous state of the milestone
+          milestones.patch(milestone._id, { 
+            status: milestone.prevStatus, 
+            mined: true 
+          }).catch(logger.error);
           return;
         }
 
         const topics = [
           { name: 'ProjectAdded', hash: this.web3.utils.keccak256('ProjectAdded(uint64)') },
-          {
-            name: 'MilestoneAccepted',
-            hash: this.web3.utils.keccak256('MilestoneAccepted(address)'),
-          },
           { name: 'CancelProject', hash: this.web3.utils.keccak256('CancelProject(uint64)') },
+          { 
+            name: 'MilestoneCompleteRequested',
+            hash: this.web3.utils.keccak256('MilestoneCompleteRequested(address,uint64)')
+          },
+          { 
+            name: 'MilestoneCompleteRequestRejected',
+            hash: this.web3.utils.keccak256('MilestoneCompleteRequested(address,uint64)')
+          },  
+          { 
+            name: 'MilestoneCompleteRequestApproved',
+            hash: this.web3.utils.keccak256('MilestoneCompleteRequestApproved(address,uint64)')
+          },              
+          { 
+            name: 'MilestoneChangeReviewerRequested',
+            hash: this.web3.utils.keccak256('MilestoneChangeReviewerRequested(address,uint64)')
+          },
+          { 
+            name: 'MilestoneReviewerChanged',
+            hash: this.web3.utils.keccak256('MilestoneReviewerChanged(address,uint64)')
+          },  
+          { 
+            name: 'MilestoneChangeRecipientRequested',
+            hash: this.web3.utils.keccak256('MilestoneChangeRecipientRequested(address,uint64)')
+          },  
+          { 
+            name: 'MilestoneRecipientChanged',
+            hash: this.web3.utils.keccak256('MilestoneRecipientChanged(address,uint64)')
+          },  
+          { 
+            name: 'PaymentCollected',
+            hash: this.web3.utils.keccak256('PaymentCollected(address,uint64)')
+          },           
         ];
 
         // get logs we're interested in.

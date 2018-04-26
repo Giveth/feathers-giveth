@@ -501,6 +501,17 @@ const canDelete = () => context => {
   });
 };
 
+const storePrevState = () => context => {
+  if (context.data.status) {
+    return getMilestones(context).then(milestone => {
+      context.data.prevStatus = milestone.status;
+      return context;
+    });    
+  }
+
+  return context;
+}
+
 const schema = {
   include: [
     {
@@ -566,6 +577,7 @@ module.exports = {
         { validate: true },
       ),
       sanitizeHtml('description'),
+      storePrevState(),
       updatedAt,
     ],
     remove: [canDelete()],
