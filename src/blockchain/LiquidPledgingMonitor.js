@@ -114,7 +114,7 @@ export default class {
         keccak256('PaymentCollected(address,uint64)'),
       ],
       utils.padLeft(`0x${this.liquidPledging.$address.substring(2).toLowerCase()}`, 64), // remove leading 0x from address
-    ]).on('data', this.handleEvent.bind(this.tokens));
+    ]).on('data', this.handleEvent.bind(this));
   }
 
   /**
