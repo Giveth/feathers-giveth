@@ -64,8 +64,16 @@ export default class {
    */
   subscribeLP() {
     // starts a listener on the liquidPledging contract
+    this.liquidPledging.$contract
+      .getPastEvents({ fromBlock: this.config.lastBlock + 1 })
+      .then(events => {
+        events.forEach(e => this.handleEvent(e));
+      });
+
+    // TODO: why isn't this fetching pastEvents? I can't reproduce this when using node directly
     this.liquidPledging.$contract.events
-      .allEvents({ fromBlock: this.config.lastBlock + 1 || 1 })
+      // .allEvents({ fromBlock: this.config.lastBlock + 1 || 1 })
+      .allEvents({})
       .on('data', this.handleEvent.bind(this))
       .on('changed', event => {
         // I think this is emitted when a chain reorg happens and the tx has been removed
