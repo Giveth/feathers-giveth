@@ -1,43 +1,177 @@
 const Web3 = require('web3');
-const { LiquidPledging, LPVault } = require('giveth-liquidpledging-token');
-const { LPPDacs, LPPDacsRuntimeByteCode } = require('lpp-dacs');
-const { LPPCampaignFactory, LPPCampaignRuntimeByteCode } = require('lpp-campaign');
-const { LPPCappedMilestones, LPPCappedMilestonesRuntimeByteCode} = require('lpp-capped-milestone-token');
-const { MiniMeToken, MiniMeTokenFactory } = require('minimetoken');
+const path = require('path');
+const GanacheCLI = require('ganache-cli');
+const { Kernel, ACL, LPVault, LiquidPledging, LPFactory, test } = require('giveth-liquidpledging');
+const { LPPDac, LPPDacFactory } = require('lpp-dac');
+const { LPPCampaign, LPPCampaignFactory } = require('lpp-campaign');
+const { LPPCappedMilestone, LPPCappedMilestoneFactory } = require('lpp-capped-milestone');
+const { MiniMeTokenFactory } = require('minimetoken');
 
-const web3 = new Web3('ws://localhost:8545');
+const { StandardTokenTest } = test;
+
+const web3 = new Web3('http://localhost:8545');
 
 async function deploy() {
   const accounts = await web3.eth.getAccounts();
   const escapeHatch = accounts[0];
-  const from = accounts[0]
+  const from = accounts[0];
 
+  const baseVault = await LPVault.new(web3, escapeHatch);
+  const baseLP = await LiquidPledging.new(web3, escapeHatch);
+  const lpFactory = await LPFactory.new(web3, baseVault.$address, baseLP.$address);
+
+  const r = await lpFactory.newLP(escapeHatch, from, { $extraGas: 100000 });
+
+  const vaultAddress = r.events.DeployVault.returnValues.vault;
+  const vault = new LPVault(web3, vaultAddress);
+
+  const lpAddress = r.events.DeployLiquidPledging.returnValues.liquidPledging;
+  const liquidPledging = new LiquidPledging(web3, lpAddress);
+
+  // set permissions
+  const kernel = new Kernel(web3, await liquidPledging.kernel());
+  const acl = new ACL(web3, await kernel.acl());
+  await acl.createPermission(
+    accounts[0],
+    vault.$address,
+    await vault.CANCEL_PAYMENT_ROLE(),
+    accounts[0],
+    { $extraGas: 200000 },
+  );
+  await acl.createPermission(
+    accounts[0],
+    vault.$address,
+    await vault.CONFIRM_PAYMENT_ROLE(),
+    accounts[0],
+    { $extraGas: 200000 },
+  );
+
+  // deploy campaign plugin
   const tokenFactory = await MiniMeTokenFactory.new(web3);
-  const token = await MiniMeToken.new(web3, tokenFactory.$address, 0, 0, 'GivETH', 18, 'GTH', true);
+  const lppCampaignFactory = await LPPCampaignFactory.new(
+    web3,
+    kernel.$address,
+    tokenFactory.$address,
+    escapeHatch,
+    escapeHatch,
+    { $extraGas: 100000 },
+  );
+  await acl.grantPermission(
+    lppCampaignFactory.$address,
+    acl.$address,
+    await acl.CREATE_PERMISSIONS_ROLE(),
+    {
+      $extraGas: 100000,
+    },
+  );
+  await acl.grantPermission(
+    lppCampaignFactory.$address,
+    liquidPledging.$address,
+    await liquidPledging.PLUGIN_MANAGER_ROLE(),
+    { $extraGas: 100000 },
+  );
 
-  const vault = await LPVault.new(web3, escapeHatch, escapeHatch);
-  const liquidPledging = await LiquidPledging.new(web3, vault.$address, escapeHatch, escapeHatch, token.$address);
-  await vault.setLiquidPledging(liquidPledging.$address, { from });
+  const campaignApp = await LPPCampaign.new(web3, escapeHatch);
+  await kernel.setApp(
+    await kernel.APP_BASES_NAMESPACE(),
+    await lppCampaignFactory.CAMPAIGN_APP_ID(),
+    campaignApp.$address,
+    { $extraGas: 100000 },
+  );
 
-  const dacs = await LPPDacs.new(web3, liquidPledging.$address, escapeHatch, escapeHatch, {gas: 6500000});
-  const campaignFactory = await LPPCampaignFactory.new(web3, escapeHatch, escapeHatch, {gas: 6500000});
-  const cappedMilestones = await LPPCappedMilestones.new(web3, liquidPledging.$address, escapeHatch, escapeHatch, {from});
+  // deploy dac plugin
+  const lppDacFactory = await LPPDacFactory.new(
+    web3,
+    kernel.$address,
+    tokenFactory.$address,
+    escapeHatch,
+    escapeHatch,
+    { $extraGas: 100000 },
+  );
+  await acl.grantPermission(
+    lppDacFactory.$address,
+    acl.$address,
+    await acl.CREATE_PERMISSIONS_ROLE(),
+    {
+      $extraGas: 100000,
+    },
+  );
+  await acl.grantPermission(
+    lppDacFactory.$address,
+    liquidPledging.$address,
+    await liquidPledging.PLUGIN_MANAGER_ROLE(),
+    { $extraGas: 100000 },
+  );
 
-  await liquidPledging.addValidPlugin(web3.utils.keccak256(LPPDacsRuntimeByteCode), {from});
-  await liquidPledging.addValidPlugin(web3.utils.keccak256(LPPCampaignRuntimeByteCode), {from});
-  await liquidPledging.addValidPlugin(web3.utils.keccak256(LPPCappedMilestonesRuntimeByteCode), {from});
+  const dacApp = await LPPDac.new(web3, escapeHatch);
+  await kernel.setApp(
+    await kernel.APP_BASES_NAMESPACE(),
+    await lppDacFactory.DAC_APP_ID(),
+    dacApp.$address,
+    { $extraGas: 100000 },
+  );
 
-  await token.generateTokens(accounts[0], web3.utils.toWei('100'), {from});
-  await token.generateTokens(accounts[1], web3.utils.toWei('100'), {from, gas: 400000});
-  await token.generateTokens(accounts[2], web3.utils.toWei('100'), {from, gas: 400000});
+  // deploy milestone plugin
+  const lppCappedMilestoneFactory = await LPPCappedMilestoneFactory.new(
+    web3,
+    kernel.$address,
+    escapeHatch,
+    escapeHatch,
+    { $extraGas: 100000 },
+  );
+  await acl.grantPermission(
+    lppCappedMilestoneFactory.$address,
+    acl.$address,
+    await acl.CREATE_PERMISSIONS_ROLE(),
+    {
+      $extraGas: 100000,
+    },
+  );
+  await acl.grantPermission(
+    lppCappedMilestoneFactory.$address,
+    liquidPledging.$address,
+    await liquidPledging.PLUGIN_MANAGER_ROLE(),
+    { $extraGas: 100000 },
+  );
 
-  console.log('token Address: ', token.$address);
-  console.log('vault Address: ', vault.$address);
-  console.log('liquidPledging Address: ', liquidPledging.$address);
-  console.log('LPPDacs Address: ', dacs.$address);
-  console.log('LPPCampaignFactory Address: ', campaignFactory.$address);
-  console.log('LPPCappedMilestones Address: ', cappedMilestones.$address);
+  const milestoneApp = await LPPCappedMilestone.new(web3, escapeHatch);
+  await kernel.setApp(
+    await kernel.APP_BASES_NAMESPACE(),
+    await lppCappedMilestoneFactory.MILESTONE_APP_ID(),
+    milestoneApp.$address,
+    { $extraGas: 100000 },
+  );
+
+  const token = await StandardTokenTest.new(web3);
+  await token.mint(accounts[0], web3.utils.toWei('100'), { from });
+  await token.mint(accounts[1], web3.utils.toWei('100'), { from });
+  await token.mint(accounts[2], web3.utils.toWei('100'), { from });
+
+  console.log(await liquidPledging.kernel());
+  console.log(await liquidPledging.vault());
+  console.log('\n\n', {
+    token: token.$address,
+    vault: vault.$address,
+    liquidPledging: liquidPledging.$address,
+    lppDacFactory: lppDacFactory.$address,
+    lppCampaignFactory: lppCampaignFactory.$address,
+    lppCappedMilestoneFactory: lppCappedMilestoneFactory.$address,
+  });
   process.exit(); // some reason, this script won't exit. I think it has to do with web3 subscribing to tx confirmations?
 }
 
-deploy();
+if (web3.currentProvider.connected) deploy();
+else {
+  const ganache = GanacheCLI.server({
+    ws: true,
+    gasLimit: 6700000,
+    total_accounts: 10,
+    seed: 'TestRPC is awesome!',
+    db_path: path.join(__dirname, '../data/ganache-cli'),
+    logger: console,
+  });
+
+  ganache.listen(8545, '127.0.0.1', () => {
+    deploy().catch(() => ganache.close());
+  });
+}
