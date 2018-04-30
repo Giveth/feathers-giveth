@@ -51,6 +51,12 @@ const schema = {
       parentField: 'ownerAddress',
       childField: 'address',
     },
+    {
+      service: 'users',
+      nameAs: 'reviewer',
+      parentField: 'reviewerAddress',
+      childField: 'address',
+    },
   ],
 };
 const countMilestones = (item, service) =>
