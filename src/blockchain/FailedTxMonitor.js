@@ -1,7 +1,7 @@
 import { hexToNumber } from 'web3-utils';
 import { LiquidPledgingAbi } from 'giveth-liquidpledging/build/LiquidPledging.sol';
 import { LPVaultAbi } from 'giveth-liquidpledging/build/LPVault.sol';
-import { LPPCappedMilestonesAbi } from 'lpp-capped-milestone/build/LPPCappedMilestones.sol';
+import { LPPCappedMilestoneAbi } from 'lpp-capped-milestone/build/LPPCappedMilestone.sol';
 import EventEmitter from 'events';
 import logger from 'winston';
 
@@ -56,7 +56,7 @@ class FailedTxMonitor extends EventEmitter {
       );
     });
 
-    LPPCappedMilestonesAbi.filter(method => method.type === 'event').forEach(event => {
+    LPPCappedMilestoneAbi.filter(method => method.type === 'event').forEach(event => {
       this.decoders.milestone[event.name] = this.web3.eth.Contract.prototype._decodeEventABI.bind(
         event,
       );
@@ -269,50 +269,51 @@ class FailedTxMonitor extends EventEmitter {
 
         // 0 status if failed tx
         if (hexToNumber(receipt.status) === 0) {
-
           // Here we simply revert back to the previous state of the milestone
-          milestones.patch(milestone._id, { 
-            status: milestone.prevStatus, 
-            mined: true 
-          }).catch(logger.error);
+          milestones
+            .patch(milestone._id, {
+              status: milestone.prevStatus,
+              mined: true,
+            })
+            .catch(logger.error);
           return;
         }
 
         const topics = [
           { name: 'ProjectAdded', hash: this.web3.utils.keccak256('ProjectAdded(uint64)') },
           { name: 'CancelProject', hash: this.web3.utils.keccak256('CancelProject(uint64)') },
-          { 
+          {
             name: 'MilestoneCompleteRequested',
-            hash: this.web3.utils.keccak256('MilestoneCompleteRequested(address,uint64)')
+            hash: this.web3.utils.keccak256('MilestoneCompleteRequested(address,uint64)'),
           },
-          { 
+          {
             name: 'MilestoneCompleteRequestRejected',
-            hash: this.web3.utils.keccak256('MilestoneCompleteRequested(address,uint64)')
-          },  
-          { 
-            name: 'MilestoneCompleteRequestApproved',
-            hash: this.web3.utils.keccak256('MilestoneCompleteRequestApproved(address,uint64)')
-          },              
-          { 
-            name: 'MilestoneChangeReviewerRequested',
-            hash: this.web3.utils.keccak256('MilestoneChangeReviewerRequested(address,uint64)')
+            hash: this.web3.utils.keccak256('MilestoneCompleteRequested(address,uint64)'),
           },
-          { 
+          {
+            name: 'MilestoneCompleteRequestApproved',
+            hash: this.web3.utils.keccak256('MilestoneCompleteRequestApproved(address,uint64)'),
+          },
+          {
+            name: 'MilestoneChangeReviewerRequested',
+            hash: this.web3.utils.keccak256('MilestoneChangeReviewerRequested(address,uint64)'),
+          },
+          {
             name: 'MilestoneReviewerChanged',
-            hash: this.web3.utils.keccak256('MilestoneReviewerChanged(address,uint64)')
-          },  
-          { 
+            hash: this.web3.utils.keccak256('MilestoneReviewerChanged(address,uint64)'),
+          },
+          {
             name: 'MilestoneChangeRecipientRequested',
-            hash: this.web3.utils.keccak256('MilestoneChangeRecipientRequested(address,uint64)')
-          },  
-          { 
+            hash: this.web3.utils.keccak256('MilestoneChangeRecipientRequested(address,uint64)'),
+          },
+          {
             name: 'MilestoneRecipientChanged',
-            hash: this.web3.utils.keccak256('MilestoneRecipientChanged(address,uint64)')
-          },  
-          { 
+            hash: this.web3.utils.keccak256('MilestoneRecipientChanged(address,uint64)'),
+          },
+          {
             name: 'PaymentCollected',
-            hash: this.web3.utils.keccak256('PaymentCollected(address,uint64)')
-          },           
+            hash: this.web3.utils.keccak256('PaymentCollected(address,uint64)'),
+          },
         ];
 
         // get logs we're interested in.

@@ -13,6 +13,7 @@
   "blockchain": {
     "nodeUrl": "ws://localhost:8545",
     "startingBlock": 0,
+    "requiredConfirmations": 3,
     "vaultAddress": "0x6098441760E4614AAc6e6bb3Ec7A254C2a600b5d",
     "liquidPledgingAddress": "0xBeFdf675cb73813952C5A9E4B84ea8B866DBA592"
   },

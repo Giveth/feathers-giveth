@@ -60,7 +60,7 @@
     "giveth-liquidpledging": "0.1.1",
     "helmet": "^3.8.1",
     "lpp-campaign": "0.1.1",
-    "lpp-capped-milestone": "0.1.1",
+    "lpp-capped-milestone": "0.1.2",
     "lpp-dac": "0.1.5",
     "minimetoken": "^0.2.0",
     "mkdirp": "^0.5.1",

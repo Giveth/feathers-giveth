@@ -1,7 +1,6 @@
 import logger from 'winston';
 import { hexToNumber, toBN } from 'web3-utils';
 import { pledgeState } from './helpers';
-import Notifications from './../utils/dappMailer';
 
 const ReProcessEvent = () => {};
 

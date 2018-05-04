@@ -15,6 +15,7 @@ export default function() {
 
   const opts = {
     startingBlock: blockchain.startingBlock,
+    requiredConfirmations: blockchain.requiredConfirmations,
   };
 
   let txMonitor;

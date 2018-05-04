@@ -28,9 +28,6 @@ const DestroyTokenEvent = {
   signature: '0xeb3ddd2dc2528a35014fadbf1007ad1329899f52b19ea27ed3815208721f47bc',
 };
 
-const decodeGenerateTokensEventABI = Contract.prototype._decodeEventABI.bind(GenerateTokenEvent);
-const decodeDestroyTokensEventABI = Contract.prototype._decodeEventABI.bind(DestroyTokenEvent);
-
 /**
  * class to track donation token balances
  */
@@ -42,9 +39,9 @@ class Tokens {
   }
 
   tokensGenerated(event) {
-    const decodedEvent = decodeGenerateTokensEventABI(event);
-    logger.log('handling GenerateTokens Event: ', decodedEvent);
-    const { address } = decodedEvent;
+    if (event.event !== 'GenerateTokens')
+      throw new Error('tokensGenerated only handles GenerateTokens events');
+    const { address } = event;
 
     const find = service =>
       service.find({
@@ -65,23 +62,16 @@ class Tokens {
           logger.error(`Couldn't find dac or campaign with plugin address of ${address}`);
           return;
         }
-        this.updateTokens(
-          entity.tokenAddress,
-          decodedEvent.returnValues.addr,
-          decodedEvent.returnValues.amount,
-        );
+        this.updateTokens(entity.tokenAddress, event.returnValues.addr, event.returnValues.amount);
       })
       .catch(logger.error);
   }
 
   tokensDestroyed(event) {
-    const decodedEvent = decodeDestroyTokensEventABI(event);
-
-    if (decodedEvent.event !== 'DestroyTokens')
+    if (event.event !== 'DestroyTokens')
       throw new Error('tokensDestroyed only handles DestroyTokens events');
 
-    logger.info('handling DestroyTokens Event: ', decodedEvent);
-    const { address } = decodedEvent;
+    const { address } = event;
 
     this.app
       .service('dacs')
@@ -97,8 +87,8 @@ class Tokens {
         }
         this.updateTokens(
           dac.tokenAddress,
-          decodedEvent.returnValues.addr,
-          decodedEvent.returnValues.amount,
+          event.returnValues.addr,
+          event.returnValues.amount,
           false,
         );
       })
@@ -135,6 +125,14 @@ class Tokens {
 
         return this.tokens.patch(t._id, { balance });
       });
+  }
+
+  static decodeGenerateTokensEventABI(event) {
+    return Contract.prototype._decodeEventABI.bind(GenerateTokenEvent)(event);
+  }
+
+  static decodeDestroyTokensEventABI(event) {
+    return Contract.prototype._decodeEventABI.bind(DestroyTokenEvent)(event);
   }
 }
 
