@@ -13,7 +13,7 @@ export default () => context => {
       .service('events')
       .find({ paginate: false, query: { transactionHash: item.txHash } })
       .then(events => {
-        item.confirmations = events[0].confirmations || 0;
+        item.confirmations = events.length > 0 ? events[0].confirmations : 0;
         return item;
       });
   };
