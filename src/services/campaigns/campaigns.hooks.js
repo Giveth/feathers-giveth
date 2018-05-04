@@ -6,6 +6,7 @@ import setAddress from '../../hooks/setAddress';
 import sanitizeHtml from '../../hooks/sanitizeHtml';
 import isProjectAllowed from '../../hooks/isProjectAllowed';
 import { updatedAt, createdAt } from '../../hooks/timestamps';
+import addConfirmations from '../../hooks/addConfirmations';
 
 const restrict = () => context => {
   // internal call are fine
@@ -125,8 +126,8 @@ module.exports = {
 
   after: {
     all: [commons.populate({ schema })],
-    find: [addMilestoneCounts()],
-    get: [addMilestoneCounts()],
+    find: [addMilestoneCounts(), addConfirmations()],
+    get: [addMilestoneCounts(), addConfirmations()],
     create: [],
     update: [],
     patch: [],

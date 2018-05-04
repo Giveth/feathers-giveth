@@ -5,6 +5,7 @@ import sanitizeAddress from '../../hooks/sanitizeAddress';
 import setAddress from '../../hooks/setAddress';
 import sanitizeHtml from '../../hooks/sanitizeHtml';
 import { updatedAt, createdAt } from '../../hooks/timestamps';
+import addConfirmations from '../../hooks/addConfirmations';
 
 const restrict = [
   restrictToOwner({
@@ -111,8 +112,8 @@ module.exports = {
 
   after: {
     all: [commons.populate({ schema })],
-    find: [addCampaignCounts()],
-    get: [addCampaignCounts()],
+    find: [addCampaignCounts(), addConfirmations()],
+    get: [addCampaignCounts(), addConfirmations()],
     create: [],
     update: [],
     patch: [],

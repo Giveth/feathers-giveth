@@ -10,6 +10,7 @@ import sanitizeHtml from '../../hooks/sanitizeHtml';
 import isProjectAllowed from '../../hooks/isProjectAllowed';
 import Notifications from './../../utils/dappMailer';
 import { updatedAt, createdAt } from '../../hooks/timestamps';
+import addConfirmations from '../../hooks/addConfirmations';
 
 /* eslint no-underscore-dangle: 0 */
 
@@ -506,11 +507,11 @@ const storePrevState = () => context => {
     return getMilestones(context).then(milestone => {
       context.data.prevStatus = milestone.status;
       return context;
-    });    
+    });
   }
 
   return context;
-}
+};
 
 const schema = {
   include: [
@@ -585,8 +586,8 @@ module.exports = {
 
   after: {
     all: [commons.populate({ schema })],
-    find: [],
-    get: [],
+    find: [addConfirmations()],
+    get: [addConfirmations()],
     create: [sendNotification()],
     update: [],
     patch: [sendNotification()],
