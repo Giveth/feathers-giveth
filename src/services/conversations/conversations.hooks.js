@@ -1,4 +1,5 @@
 import logger from 'winston';
+import commons from 'feathers-hooks-common';
 import { updatedAt, createdAt } from '../../hooks/timestamps';
 import { disallow } from 'feathers-hooks-common';
 import sanitizeAddress from '../../hooks/sanitizeAddress';
