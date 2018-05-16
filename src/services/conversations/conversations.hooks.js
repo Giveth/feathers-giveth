@@ -3,16 +3,18 @@ import commons from 'feathers-hooks-common';
 import { updatedAt, createdAt } from '../../hooks/timestamps';
 import { disallow } from 'feathers-hooks-common';
 import sanitizeAddress from '../../hooks/sanitizeAddress';
+import errors from 'feathers-errors';
+import sanitizeHtml from '../../hooks/sanitizeHtml';
 
 /**
   API for creating conversations
   The following params are accepted when creating a message for a conversation
 
   @params:
-    milestoneId:      (string) the id of the milestone that this conversation belongs to
-    messageContext:   (string) context of the message, see MESSAGE_CONTEXT below
-    message:          (string) the actual message
-    replyToId:        (string) id of the message that this is a reply to
+    milestoneId:        (string) the id of the milestone that this conversation belongs to
+    messageContext:     (string) context of the message, see MESSAGE_CONTEXT below
+    message:            (string) the actual message
+    replyToId:          (string) id of the message that this is a reply to
 
   @param ownerAddress (string) is automatically set based on the current logged in user
 **/
@@ -35,19 +37,29 @@ const MESSAGE_CONTEXT = [
  Only people involved with the milestone can create conversation
  */
 const restrict = () => context => {
-  if (!context.params.provider) return context;   // internal calls are fine
+  // console.log('context ---> ', context);
 
   const { app, params } = context;
   const { milestoneId } = context.data;
-  const { user } = params;
+  let { user } = params;
 
-  if (!user) throw new errors.NotAuthenticated();
+  // external calls need a user
+  if (!user && context.params.provider) throw new errors.NotAuthenticated();
 
   return new Promise((resolve, reject) => {
     app
-      .service('milestone')
+      .service('milestones')
       .get(milestoneId)
       .then(milestone => {
+        // for internal calls, the person taking action on the milestone created the message
+        if (!context.params.provider) {
+          user = {
+            address: milestone.performedByAddress
+          }
+        }
+
+        console.log('user', user)
+        // console.log('milestone', milestone)
         if (
           user.address !== milestone.ownerAddress || 
           user.address !== milestone.reviewerAddress || 
@@ -90,9 +102,21 @@ const checkMessageContext = () => context => {
 
 /**
   sets the current user as owner of this message
+  internal calls pass user around in data  
  **/
 const setUser = () => context => {
-  return context.data.ownerAddress = context.params.user.address;
+  let userAddress;
+
+  if(!context.params.provider) { //internal
+    userAddress = context.data.user.address;
+  } else {
+    userAddress = context.params.user.address;
+  }
+
+  // delete the user object, we only store the address
+  delete context.data.user;
+  context.data.ownerAddress = userAddress;
+  return context
 }
 
 
@@ -121,7 +145,7 @@ module.exports = {
       sanitizeAddress([ 'ownerAddress' ]),
     ],
     get: [],
-    create: [restrict, checkMessageContext, setUser, createdAt],
+    create: [restrict(), checkMessageContext(), setUser(), sanitizeHtml('message'), createdAt],
     update: [disallow()],
     patch: [disallow()],
     remove: [disallow()]

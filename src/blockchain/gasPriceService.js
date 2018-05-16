@@ -12,7 +12,9 @@ const queryGasPrice = () => {
   logger.debug('fetching gas price from ethgasstation');
   return rp('https://ethgasstation.info/json/ethgasAPI.json')
     .then(resp => app.set('gasPrice', JSON.parse(resp)))
-    .catch(e => logger.error('could not fetch gas from ethgasstation', e.statusCode || e));
+    .catch(e => {
+      logger.error('could not fetch gas from ethgasstation', e.statusCode || e)
+    });      
 };
 
 // query gas price every minute
