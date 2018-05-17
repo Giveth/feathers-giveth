@@ -49,12 +49,12 @@ The configuration param `blockchain.nodeUrl` is used to establish a connection. 
    yarn deploy-local
    ```
 
-2. We provide an easy way to start a ganache-cli instance.
+2. We provide an easy way to start the bridge & 2 ganache-cli instances.
   
     ``` 
-    yarn ganache-cli 
+    yarn start:networks
     ```
-3. Since ganache-cli is now running, open a new terminal window and navigate to the same feathers-giveth directory.
+3. Since the bridge & ganache-cli is now running, open a new terminal window and navigate to the same feathers-giveth directory.
     
 4. Start your app
 

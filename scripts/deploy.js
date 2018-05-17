@@ -1,36 +1,41 @@
+/* eslint-disable import/no-extraneous-dependencies */
 const Web3 = require('web3');
-const path = require('path');
-const GanacheCLI = require('ganache-cli');
-const { Kernel, ACL, LPVault, LiquidPledging, LPFactory, test } = require('giveth-liquidpledging');
+const { Kernel, ACL, LPVault, LiquidPledging, LPFactory } = require('giveth-liquidpledging');
 const { LPPDac, LPPDacFactory } = require('lpp-dac');
 const { LPPCampaign, LPPCampaignFactory } = require('lpp-campaign');
 const { LPPCappedMilestone, LPPCappedMilestoneFactory } = require('lpp-capped-milestone');
 const { MiniMeTokenFactory } = require('minimetoken');
-
-const { StandardTokenTest } = test;
-
-const web3 = new Web3('http://localhost:8545');
+const { GivethBridge, ForeignGivethBridge } = require('giveth-bridge');
+const startNetworks = require('./startNetworks');
 
 async function deploy() {
-  const accounts = await web3.eth.getAccounts();
+  const { homeNetwork, foreignNetwork } = await startNetworks();
+
+  await homeNetwork.waitForStart();
+  await foreignNetwork.waitForStart();
+
+  const homeWeb3 = new Web3('http://localhost:8545');
+  const foreignWeb3 = new Web3('http://localhost:8546');
+
+  const accounts = await foreignWeb3.eth.getAccounts();
   const escapeHatch = accounts[0];
   const from = accounts[0];
 
-  const baseVault = await LPVault.new(web3, escapeHatch);
-  const baseLP = await LiquidPledging.new(web3, escapeHatch);
-  const lpFactory = await LPFactory.new(web3, baseVault.$address, baseLP.$address);
+  const baseVault = await LPVault.new(foreignWeb3, escapeHatch);
+  const baseLP = await LiquidPledging.new(foreignWeb3, escapeHatch);
+  const lpFactory = await LPFactory.new(foreignWeb3, baseVault.$address, baseLP.$address);
 
   const r = await lpFactory.newLP(escapeHatch, from, { $extraGas: 100000 });
 
   const vaultAddress = r.events.DeployVault.returnValues.vault;
-  const vault = new LPVault(web3, vaultAddress);
+  const vault = new LPVault(foreignWeb3, vaultAddress);
 
   const lpAddress = r.events.DeployLiquidPledging.returnValues.liquidPledging;
-  const liquidPledging = new LiquidPledging(web3, lpAddress);
+  const liquidPledging = new LiquidPledging(foreignWeb3, lpAddress);
 
   // set permissions
-  const kernel = new Kernel(web3, await liquidPledging.kernel());
-  const acl = new ACL(web3, await kernel.acl());
+  const kernel = new Kernel(foreignWeb3, await liquidPledging.kernel());
+  const acl = new ACL(foreignWeb3, await kernel.acl());
   await acl.createPermission(
     accounts[0],
     vault.$address,
@@ -45,11 +50,19 @@ async function deploy() {
     accounts[0],
     { $extraGas: 200000 },
   );
+  await acl.createPermission(
+    accounts[0],
+    vault.$address,
+    await vault.SET_AUTOPAY_ROLE(),
+    accounts[0],
+    { $extraGas: 200000 },
+  );
+  await vault.setAutopay(true, { from: accounts[0], $extraGas: 100000 });
 
   // deploy campaign plugin
-  const tokenFactory = await MiniMeTokenFactory.new(web3);
+  const tokenFactory = await MiniMeTokenFactory.new(foreignWeb3);
   const lppCampaignFactory = await LPPCampaignFactory.new(
-    web3,
+    foreignWeb3,
     kernel.$address,
     tokenFactory.$address,
     escapeHatch,
@@ -71,7 +84,7 @@ async function deploy() {
     { $extraGas: 100000 },
   );
 
-  const campaignApp = await LPPCampaign.new(web3, escapeHatch);
+  const campaignApp = await LPPCampaign.new(foreignWeb3, escapeHatch);
   await kernel.setApp(
     await kernel.APP_BASES_NAMESPACE(),
     await lppCampaignFactory.CAMPAIGN_APP_ID(),
@@ -81,7 +94,7 @@ async function deploy() {
 
   // deploy dac plugin
   const lppDacFactory = await LPPDacFactory.new(
-    web3,
+    foreignWeb3,
     kernel.$address,
     tokenFactory.$address,
     escapeHatch,
@@ -103,7 +116,7 @@ async function deploy() {
     { $extraGas: 100000 },
   );
 
-  const dacApp = await LPPDac.new(web3, escapeHatch);
+  const dacApp = await LPPDac.new(foreignWeb3, escapeHatch);
   await kernel.setApp(
     await kernel.APP_BASES_NAMESPACE(),
     await lppDacFactory.DAC_APP_ID(),
@@ -113,7 +126,7 @@ async function deploy() {
 
   // deploy milestone plugin
   const lppCappedMilestoneFactory = await LPPCappedMilestoneFactory.new(
-    web3,
+    foreignWeb3,
     kernel.$address,
     escapeHatch,
     escapeHatch,
@@ -134,7 +147,7 @@ async function deploy() {
     { $extraGas: 100000 },
   );
 
-  const milestoneApp = await LPPCappedMilestone.new(web3, escapeHatch);
+  const milestoneApp = await LPPCappedMilestone.new(foreignWeb3, escapeHatch);
   await kernel.setApp(
     await kernel.APP_BASES_NAMESPACE(),
     await lppCappedMilestoneFactory.MILESTONE_APP_ID(),
@@ -142,36 +155,43 @@ async function deploy() {
     { $extraGas: 100000 },
   );
 
-  const token = await StandardTokenTest.new(web3);
-  await token.mint(accounts[0], web3.utils.toWei('100'), { from });
-  await token.mint(accounts[1], web3.utils.toWei('100'), { from });
-  await token.mint(accounts[2], web3.utils.toWei('100'), { from });
+  // deploy bridges
+  const foreignBridge = await ForeignGivethBridge.new(
+    foreignWeb3,
+    accounts[0],
+    accounts[0],
+    tokenFactory.$address,
+    liquidPledging.$address,
+    { from: accounts[0], $extraGas: 100000 },
+  );
 
-  console.log(await liquidPledging.kernel());
-  console.log(await liquidPledging.vault());
+  const fiveDays = 60 * 60 * 24 * 5;
+  const homeBridge = await GivethBridge.new(
+    homeWeb3,
+    accounts[0],
+    accounts[0],
+    accounts[0],
+    fiveDays,
+    { from: accounts[0], $extraGas: 100000 },
+  );
+
+  await homeBridge.authorizeSpender(accounts[0], true, { from: accounts[0] });
+
+  // deploy tokens
+  await foreignBridge.addToken(0, 'Foreign ETH', 18, 'FETH', { from: accounts[0] });
+  const foreignEthAddress = await foreignBridge.tokenMapping(0);
+
   console.log('\n\n', {
-    token: token.$address,
     vault: vault.$address,
     liquidPledging: liquidPledging.$address,
     lppDacFactory: lppDacFactory.$address,
     lppCampaignFactory: lppCampaignFactory.$address,
     lppCappedMilestoneFactory: lppCappedMilestoneFactory.$address,
+    givethBridge: homeBridge.$address,
+    foreignGivethBridge: foreignBridge.$address,
+    homeEthToken: foreignEthAddress,
   });
   process.exit(); // some reason, this script won't exit. I think it has to do with web3 subscribing to tx confirmations?
 }
 
-if (web3.currentProvider.connected) deploy();
-else {
-  const ganache = GanacheCLI.server({
-    ws: true,
-    gasLimit: 6700000,
-    total_accounts: 10,
-    seed: 'TestRPC is awesome!',
-    db_path: path.join(__dirname, '../data/ganache-cli'),
-    logger: console,
-  });
-
-  ganache.listen(8545, '127.0.0.1', () => {
-    deploy().catch(() => ganache.close());
-  });
-}
+deploy();
