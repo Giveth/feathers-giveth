@@ -30,15 +30,17 @@ const MESSAGE_CONTEXT = [
   'NeedsReview',
   'Completed',
   'Canceled',
-  'ReplyTo'
+  'ReplyTo',
+  'proposedRejected',
+  'proposedAccepted',
+  'rePropose'
 ];
 
 /**
  Only people involved with the milestone can create conversation
+ Sets the address creating the conversation as the owner
  */
-const restrict = () => context => {
-  // console.log('context ---> ', context);
-
+const restrictAndSetOwner = () => context => {
   const { app, params } = context;
   const { milestoneId } = context.data;
   let { user } = params;
@@ -51,22 +53,21 @@ const restrict = () => context => {
       .service('milestones')
       .get(milestoneId)
       .then(milestone => {
-        // for internal calls, the person taking action on the milestone created the message
-        if (!context.params.provider) {
-          user = {
-            address: milestone.performedByAddress
-          }
-        }
-
-        console.log('user', user)
+        // console.log('user', user)
         // console.log('milestone', milestone)
+
+        // for internal calls there's no user, so the user creating the message is stored on the milestone
+        // for external calls, the currentuser creates the message
+        context.data.ownerAddress = user && user.address || milestone.performedByAddress;
+        delete context.data.user;
+
         if (
-          user.address !== milestone.ownerAddress || 
-          user.address !== milestone.reviewerAddress || 
-          user.address !== milestone.recipientAddress ||
-          user.address !== milestone.campaignReviewerAddress
+          context.data.ownerAddress !== milestone.ownerAddress &&
+          context.data.ownerAddress !== milestone.reviewerAddress &&
+          context.data.ownerAddress !== milestone.recipientAddress &&
+          context.data.ownerAddress !== milestone.campaignReviewerAddress
         ) throw new errors.Forbidden('Only people involved with the milestone can create conversation');
-        resolve();
+        resolve(context);
       }).catch(e => {
         logger.error(`unable to get milestone ${milestoneId}`, e);
         reject();
@@ -100,25 +101,6 @@ const checkMessageContext = () => context => {
   }
 }
 
-/**
-  sets the current user as owner of this message
-  internal calls pass user around in data  
- **/
-const setUser = () => context => {
-  let userAddress;
-
-  if(!context.params.provider) { //internal
-    userAddress = context.data.user.address;
-  } else {
-    userAddress = context.params.user.address;
-  }
-
-  // delete the user object, we only store the address
-  delete context.data.user;
-  context.data.ownerAddress = userAddress;
-  return context
-}
-
 
 /**
   include user object when querying message
@@ -145,7 +127,7 @@ module.exports = {
       sanitizeAddress([ 'ownerAddress' ]),
     ],
     get: [],
-    create: [restrict(), checkMessageContext(), setUser(), sanitizeHtml('message'), createdAt],
+    create: [restrictAndSetOwner(), checkMessageContext(), sanitizeHtml('message'), createdAt],
     update: [disallow()],
     patch: [disallow()],
     remove: [disallow()]
