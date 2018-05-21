@@ -143,7 +143,7 @@ class Pledges {
           // TODO is this comment only applicable while we don't support splits?
           // this is probably a split which happened outside of the ui
           throw new Error(
-            `unable to determine what donations entity to update -> from: ${from}, to: ${to}, amount: ${amount}, ts: ${ts}, txHash: ${txHash}`,
+            `unable to determine what donations entity to update -> from: ${from}, to: ${to}, amount: ${amount}, ts: ${ts}, txHash: ${txHash}, donations: ${donations}`,
           );
         });
 

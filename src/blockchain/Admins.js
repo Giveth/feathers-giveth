@@ -101,7 +101,11 @@ class Admins {
       })
       .then(u => {
         user = u;
-        if (user.giverId && (user.giverId !== 0 || user.giverId !== '0')) {
+        if (
+          user.giverId &&
+          (user.giverId !== 0 || user.giverId !== '0') &&
+          user.giverId !== giverId
+        ) {
           logger.error(
             `user already has a giverId set. existing giverId: ${
               user.giverId

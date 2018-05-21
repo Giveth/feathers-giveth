@@ -347,7 +347,10 @@ export default class {
     this.events
       .find({
         paginate: false,
-        query: { $or: [{ confirmed: false }, { confirmed: { $exists: false } }] },
+        query: {
+          $or: [{ confirmed: false }, { confirmed: { $exists: false } }],
+          $sort: { transactionHash: 1, logIndex: 1 },
+        },
       })
       .then(data => {
         const updates = [];
