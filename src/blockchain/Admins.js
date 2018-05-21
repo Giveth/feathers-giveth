@@ -348,7 +348,7 @@ class Admins {
       .then(([milestone, maxAmount, reviewer, campaignReviewer, recipient, completed, canceled]) =>
         milestones.patch(milestone._id, {
           projectId,
-          maxAmount: maxAmount,
+          maxAmount,
           reviewerAddress: reviewer,
           campaignReviewerAddress: campaignReviewer,
           recipientAddress: recipient,
@@ -356,7 +356,7 @@ class Admins {
           pluginAddress: project.plugin,
           status: milestoneStatus(completed, canceled),
           mined: true,
-        })
+        }),
       )
       .then(milestone => {
         this._addPledgeAdmin(projectId, 'milestone', milestone._id).then(() => milestone);
