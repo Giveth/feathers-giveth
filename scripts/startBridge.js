@@ -15,7 +15,7 @@ const bridgeConfig = {
   foreignGasPrice: 1000000000,
   foreignConfirmations: 3,
   pollTime: 30 * 1000, // 30 seconds
-  liquidpledging: '0xBeFdf675cb73813952C5A9E4B84ea8B866DBA592',
+  liquidPledging: '0xBeFdf675cb73813952C5A9E4B84ea8B866DBA592',
   pk: '0x4f3edf983ac636a65a842ce7c78d9aa706d3b113bce9c46f30d7d21715b23b1d', // ganache account 0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1
   isTest: false,
 };
