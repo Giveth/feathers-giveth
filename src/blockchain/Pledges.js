@@ -367,7 +367,7 @@ class Pledges {
 
       return donations
         .patch(donation._id, mutation)
-        .then(() => this._trackDonationHistory(transferInfo));
+        .then(() => this.trackDonationHistory(transferInfo));
     }
     // this is a split
 
@@ -379,66 +379,89 @@ class Pledges {
           .toString(),
       });
 
+    // TODO create a donation model that copies the appropriate data
     // create a new donation
     const newDonation = Object.assign({}, donation, this._createDonationMutation(transferInfo));
     delete newDonation._id;
     delete newDonation.$unset;
+    delete newDonation._include;
+    delete newDonation.giver;
+    delete newDonation.ownerEntity;
+    delete newDonation.requiredConfirmations;
+    delete newDonation.confirmations;
 
     const createDonation = () => donations.create(newDonation);
 
-    return Promise.all([updateDonation(), createDonation()]).then(([updated, created]) => {
-      // TODO track donation histories
-    });
+    // TODO track donation histories
+    return Promise.all([updateDonation(), createDonation()]).then(([updated, created]) =>
+      this.trackDonationHistory(Object.assign({}, transferInfo, { toDonation: created })),
+    );
   }
 
-  _trackDonationHistory(transferInfo) {
+  trackDonationHistory(transferInfo) {
     const donationsHistory = this.app.service('donations/history');
     const {
       fromPledgeAdmin,
       toPledgeAdmin,
       fromPledge,
       toPledge,
-      _toPledgeId,
+      toPledgeId,
       delegate,
-      _intendedProject,
+      intendedProject,
       donation,
+      toDonation,
       amount,
       ts,
     } = transferInfo;
 
     const isNewDonation = () =>
+      !toDonation &&
       fromPledge.oldPledge === '0' &&
       (toPledgeAdmin.type !== 'giver' || toPledge.nDelegates === '1') &&
       toPledge.intendedProject === '0';
     const isCommittedDelegation = () =>
-      fromPledge.intendedProject !== '0' && fromPledge.intendedProject === toPledge.owner;
+      !toDonation &&
+      fromPledge.intendedProject !== '0' &&
+      fromPledge.intendedProject === toPledge.owner;
     const isCampaignToMilestone = () =>
-      fromPledgeAdmin.type === 'campaign' && toPledgeAdmin.type === 'milestone';
+      !toDonation && fromPledgeAdmin.type === 'campaign' && toPledgeAdmin.type === 'milestone';
 
-    // only handling new donations & committed delegations for now
+    const history = {
+      ownerId: toPledgeAdmin.typeId,
+      ownerType: toPledgeAdmin.type,
+      createdAt: ts,
+      amount,
+      txHash: donation.txHash,
+      donationId: donation._id,
+      giverAddress: donation.giverAddress,
+    };
+
+    if (delegate) {
+      Object.assign(history, {
+        delegateType: delegate.type,
+        delegateId: delegate.typeId,
+      });
+    }
+
+    // new donations & committed delegations
     if (
       toPledge.pledgeState === '0' &&
       (isNewDonation() || isCommittedDelegation() || isCampaignToMilestone())
     ) {
-      const history = {
-        ownerId: toPledgeAdmin.typeId,
-        ownerType: toPledgeAdmin.type,
-        createdAt: ts,
-        amount,
-        txHash: donation.txHash,
-        donationId: donation._id,
-        giverAddress: donation.giverAddress,
-      };
-
-      if (delegate) {
-        Object.assign(history, {
-          delegateType: delegate.type,
-          delegateId: delegate.typeId,
-        });
-      }
-
+      // TODO remove this if statement one we handle all scenarios
       return donationsHistory.create(history);
     }
+
+    // regular transfer
+    if (toPledge.pledgeState === '0' && toDonation) {
+      Object.assign(history, {
+        fromDonationId: donation._id,
+        fromOwnerId: fromPledgeAdmin.typeId,
+        fromOwnerType: fromPledgeAdmin.type,
+      });
+      return donationsHistory.create(history);
+    }
+
     // if (toPledge.paymentStatus === 'Paying' || toPledge.paymentStatus === 'Paid') {
     //   // payment has been initiated/completed in vault
     //   return donationsHistory.create({
@@ -450,8 +473,6 @@ class Pledges {
     // canceled payment from vault
 
     // vetoed delegation
-
-    // regular transfer
   }
 
   /**
