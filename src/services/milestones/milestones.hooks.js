@@ -131,7 +131,7 @@ const getApprovedKeys = (milestone, data, user) => {
         }
         logger.info(`Marking milestone as complete. Milestone id: ${milestone._id}`);
 
-        return ['status'];
+        return ['status', 'mined'];
       }
 
       // Cancel milestone by Campaign or Milestone Reviewer
@@ -175,7 +175,7 @@ const getApprovedKeys = (milestone, data, user) => {
           );
         }
         logger.info(`Rejecting milestone complete with id: ${milestone._id} by: ${user.address}`);
-        return ['status'];
+        return ['status', 'mined'];
       }
 
       // Cancel milestone by Campaign or Milestone Reviewer
