@@ -33,7 +33,7 @@ export default class {
     // use different EventQueues for Admins & Pledges class
     const eventQueue = new EventQueue();
 
-    this.payments = new Payments(app, this.liquidPledging.$vault);
+    this.payments = new Payments(app, this.liquidPledging.$vault, eventQueue);
     this.admins = new Admins(app, this.liquidPledging, eventQueue);
     this.pledges = new Pledges(app, this.liquidPledging, eventQueue);
     this.cappedMilestones = new CappedMilestones(app, this.web3);
