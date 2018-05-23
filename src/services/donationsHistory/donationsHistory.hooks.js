@@ -74,7 +74,6 @@ const updateType = () => context => {
           .then(donationsForEntity => {
             peopleCount = _.uniq(_.pluck(donationsForEntity.data, 'ownerId')).length;
 
-            console.log(totalDonated.toString(), data.amount);
             const amount = toBN(data.amount);
             if (amount > 0) donationCount += 1; // incoming donation
             totalDonated = toBN(totalDonated)

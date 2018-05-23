@@ -34,10 +34,10 @@ class Pledges {
 
     const processEvent = (retry = false) => {
       this.queue.startProcessing(txHash);
-      return this._getBlockTimestamp(event.blockNumber)
+      return this.getBlockTimestamp(event.blockNumber)
         .then(ts => {
           if (from === '0') {
-            return this._newDonation(to, amount, ts, txHash, retry)
+            return this.newDonation(to, amount, ts, txHash, retry)
               .then(() => this.queue.purge(txHash))
               .catch(err => {
                 if (err instanceof ReProcessEvent) {
@@ -47,7 +47,7 @@ class Pledges {
                   return;
                 }
 
-                logger.error('_newDonation error ->', err);
+                logger.error('newDonation error ->', err);
               });
           }
 
@@ -71,7 +71,7 @@ class Pledges {
     }
   }
 
-  _newDonation(pledgeId, amount, ts, txHash, retry = false) {
+  newDonation(pledgeId, amount, ts, txHash, retry = false) {
     const donations = this.app.service('donations');
     const pledgeAdmins = this.app.service('pledgeAdmins');
 
@@ -291,7 +291,7 @@ class Pledges {
     // we need to update the milestones status
     if (['1', '2'].includes(toPledge.pledgeState) && toPledgeAdmin.type === 'milestone') {
       this.app.service('milestones').patch(toPledgeAdmin.typeId, {
-        status: toPledge.pledgeState === '1' ? 'Paying' : 'CanWithdraw',
+        status: toPledge.pledgeState === '1' ? 'Paying' : 'Paid',
         mined: true,
       });
     }
@@ -491,7 +491,7 @@ class Pledges {
    * @return Promise with a single ts value
    * @private
    */
-  _getBlockTimestamp(blockNumber) {
+  getBlockTimestamp(blockNumber) {
     if (this.blockTimes[blockNumber]) return Promise.resolve(this.blockTimes[blockNumber]);
 
     // if we are already fetching the block, don't do it twice

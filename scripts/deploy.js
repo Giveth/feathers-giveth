@@ -8,6 +8,9 @@ const { MiniMeTokenFactory } = require('minimetoken');
 const { GivethBridge, ForeignGivethBridge } = require('giveth-bridge');
 const startNetworks = require('./startNetworks');
 
+// NOTE: do not use the bridge account (account[10]) for any txs outside of the bridge
+// if you do, the nonce will become off and the bridge will fail
+
 async function deploy() {
   const { homeNetwork, foreignNetwork } = await startNetworks();
 
@@ -158,27 +161,27 @@ async function deploy() {
   // deploy bridges
   const foreignBridge = await ForeignGivethBridge.new(
     foreignWeb3,
-    accounts[0],
-    accounts[0],
+    accounts[10],
+    accounts[10],
     tokenFactory.$address,
     liquidPledging.$address,
-    { from: accounts[0], $extraGas: 100000 },
+    { from: accounts[10], $extraGas: 100000 },
   );
 
   const fiveDays = 60 * 60 * 24 * 5;
   const homeBridge = await GivethBridge.new(
     homeWeb3,
-    accounts[0],
-    accounts[0],
-    accounts[0],
+    accounts[10],
+    accounts[10],
+    accounts[10],
     fiveDays,
-    { from: accounts[0], $extraGas: 100000 },
+    { from: accounts[10], $extraGas: 100000 },
   );
 
-  await homeBridge.authorizeSpender(accounts[0], true, { from: accounts[0] });
+  await homeBridge.authorizeSpender(accounts[10], true, { from: accounts[10] });
 
   // deploy tokens
-  await foreignBridge.addToken(0, 'Foreign ETH', 18, 'FETH', { from: accounts[0] });
+  await foreignBridge.addToken(0, 'Foreign ETH', 18, 'FETH', { from: accounts[10] });
   const foreignEthAddress = await foreignBridge.tokenMapping(0);
 
   console.log('\n\n', {
