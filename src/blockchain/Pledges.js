@@ -455,6 +455,7 @@ class Pledges {
     // regular transfer
     if (toPledge.pledgeState === '0' && toDonation) {
       Object.assign(history, {
+        donationId: toDonation._id,
         fromDonationId: donation._id,
         fromOwnerId: fromPledgeAdmin.typeId,
         fromOwnerType: fromPledgeAdmin.type,
