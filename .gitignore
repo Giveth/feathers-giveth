@@ -1,6 +1,6 @@
 build
-scripts/deployRopsten.js
 scripts/deployGiveth.js
+scripts/deployBridge.js
 config/production.json
 config/development.json
 
