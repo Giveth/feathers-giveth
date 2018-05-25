@@ -145,6 +145,7 @@ export default {
       ctaRelativeUrl: `/my-milestones`,
       unsubscribeType: 'milestone-proposed',
       unsubscribeReason: `You receive this email because you run a campaign`,
+      message: data.message
     });
 
     sendEmail(app, data);
@@ -173,6 +174,7 @@ export default {
       ctaRelativeUrl: `/my-milestones`,
       unsubscribeType: 'proposed-milestone-accepted',
       unsubscribeReason: `You receive this email because you run a milestone`,
+      message: data.message      
     });
 
     sendEmail(app, data);
@@ -203,6 +205,7 @@ export default {
       ctaRelativeUrl: `/my-milestones`,
       unsubscribeType: 'proposed-milestone-rejected',
       unsubscribeReason: `You receive this email because you proposed a milestone`,
+      message: data.message      
     });
 
     sendEmail(app, data);
@@ -235,6 +238,7 @@ export default {
       ctaRelativeUrl: `/my-milestones`,
       unsubscribeType: 'milestone-request-review',
       unsubscribeReason: `You receive this email because you run a milestone`,
+      message: data.message      
     });
 
     sendEmail(app, data);
@@ -264,6 +268,7 @@ export default {
       ctaRelativeUrl: `/my-milestones`,
       unsubscribeType: 'milestone-review-approved',
       unsubscribeReason: `You receive this email because you run a milestone`,
+      message: data.message      
     });
 
     sendEmail(app, data);
@@ -271,21 +276,58 @@ export default {
 
   milestoneReviewRejected: (app, data) => {
     Object.assign(data, {
+      template: 'notification',      
       subject: 'Giveth - Milestone rejected by reviewer :-(',
       type: 'milestone-review-rejected',
+      secretIntro: `The completion of your milestone ${
+        data.milestoneTitle
+      } has been rejected by the reviewer.`,
+      title: 'Milestone completion rejected.',
+      image: 'Giveth-milestone-review-rejected-banner-email.png',
+      text: `
+        <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
+        <p>
+          The milestone completion <em>${data.milestoneTitle}</em> of the campaign <em>${
+        data.campaignTitle
+      }</em> has been rejected by the reviewer. 
+        </p>
+      `,
+      cta: `Manage Milestone`,
+      ctaRelativeUrl: `/my-milestones`,
+      unsubscribeType: 'milestone-review-rejected',
+      unsubscribeReason: `You receive this email because you run a milestone`,
+      message: data.message      
     });
-    // not implemented yet
-    // sendEmail(app, data);
+
+    sendEmail(app, data);
   },
 
   milestoneCanceled: (app, data) => {
     Object.assign(data, {
-      subject: 'Giveth - Milestone canceled by campaign owner :-(',
+      template: 'notification',      
+      subject: 'Giveth - Milestone canceled :-(',
       type: 'milestone-canceled',
+      secretIntro: `Your milestone ${
+        data.milestoneTitle
+      } has been canceled.`,
+      title: 'Milestone canceled.',
+      image: 'Giveth-milestone-canceled-banner-email.png',
+      text: `
+        <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
+        <p>
+          The milestone <em>${data.milestoneTitle}</em> of the campaign <em>${
+        data.campaignTitle
+      }</em> has been canceled. 
+        </p>
+      `,
+      cta: `Manage Milestones`,
+      ctaRelativeUrl: `/my-milestones`,
+      unsubscribeType: 'milestone-canceled',
+      unsubscribeReason: `You receive this email because you run a milestone`,
+      message: data.message      
     });
 
-    // not implemented yet
-    // sendEmail(app, data);
+    sendEmail(app, data);
   },
 
   donationCancelled: (app, data) => {

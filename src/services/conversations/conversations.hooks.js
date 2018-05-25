@@ -22,7 +22,7 @@ import sanitizeHtml from '../../hooks/sanitizeHtml';
 
 /**
   Available conversation types. This roughly follows the milestone status
-  ReplyTo is for threaded messages
+  replyTo is for threaded messages
 **/
 const MESSAGE_CONTEXT = [
   'proposed',
@@ -30,7 +30,7 @@ const MESSAGE_CONTEXT = [
   'NeedsReview',
   'Completed',
   'Canceled',
-  'ReplyTo',
+  'replyTo',
   'proposedRejected',
   'proposedAccepted',
   'rePropose'
@@ -53,20 +53,30 @@ const restrictAndSetOwner = () => context => {
       .service('milestones')
       .get(milestoneId)
       .then(milestone => {
-        // console.log('user', user)
-        // console.log('milestone', milestone)
-
         // for internal calls there's no user, so the user creating the message is stored on the milestone
         // for external calls, the currentuser creates the message
         context.data.ownerAddress = user && user.address || milestone.performedByAddress;
         delete context.data.user;
 
-        if (
-          context.data.ownerAddress !== milestone.ownerAddress &&
-          context.data.ownerAddress !== milestone.reviewerAddress &&
-          context.data.ownerAddress !== milestone.recipientAddress &&
-          context.data.ownerAddress !== milestone.campaignReviewerAddress
-        ) throw new errors.Forbidden('Only people involved with the milestone can create conversation');
+        // set the role based on the address
+        // anyone not involved with the milestone is not allowed to create conversation
+        // not taking into account that a user has one or more of these roles
+        switch (context.data.ownerAddress) {
+          case milestone.ownerAddress:
+            context.data.performedByRole = 'Milestone Owner';
+            break;
+          case milestone.reviewerAddress:
+            context.data.performedByRole = 'Reviewer';
+            break;
+          case milestone.recipientAddress:
+            context.data.performedByRole = 'Recipient';
+            break;
+          case milestone.campaignReviewerAddress:
+            context.data.performedByRole = 'Campaign reviewer';
+            break;
+          default:
+            throw new errors.Forbidden('Only people involved with the milestone can create conversation');
+        }
         resolve(context);
       }).catch(e => {
         logger.error(`unable to get milestone ${milestoneId}`, e);

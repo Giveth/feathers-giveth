@@ -298,19 +298,14 @@ const sendNotification = () => context => {
   const { data, app, result, params } = context;
   const { user } = params
 
-  // console.log('params --> ', context.params)
-
-  // console.log('result  --> ')
-  // console.log(result.prevStatus, result.status)  
-
-
-  const _createConversion = (app, data, messageContext, user) => {
+  const _createConversion = (app, data, txHash, messageContext, user) => {
     app
       .service('conversations').create({
         milestoneId: data._id,
         message: data.message,
         messageContext: messageContext,
-        user: user
+        user: user,
+        txHash: txHash
       })
       .then(res => logger.info('created conversation!', res))
       .catch( e => logger.error('could not create conversation', e));  
@@ -345,12 +340,9 @@ const sendNotification = () => context => {
    * Which basically means the event is really mined
    * */
   if (context.method === 'patch' && context.params.eventTxHash) {
-
-    // console.log('result  --> ')
-    // console.log(result.prevStatus, result.status)
-
+    
     if (result.prevStatus === 'proposed' && result.status === 'InProgress') {
-      _createConversion(app, result, 'proposedAccepted', user);
+      _createConversion(app, result, context.params.eventTxHash, 'proposedAccepted', user);
 
       // find the milestone owner and send a notification that his/her proposed milestone is approved
       Notifications.proposedMilestoneAccepted(app, {
@@ -359,23 +351,25 @@ const sendNotification = () => context => {
         milestoneTitle: result.title,
         amount: result.maxAmount,
         txHash: result.txHash,
+        message: result.message
       });
     }
 
     if (result.status === 'NeedsReview') {
       // find the milestone reviewer owner and send a notification that this milestone is been marked as complete and needs review
-      _createConversion(app, result, result.status, user);
+      _createConversion(app, result, context.params.eventTxHash, result.status, user);
 
       Notifications.milestoneRequestReview(app, {
         recipient: result.reviewer.email,
         user: result.reviewer.name,
         milestoneTitle: result.title,
         campaignTitle: result.campaign.title,
+        message: result.message        
       });
     }
 
     if (result.status === 'Completed' && result.mined) {
-      _createConversion(app, result, result.status, user);
+      _createConversion(app, result, context.params.eventTxHash, result.status, user);
 
       // find the milestone owner and send a notification that his/her milestone is marked complete
       Notifications.milestoneMarkedCompleted(app, {
@@ -383,11 +377,12 @@ const sendNotification = () => context => {
         user: result.owner.name,
         milestoneTitle: result.title,
         campaignTitle: result.campaign.title,
+        message: result.message        
       });
     }
 
     if (result.prevStatus === 'NeedsReview' && result.status === 'InProgress') {
-      _createConversion(app, result, 'rejected', user);
+      _createConversion(app, result, context.params.eventTxHash, 'rejected', user);
 
       // find the milestone reviewer and send a notification that his/her milestone has been rejected by reviewer
       Notifications.milestoneReviewRejected(app, {
@@ -395,11 +390,12 @@ const sendNotification = () => context => {
         user: result.reviewer.name,
         milestoneTitle: result.title,
         campaignTitle: result.campaign.title,
+        message: result.message        
       });
     }
 
     if (result.status === 'Canceled' && result.mined) {
-      _createConversion(app, result, result.status, user);
+      _createConversion(app, result, context.params.eventTxHash, result.status, user);
 
       // find the milestone owner and send a notification that his/her milestone is canceled
       Notifications.milestoneCanceled(app, {
@@ -407,6 +403,7 @@ const sendNotification = () => context => {
         user: result.owner.name,
         milestoneTitle: result.title,
         campaignTitle: result.campaign.title,
+        message: result.message        
       });
     }
   }
@@ -421,6 +418,7 @@ const sendNotification = () => context => {
         user: result.owner.name,
         milestoneTitle: result.title,
         campaignTitle: result.campaign.title,
+        message: result.message        
       });
     }    
 
