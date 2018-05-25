@@ -1,11 +1,9 @@
 import Web3 from 'web3';
 import logger from 'winston';
+import { LiquidPledging, LPVault } from 'giveth-liquidpledging';
 
 import LiquidPledgingMonitor from './LiquidPledgingMonitor';
 import FailedTxMonitor from './FailedTxMonitor';
-import { LiquidPledging, LPVault } from 'giveth-liquidpledging-token';
-import { LPPCappedMilestones } from 'lpp-capped-milestone-token';
-import { LPPDacs } from 'lpp-dacs';
 
 const ONE_MINUTE = 60 * 1000;
 
@@ -17,6 +15,7 @@ export default function() {
 
   const opts = {
     startingBlock: blockchain.startingBlock,
+    requiredConfirmations: blockchain.requiredConfirmations,
   };
 
   let txMonitor;
@@ -38,18 +37,8 @@ export default function() {
     // maybe https://github.com/ethereum/web3.js/issues/1188 is the issue?
     const liquidPledging = new LiquidPledging(web3, blockchain.liquidPledgingAddress);
     liquidPledging.$vault = new LPVault(web3, blockchain.vaultAddress);
-    const cappedMilestones = new LPPCappedMilestones(web3, blockchain.cappedMilestoneAddress);
-    const lppDacs = new LPPDacs(web3, blockchain.dacsAddress);
 
-    lpMonitor = new LiquidPledgingMonitor(
-      app,
-      web3,
-      liquidPledging,
-      cappedMilestones,
-      lppDacs,
-      txMonitor,
-      opts,
-    );
+    lpMonitor = new LiquidPledgingMonitor(app, web3, liquidPledging, txMonitor, opts);
     lpMonitor.start();
   };
 

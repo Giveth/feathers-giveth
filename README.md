@@ -43,24 +43,29 @@ Welcome to the server code for Giveth's [dapp](https://github.com/Giveth/giveth-
 The feathers server will need to connect to an ethereum node via websockets. Typically this will be a local TestRPC instance. 
 The configuration param `blockchain.nodeUrl` is used to establish a connection. The default nodeUrl is `ws://localhost:8545`
 
-1. We provide an easy way to start a TestRPC instance.
+1. We need to deploy any contract to that we intened to call. *NOTE:* The following cmd will clear the `data` dir, thus starting off in a clean state.
+
+   ```
+   yarn deploy-local
+   ```
+
+2. We provide an easy way to start a ganache-cli instance.
   
     ``` 
-    yarn testrpc
+    yarn ganache-cli 
     ```
-2. Since TestRPC is now running, open a new terminal window and navigate to the same feathers-giveth directory.
-    
-3. The TestRPC instance simulates a new blockchain. So we must deploy any contracts we intend to call.
-
-    ```
-    node scripts/deploy.js
-    ```
+3. Since ganache-cli is now running, open a new terminal window and navigate to the same feathers-giveth directory.
     
 4. Start your app
 
     ```
     yarn start
     ```
+
+### Kill Ganache
+If you run into errors like wallet balance not loading, it is very likely that Ganache is stuck
+`netstat -vanp tcp | grep 8545`
+Find the process that is listening on `*.8545` and `127.0.0.1.8545` and kill it with `kill -9 PID` (which is in the last colomn)
     
 ### Video Walkthrough
 Video tutorial walkthrough here: https://tinyurl.com/y9lx6jrl

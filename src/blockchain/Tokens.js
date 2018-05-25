@@ -1,7 +1,6 @@
+import logger from 'winston';
 import Contract from 'web3-eth-contract';
 import { toBN } from 'web3-utils';
-import { LPPCampaign } from 'lpp-campaign';
-import { LPPDacs } from 'lpp-dacs';
 
 import { getTokenInformation } from './helpers';
 
@@ -17,7 +16,17 @@ const GenerateTokenEvent = {
   signature: '0xf8a6cdb77a67632a46c21be3e7ca9b2519ecd39d21e514f9222c5b2f19ce23ed',
 };
 
-const decodeEventABI = Contract.prototype._decodeEventABI.bind(GenerateTokenEvent);
+const DestroyTokenEvent = {
+  anonymous: false,
+  inputs: [
+    { indexed: true, name: 'liquidPledging', type: 'address' },
+    { indexed: false, name: 'addr', type: 'address' },
+    { indexed: false, name: 'amount', type: 'uint256' },
+  ],
+  name: 'DestroyTokens',
+  type: 'event',
+  signature: '0xeb3ddd2dc2528a35014fadbf1007ad1329899f52b19ea27ed3815208721f47bc',
+};
 
 /**
  * class to track donation token balances
@@ -29,40 +38,61 @@ class Tokens {
     this.tokens = this.app.service('tokens');
   }
 
-  campaignTokensGenerated(event) {
-    const decodedEvent = decodeEventABI(event);
-    console.log('handling campaign GenerateTokens Event: ', decodedEvent); // eslint-disable-line no-console
-
-    new LPPCampaign(this.web3, decodedEvent.address)
-      .token()
-      .then(token =>
-        this.updateTokens(token, decodedEvent.returnValues.addr, decodedEvent.returnValues.amount),
-      )
-      .catch(console.error); // eslint-disable-line no-console
-  }
-
-  dacTokensGenerated(event) {
+  tokensGenerated(event) {
     if (event.event !== 'GenerateTokens')
-      throw new Error('dacTokensGenerated only handles GenerateTokens events');
+      throw new Error('tokensGenerated only handles GenerateTokens events');
+    const { address } = event;
 
-    new LPPDacs(this.web3, this.app.get('blockchain.dacsAddress'))
-      .getDac(event.returnValues.idDelegate)
-      .then(({ token }) =>
-        this.updateTokens(token, event.returnValues.addr, event.returnValues.amount),
-      )
-      .catch(console.error); // eslint-disable-line no-console
+    const find = service =>
+      service.find({
+        query: { plugin: address },
+        paginate: false,
+      });
+
+    find(this.app.service('dacs'))
+      .then(data => {
+        if (data.length === 0) {
+          return find(this.app.service('campaigns')).then(d => (d.length > 0 ? d[0] : undefined));
+        }
+
+        return data[0];
+      })
+      .then(entity => {
+        if (!entity) {
+          logger.error(`Couldn't find dac or campaign with plugin address of ${address}`);
+          return;
+        }
+        this.updateTokens(entity.tokenAddress, event.returnValues.addr, event.returnValues.amount);
+      })
+      .catch(logger.error);
   }
 
-  dacTokensDestroyed(event) {
+  tokensDestroyed(event) {
     if (event.event !== 'DestroyTokens')
-      throw new Error('dacTokensDestroyed only handles DestroyTokens events');
+      throw new Error('tokensDestroyed only handles DestroyTokens events');
 
-    new LPPDacs(this.web3, this.app.get('blockchain.dacsAddress'))
-      .getDac(event.returnValues.idDelegate)
-      .then(({ token }) =>
-        this.updateTokens(token, event.returnValues.addr, event.returnValues.amount, false),
-      )
-      .catch(console.error); // eslint-disable-line no-console
+    const { address } = event;
+
+    this.app
+      .service('dacs')
+      .find({
+        query: { plugin: address },
+        paginate: false,
+      })
+      .then(data => (data.length > 0 ? data[0] : undefined))
+      .then(dac => {
+        if (!dac) {
+          logger.error(`Couldn't find dac with plugin address of ${address}`);
+          return;
+        }
+        this.updateTokens(
+          dac.tokenAddress,
+          event.returnValues.addr,
+          event.returnValues.amount,
+          false,
+        );
+      })
+      .catch(logger.error);
   }
 
   updateTokens(tokenAddress, addr, amount, generated = true) {
@@ -95,6 +125,14 @@ class Tokens {
 
         return this.tokens.patch(t._id, { balance });
       });
+  }
+
+  static decodeGenerateTokensEventABI(event) {
+    return Contract.prototype._decodeEventABI.bind(GenerateTokenEvent)(event);
+  }
+
+  static decodeDestroyTokensEventABI(event) {
+    return Contract.prototype._decodeEventABI.bind(DestroyTokenEvent)(event);
   }
 }
 
