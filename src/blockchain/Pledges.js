@@ -6,11 +6,11 @@ const ReProcessEvent = () => {};
 
 const has = Object.prototype.hasOwnProperty;
 
-function getDonationStatus({ toPledge, toPledgeAdmin, intendedProject, delegate }) {
-  if (toPledge.pledgeState === '1') return 'paying';
-  if (toPledge.pledgeState === '2') return 'paid';
-  if (intendedProject) return 'to_approve';
-  if (toPledgeAdmin.type === 'giver' || delegate) return 'waiting';
+function getDonationStatus(pledge, pledgeAdmin, hasIntendedProject, hasDelegate) {
+  if (pledge.pledgeState === '1') return 'paying';
+  if (pledge.pledgeState === '2') return 'paid';
+  if (hasIntendedProject) return 'to_approve';
+  if (pledgeAdmin.type === 'giver' || hasDelegate) return 'waiting';
   return 'committed';
 }
 
@@ -218,7 +218,7 @@ class Pledges {
    * @param transferInfo object containing information regarding the Transfer event
    * @private
    */
-  _createDonationMutation(transferInfo) {
+  createDonationMutation(transferInfo) {
     const {
       toPledgeAdmin,
       toPledge,
@@ -230,7 +230,7 @@ class Pledges {
       ts,
     } = transferInfo;
 
-    const status = getDonationStatus(transferInfo);
+    const status = getDonationStatus(toPledge, toPledgeAdmin, !!intendedProject, !!delegate);
 
     const mutation = {
       amount,
@@ -302,6 +302,8 @@ class Pledges {
   _doTransfer(transferInfo) {
     const donations = this.app.service('donations');
     const {
+      fromPledge,
+      fromPledgeAdmin,
       toPledgeAdmin,
       toPledge,
       toPledgeId,
@@ -314,7 +316,7 @@ class Pledges {
 
     if (donation.amount === amount) {
       // this is a complete pledge transfer
-      const mutation = this._createDonationMutation(transferInfo);
+      const mutation = this.createDonationMutation(transferInfo);
 
       // TODO fix the logic here so it sends the correct notifications
       // if (mutation.status === 'committed' || mutation.status === 'waiting' && delegate) {
@@ -372,16 +374,30 @@ class Pledges {
     // this is a split
 
     // update the current donation. only change is the amount
-    const updateDonation = () =>
-      donations.patch(donation._id, {
-        amount: toBN(donation.amount)
-          .sub(toBN(amount))
-          .toString(),
+    const updateDonation = () => {
+      const a = toBN(donation.amount)
+        .sub(toBN(amount))
+        .toString();
+
+      const status =
+        amount === '0'
+          ? 'paid'
+          : getDonationStatus(
+              fromPledge,
+              fromPledgeAdmin,
+              donation.intendedProject && donation.intendedProject !== '0',
+              !!donation.delegate,
+            );
+
+      return donations.patch(donation._id, {
+        status,
+        amount: a,
       });
+    };
 
     // TODO create a donation model that copies the appropriate data
     // create a new donation
-    const newDonation = Object.assign({}, donation, this._createDonationMutation(transferInfo));
+    const newDonation = Object.assign({}, donation, this.createDonationMutation(transferInfo));
     delete newDonation._id;
     delete newDonation.$unset;
     delete newDonation._include;
@@ -392,7 +408,6 @@ class Pledges {
 
     const createDonation = () => donations.create(newDonation);
 
-    // TODO track donation histories
     return Promise.all([updateDonation(), createDonation()]).then(([updated, created]) =>
       this.trackDonationHistory(Object.assign({}, transferInfo, { toDonation: created })),
     );
