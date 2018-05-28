@@ -45,7 +45,7 @@ class Tokens {
 
     const find = service =>
       service.find({
-        query: { plugin: address },
+        query: { pluginAddress: address },
         paginate: false,
       });
 
@@ -76,7 +76,7 @@ class Tokens {
     this.app
       .service('dacs')
       .find({
-        query: { plugin: address },
+        query: { pluginAddress: address },
         paginate: false,
       })
       .then(data => (data.length > 0 ? data[0] : undefined))

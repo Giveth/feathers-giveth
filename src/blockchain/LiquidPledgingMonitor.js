@@ -33,7 +33,7 @@ export default class {
     // use different EventQueues for Admins & Pledges class
     const eventQueue = new EventQueue();
 
-    this.payments = new Payments(app, this.liquidPledging.$vault);
+    this.payments = new Payments(app, this.liquidPledging.$vault, eventQueue);
     this.admins = new Admins(app, this.liquidPledging, eventQueue);
     this.pledges = new Pledges(app, this.liquidPledging, eventQueue);
     this.cappedMilestones = new CappedMilestones(app, this.web3);
@@ -347,7 +347,10 @@ export default class {
     this.events
       .find({
         paginate: false,
-        query: { $or: [{ confirmed: false }, { confirmed: { $exists: false } }] },
+        query: {
+          $or: [{ confirmed: false }, { confirmed: { $exists: false } }],
+          $sort: { transactionHash: 1, logIndex: 1 },
+        },
       })
       .then(data => {
         const updates = [];
@@ -356,7 +359,7 @@ export default class {
           const diff = currentBlock - event.blockNumber;
           const c = diff >= this.requiredConfirmations ? this.requiredConfirmations : diff;
 
-          if (c > 0) {
+          if (this.requiredConfirmations === 0 || c > 0) {
             if (!updates[c]) updates[c] = [];
             updates[c].push(event);
           }

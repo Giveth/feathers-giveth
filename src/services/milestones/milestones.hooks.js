@@ -53,7 +53,8 @@ const getApprovedKeys = (milestone, data, user) => {
     'fiatAmount',
     'conversionRate',
     'items',
-    'message'
+    'message',
+    'image',
   ];
 
   // Fields that can be editted once milestone stored on the blockchain
