@@ -79,7 +79,7 @@ const getApprovedKeys = (milestone, data, user) => {
         }
         logger.info(`Rejecting proposed milestone with id: ${milestone._id} by: ${user.address}`);
 
-        return ['status', 'mined', 'message'];
+        return ['status', 'message'];
       }
 
       // Editing milestone can be done by Milestone or Campaing Manager
@@ -119,7 +119,7 @@ const getApprovedKeys = (milestone, data, user) => {
           throw new errors.Forbidden('Only the Milestone Manager can repropose rejected milestone');
         }
         logger.info(`Reproposing rejected milestone with id: ${milestone._id} by: ${user.address}`);
-        return ['status', 'mined', 'message'];
+        return ['status', 'message'];
       }
       break;
 
