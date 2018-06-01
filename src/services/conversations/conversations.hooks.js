@@ -48,41 +48,37 @@ const restrictAndSetOwner = () => context => {
   // external calls need a user
   if (!user && context.params.provider) throw new errors.NotAuthenticated();
 
-  return new Promise((resolve, reject) => {
-    app
-      .service('milestones')
-      .get(milestoneId)
-      .then(milestone => {
-        // for internal calls there's no user, so the user creating the message is stored on the milestone
-        // for external calls, the currentuser creates the message
-        context.data.ownerAddress = user && user.address || milestone.performedByAddress;
-        delete context.data.user;
+  return app
+    .service('milestones')
+    .get(milestoneId)
+    .then(milestone => {
+      // for internal calls there's no user, so the user creating the message is stored on the milestone
+      // for external calls, the currentuser creates the message
+      context.data.ownerAddress = user && user.address || milestone.performedByAddress;
 
-        // set the role based on the address
-        // anyone not involved with the milestone is not allowed to create conversation
-        // not taking into account that a user has one or more of these roles
-        switch (context.data.ownerAddress) {
-          case milestone.ownerAddress:
-            context.data.performedByRole = 'Milestone Owner';
-            break;
-          case milestone.reviewerAddress:
-            context.data.performedByRole = 'Reviewer';
-            break;
-          case milestone.recipientAddress:
-            context.data.performedByRole = 'Recipient';
-            break;
-          case milestone.campaignReviewerAddress:
-            context.data.performedByRole = 'Campaign reviewer';
-            break;
-          default:
-            throw new errors.Forbidden('Only people involved with the milestone can create conversation');
-        }
-        resolve(context);
-      }).catch(e => {
-        logger.error(`unable to get milestone ${milestoneId}`, e);
-        reject();
-      });   
-  }) 
+      // set the role based on the address
+      // anyone not involved with the milestone is not allowed to create conversation
+      // not taking into account that a user has one or more of these roles
+      switch (context.data.ownerAddress) {
+        case milestone.ownerAddress:
+          context.data.performedByRole = 'Milestone Owner';
+          break;
+        case milestone.reviewerAddress:
+          context.data.performedByRole = 'Reviewer';
+          break;
+        case milestone.recipientAddress:
+          context.data.performedByRole = 'Recipient';
+          break;
+        case milestone.campaignReviewerAddress:
+          context.data.performedByRole = 'Campaign reviewer';
+          break;
+        default:
+          throw new errors.Forbidden('Only people involved with the milestone can create conversation');
+      }
+      return context;
+    }).catch(e => {
+      logger.error(`unable to get milestone ${milestoneId}`, e);
+    });   
 }
 
 
@@ -98,16 +94,13 @@ const checkMessageContext = () => context => {
     throw new errors.BadRequest('Incorrect message context');    
 
   if (messageContext === 'ReplyTo') {
-    return new Promise((resolve, reject) => {
-      app
-        .service('conversations')
-        .get(replyToId)
-        .then(message => resolve())
-        .catch(e => {
-          logger.error(`this message is in reply to a non-existing message with id ${replyToId}`, e);
-          reject();
-        });   
-    }) 
+    return app
+      .service('conversations')
+      .get(replyToId)
+      .then(message => context)
+      .catch(e => {
+        logger.error(`this message is in reply to a non-existing message with id ${replyToId}`, e);
+      });   
   }
 }
 
