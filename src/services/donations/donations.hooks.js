@@ -17,9 +17,14 @@ const restrict = () => context => {
   if (!user) throw new errors.NotAuthenticated();
 
   const getDonations = () => {
-    if (context.id) return service.get(context.id, { schema: 'includeTypeDetails' });
+    if (context.id)
+      return service.get(context.id, { paginate: false, schema: 'includeTypeDetails' });
     if (!context.id && context.params.query)
-      return service.find({ query: context.params.query, schema: 'includeTypeDetails' });
+      return service.find({
+        paginate: false,
+        query: context.params.query,
+        schema: 'includeTypeDetails',
+      });
     return undefined;
   };
 
