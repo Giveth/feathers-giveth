@@ -360,7 +360,8 @@ class Admins {
           pluginAddress: project.plugin,
           status: milestoneStatus(completed, canceled),
           mined: true,
-        }),
+          performedByAddress: milestone.ownerAddress
+        }, { eventTxHash: txHash })
       )
       .then(milestone => {
         this._addPledgeAdmin(projectId, 'milestone', milestone._id).then(() => milestone);
@@ -631,7 +632,7 @@ class Admins {
         return service.patch(pledgeAdmin.typeId, {
           status: 'Canceled',
           mined: true,
-        });
+        }, { eventTxHash: event.transactionHash });
       })
       .catch(error => {
         if (error.name === 'NotFound') return;

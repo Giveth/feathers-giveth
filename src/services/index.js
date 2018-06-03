@@ -14,6 +14,8 @@ const whitelist = require('./whitelist/whitelist.service.js');
 const gasprice = require('./gasprice/gasprice.service.js');
 const ethconversion = require('./ethconversion/ethconversion.service.js');
 
+const conversations = require('./conversations/conversations.service.js');
+
 module.exports = function() {
   const app = this;
   app.configure(dacs);
@@ -30,4 +32,5 @@ module.exports = function() {
   app.configure(gasprice);
   app.configure(ethconversion);
   app.configure(events);
+  app.configure(conversations);
 };

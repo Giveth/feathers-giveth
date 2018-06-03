@@ -61,6 +61,11 @@ The configuration param `blockchain.nodeUrl` is used to establish a connection. 
     ```
     yarn start
     ```
+
+### Kill Ganache
+If you run into errors like wallet balance not loading, it is very likely that Ganache is stuck
+`netstat -vanp tcp | grep 8545`
+Find the process that is listening on `*.8545` and `127.0.0.1.8545` and kill it with `kill -9 PID` (which is in the last colomn)
     
 ### Video Walkthrough
 Video tutorial walkthrough here: https://tinyurl.com/y9lx6jrl
