@@ -1,5 +1,5 @@
 // Initializes the `users` service on path `/users`
-const createService = require('feathers-nedb');
+const createService = require('feathers-mongoose');
 const createModel = require('../../models/users.model');
 const hooks = require('./users.hooks');
 const filters = require('./users.filters');
