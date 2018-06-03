@@ -6,7 +6,8 @@ module.exports = function (app) {
   const mongooseClient = app.get('mongooseClient');
   const { Schema } = mongooseClient;
   const blockchain = new Schema({
-    lastBLock: { type: Number, required: true }
+    _id: { type: Schema.ObjectId, required: true },
+    lastBlock: { type: Number, required: true }
   }, {
     timestamps: true
   });
