@@ -19,8 +19,8 @@
     "ethFunderPK": "0x6cbed15c793ce57650b9877cf6fa156fbef513c4e6134f022a85b1ffdd59b2a1",
     "walletMinBalance": 100000000000000000,
     "walletSeedAmount": 250000000000000000,
-    "ethFunderInterval": 120000,
-    "walletFundingTimeout": 300000
+    "ethFunderInterval": 21600000,
+    "walletFundingTimeout": 259200000
   },
   "authentication": {
     "secret":
