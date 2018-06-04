@@ -11,6 +11,7 @@ export default class {
     this.seedAmount = blockchain.walletSeedAmount;
     this.pollTime = blockchain.ethFunderInterval;
     this.fundingTimeout = blockchain.walletFundingTimeout;
+    this.blacklist = blockchain.walletFundingBlacklist;
 
     this.queue = [];
     this.isRunning = false;
@@ -39,6 +40,9 @@ export default class {
       .find({
         paginate: false,
         query: {
+          address: {
+            $nin: this.blacklist,
+          },
           $or: [
             { lastFunded: { $exists: false } },
             { lastFunded: { $lte: new Date().getTime() - this.fundingTimeout } },
@@ -46,6 +50,9 @@ export default class {
         },
       })
       .then(users => {
+        console.log(users);
+        if (users.length === 0) return;
+
         let i = 0;
         let batch = new this.web3.BatchRequest();
 
