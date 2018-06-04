@@ -4,6 +4,7 @@ import { LiquidPledging, LPVault } from 'giveth-liquidpledging';
 
 import LiquidPledgingMonitor from './LiquidPledgingMonitor';
 import FailedTxMonitor from './FailedTxMonitor';
+import BalanceMonitor from './BalanceMonitor';
 
 const ONE_MINUTE = 60 * 1000;
 
@@ -13,6 +14,8 @@ export default function() {
 
   const web3 = new Web3(blockchain.nodeUrl);
 
+  app.set('web3', web3);
+
   const opts = {
     startingBlock: blockchain.startingBlock,
     requiredConfirmations: blockchain.requiredConfirmations,
@@ -20,6 +23,7 @@ export default function() {
 
   let txMonitor;
   let lpMonitor;
+  let balMonitor;
 
   // initialize the event listeners
   const init = () => {
@@ -40,6 +44,9 @@ export default function() {
 
     lpMonitor = new LiquidPledgingMonitor(app, web3, liquidPledging, txMonitor, opts);
     lpMonitor.start();
+
+    balMonitor = new BalanceMonitor(app, web3);
+    balMonitor.start();
   };
 
   // if the websocket connection drops, attempt to re-connect
