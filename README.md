@@ -8,14 +8,18 @@ Welcome to the server code for Giveth's [dapp](https://github.com/Giveth/giveth-
 
 ## Table of content
 
+- [Table of content](#table-of-content)
 - [Getting Started](#getting-started)
-    - [Install](#install)
-    - [Run server](#run-server)
-    - [Video Walkthrough](#video-walkthrough)
+  - [Install](#install)
+  - [Run server](#run-server)
+  - [Kill Ganache](#kill-ganache)
+  - [Video Walkthrough](#video-walkthrough)
 - [Deploying](#deploying)
 - [Scripts](#scripts)
 - [Testing](#testing)
+- [Debugging](#debugging)
 - [Usage](#usage)
+- [Production](#production)
 - [Help](#help)
 
 ## Getting Started
@@ -112,6 +116,34 @@ uploads
 users
 ```
 If the server is using default configurations, you can see data for any of these services through your web browser at `http://localhost:3030/SERVICE_NAME`
+
+
+## Production
+
+We use pm2 to manage our production servers. You can start the server using the `yarn serve` cmd. You will need to create an `ecosystem.config.js` file with the following contents:
+
+```
+module.exports = {
+  /**
+   * Application configuration section
+   * http://pm2.keymetrics.io/docs/usage/application-declaration/
+   */
+  apps: [
+    // First application
+    {
+      name: 'feathers',
+      script: 'build/index.js',
+      log_date_format: 'YYYY-MM-DD HH:mm',
+      env: {
+        COMMON_VARIABLE: 'true',
+      },
+      env_production: {
+        NODE_ENV: 'production',
+      },
+    },
+  ],
+};
+```
 
 ## Help
 
