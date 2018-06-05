@@ -50,7 +50,6 @@ export default class {
         },
       })
       .then(users => {
-        console.log(users);
         if (users.length === 0) return;
 
         let i = 0;
