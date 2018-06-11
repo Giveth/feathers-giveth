@@ -174,6 +174,8 @@ const stashDonationIfPending = () => context => {
     };
   }
 
+  console.log('data', data)
+
   return context;
 };
 

@@ -300,6 +300,8 @@ const sendNotification = () => context => {
   const { user } = params
 
   const _createConversion = (app, data, txHash, messageContext, user) => {
+    console.log('---->', data, messageContext, user);
+
     app
       .service('conversations').create({
         milestoneId: data._id,

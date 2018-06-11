@@ -2,7 +2,13 @@ import logger from 'winston';
 import { hexToNumber, toBN } from 'web3-utils';
 import { pledgeState } from './helpers';
 
-const ReProcessEvent = () => {};
+class ReProcessEvent extends Error {
+  constructor(...args) {
+    super(...args);
+    Error.captureStackTrace(this, ReProcessEvent);
+  }
+}
+
 
 const has = Object.prototype.hasOwnProperty;
 
@@ -37,9 +43,11 @@ class Pledges {
       return this.getBlockTimestamp(event.blockNumber)
         .then(ts => {
           if (from === '0') {
-            return this.newDonation(to, amount, ts, txHash, retry)
+            return this.newDonation(to, amount, txHash, retry)
               .then(() => this.queue.purge(txHash))
               .catch(err => {
+                console.log('err', err)
+
                 if (err instanceof ReProcessEvent) {
                   // this is really only useful when instant mining. Other then that, the
                   // donation should always be created before the tx was mined.
@@ -71,7 +79,7 @@ class Pledges {
     }
   }
 
-  newDonation(pledgeId, amount, ts, txHash, retry = false) {
+  newDonation(pledgeId, amount, txHash, retry = false) {
     const donations = this.app.service('donations');
     const pledgeAdmins = this.app.service('pledgeAdmins');
 
@@ -88,7 +96,6 @@ class Pledges {
           giverAddress: giver.admin.address, // giver is a user type
           amount,
           pledgeId,
-          createdAt: ts,
           owner: pledge.owner,
           ownerId: giver.typeId,
           ownerType: giver.type,
@@ -235,7 +242,6 @@ class Pledges {
     const mutation = {
       amount,
       paymentStatus: pledgeState(toPledge.pledgeState),
-      updatedAt: ts,
       owner: toPledge.owner,
       ownerId: toPledgeAdmin.typeId,
       ownerType: toPledgeAdmin.type,
@@ -255,6 +261,8 @@ class Pledges {
     }
 
     if (!intendedProject && donation.intendedProject) {
+      delete mutation.intendedProject;
+
       Object.assign(mutation, {
         $unset: {
           intendedProject: true,
@@ -398,9 +406,10 @@ class Pledges {
     // TODO create a donation model that copies the appropriate data
     // create a new donation
     const newDonation = Object.assign({}, donation, this.createDonationMutation(transferInfo));
+
+    console.log('newDonation', newDonation)
+
     delete newDonation._id;
-    delete newDonation.$unset;
-    delete newDonation._include;
     delete newDonation.giver;
     delete newDonation.ownerEntity;
     delete newDonation.requiredConfirmations;
@@ -444,7 +453,6 @@ class Pledges {
     const history = {
       ownerId: toPledgeAdmin.typeId,
       ownerType: toPledgeAdmin.type,
-      createdAt: ts,
       amount,
       txHash: donation.txHash,
       donationId: donation._id,

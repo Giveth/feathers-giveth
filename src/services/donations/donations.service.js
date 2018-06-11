@@ -1,5 +1,5 @@
 // Initializes the `donations` service on path `/donations`
-const createService = require('feathers-nedb');
+const createService = require('feathers-mongoose');
 const createModel = require('../../models/donations.model');
 const hooks = require('./donations.hooks');
 const filters = require('./donations.filters');

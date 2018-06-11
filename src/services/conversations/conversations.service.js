@@ -1,5 +1,5 @@
 // Initializes the `conversations` service on path `/conversations`
-const createService = require('feathers-nedb');
+const createService = require('feathers-mongoose');
 const createModel = require('../../models/conversations.model');
 const hooks = require('./conversations.hooks');
 const filters = require('./conversations.filters');

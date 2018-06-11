@@ -188,7 +188,7 @@ class FailedTxMonitor extends EventEmitter {
       .find({
         paginate: false,
         query: {
-          $not: { delegateId: { $gt: '0' } },
+          delegateId: { $ne: '0' },
         },
       })
       .then(pendingDACs => pendingDACs.forEach(updateDACIfFailed))

@@ -1,5 +1,5 @@
 // Initializes the `events` service on path `/events`
-import createService from 'feathers-nedb';
+import createService from 'feathers-mongoose';
 import createModel from '../../models/events.model';
 import hooks from './events.hooks';
 

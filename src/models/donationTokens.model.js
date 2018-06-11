@@ -1,12 +1,19 @@
-const NeDB = require('nedb');
-const path = require('path');
-
-module.exports = function(app) {
-  const dbPath = app.get('nedb');
-  const Model = new NeDB({
-    filename: path.join(dbPath, 'donationTokens.db'),
-    autoload: true,
+// donationTokens-model.js - A mongoose model
+// 
+// See http://mongoosejs.com/docs/models.html
+// for more of what you can do here.
+module.exports = function (app) {
+  const mongooseClient = app.get('mongooseClient');
+  const { Schema } = mongooseClient;
+  const donationToken = new Schema({
+    tokenAddress: { type: String, required: true, index: true },
+    tokenName: { type: String, required: true },
+    tokenSymbol: { type: String, required: true },
+    balance: { type: String, required: true },
+    userAddress: { type: String, required: true, index: true }
+  }, {
+    timestamps: true
   });
 
-  return Model;
+  return mongooseClient.model('donationToken', donationToken);
 };

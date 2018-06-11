@@ -18,7 +18,7 @@ module.exports = function (app) {
     etherAmount: { type: String },
     wei: { type: String },
     conversionRate: { type: Number, required: true },
-    ethConversionRateTimestamp: { type: Number, required: true },
+    ethConversionRateTimestamp: { type: Date, required: true },
   })
 
   const milestone = new Schema({
@@ -35,7 +35,7 @@ module.exports = function (app) {
     projectId: { type: String, index: true },
     status: { type: String, required: true },
     items: [ Item ],
-    ethConversionRateTimestamp: { type: Number, required: true },
+    ethConversionRateTimestamp: { type: Date, required: true },
     selectedFiatType: { type: String, required: true },
     date: { type: Date, required: true },
     fiatAmount: { type: String, required: true },

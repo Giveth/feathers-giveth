@@ -52,6 +52,10 @@ const restrictAndSetOwner = () => context => {
     .service('milestones')
     .get(milestoneId)
     .then(milestone => {
+
+      console.log('milestone', milestone);
+      console.log('context.data', context.data)
+
       // for internal calls there's no user, so the user creating the message is stored on the milestone
       // for external calls, the currentuser creates the message
       context.data.ownerAddress = user && user.address || milestone.performedByAddress;
