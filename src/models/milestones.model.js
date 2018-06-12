@@ -46,7 +46,14 @@ module.exports = function (app) {
     totalDonated: { type: String },
     donationCount: { type: Number },    
     mined: { type: Boolean },
-    prevStatus: { type: String }
+    prevStatus: { type: String },
+    performedByAddress: { type: String },
+
+    // these 2 fields should not be stored in mongo
+    // but we need them for temporary storage
+    // as mongoose virtuals do not persist in after hooks
+    message: { type: String },
+    messageContext: { type: String }
   }, {
     timestamps: true
   });

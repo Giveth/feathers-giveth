@@ -235,8 +235,6 @@ export default class {
 
       if (!this.config._id) this.initializingConfig = true;
 
-      console.log(this.config)
-
       this.model.findOneAndUpdate({},
         this.config,
         { upsert: true, new: true },

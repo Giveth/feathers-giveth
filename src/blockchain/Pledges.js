@@ -9,7 +9,6 @@ class ReProcessEvent extends Error {
   }
 }
 
-
 const has = Object.prototype.hasOwnProperty;
 
 function getDonationStatus(pledge, pledgeAdmin, hasIntendedProject, hasDelegate) {
@@ -46,8 +45,6 @@ class Pledges {
             return this.newDonation(to, amount, txHash, retry)
               .then(() => this.queue.purge(txHash))
               .catch(err => {
-                console.log('err', err)
-
                 if (err instanceof ReProcessEvent) {
                   // this is really only useful when instant mining. Other then that, the
                   // donation should always be created before the tx was mined.
@@ -406,8 +403,6 @@ class Pledges {
     // TODO create a donation model that copies the appropriate data
     // create a new donation
     const newDonation = Object.assign({}, donation, this.createDonationMutation(transferInfo));
-
-    console.log('newDonation', newDonation)
 
     delete newDonation._id;
     delete newDonation.giver;

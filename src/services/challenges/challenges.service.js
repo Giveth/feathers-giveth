@@ -13,8 +13,6 @@ import filters from './challenges.filters';
 const validFor = 1000 * 60 * 5; // valid for 5 minutes
 const chars = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
-console.log(Service)
-
 class ChallengeService extends Service {
   get(address, params) {
     return super.get(toChecksumAddress(address), params).then(entity => {
