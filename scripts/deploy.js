@@ -165,7 +165,17 @@ async function deploy() {
     accounts[10],
     tokenFactory.$address,
     liquidPledging.$address,
+    accounts[10],
+    [],
+    [],
     { from: accounts[10], $extraGas: 100000 },
+  );
+
+  await kernel.setApp(
+    await kernel.APP_ADDR_NAMESPACE(),
+    foreignWeb3.utils.keccak256('ForeignGivethBridge'),
+    foreignBridge.$address,
+    { $extraGas: 100000 },
   );
 
   const fiveDays = 60 * 60 * 24 * 5;

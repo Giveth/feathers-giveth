@@ -4220,9 +4220,9 @@ github-username@^4.0.0:
   dependencies:
     gh-got "^6.0.0"
 
-giveth-bridge@^0.0.6:
-  version "0.0.6"
-  resolved "https://registry.yarnpkg.com/giveth-bridge/-/giveth-bridge-0.0.6.tgz#3eb6084a2174dc237dd8b9a9388f0de42f92e992"
+giveth-bridge@0.0.10:
+  version "0.0.10"
+  resolved "https://registry.yarnpkg.com/giveth-bridge/-/giveth-bridge-0.0.10.tgz#73f5f98a2a3ab153420b2443a14d08b9904db51b"
   dependencies:
     "@aragon/os" "3.1.2"
     bip39 "^2.5.0"
@@ -6094,12 +6094,13 @@ lpp-campaign@0.1.2:
     giveth-liquidpledging "0.1.1"
     minimetoken "0.2.0"
 
-lpp-capped-milestone@0.1.3:
-  version "0.1.3"
-  resolved "https://registry.yarnpkg.com/lpp-capped-milestone/-/lpp-capped-milestone-0.1.3.tgz#6704be5b76e6928f25114b43be3d9bbdb4b66c16"
+lpp-capped-milestone@0.1.5:
+  version "0.1.5"
+  resolved "https://registry.yarnpkg.com/lpp-capped-milestone/-/lpp-capped-milestone-0.1.5.tgz#dead787fb374db82780f9763ed87baa8c888feff"
   dependencies:
     "@aragon/os" "3.0.4"
     chai "^4.1.2"
+    giveth-bridge "0.0.10"
     giveth-common-contracts "0.4.0"
     giveth-liquidpledging "0.1.1"
     minimetoken "^0.2.0"
