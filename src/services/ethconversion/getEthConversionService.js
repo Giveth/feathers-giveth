@@ -14,18 +14,27 @@ const _buildResponse = (timestamp, rates) => {
 };
 
 /**
- Fetching eth conversion based on daily average from cryptocompare
- Saves the conversion rates in the backend if we don't have it stored yet.timestamp
-
- @params:
-    app: include the app object, won't work without for some reason
-    requestedData (Date): optional requested date, defaults to new Date()
- * */
-
+ * Fetching eth conversion based on daily average from cryptocompare
+ * Saves the conversion rates in the backend if we don't have it stored yet.timestamp
+ *
+ * @param {Object} app             Feathers app object
+ * @param {Number} requestedData   Optional requested date as number of miliseconds since 1.1.1970 UTC
+ */
 export const getEthConversion = (app, requestedDate) => {
-  const date = requestedDate ? new Date(requestedDate) : new Date();
-  const startDate = date.setUTCHours(0, 0, 0, 0); // set at start of the day
-  const timestamp = Math.round(startDate) / 1000; // create timestamp in seconds, as accepted by cryptocompare
+  // Get yesterday date
+  const yesterday = new Date(new Date().setDate(new Date().getDate() - 1));
+  const yesterdayUTC = yesterday.setUTCHours(0, 0, 0, 0);
+
+  // Parse the date for which the rate is requested
+  const reqDate = requestedDate ? new Date(requestedDate) : yesterday;
+  const reqDateUTC = reqDate.setUTCHours(0, 0, 0, 0);
+
+  // Make sure that the date given is not in future or today
+  // Only the rates for yesterday or older dates are final
+  const startDate = reqDateUTC < yesterdayUTC ? reqDateUTC : yesterdayUTC;
+
+  // Create timestamp in seconds, as accepted by cryptocompare
+  const timestamp = Math.round(startDate) / 1000;
 
   logger.debug(`request eth conversion for timestamp ${timestamp}`);
 
