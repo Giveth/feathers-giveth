@@ -9,7 +9,7 @@ module.exports = function (app) {
   const { Schema } = mongooseClient;
 
   const Item = new Schema({
-    id: { type: String, 'default': shortid.generate },
+    // id: { type: String, 'default': shortid.generate },
     date: { type: Date, required: true },
     description: { type: String, required: true },
     image: { type: String },
@@ -25,7 +25,7 @@ module.exports = function (app) {
     title: { type: String, required: true },
     description: { type: String, required: true },
     summary: { type: String },
-    image: { type: String, required: true },    
+    image: { type: String },    
     maxAmount: { type: String, required: true },
     ownerAddress: { type: String, required: true, index: true },    
     reviewerAddress: { type: String, required: true, index: true },    

@@ -88,7 +88,7 @@ const migrateMilestones = () => {
     title: { type: String, required: true },
     description: { type: String, required: true },
     summary: { type: String },
-    image: { type: String, required: true },    
+    image: { type: String },    
     maxAmount: { type: String, required: true },
     ownerAddress: { type: String, required: true, index: true },    
     reviewerAddress: { type: String, required: true, index: true },    
@@ -134,7 +134,7 @@ const migrateMilestones = () => {
   lineReader.on('line', function (line) {
     const m = JSON.parse(line);
 
-    if(m._id) {
+    if(m._id && ['Completed', 'Paid'].includes(m.status)) {
       Milestone.findOne({ migratedId: m._id}).then((existingMilestone) => {
         if(!existingMilestone) {
 
@@ -144,7 +144,7 @@ const migrateMilestones = () => {
             title: m.title,
             description: m.description,
             summary: m.summary,
-            image: constructNewImageUrl(m.image) || "no-image",
+            image: constructNewImageUrl(m.image),
             maxAmount: m.maxAmount,
             ownerAddress: m.ownerAddress,
             reviewerAddress: m.reviewerAddress,
