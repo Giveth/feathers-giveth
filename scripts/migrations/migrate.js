@@ -141,88 +141,93 @@ const migrateMilestones = () => {
     let m = JSON.parse(line);
 
     if (m._id && ['Completed', 'Paid'].includes(m.status)) {
-      Milestone.findOne({ migratedId: m._id }).then(existingMilestone => {
-        if (!existingMilestone) {
-          // Check if this milestone is not missing some values that would should be added
-          const missingValues = missing[m._id];
-          m = Object.assign({}, missingValues, m);
+      Milestone.findOne({ migratedId: m._id })
+        .then(existingMilestone => {
+          if (!existingMilestone) {
+            // Check if this milestone is not missing some values that would should be added
+            const missingValues = missing[m._id];
+            m = Object.assign({}, missingValues, m);
 
-          // Items need to be manually copied
-          if (missingValues && missingValues.items) {
-            missingValues.items.forEach((item, index) => {
-              m.items[index] = Object.assign({}, item, m.items[index]);
+            // Items need to be manually copied
+            if (missingValues && missingValues.items) {
+              missingValues.items.forEach((item, index) => {
+                m.items[index] = Object.assign({}, item, m.items[index]);
+              });
+            }
+
+            // Check if we there are values to be overwritten
+            const alteredValues = altered[m._id];
+
+            // Items need to be manually copied
+            if (alteredValues && alteredValues.items) {
+              alteredValues.items.forEach((item, index) => {
+                m.items[index] = Object.assign({}, m.items[index], item);
+              });
+
+              delete alteredValues.items;
+            }
+
+            m = Object.assign({}, m, alteredValues);
+
+            console.log('processing milestone > ', m._id);
+
+            newMilestone = new Milestone({
+              title: m.title,
+              description: m.description,
+              summary: m.summary,
+              image: constructNewImageUrl(m.image),
+              maxAmount: m.maxAmount,
+              ownerAddress: m.ownerAddress,
+              reviewerAddress: m.reviewerAddress,
+              recipientAddress: m.recipientAddress,
+              campaignReviewerAddress: m.campaignReviewerAddress,
+              campaignId: m.campaignId,
+              projectId: m.projectId,
+              status: 'Paid',
+              items: [],
+              ethConversionRateTimestamp: m.ethConversionRateTimestamp * 1000,
+              selectedFiatType: m.selectedFiatType,
+              date: m.date,
+              fiatAmount: m.fiatAmount,
+              etherAmount: m.etherAmount,
+              conversionRate: m.conversionRate,
+              txHash: m.txHash,
+              pluginAddress: m.pluginAddress,
+              totalDonated: m.totalDonated,
+              mined: m.mined,
+              prevStatus: m.prevStatus,
+              performedByAddress: m.performedByAddress,
+              obsolete: true,
+              migratedId: m._id,
             });
+
+            m.items &&
+              m.items.map(i => {
+                newItem = {
+                  id: i.id,
+                  date: i.date,
+                  description: i.description,
+                  image: constructNewImageUrl(i.image),
+                  selectedFiatType: i.selectedFiatType,
+                  fiatAmount: i.fiatAmount,
+                  etherAmount: i.etherAmount,
+                  wei: i.wei,
+                  conversionRate: i.conversionRate,
+                  ethConversionRateTimestamp: i.ethConversionRateTimestamp,
+                };
+
+                newMilestone.items.push(newItem);
+              });
+
+            newMilestone
+              .save()
+              .then(() => console.log('migrated milestone : ', m._id))
+              .catch(e => console.log('error migrating milestone : ', m._id, Object.keys(e.errors)));
+          } else {
+            console.log('milestone already migrated :', m._id)
           }
-
-          // Check if we there are values to be overwritten
-          const alteredValues = altered[m._id];
-
-          // Items need to be manually copied
-          if (alteredValues && alteredValues.items) {
-            alteredValues.items.forEach((item, index) => {
-              m.items[index] = Object.assign({}, m.items[index], item);
-            });
-          }
-
-          delete alteredValues.items;
-          m = Object.assign({}, m, alteredValues);
-
-          newMilestone = new Milestone({
-            title: m.title,
-            description: m.description,
-            summary: m.summary,
-            image: constructNewImageUrl(m.image),
-            maxAmount: m.maxAmount,
-            ownerAddress: m.ownerAddress,
-            reviewerAddress: m.reviewerAddress,
-            recipientAddress: m.recipientAddress,
-            campaignReviewerAddress: m.campaignReviewerAddress,
-            campaignId: m.campaignId,
-            projectId: m.projectId,
-            status: 'Paid',
-            items: [],
-            ethConversionRateTimestamp: m.ethConversionRateTimestamp * 1000,
-            selectedFiatType: m.selectedFiatType,
-            date: m.date,
-            fiatAmount: m.fiatAmount,
-            etherAmount: m.etherAmount,
-            conversionRate: m.conversionRate,
-            txHash: m.txHash,
-            pluginAddress: m.pluginAddress,
-            totalDonated: m.totalDonated,
-            mined: m.mined,
-            prevStatus: m.prevStatus,
-            performedByAddress: m.performedByAddress,
-            obsolete: true,
-            migratedId: m._id,
-          });
-
-          m.items &&
-            m.items.map(i => {
-              newItem = {
-                id: i.id,
-                date: i.date,
-                description: i.description,
-                image: constructNewImageUrl(i.image),
-                selectedFiatType: i.selectedFiatType,
-                fiatAmount: i.fiatAmount,
-                etherAmount: i.etherAmount,
-                wei: i.wei,
-                conversionRate: i.conversionRate,
-                ethConversionRateTimestamp: i.ethConversionRateTimestamp,
-              };
-
-              newMilestone.items.push(newItem);
-            });
-
-          newMilestone
-            .save()
-            .then(() => console.log('migrated milestone : ', m._id))
-            .catch(e => console.log('error migrating milestone : ', m._id, Object.keys(e.errors)));
-        } else {
-          // console.log('milestone already migrated :', m._id)
-        }
-      });
+        })
+        .catch( e => console.log('could not find milestone : ', m._id, e))
     }
   });
 };
