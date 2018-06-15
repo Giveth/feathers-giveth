@@ -1,4 +1,6 @@
 const mongoose = require('mongoose');
+const altered = require('./altered.js');
+const missing = require('./missing.js');
 
 const Schema = mongoose.Schema;
 const shortid = require('shortid');
@@ -136,12 +138,34 @@ const migrateMilestones = () => {
   });
 
   lineReader.on('line', line => {
-    const m = JSON.parse(line);
+    let m = JSON.parse(line);
 
     if (m._id && ['Completed', 'Paid'].includes(m.status)) {
       Milestone.findOne({ migratedId: m._id }).then(existingMilestone => {
         if (!existingMilestone) {
-          // console.log('processing milestone > ', m._id);
+          // Check if this milestone is not missing some values that would should be added
+          const missingValues = missing[m._id];
+          m = Object.assign({}, missingValues, m);
+
+          // Items need to be manually copied
+          if (missingValues && missingValues.items) {
+            missingValues.items.forEach((item, index) => {
+              m.items[index] = Object.assign({}, item, m.items[index]);
+            });
+          }
+
+          // Check if we there are values to be overwritten
+          const alteredValues = altered[m._id];
+
+          // Items need to be manually copied
+          if (alteredValues && alteredValues.items) {
+            alteredValues.items.forEach((item, index) => {
+              m.items[index] = Object.assign({}, m.items[index], item);
+            });
+          }
+
+          delete alteredValues.items;
+          m = Object.assign({}, m, alteredValues);
 
           newMilestone = new Milestone({
             title: m.title,
