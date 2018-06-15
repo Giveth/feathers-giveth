@@ -21,4 +21,11 @@ module.exports = {
       },
     ],
   },
+  // Fixes https://github.com/Giveth/giveth-dapp/issues/314
+  DkvQqH6JV4fT54Ik: {
+    fiatAmount: 600,
+    conversionRate: 1025.55,
+    date: '2018-01-12T00:00:00.000Z',
+    ethConversionRateTimestamp: 1515715200,
+  },
 };

@@ -144,7 +144,7 @@ const migrateMilestones = () => {
       Milestone.findOne({ migratedId: m._id })
         .then(existingMilestone => {
           if (!existingMilestone) {
-            // Check if this milestone is not missing some values that would should be added
+            // Check if this milestone is not missing some values that should be added
             const missingValues = missing[m._id];
             m = Object.assign({}, missingValues, m);
 
@@ -155,7 +155,7 @@ const migrateMilestones = () => {
               });
             }
 
-            // Check if we there are values to be overwritten
+            // Check if there are values in this milestone to be overwritten
             const alteredValues = altered[m._id];
 
             // Items need to be manually copied
@@ -222,12 +222,14 @@ const migrateMilestones = () => {
             newMilestone
               .save()
               .then(() => console.log('migrated milestone : ', m._id))
-              .catch(e => console.log('error migrating milestone : ', m._id, Object.keys(e.errors)));
+              .catch(e =>
+                console.log('error migrating milestone : ', m._id, Object.keys(e.errors)),
+              );
           } else {
-            console.log('milestone already migrated :', m._id)
+            console.log('milestone already migrated :', m._id);
           }
         })
-        .catch( e => console.log('could not find milestone : ', m._id, e))
+        .catch(e => console.log('could not find milestone : ', m._id, e));
     }
   });
 };
