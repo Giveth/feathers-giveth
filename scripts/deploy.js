@@ -183,6 +183,8 @@ async function deploy() {
     homeWeb3,
     accounts[10],
     accounts[10],
+    60 * 60 * 25,
+    60 * 60 * 48,
     accounts[10],
     fiveDays,
     { from: accounts[10], $extraGas: 100000 },
