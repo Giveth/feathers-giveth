@@ -26,7 +26,7 @@ jobs:
           # fallback to using the latest cache if no exact match is found
           - v1-dependencies-
 
-      - run: yarn install --pure-lockfile
+      - run: npm ci
 
       - save_cache:
           paths:
@@ -38,12 +38,9 @@ jobs:
       - deploy:
           name: Production Deploy
           command: |
-            if [ "${CIRCLE_BRANCH}" == "aragon" ]; then
-            ssh -o "StrictHostKeyChecking no" deploy@95.85.4.133 'cd feathers-giveth-bridge/; git checkout aragon; git pull; yarn install --pure-lockfile; yarn serve;'
-            fi
             if [ "${CIRCLE_BRANCH}" == "develop" ]; then
-            ssh -o "StrictHostKeyChecking no" deploy@95.85.4.133 'cd feathers-giveth-develop/; git checkout develop; git pull; yarn install --pure-lockfile; yarn serve;'
+            ssh -o "StrictHostKeyChecking no" deploy@95.85.4.133 'cd feathers-giveth-develop/ && git checkout develop && git pull && npm ci && npm run serve;'
             fi
             if [ "${CIRCLE_BRANCH}" == "release" ]; then
-            ssh -o "StrictHostKeyChecking no" deploy@95.85.4.133 'cd feathers-giveth-release/; git checkout release; git pull; yarn install --pure-lockfile; yarn serve;'
+            ssh -o "StrictHostKeyChecking no" deploy@95.85.4.133 'cd feathers-giveth-release/ && git checkout release && git pull && npm ci && npm run serve;'
             fi

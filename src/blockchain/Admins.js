@@ -244,7 +244,10 @@ class Admins {
       this.liquidPledging
         .getPledgeAdmin(projectId)
         .then(project =>
-          Promise.all([project, new AppProxyUpgradeable(this.web3, project.plugin).getCode()]),
+          Promise.all([
+            project,
+            new AppProxyUpgradeable(this.web3, project.plugin).implementation(),
+          ]),
         )
         .then(([project, baseCode]) => {
           if (!this.milestoneBase || !this.campaignBase)
@@ -350,18 +353,22 @@ class Admins {
       this.liquidPledging.isProjectCanceled(projectId),
     ])
       .then(([milestone, maxAmount, reviewer, campaignReviewer, recipient, completed, canceled]) =>
-        milestones.patch(milestone._id, {
-          projectId,
-          maxAmount,
-          reviewerAddress: reviewer,
-          campaignReviewerAddress: campaignReviewer,
-          recipientAddress: recipient,
-          title: project.name,
-          pluginAddress: project.plugin,
-          status: milestoneStatus(completed, canceled),
-          mined: true,
-          performedByAddress: milestone.ownerAddress
-        }, { eventTxHash: txHash })
+        milestones.patch(
+          milestone._id,
+          {
+            projectId,
+            maxAmount,
+            reviewerAddress: reviewer,
+            campaignReviewerAddress: campaignReviewer,
+            recipientAddress: recipient,
+            title: project.name,
+            pluginAddress: project.plugin,
+            status: milestoneStatus(completed, canceled),
+            mined: true,
+            performedByAddress: milestone.ownerAddress,
+          },
+          { eventTxHash: txHash },
+        ),
       )
       .then(milestone => {
         this._addPledgeAdmin(projectId, 'milestone', milestone._id).then(() => milestone);
@@ -629,10 +636,14 @@ class Admins {
           .catch(logger.error);
 
         // update admin entity
-        return service.patch(pledgeAdmin.typeId, {
-          status: 'Canceled',
-          mined: true,
-        }, { eventTxHash: event.transactionHash });
+        return service.patch(
+          pledgeAdmin.typeId,
+          {
+            status: 'Canceled',
+            mined: true,
+          },
+          { eventTxHash: event.transactionHash },
+        );
       })
       .catch(error => {
         if (error.name === 'NotFound') return;
