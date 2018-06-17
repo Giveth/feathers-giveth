@@ -312,14 +312,16 @@ export default class {
       const oldEvent = data[0];
 
       const mutation = Object.assign({}, oldEvent, event);
-      if (oldEvent.confirmed && !reprocess) {
-        logger.error(
-          'RE-ORG ERROR: LiquidPledgingMonitor.newEvent was called, however the matching event has already been confirmed. Consider increasing the requiredConfirmations.',
-          event,
-          oldEvent,
-        );
+      if (oldEvent.confirmed) {
+        if (!reprocess) {
+          logger.error(
+            'RE-ORG ERROR: LiquidPledgingMonitor.newEvent was called, however the matching event has already been confirmed. Consider increasing the requiredConfirmations.',
+            event,
+            oldEvent,
+          );
+        }
 
-        if (JSON.stringify(oldEvent.raw) !== JSON.stringify(raw)) {
+        if (reprocess || JSON.stringify(oldEvent.raw) !== JSON.stringify(raw)) {
           // TODO the event data is different then prevously processed. We need to update the models in feathers.
           // need to test this, but maybe just re-processing the event is enough
           mutation.confirmed = false;
