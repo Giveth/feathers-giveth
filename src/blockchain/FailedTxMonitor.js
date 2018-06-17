@@ -94,10 +94,15 @@ class FailedTxMonitor extends EventEmitter {
         }
 
         const topics = [
-          { name: 'Transfer', hash: this.web3.utils.keccak256('Transfer(uint64,uint64,uint256)') },
+          {
+            name: 'Transfer',
+            hash: this.web3.utils.keccak256('Transfer(uint256,uint256,uint256)'),
+          },
           {
             name: 'AuthorizePayment',
-            hash: this.web3.utils.keccak256('AuthorizePayment(uint256,bytes32,address,uint256)'),
+            hash: this.web3.utils.keccak256(
+              'AuthorizePayment(uint256,bytes32,address,address,uint256)',
+            ),
           },
         ];
 
@@ -169,7 +174,10 @@ class FailedTxMonitor extends EventEmitter {
         }
 
         const topics = [
-          { name: 'DelegateAdded', hash: this.web3.utils.keccak256('DelegateAdded(uint64)') },
+          {
+            name: 'DelegateAdded',
+            hash: this.web3.utils.keccak256('DelegateAdded(uint64,string)'),
+          },
         ];
 
         // get logs we're interested in.
@@ -236,8 +244,8 @@ class FailedTxMonitor extends EventEmitter {
         }
 
         const topics = [
-          { name: 'ProjectAdded', hash: this.web3.utils.keccak256('ProjectAdded(uint64)') },
-          { name: 'CancelProject', hash: this.web3.utils.keccak256('CancelProject(uint64)') },
+          { name: 'ProjectAdded', hash: this.web3.utils.keccak256('ProjectAdded(uint64,string)') },
+          { name: 'CancelProject', hash: this.web3.utils.keccak256('CancelProject(uint256)') },
         ];
 
         // get logs we're interested in.
@@ -304,8 +312,8 @@ class FailedTxMonitor extends EventEmitter {
         }
 
         const topics = [
-          { name: 'ProjectAdded', hash: this.web3.utils.keccak256('ProjectAdded(uint64)') },
-          { name: 'CancelProject', hash: this.web3.utils.keccak256('CancelProject(uint64)') },
+          { name: 'ProjectAdded', hash: this.web3.utils.keccak256('ProjectAdded(uint64,string)') },
+          { name: 'CancelProject', hash: this.web3.utils.keccak256('CancelProject(uint256)') },
           {
             name: 'MilestoneCompleteRequested',
             hash: this.web3.utils.keccak256('MilestoneCompleteRequested(address,uint64)'),
@@ -320,19 +328,35 @@ class FailedTxMonitor extends EventEmitter {
           },
           {
             name: 'MilestoneChangeReviewerRequested',
-            hash: this.web3.utils.keccak256('MilestoneChangeReviewerRequested(address,uint64)'),
+            hash: this.web3.utils.keccak256(
+              'MilestoneChangeReviewerRequested(address,uint64,address)',
+            ),
           },
           {
             name: 'MilestoneReviewerChanged',
-            hash: this.web3.utils.keccak256('MilestoneReviewerChanged(address,uint64)'),
+            hash: this.web3.utils.keccak256('MilestoneReviewerChanged(address,uint64,address)'),
+          },
+          {
+            name: 'MilestoneChangeCampaignReviewerRequested',
+            hash: this.web3.utils.keccak256(
+              'MilestoneChangeCampaignReviewerRequested(address,uint64,address)',
+            ),
+          },
+          {
+            name: 'MilestoneCampaignReviewerChanged',
+            hash: this.web3.utils.keccak256(
+              'MilestoneCampaignReviewerChanged(address,uint64,address)',
+            ),
           },
           {
             name: 'MilestoneChangeRecipientRequested',
-            hash: this.web3.utils.keccak256('MilestoneChangeRecipientRequested(address,uint64)'),
+            hash: this.web3.utils.keccak256(
+              'MilestoneChangeRecipientRequested(address,uint64,address)',
+            ),
           },
           {
             name: 'MilestoneRecipientChanged',
-            hash: this.web3.utils.keccak256('MilestoneRecipientChanged(address,uint64)'),
+            hash: this.web3.utils.keccak256('MilestoneRecipientChanged(address,uint64,address)'),
           },
           {
             name: 'PaymentCollected',
