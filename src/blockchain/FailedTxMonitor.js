@@ -1,4 +1,3 @@
-import { hexToNumber } from 'web3-utils';
 import LiquidPledgingArtifact from 'giveth-liquidpledging/build/LiquidPledging.json';
 import LPVaultArtifact from 'giveth-liquidpledging/build/LPVault.json';
 import LPPCappedMilestoneArtifact from 'lpp-capped-milestone/build/LPPCappedMilestone.json';
@@ -15,6 +14,7 @@ class FailedTxMonitor extends EventEmitter {
     super();
     this.web3 = web3;
     this.app = app;
+    this.requiredConfirmations = app.get('blockchain').requiredConfirmations;
 
     this.LP_EVENT = 'lpEvent';
     this.MILESTONE_EVENT = 'milestoneEvent';
@@ -34,6 +34,10 @@ class FailedTxMonitor extends EventEmitter {
     this.dacIntervalId = setInterval(this.checkPendingDACS.bind(this), FIFTEEN_MINUTES);
     this.campaignIntervalId = setInterval(this.checkPendingCampaigns.bind(this), FIFTEEN_MINUTES);
     this.milestoneIntervalId = setInterval(this.checkPendingMilestones.bind(this), FIFTEEN_MINUTES);
+    this.checkPendingDonations();
+    this.checkPendingDACS();
+    this.checkPendingCampaigns();
+    this.checkPendingMilestones();
   }
 
   close() {
@@ -46,7 +50,7 @@ class FailedTxMonitor extends EventEmitter {
   }
 
   setDecoders() {
-    LiquidPledgingArtifact.compilerOutput.api
+    LiquidPledgingArtifact.compilerOutput.abi
       .filter(method => method.type === 'event')
       .forEach(event => {
         this.decoders.lp[event.name] = this.web3.eth.Contract.prototype._decodeEventABI.bind(event);
@@ -70,15 +74,16 @@ class FailedTxMonitor extends EventEmitter {
   checkPendingDonations() {
     const donations = this.app.service('donations');
 
-    const revertDonationIfFailed = donation => {
+    const revertDonationIfFailed = (currentBlock, donation) => {
       if (!donation.previousState || !donation.txHash) return;
 
       this.web3.eth.getTransactionReceipt(donation.txHash).then(receipt => {
         if (!receipt) return;
+        // ignore if there isn't enough confirmations
+        if (currentBlock - receipt.blockNumber < this.requiredConfirmations) return;
 
-        // 0 status if failed tx
         logger.info(receipt);
-        if (hexToNumber(receipt.status) === 0) {
+        if (!receipt.status) {
           donations
             .patch(
               donation._id,
@@ -127,28 +132,33 @@ class FailedTxMonitor extends EventEmitter {
       });
     };
 
-    donations
-      .find({
+    Promise.all([
+      this.web3.eth.getBlockNumber(),
+      donations.find({
         paginate: false,
         query: {
           $or: [{ status: 'pending' }, { status: 'Pending' }],
         },
-      })
-      .then(pendingDonations => pendingDonations.forEach(revertDonationIfFailed))
+      }),
+    ])
+      .then(([blockNumber, pendingDonations]) =>
+        pendingDonations.forEach(d => revertDonationIfFailed(blockNumber, d)),
+      )
       .catch(logger.error);
   }
 
   checkPendingDACS() {
     const dacs = this.app.service('dacs');
 
-    const updateDACIfFailed = dac => {
+    const updateDACIfFailed = (currentBlock, dac) => {
       if (!dac.txHash) return;
 
       this.web3.eth.getTransactionReceipt(dac.txHash).then(receipt => {
         if (!receipt) return;
+        // ignore if there isn't enough confirmations
+        if (currentBlock - receipt.blockNumber < this.requiredConfirmations) return;
 
-        // 0 status if failed tx
-        if (hexToNumber(receipt.status) === 0) {
+        if (!receipt.status) {
           dacs
             .patch(dac._id, {
               status: 'failed',
@@ -188,28 +198,33 @@ class FailedTxMonitor extends EventEmitter {
       });
     };
 
-    dacs
-      .find({
+    Promise.all([
+      this.web3.eth.getBlockNumber(),
+      dacs.find({
         paginate: false,
         query: {
           $not: { delegateId: { $gt: '0' } },
         },
-      })
-      .then(pendingDACs => pendingDACs.forEach(updateDACIfFailed))
+      }),
+    ])
+      .then(([blockNumber, pendingDACs]) =>
+        pendingDACs.forEach(d => updateDACIfFailed(blockNumber, d)),
+      )
       .catch(logger.error);
   }
 
   checkPendingCampaigns() {
     const campaigns = this.app.service('campaigns');
 
-    const updateCampaignIfFailed = campaign => {
+    const updateCampaignIfFailed = (currentBlock, campaign) => {
       if (!campaign.txHash) return;
 
       this.web3.eth.getTransactionReceipt(campaign.txHash).then(receipt => {
         if (!receipt) return;
+        // ignore if there isn't enough confirmations
+        if (currentBlock - receipt.blockNumber < this.requiredConfirmations) return;
 
-        // 0 status if failed tx
-        if (hexToNumber(receipt.status) === 0) {
+        if (!receipt.status) {
           // if status !== pending, then the cancel campaign transaction failed, so reset
           const mutation =
             campaign.status === 'pending' || campaign.status === 'Pending'
@@ -251,28 +266,33 @@ class FailedTxMonitor extends EventEmitter {
       });
     };
 
-    campaigns
-      .find({
+    Promise.all([
+      this.web3.eth.getBlockNumber(),
+      campaigns.find({
         paginate: false,
         query: {
           $or: [{ status: 'pending' }, { status: 'Pending' }, { mined: false }],
         },
-      })
-      .then(pendingCampaigns => pendingCampaigns.forEach(updateCampaignIfFailed))
+      }),
+    ])
+      .then(([blockNumber, pendingCampaigns]) =>
+        pendingCampaigns.forEach(c => updateCampaignIfFailed(blockNumber, c)),
+      )
       .catch(logger.error);
   }
 
   checkPendingMilestones() {
     const milestones = this.app.service('milestones');
 
-    const updateMilestoneIfFailed = milestone => {
+    const updateMilestoneIfFailed = (currentBlock, milestone) => {
       if (!milestone.txHash) return; // we can't revert
 
       this.web3.eth.getTransactionReceipt(milestone.txHash).then(receipt => {
         if (!receipt) return;
+        // ignore if there isn't enough confirmations
+        if (currentBlock - receipt.blockNumber < this.requiredConfirmations) return;
 
-        // 0 status if failed tx
-        if (hexToNumber(receipt.status) === 0) {
+        if (!receipt.status) {
           // Here we simply revert back to the previous state of the milestone
           milestones
             .patch(milestone._id, {
@@ -351,14 +371,18 @@ class FailedTxMonitor extends EventEmitter {
       });
     };
 
-    milestones
-      .find({
+    Promise.all([
+      this.web3.eth.getBlockNumber(),
+      milestones.find({
         paginate: false,
         query: {
           $or: [{ status: 'pending' }, { status: 'Pending' }, { mined: false }],
         },
-      })
-      .then(pendingMilestones => pendingMilestones.forEach(updateMilestoneIfFailed))
+      }),
+    ])
+      .then(([blockNumber, pendingMilestones]) =>
+        pendingMilestones.forEach(m => updateMilestoneIfFailed(blockNumber, m)),
+      )
       .catch(logger.error);
   }
 }
