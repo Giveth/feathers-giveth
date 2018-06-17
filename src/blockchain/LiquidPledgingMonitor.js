@@ -63,9 +63,9 @@ export default class {
       },
     );
 
-    this.txMonitor.on(this.txMonitor.LP_EVENT, this.newEvent.bind(this));
-    this.txMonitor.on(this.txMonitor.MILESTONE_EVENT, this.newEvent.bind(this));
-    this.txMonitor.on(this.txMonitor.VAULT_EVENT, this.newEvent.bind(this));
+    this.txMonitor.on(this.txMonitor.LP_EVENT, e => this.newEvent(e, true));
+    this.txMonitor.on(this.txMonitor.MILESTONE_EVENT, e => this.newEvent(e, true));
+    this.txMonitor.on(this.txMonitor.VAULT_EVENT, e => this.newEvent(e, true));
   }
 
   // semi-private methods:
@@ -256,7 +256,7 @@ export default class {
    * Handle new events as they are emitted. Here we save the event so that they can be processed
    * later after waiting for x number of confirmations (defined in config).
    */
-  newEvent(event) {
+  newEvent(event, reprocess = false) {
     this.updateConfig(event.blockNumber);
 
     // NOTE: perissology: I'm not sure if we want to do this. If we uncomment the following code, we won't have
@@ -312,7 +312,7 @@ export default class {
       const oldEvent = data[0];
 
       const mutation = Object.assign({}, oldEvent, event);
-      if (oldEvent.confirmed) {
+      if (oldEvent.confirmed && !reprocess) {
         logger.error(
           'RE-ORG ERROR: LiquidPledgingMonitor.newEvent was called, however the matching event has already been confirmed. Consider increasing the requiredConfirmations.',
           event,
