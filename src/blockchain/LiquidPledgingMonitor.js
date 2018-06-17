@@ -373,9 +373,14 @@ export default class {
             const query = {
               $and: [
                 {
-                  confirmed: {
-                    $exists: false,
-                  },
+                  $or: [
+                    { confirmed: false },
+                    {
+                      confirmed: {
+                        $exists: false,
+                      },
+                    },
+                  ],
                 },
                 {
                   blockNumber: {
