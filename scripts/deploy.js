@@ -1,12 +1,14 @@
 /* eslint-disable import/no-extraneous-dependencies */
 const Web3 = require('web3');
-const { Kernel, ACL, LPVault, LiquidPledging, LPFactory } = require('giveth-liquidpledging');
+const { Kernel, ACL, LPVault, LiquidPledging, LPFactory, test } = require('giveth-liquidpledging');
 const { LPPDac, LPPDacFactory } = require('lpp-dac');
 const { LPPCampaign, LPPCampaignFactory } = require('lpp-campaign');
 const { LPPCappedMilestone, LPPCappedMilestoneFactory } = require('lpp-capped-milestone');
 const { MiniMeTokenFactory } = require('minimetoken');
 const { GivethBridge, ForeignGivethBridge } = require('giveth-bridge');
 const startNetworks = require('./startNetworks');
+
+const { RecoveryVault } = test;
 
 // NOTE: do not use the bridge account (account[10]) for any txs outside of the bridge
 // if you do, the nonce will become off and the bridge will fail
@@ -21,14 +23,14 @@ async function deploy() {
   const foreignWeb3 = new Web3('http://localhost:8546');
 
   const accounts = await foreignWeb3.eth.getAccounts();
-  const escapeHatch = accounts[0];
   const from = accounts[0];
 
-  const baseVault = await LPVault.new(foreignWeb3, escapeHatch);
-  const baseLP = await LiquidPledging.new(foreignWeb3, escapeHatch);
+  const baseVault = await LPVault.new(foreignWeb3);
+  const baseLP = await LiquidPledging.new(foreignWeb3);
   const lpFactory = await LPFactory.new(foreignWeb3, baseVault.$address, baseLP.$address);
 
-  const r = await lpFactory.newLP(escapeHatch, from, { $extraGas: 100000 });
+  const recoveryVault = (await RecoveryVault.new(foreignWeb3)).$address;
+  const r = await lpFactory.newLP(from, recoveryVault, { $extraGas: 100000 });
 
   const vaultAddress = r.events.DeployVault.returnValues.vault;
   const vault = new LPVault(foreignWeb3, vaultAddress);
@@ -68,8 +70,6 @@ async function deploy() {
     foreignWeb3,
     kernel.$address,
     tokenFactory.$address,
-    escapeHatch,
-    escapeHatch,
     { $extraGas: 100000 },
   );
   await acl.grantPermission(
@@ -87,7 +87,7 @@ async function deploy() {
     { $extraGas: 100000 },
   );
 
-  const campaignApp = await LPPCampaign.new(foreignWeb3, escapeHatch);
+  const campaignApp = await LPPCampaign.new(foreignWeb3);
   await kernel.setApp(
     await kernel.APP_BASES_NAMESPACE(),
     await lppCampaignFactory.CAMPAIGN_APP_ID(),
@@ -100,8 +100,6 @@ async function deploy() {
     foreignWeb3,
     kernel.$address,
     tokenFactory.$address,
-    escapeHatch,
-    escapeHatch,
     { $extraGas: 100000 },
   );
   await acl.grantPermission(
@@ -119,7 +117,7 @@ async function deploy() {
     { $extraGas: 100000 },
   );
 
-  const dacApp = await LPPDac.new(foreignWeb3, escapeHatch);
+  const dacApp = await LPPDac.new(foreignWeb3);
   await kernel.setApp(
     await kernel.APP_BASES_NAMESPACE(),
     await lppDacFactory.DAC_APP_ID(),
@@ -131,8 +129,6 @@ async function deploy() {
   const lppCappedMilestoneFactory = await LPPCappedMilestoneFactory.new(
     foreignWeb3,
     kernel.$address,
-    escapeHatch,
-    escapeHatch,
     { $extraGas: 100000 },
   );
   await acl.grantPermission(
@@ -150,7 +146,7 @@ async function deploy() {
     { $extraGas: 100000 },
   );
 
-  const milestoneApp = await LPPCappedMilestone.new(foreignWeb3, escapeHatch);
+  const milestoneApp = await LPPCappedMilestone.new(foreignWeb3);
   await kernel.setApp(
     await kernel.APP_BASES_NAMESPACE(),
     await lppCappedMilestoneFactory.MILESTONE_APP_ID(),
