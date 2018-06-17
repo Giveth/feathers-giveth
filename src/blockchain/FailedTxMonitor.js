@@ -1,7 +1,7 @@
 import { hexToNumber } from 'web3-utils';
-import { LiquidPledgingAbi } from 'giveth-liquidpledging/build/LiquidPledging.sol';
-import { LPVaultAbi } from 'giveth-liquidpledging/build/LPVault.sol';
-import { LPPCappedMilestoneAbi } from 'lpp-capped-milestone/build/LPPCappedMilestone.sol';
+import LiquidPledgingArtifact from 'giveth-liquidpledging/build/LiquidPledging.json';
+import LPVaultArtifact from 'giveth-liquidpledging/build/LPVault.json';
+import LPPCappedMilestoneArtifact from 'lpp-capped-milestone/build/LPPCappedMilestone.json';
 import EventEmitter from 'events';
 import logger from 'winston';
 
@@ -46,21 +46,25 @@ class FailedTxMonitor extends EventEmitter {
   }
 
   setDecoders() {
-    LiquidPledgingAbi.filter(method => method.type === 'event').forEach(event => {
-      this.decoders.lp[event.name] = this.web3.eth.Contract.prototype._decodeEventABI.bind(event);
-    });
+    LiquidPledgingArtifact.compilerOutput.api
+      .filter(method => method.type === 'event')
+      .forEach(event => {
+        this.decoders.lp[event.name] = this.web3.eth.Contract.prototype._decodeEventABI.bind(event);
+      });
 
-    LPVaultAbi.filter(method => method.type === 'event').forEach(event => {
+    LPVaultArtifact.compilerOutput.abi.filter(method => method.type === 'event').forEach(event => {
       this.decoders.vault[event.name] = this.web3.eth.Contract.prototype._decodeEventABI.bind(
         event,
       );
     });
 
-    LPPCappedMilestoneAbi.filter(method => method.type === 'event').forEach(event => {
-      this.decoders.milestone[event.name] = this.web3.eth.Contract.prototype._decodeEventABI.bind(
-        event,
-      );
-    });
+    LPPCappedMilestoneArtifact.compilerOutput.abi
+      .filter(method => method.type === 'event')
+      .forEach(event => {
+        this.decoders.milestone[event.name] = this.web3.eth.Contract.prototype._decodeEventABI.bind(
+          event,
+        );
+      });
   }
 
   checkPendingDonations() {
