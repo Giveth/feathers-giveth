@@ -131,7 +131,7 @@ class FailedTxMonitor extends EventEmitter {
       .find({
         paginate: false,
         query: {
-          status: 'pending',
+          $or: [{ status: 'pending' }, { status: 'Pending' }],
         },
       })
       .then(pendingDonations => pendingDonations.forEach(revertDonationIfFailed))
@@ -212,7 +212,7 @@ class FailedTxMonitor extends EventEmitter {
         if (hexToNumber(receipt.status) === 0) {
           // if status !== pending, then the cancel campaign transaction failed, so reset
           const mutation =
-            campaign.status === 'pending'
+            campaign.status === 'pending' || campaign.status === 'Pending'
               ? { status: 'failed' }
               : { status: 'Active', mined: true };
 
@@ -255,7 +255,7 @@ class FailedTxMonitor extends EventEmitter {
       .find({
         paginate: false,
         query: {
-          $or: [{ status: 'pending' }, { mined: false }],
+          $or: [{ status: 'pending' }, { status: 'Pending' }, { mined: false }],
         },
       })
       .then(pendingCampaigns => pendingCampaigns.forEach(updateCampaignIfFailed))
@@ -355,7 +355,7 @@ class FailedTxMonitor extends EventEmitter {
       .find({
         paginate: false,
         query: {
-          $or: [{ status: 'pending' }, { mined: false }],
+          $or: [{ status: 'pending' }, { status: 'Pending' }, { mined: false }],
         },
       })
       .then(pendingMilestones => pendingMilestones.forEach(updateMilestoneIfFailed))
