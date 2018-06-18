@@ -7,7 +7,12 @@ import { LPPDac } from 'lpp-dac';
 
 import { getTokenInformation, milestoneStatus, pledgeState } from './helpers';
 
-const BreakSignal = () => {};
+class BreakSignal extends Error {
+  constructor(...args) {
+    super(...args);
+    Error.captureStackTrace(this, BreakSignal);
+  }
+}
 
 /**
  * class to keep feathers cache in sync with liquidpledging admins
@@ -596,9 +601,7 @@ class Admins {
               {
                 query: {
                   campaignId: pledgeAdmin.typeId,
-                  $not: {
-                    status: 'Canceled',
-                  },
+                  status: { $ne: 'Canceled' },
                 },
               },
             )

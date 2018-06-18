@@ -1,14 +1,17 @@
-const NeDB = require('nedb');
-const path = require('path');
-
-module.exports = function(app) {
-  const dbPath = app.get('nedb');
-  const Model = new NeDB({
-    filename: path.join(dbPath, 'challenge.db'),
-    autoload: true,
+// challenges-model.js - A mongoose model
+// 
+// See http://mongoosejs.com/docs/models.html
+// for more of what you can do here.
+module.exports = function (app) {
+  const mongooseClient = app.get('mongooseClient');
+  const { Schema } = mongooseClient;
+  const challenge = new Schema({
+    address: { type: String, required: true, index: true, unique: true },
+    expirationDate: { type: Date },
+    message: { type: String }
+  }, {
+    timestamps: true
   });
 
-  Model.ensureIndex({ fieldName: 'address', unique: true });
-
-  return Model;
+  return mongooseClient.model('challenge', challenge);
 };

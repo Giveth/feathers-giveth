@@ -7,6 +7,7 @@
     "default": 25,
     "max": 100
   },
+  "mongodb": "mongodb://localhost:27017/giveth",  
   "nedb": "../data",
   "uploads": "../uploads",
   "uploadsBaseUrl": "http://localhost:3030/uploads/",

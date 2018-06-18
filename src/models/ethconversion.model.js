@@ -1,14 +1,16 @@
-const NeDB = require('nedb');
-const path = require('path');
-
-module.exports = function(app) {
-  const dbPath = app.get('nedb');
-  const Model = new NeDB({
-    filename: path.join(dbPath, 'ethconversion.db'),
-    autoload: true,
+// ethconversion-model.js - A mongoose model
+// 
+// See http://mongoosejs.com/docs/models.html
+// for more of what you can do here.
+module.exports = function (app) {
+  const mongooseClient = app.get('mongooseClient');
+  const { Schema } = mongooseClient;
+  const ethconversion = new Schema({
+    timestamp: { type: Date, required: true, index: true, unique: true },
+    rates: { type: Object },
+  }, {
+    timestamps: true
   });
 
-  Model.ensureIndex({ fieldName: 'timestamp', unique: true });
-
-  return Model;
+  return mongooseClient.model('ethconversion', ethconversion);
 };

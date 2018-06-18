@@ -1,5 +1,5 @@
 // Initializes the `donations` service on path `/donations`
-import createService from 'feathers-nedb';
+import createService from 'feathers-mongoose';
 import createModel from '../../models/donationTokens.model';
 import hooks from './donationTokens.hooks';
 import filters from './donationTokens.filters';

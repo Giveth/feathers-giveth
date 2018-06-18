@@ -1,5 +1,5 @@
 // Initializes the `campaigns` service on path `/campaigns`
-const createService = require('feathers-nedb');
+const createService = require('feathers-mongoose');
 const createModel = require('../../models/campaigns.model');
 const hooks = require('./campaigns.hooks');
 const filters = require('./campaigns.filters');

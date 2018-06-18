@@ -42,6 +42,8 @@ Welcome to the server code for Giveth's [dapp](https://github.com/Giveth/giveth-
     npm install
     ```
     * note: due to a bug in yarn, `yarn install` currently does not work
+7. Install Mongo (we recommend installing via [Brew](https://treehouse.github.io/installation-guides/mac/mongo-mac.html))
+8. Run Mongo in a terminal window `mongod` or in the background `mongod --fork --syslog`
 
 ### Run server
 The feathers server will need to connect to an ethereum node via websockets. Typically this will be a local TestRPC instance. 

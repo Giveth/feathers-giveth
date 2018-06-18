@@ -1,5 +1,5 @@
 // Initializes the `donationsHistory` service on path `/donations/:donationId/history` and `/donationHistory`
-import createService from 'feathers-nedb';
+import createService from 'feathers-mongoose';
 import createModel from '../../models/donationsHistory.model';
 import hooks from './donationsHistory.hooks';
 

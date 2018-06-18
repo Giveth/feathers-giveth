@@ -308,7 +308,7 @@ const sendNotification = () => context => {
         user: user,
         txHash: txHash
       })
-      .then(res => logger.info('created conversation!', res))
+      .then(res => logger.info('created conversation!', res._id))
       .catch( e => logger.error('could not create conversation', e));  
   }
 
@@ -341,7 +341,7 @@ const sendNotification = () => context => {
    * Which basically means the event is really mined
    * */
   if (context.method === 'patch' && context.params.eventTxHash) {
-    
+  
     if (result.prevStatus === 'proposed' && result.status === 'InProgress') {
       _createConversion(app, result, context.params.eventTxHash, 'proposedAccepted', user);
 

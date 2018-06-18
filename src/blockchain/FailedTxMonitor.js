@@ -211,7 +211,7 @@ class FailedTxMonitor extends EventEmitter {
       dacs.find({
         paginate: false,
         query: {
-          $not: { delegateId: { $gt: '0' } },
+          delegateId: { $ne: '0' },
         },
       }),
     ])

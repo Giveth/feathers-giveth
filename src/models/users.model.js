@@ -1,14 +1,20 @@
-const NeDB = require('nedb');
-const path = require('path');
-
-module.exports = function(app) {
-  const dbPath = app.get('nedb');
-  const Model = new NeDB({
-    filename: path.join(dbPath, 'users.db'),
-    autoload: true,
+// user-model.js - A mongoose model
+// 
+// See http://mongoosejs.com/docs/models.html
+// for more of what you can do here.
+module.exports = function (app) {
+  const mongooseClient = app.get('mongooseClient');
+  const { Schema } = mongooseClient;
+  const user = new Schema({
+    address: { type: String, required: true, index: true, unique: true },
+    name: { type: String },
+    email: { type: String },
+    giverId: { type: String },
+    commitTime: { type: String },
+    avatar: { type: String }
+  }, {
+    timestamps: true
   });
 
-  Model.ensureIndex({ fieldName: 'address', unique: true });
-
-  return Model;
+  return mongooseClient.model('user', user);
 };

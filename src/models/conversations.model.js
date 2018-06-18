@@ -1,12 +1,20 @@
-const NeDB = require('nedb');
-const path = require('path');
-
+// conversations-model.js - A mongoose model
+// 
+// See http://mongoosejs.com/docs/models.html
+// for more of what you can do here.
 module.exports = function (app) {
-  const dbPath = app.get('nedb');
-  const Model = new NeDB({
-    filename: path.join(dbPath, 'conversations.db'),
-    autoload: true
+  const mongooseClient = app.get('mongooseClient');
+  const { Schema } = mongooseClient;
+  const conversation = new Schema({
+    milestoneId: { type: String, required: true, index: true },
+    messageContext: { type: String, required: true },
+    message: { type: String, required: true },
+    replyToId: { type: String },
+    performedByRole: { type: String, required: true },
+    ownerAddress: { type: String, required: true }
+  }, {
+    timestamps: true
   });
 
-  return Model;
+  return mongooseClient.model('conversation', conversation);
 };
