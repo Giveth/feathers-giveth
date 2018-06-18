@@ -17,6 +17,9 @@ const attachWaitForStart = server => {
     });
 };
 
+process.on('uncaughtException', console.log);
+process.on('unhandledRejection', console.log);
+
 module.exports = async (blocktime = 0) => {
   const homeDbPath = path.join(__dirname, '../data/ganache-cli/homeNetwork');
   const foreignDbPath = path.join(__dirname, '../data/ganache-cli/foreignNetwork');
