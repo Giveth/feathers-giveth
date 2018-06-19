@@ -28,14 +28,15 @@
     "test": "npm run eslint && npm run mocha",
     "eslint": "eslint src/. test/.",
     "eslint:fix": "eslint src/. test/. --fix",
-    "deploy-local": "rm -rf data && node scripts/deploy.js",
+    "deploy-local": "npm run reset-db && node scripts/deploy.js",
     "start": "babel-watch src",
     "start:networks": "node scripts/startBridge.js",
     "start:networks:debug": "LOG_LEVEL=debug node scripts/startBridge.js",
     "serve": "npm run build && pm2 startOrRestart ecosystem.config.js --env production",
     "mocha": "mocha test/ --recursive --compilers js:babel-core/register",
     "prettier": "prettier 'src/**/*.js*' -l",
-    "prettier:write": "prettier 'src/app/**/*.js' --write"
+    "prettier:write": "prettier 'src/app/**/*.js' --write",
+    "reset-db": "node scripts/resetDataBase.js"
   },
   "dependencies": {
     "bignumber.js": "^6.0.0",
@@ -99,6 +100,7 @@
     "giveth-bridge": "1.0.0-beta.3",
     "lerna": "^2.2.0",
     "mocha": "^3.5.0",
-    "prettier": "1.9.2"
+    "prettier": "1.9.2",
+    "prompt-confirm": "^2.0.4"
   }
 }
