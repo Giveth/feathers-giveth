@@ -4,8 +4,6 @@ const logger = require('winston');
 const fiat = ['AUD', 'BRL', 'CAD', 'CHF', 'CZK', 'EUR', 'GBP', 'MXN', 'THB', 'USD'];
 const MINUTE = 1000 * 60;
 
-const _buildResponse = (timestamp, rates) => ({ timestamp, rates });
-
 /**
  * Get responses from the DB
  *
@@ -111,19 +109,19 @@ export const getEthConversion = (app, requestedDate) => {
       const retrievedRates = new Set(Object.keys(dbRates.rates));
       const unknownRates = fiat.filter(cur => !retrievedRates.has(cur));
 
-      if (unknownRates.length === 0) {
-        resolve(_buildResponse(dbRates.timestamp, dbRates.rates));
-      } else {
+      let { rates } = dbRates;
+
+      if (unknownRates.length !== 0) {
         logger.debug('fetching eth coversion from crypto compare');
         // Some rates have not been obtained yet, get them from cryptocompare
         const newRates = await _getRatesCryptocompare(timestamp, unknownRates);
-        const allRates = Object.assign({}, dbRates.rates, newRates);
+        rates = Object.assign({}, dbRates.rates, newRates);
 
         // Save the newly retrieved rates
-        await _saveToDB(app, dbRates.timestamp, allRates, dbRates._id);
-
-        resolve(_buildResponse(dbRates.timestamp, allRates));
+        await _saveToDB(app, dbRates.timestamp, rates, dbRates._id);
       }
+
+      resolve({ timestamp: dbRates.timestamp, rates });
     } catch (e) {
       reject(e);
     }
