@@ -126,7 +126,6 @@ const schema = {
   ],
 };
 
-// TODO require donationID
 export default {
   before: {
     all: [],
