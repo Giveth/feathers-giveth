@@ -20,7 +20,7 @@ const attachWaitForStart = server => {
 process.on('uncaughtException', console.log);
 process.on('unhandledRejection', console.log);
 
-module.exports = async (blocktime = 0) => {
+module.exports = async (blockTime = 0) => {
   const homeDbPath = path.join(__dirname, '../data/ganache-cli/homeNetwork');
   const foreignDbPath = path.join(__dirname, '../data/ganache-cli/foreignNetwork');
 
@@ -36,7 +36,7 @@ module.exports = async (blocktime = 0) => {
     logger: {
       log: val => console.log('Home Network: ', val),
     },
-    blocktime,
+    blockTime,
   });
 
   const foreignNetwork = Ganache.server({
@@ -48,7 +48,7 @@ module.exports = async (blocktime = 0) => {
     logger: {
       log: val => console.log('Foreign Network: ', val),
     },
-    blocktime,
+    blockTime,
   });
 
   homeNetwork.listen(8545, '127.0.0.1', () => {});
