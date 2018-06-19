@@ -59,6 +59,7 @@ const addCampaignCounts = () => context => {
 };
 
 const isDacAllowed = () => context => {
+  console.log(commons.getItems(context));
   if (!context.app.get('useDelegateWhitelist')) {
     return context;
   }

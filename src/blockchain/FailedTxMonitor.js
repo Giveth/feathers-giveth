@@ -3,6 +3,7 @@ import LPVaultArtifact from 'giveth-liquidpledging/build/LPVault.json';
 import LPPCappedMilestoneArtifact from 'lpp-capped-milestone/build/LPPCappedMilestone.json';
 import EventEmitter from 'events';
 import logger from 'winston';
+import { status as DACStatus } from '../models/dacs.model';
 
 const FIFTEEN_MINUTES = 1000 * 60 * 15;
 const TWO_HOURS = 1000 * 60 * 60 * 2;
@@ -212,7 +213,7 @@ class FailedTxMonitor extends EventEmitter {
       dacs.find({
         paginate: false,
         query: {
-          delegateId: { $ne: '0' },
+          status: DACStatus.PENDING,
         },
       }),
     ])

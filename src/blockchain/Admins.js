@@ -6,6 +6,7 @@ import { LPPCampaign } from 'lpp-campaign';
 import { LPPDac } from 'lpp-dac';
 
 import { getTokenInformation, milestoneStatus, pledgeState } from './helpers';
+import { status as DACStatus } from '../models/dacs.model';
 
 class BreakSignal extends Error {
   constructor(...args) {
@@ -188,6 +189,7 @@ class Admins {
           return this.web3.eth
             .getTransaction(txHash)
             .then(tx =>
+              // TODO I think this will create an invalid dac & will throw
               dacs.create({
                 ownerAddress: tx.from,
                 pluginAddress: delegate.plugin,
@@ -227,6 +229,7 @@ class Admins {
           tokenAddress: tokenInfo.address,
           tokenSymbol: tokenInfo.symbol,
           tokenName: tokenInfo.name,
+          status: DACStatus.ACTIVE,
         }),
       )
       .then(dac => {

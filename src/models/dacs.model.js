@@ -1,8 +1,14 @@
+export const status = {
+  ACTIVE: 'Active',
+  PENDING: 'Pending',
+  CANCELED: 'Canceled',
+};
+
 // dacs-model.js - A mongoose model
 //
 // See http://mongoosejs.com/docs/models.html
 // for more of what you can do here.
-module.exports = function DAC(app) {
+export default function createModel(app) {
   const mongooseClient = app.get('mongooseClient');
   const { Schema } = mongooseClient;
   const dac = new Schema(
@@ -12,6 +18,12 @@ module.exports = function DAC(app) {
       communityUrl: { type: String },
       summary: { type: String },
       delegateId: { type: String, index: true },
+      status: {
+        type: String,
+        require: true,
+        enum: Object.values(status),
+        default: status.PENDING,
+      },
       image: { type: String, required: true },
       txHash: { type: String },
       totalDonated: { type: String },
@@ -29,4 +41,4 @@ module.exports = function DAC(app) {
   );
 
   return mongooseClient.model('dac', dac);
-};
+}
