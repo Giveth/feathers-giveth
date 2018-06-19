@@ -235,7 +235,8 @@ export default class {
 
       if (!this.config._id) this.initializingConfig = true;
 
-      this.model.findOneAndUpdate({},
+      this.model.findOneAndUpdate(
+        {},
         this.config,
         { upsert: true, new: true },
         (err, numAffected, affectedDocs, upsert) => {
@@ -292,7 +293,7 @@ export default class {
         if (existingEvent) {
           this.eventQueue.add(hash, () => this.newEvent(event));
         } else {
-          this.events.create(event).then(() => {
+          this.events.create(Object.assign({}, event, { confirmations: 0 })).then(() => {
             removeFromCache();
             this.eventQueue.purge(hash);
           });
