@@ -1,10 +1,10 @@
 // Initializes the `campaigns` service on path `/campaigns`
 const createService = require('feathers-mongoose');
-const createModel = require('../../models/campaigns.model');
+const createModel = require('../../models/campaigns.model').default;
 const hooks = require('./campaigns.hooks');
 const filters = require('./campaigns.filters');
 
-module.exports = function() {
+module.exports = function registerService() {
   const app = this;
   const Model = createModel(app);
   const paginate = app.get('paginate');

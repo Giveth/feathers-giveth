@@ -1,8 +1,14 @@
+export const status = {
+  ACTIVE: 'Active',
+  PENDING: 'Pending',
+  CANCELED: 'Canceled',
+};
+
 // campaigns-model.js - A mongoose model
 //
 // See http://mongoosejs.com/docs/models.html
 // for more of what you can do here.
-module.exports = function Campaign(app) {
+export default function createModel(app) {
   const mongooseClient = app.get('mongooseClient');
   const { Schema } = mongooseClient;
   const campaign = new Schema(
@@ -23,7 +29,12 @@ module.exports = function Campaign(app) {
       pluginAddress: { type: String },
       tokenAddress: { type: String },
       mined: { type: Boolean },
-      status: { type: String, required: true },
+      status: {
+        type: String,
+        require: true,
+        enum: Object.values(status),
+        default: status.PENDING,
+      },
     },
     {
       timestamps: true,
@@ -31,4 +42,4 @@ module.exports = function Campaign(app) {
   );
 
   return mongooseClient.model('campaign', campaign);
-};
+}

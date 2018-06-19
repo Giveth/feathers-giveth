@@ -28,6 +28,7 @@ class EventQueue {
   }
 
   add(id, fn) {
+    if (!fn) throw new Error('fn must not be null for id:', id);
     logger.debug('adding to queue ->', id);
 
     if (this.queue[id]) {

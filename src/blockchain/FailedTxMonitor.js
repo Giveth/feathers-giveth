@@ -4,6 +4,7 @@ import LPPCappedMilestoneArtifact from 'lpp-capped-milestone/build/LPPCappedMile
 import EventEmitter from 'events';
 import logger from 'winston';
 import { status as DACStatus } from '../models/dacs.model';
+import { status as CampaignStatus } from '../models/campaigns.model';
 
 const FIFTEEN_MINUTES = 1000 * 60 * 15;
 const TWO_HOURS = 1000 * 60 * 60 * 2;
@@ -80,12 +81,12 @@ class FailedTxMonitor extends EventEmitter {
       if (!donation.previousState || !donation.txHash) return;
 
       this.web3.eth.getTransactionReceipt(donation.txHash).then(receipt => {
-        if (!receipt) return;
+        // reset the donation status if the tx has been pending for more then 2 hrs, otherwise ignore
+        if (!receipt && donation.updatedAt <= Date.now() - TWO_HOURS) return;
         // ignore if there isn't enough confirmations
-        if (currentBlock - receipt.blockNumber < this.requiredConfirmations) return;
+        if (receipt && currentBlock - receipt.blockNumber < this.requiredConfirmations) return;
 
-        logger.info(receipt);
-        if (!receipt.status) {
+        if (!receipt || !receipt.status) {
           donations
             .patch(
               donation._id,
@@ -161,11 +162,12 @@ class FailedTxMonitor extends EventEmitter {
       if (!dac.txHash) return;
 
       this.web3.eth.getTransactionReceipt(dac.txHash).then(receipt => {
-        if (!receipt) return;
+        // reset the dac status if the tx has been pending for more then 2 hrs, otherwise ignore
+        if (!receipt && dac.updatedAt <= Date.now() - TWO_HOURS) return;
         // ignore if there isn't enough confirmations
-        if (currentBlock - receipt.blockNumber < this.requiredConfirmations) return;
+        if (receipt && currentBlock - receipt.blockNumber < this.requiredConfirmations) return;
 
-        if (!receipt.status) {
+        if (!receipt || !receipt.status) {
           dacs
             .patch(dac._id, {
               status: 'failed',
@@ -230,16 +232,17 @@ class FailedTxMonitor extends EventEmitter {
       if (!campaign.txHash) return;
 
       this.web3.eth.getTransactionReceipt(campaign.txHash).then(receipt => {
-        if (!receipt) return;
+        // reset the campaign status if the tx has been pending for more then 2 hrs, otherwise ignore
+        if (!receipt && campaign.updatedAt <= Date.now() - TWO_HOURS) return;
         // ignore if there isn't enough confirmations
-        if (currentBlock - receipt.blockNumber < this.requiredConfirmations) return;
+        if (receipt && currentBlock - receipt.blockNumber < this.requiredConfirmations) return;
 
-        if (!receipt.status) {
+        if (!receipt || !receipt.status) {
           // if status !== pending, then the cancel campaign transaction failed, so reset
           const mutation =
-            campaign.status === 'pending' || campaign.status === 'Pending'
+            campaign.status === CampaignStatus.PENDING
               ? { status: 'failed' }
-              : { status: 'Active', mined: true };
+              : { status: CampaignStatus.ACTIVE, mined: true };
 
           campaigns.patch(campaign._id, mutation).catch(logger.error);
           return;
@@ -281,7 +284,7 @@ class FailedTxMonitor extends EventEmitter {
       campaigns.find({
         paginate: false,
         query: {
-          $or: [{ status: 'pending' }, { status: 'Pending' }, { mined: false }],
+          $or: [{ status: CampaignStatus.PENDING }, { mined: false }],
         },
       }),
     ])
@@ -298,16 +301,12 @@ class FailedTxMonitor extends EventEmitter {
       if (!milestone.txHash) return; // we can't revert
 
       this.web3.eth.getTransactionReceipt(milestone.txHash).then(receipt => {
-        // TODO it is possible to get a txHash inserted & the tx to not exist (maybe a reorg?).
-        // If that happens the transactionReceipt will be null, and the milestone, etc will be
-        // in a perpetual "pending" state. We need to reset the milestone, etc if it has been pending
-        // for more then x time (6 hrs?)
-        // if (!receipt && milestone.updatedAt <= Date.now() - ) return;
-        if (!receipt) return;
+        // reset the milestone status if the tx has been pending for more then 2 hrs, otherwise ignore
+        if (!receipt && milestone.updatedAt <= Date.now() - TWO_HOURS) return;
         // ignore if there isn't enough confirmations
-        if (currentBlock - receipt.blockNumber < this.requiredConfirmations) return;
+        if (receipt && currentBlock - receipt.blockNumber < this.requiredConfirmations) return;
 
-        if (!receipt.status) {
+        if (!receipt || !receipt.status) {
           // Here we simply revert back to the previous state of the milestone
           milestones
             .patch(milestone._id, {
