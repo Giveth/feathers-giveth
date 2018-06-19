@@ -101,6 +101,7 @@
     "lerna": "^2.2.0",
     "mocha": "^3.5.0",
     "prettier": "1.9.2",
-    "prompt-confirm": "^2.0.4"
+    "prompt-confirm": "^2.0.4",
+    "rimraf": "^2.6.2"
   }
 }
