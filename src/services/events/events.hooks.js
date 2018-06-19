@@ -2,13 +2,13 @@ import { disallow } from 'feathers-hooks-common';
 
 export default {
   before: {
-    all: [disallow('external')],
+    all: [],
     find: [],
     get: [],
-    create: [],
-    update: [],
-    patch: [],
-    remove: [],
+    create: [disallow('external')],
+    update: [disallow('external')],
+    patch: [disallow('external')],
+    remove: [disallow('external')],
   },
 
   after: {
