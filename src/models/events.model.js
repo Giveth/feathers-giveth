@@ -7,7 +7,7 @@ module.exports = function Events(app) {
   const { Schema } = mongooseClient;
   const event = new Schema(
     {
-      logIndex: { type: String },
+      logIndex: { type: Number, required: true },
       transactionIndex: { type: String },
       transactionHash: { type: String, required: true },
       blockHash: { type: String, required: true },

@@ -30,7 +30,7 @@ export default class {
     this.currentBlock = 0;
 
     this.eventQueue = new EventQueue();
-    // use different EventQueues for Admins & Pledges class
+    // use different EventQueue actual event processing
     const eventQueue = new EventQueue();
 
     this.payments = new Payments(app, this.liquidPledging.$vault, eventQueue);
@@ -259,7 +259,7 @@ export default class {
   newEvent(event, reprocess = false) {
     this.updateConfig(event.blockNumber);
 
-    // NOTE: perissology: I'm not sure if we want to do this. If we uncomment the following code, we won't have
+    // NOTE: perissology: I'm not sure if we want to do this. If we uncomment the following code, 
     // the events won't be stored in the events db
     // on startup, we fetch past logs. We can immediatly process the event if the required confirmatinos have past
     // if (event.blockNumber >= this.currentBlock - this.requiredConfirmations) {
