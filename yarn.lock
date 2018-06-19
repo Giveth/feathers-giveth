@@ -4374,6 +4374,25 @@ giveth-bridge@1.0.0-beta.1:
     uuid "^3.2.1"
     winston "^2.4.1"
 
+giveth-bridge@1.0.0-beta.3:
+  version "1.0.0-beta.3"
+  resolved "https://registry.yarnpkg.com/giveth-bridge/-/giveth-bridge-1.0.0-beta.3.tgz#51d32a07def048ef33c272b3c6cfbd6341f4d89d"
+  dependencies:
+    "@aragon/os" "3.1.2"
+    bip39 "^2.5.0"
+    chai "^4.1.2"
+    eth-contract-class "^0.0.9"
+    giveth-common-contracts "0.6.0"
+    minimetoken "^0.2.0"
+    nedb "^1.8.0"
+    nodemailer "^4.6.4"
+    nodemailer-mailgun-transport "^1.3.6"
+    request-promise "^4.2.2"
+    semaphore "^1.1.0"
+    uuid "^3.2.1"
+    web3 "1.0.0-beta.34"
+    winston "^2.4.1"
+
 giveth-common-contracts@0.6.0:
   version "0.6.0"
   resolved "https://registry.yarnpkg.com/giveth-common-contracts/-/giveth-common-contracts-0.6.0.tgz#2242fb838b72aabc5fc644ddc714b0964a75bf0a"
