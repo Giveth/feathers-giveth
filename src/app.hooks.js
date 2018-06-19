@@ -1,5 +1,6 @@
 // Application hooks that run for every service
 import auth from 'feathers-authentication';
+import { discard } from 'feathers-hooks-common';
 import logger from './hooks/logger';
 
 const authenticate = () => context => {
@@ -21,7 +22,7 @@ export default {
   },
 
   after: {
-    all: [logger()],
+    all: [logger(), discard('__v')],
     find: [],
     get: [],
     create: [],
