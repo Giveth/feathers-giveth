@@ -30,6 +30,7 @@ export default (...fieldNames) => context => {
           allowedAttributes: {
             iframe: ['src', 'allowfullscreen', 'frameborder'],
             a: ['target', 'href'],
+            img: ['src']
           },
           allowedClasses: {
             '*': ['ql-indent-*'],
