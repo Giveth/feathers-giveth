@@ -56,7 +56,7 @@ module.exports = {
   },
 
   after: {
-    all: [commons.when(hook => hook.params.provider, commons.discard('_id'))],
+    all: [commons.discard('_id')],
     find: [],
     get: [],
     create: [fundWallet()],

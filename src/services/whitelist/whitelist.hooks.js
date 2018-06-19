@@ -5,7 +5,7 @@ const getUsersByAddress = (app, addresses) =>
       paginate: false,
       query: {
         address: { $in: addresses },
-        $select: ['_id', 'name', 'email', 'address', 'avatar'],
+        $select: ['name', 'email', 'address', 'avatar'],
       },
     })
     .then(users =>
