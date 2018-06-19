@@ -6,7 +6,6 @@ import notifyOfChange from '../../hooks/notifyOfChange';
 import sanitizeAddress from '../../hooks/sanitizeAddress';
 import setAddress from '../../hooks/setAddress';
 import fundWallet from '../../hooks/fundWallet';
-import { updatedAt, createdAt } from '../../hooks/timestamps';
 
 const normalizeId = () => context => {
   if (context.id) {
@@ -50,9 +49,9 @@ module.exports = {
     all: [],
     find: [sanitizeAddress('address')],
     get: [normalizeId()],
-    create: [commons.discard('_id'), ...address, createdAt],
-    update: [...restrict, commons.stashBefore(), updatedAt],
-    patch: [...restrict, commons.stashBefore(), updatedAt],
+    create: [commons.discard('_id'), ...address],
+    update: [...restrict, commons.stashBefore()],
+    patch: [...restrict, commons.stashBefore()],
     remove: [commons.disallow()],
   },
 

@@ -1,6 +1,5 @@
 import logger from 'winston';
 import commons from 'feathers-hooks-common';
-import { updatedAt, createdAt } from '../../hooks/timestamps';
 import { disallow } from 'feathers-hooks-common';
 import sanitizeAddress from '../../hooks/sanitizeAddress';
 import errors from 'feathers-errors';
@@ -17,13 +16,12 @@ import sanitizeHtml from '../../hooks/sanitizeHtml';
     replyToId:          (string) id of the message that this is a reply to
 
   @param ownerAddress (string) is automatically set based on the current logged in user
-**/
-
+* */
 
 /**
   Available conversation types. This roughly follows the milestone status
   replyTo is for threaded messages
-**/
+* */
 const MESSAGE_CONTEXT = [
   'proposed',
   'rejected',
@@ -33,7 +31,7 @@ const MESSAGE_CONTEXT = [
   'replyTo',
   'proposedRejected',
   'proposedAccepted',
-  'rePropose'
+  'rePropose',
 ];
 
 /**
@@ -43,7 +41,7 @@ const MESSAGE_CONTEXT = [
 const restrictAndSetOwner = () => context => {
   const { app, params } = context;
   const { milestoneId } = context.data;
-  let { user } = params;
+  const { user } = params;
 
   // external calls need a user
   if (!user && context.params.provider) throw new errors.NotAuthenticated();
@@ -52,10 +50,9 @@ const restrictAndSetOwner = () => context => {
     .service('milestones')
     .get(milestoneId)
     .then(milestone => {
-      
       // for internal calls there's no user, so the user creating the message is stored on the milestone
       // for external calls, the currentuser creates the message
-      context.data.ownerAddress = user && user.address || milestone.performedByAddress;
+      context.data.ownerAddress = (user && user.address) || milestone.performedByAddress;
 
       // set the role based on the address
       // anyone not involved with the milestone is not allowed to create conversation
@@ -74,25 +71,27 @@ const restrictAndSetOwner = () => context => {
           context.data.performedByRole = 'Campaign reviewer';
           break;
         default:
-          throw new errors.Forbidden('Only people involved with the milestone can create conversation');
+          throw new errors.Forbidden(
+            'Only people involved with the milestone can create conversation',
+          );
       }
       return context;
-    }).catch(e => {
+    })
+    .catch(e => {
       logger.error(`unable to get milestone ${milestoneId}`, e);
-    });   
-}
-
+    });
+};
 
 /**
   message must be in context of the conversation
   for example, it must include milestone state 'proposed' if the message is about a proposal
- **/
+ * */
 const checkMessageContext = () => context => {
   const { messageContext, replyToId } = context.data;
   const { app, params } = context;
 
-  if (!MESSAGE_CONTEXT.includes(messageContext)) 
-    throw new errors.BadRequest('Incorrect message context');    
+  if (!MESSAGE_CONTEXT.includes(messageContext))
+    throw new errors.BadRequest('Incorrect message context');
 
   if (messageContext === 'ReplyTo') {
     return app
@@ -101,14 +100,13 @@ const checkMessageContext = () => context => {
       .then(message => context)
       .catch(e => {
         logger.error(`this message is in reply to a non-existing message with id ${replyToId}`, e);
-      });   
+      });
   }
-}
-
+};
 
 /**
   include user object when querying message
- **/
+ * */
 const schema = {
   include: [
     {
@@ -116,25 +114,22 @@ const schema = {
       nameAs: 'owner',
       parentField: 'ownerAddress',
       childField: 'address',
-    }
+    },
   ],
 };
 
-
 /**
   The bas-ass stuff happens here...
- **/
+ * */
 module.exports = {
   before: {
     all: [],
-    find: [
-      sanitizeAddress([ 'ownerAddress' ]),
-    ],
+    find: [sanitizeAddress(['ownerAddress'])],
     get: [],
-    create: [restrictAndSetOwner(), checkMessageContext(), sanitizeHtml('message'), createdAt],
+    create: [restrictAndSetOwner(), checkMessageContext(), sanitizeHtml('message')],
     update: [disallow()],
     patch: [disallow()],
-    remove: [disallow()]
+    remove: [disallow()],
   },
 
   after: {
@@ -144,7 +139,7 @@ module.exports = {
     create: [],
     update: [],
     patch: [],
-    remove: []
+    remove: [],
   },
 
   error: {
@@ -154,6 +149,6 @@ module.exports = {
     create: [],
     update: [],
     patch: [],
-    remove: []
-  }
+    remove: [],
+  },
 };

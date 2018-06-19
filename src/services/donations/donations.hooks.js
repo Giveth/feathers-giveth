@@ -4,7 +4,6 @@ import commons from 'feathers-hooks-common';
 
 import sanitizeAddress from '../../hooks/sanitizeAddress';
 import setAddress from '../../hooks/setAddress';
-import { updatedAt, createdAt } from '../../hooks/timestamps';
 import addConfirmations from '../../hooks/addConfirmations';
 
 const restrict = () => context => {
@@ -242,25 +241,16 @@ module.exports = {
     get: [],
     create: [
       setAddress('giverAddress'),
-      sanitizeAddress(
-        'giverAddress',
-        {
-          required: true,
-          validate: true,
-        },
-        createdAt,
-      ),
-      context => {
-        if (context.data.createdAt) return context;
-        context.data.createdAt = new Date();
-      },
+      sanitizeAddress('giverAddress', {
+        required: true,
+        validate: true,
+      }),
     ],
-    update: [restrict(), sanitizeAddress('giverAddress', { validate: true }), updatedAt],
+    update: [restrict(), sanitizeAddress('giverAddress', { validate: true })],
     patch: [
       restrict(),
       sanitizeAddress('giverAddress', { validate: true }),
       stashDonationIfPending(),
-      updatedAt,
     ],
     remove: [commons.disallow()],
   },

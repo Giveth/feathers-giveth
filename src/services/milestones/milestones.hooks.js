@@ -9,7 +9,6 @@ import setAddress from '../../hooks/setAddress';
 import sanitizeHtml from '../../hooks/sanitizeHtml';
 import isProjectAllowed from '../../hooks/isProjectAllowed';
 import Notifications from './../../utils/dappMailer';
-import { updatedAt, createdAt } from '../../hooks/timestamps';
 import addConfirmations from '../../hooks/addConfirmations';
 
 /* eslint no-underscore-dangle: 0 */
@@ -297,21 +296,21 @@ const restrict = () => context => {
  * */
 const sendNotification = () => context => {
   const { data, app, result, params } = context;
-  const { user } = params
+  const { user } = params;
 
   const _createConversion = (app, data, txHash, messageContext, user) => {
     app
-      .service('conversations').create({
+      .service('conversations')
+      .create({
         milestoneId: data._id,
         message: data.message,
-        messageContext: messageContext,
-        user: user,
-        txHash: txHash
+        messageContext,
+        user,
+        txHash,
       })
       .then(res => logger.info('created conversation!', res._id))
-      .catch( e => logger.error('could not create conversation', e));  
-  }
-
+      .catch(e => logger.error('could not create conversation', e));
+  };
 
   /**
    * Notifications when a milestone get created
@@ -341,7 +340,6 @@ const sendNotification = () => context => {
    * Which basically means the event is really mined
    * */
   if (context.method === 'patch' && context.params.eventTxHash) {
-  
     if (result.prevStatus === 'proposed' && result.status === 'InProgress') {
       _createConversion(app, result, context.params.eventTxHash, 'proposedAccepted', user);
 
@@ -352,7 +350,7 @@ const sendNotification = () => context => {
         milestoneTitle: result.title,
         amount: result.maxAmount,
         txHash: result.txHash,
-        message: result.message
+        message: result.message,
       });
     }
 
@@ -365,7 +363,7 @@ const sendNotification = () => context => {
         user: result.reviewer.name,
         milestoneTitle: result.title,
         campaignTitle: result.campaign.title,
-        message: result.message        
+        message: result.message,
       });
     }
 
@@ -378,7 +376,7 @@ const sendNotification = () => context => {
         user: result.owner.name,
         milestoneTitle: result.title,
         campaignTitle: result.campaign.title,
-        message: result.message        
+        message: result.message,
       });
     }
 
@@ -391,7 +389,7 @@ const sendNotification = () => context => {
         user: result.reviewer.name,
         milestoneTitle: result.title,
         campaignTitle: result.campaign.title,
-        message: result.message        
+        message: result.message,
       });
     }
 
@@ -404,7 +402,7 @@ const sendNotification = () => context => {
         user: result.owner.name,
         milestoneTitle: result.title,
         campaignTitle: result.campaign.title,
-        message: result.message        
+        message: result.message,
       });
     }
   }
@@ -419,17 +417,15 @@ const sendNotification = () => context => {
         user: result.owner.name,
         milestoneTitle: result.title,
         campaignTitle: result.campaign.title,
-        message: result.message        
+        message: result.message,
       });
-    }    
+    }
 
     if (result.prevStatus === 'rejected' && result.status === 'proposed') {
       _createConversion(app, result, 'rePropose', user);
-    }    
+    }
   }
-
 };
-
 
 /** *
  * This function checks that the maxAmount in the milestone is based on the correct conversion rate of the milestone date
@@ -563,15 +559,15 @@ const storePrevState = () => context => {
 
 /**
  * Stores the address of the user who patched (= performed action on) the milestone
- **/ 
+ * */
+
 const performedBy = () => context => {
   // do not process internal calls as they have no user
   if (!context.params.provider) return context;
 
   context.data.performedByAddress = context.params.user.address;
   return context;
-}
-
+};
 
 const schema = {
   include: [
@@ -628,9 +624,8 @@ module.exports = {
       ...address,
       isProjectAllowed(),
       sanitizeHtml('description'),
-      createdAt,
     ],
-    update: [restrict(), checkMilestoneDates(), ...address, sanitizeHtml('description'), updatedAt],
+    update: [restrict(), checkMilestoneDates(), ...address, sanitizeHtml('description')],
     patch: [
       restrict(),
       sanitizeAddress(
@@ -640,7 +635,6 @@ module.exports = {
       sanitizeHtml('description'),
       storePrevState(),
       performedBy(),
-      updatedAt,
     ],
     remove: [canDelete()],
   },

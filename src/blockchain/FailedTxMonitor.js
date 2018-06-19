@@ -5,6 +5,7 @@ import EventEmitter from 'events';
 import logger from 'winston';
 
 const FIFTEEN_MINUTES = 1000 * 60 * 15;
+const TWO_HOURS = 1000 * 60 * 60 * 2;
 
 /**
  * class to check if any transactions failed and to revert the ui state if so
@@ -296,6 +297,11 @@ class FailedTxMonitor extends EventEmitter {
       if (!milestone.txHash) return; // we can't revert
 
       this.web3.eth.getTransactionReceipt(milestone.txHash).then(receipt => {
+        // TODO it is possible to get a txHash inserted & the tx to not exist (maybe a reorg?).
+        // If that happens the transactionReceipt will be null, and the milestone, etc will be
+        // in a perpetual "pending" state. We need to reset the milestone, etc if it has been pending
+        // for more then x time (6 hrs?)
+        // if (!receipt && milestone.updatedAt <= Date.now() - ) return;
         if (!receipt) return;
         // ignore if there isn't enough confirmations
         if (currentBlock - receipt.blockNumber < this.requiredConfirmations) return;

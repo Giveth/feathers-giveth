@@ -4,7 +4,7 @@ const createModel = require('../../models/dacs.model');
 const hooks = require('./dacs.hooks');
 const filters = require('./dacs.filters');
 
-module.exports = function() {
+module.exports = function dacs() {
   const app = this;
   const Model = createModel(app);
   const paginate = app.get('paginate');
