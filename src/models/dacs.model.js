@@ -12,9 +12,13 @@ export default function createModel(app) {
   const mongooseClient = app.get('mongooseClient');
   const { Schema } = mongooseClient;
   const dac = new Schema(
+    // TODO note: the following commenting out of required is b/c
+    // if a dac is added to lp not from the dapp, we can't
+    // guarnantee that those fields are present until we have
+    // ipfs enabled
     {
       title: { type: String, required: true },
-      description: { type: String, required: true },
+      description: { type: String }, // required: true },
       communityUrl: { type: String },
       summary: { type: String },
       delegateId: { type: String, index: true },
@@ -24,12 +28,12 @@ export default function createModel(app) {
         enum: Object.values(status),
         default: status.PENDING,
       },
-      image: { type: String, required: true },
+      image: { type: String }, // required: true },
       txHash: { type: String },
       totalDonated: { type: String },
       donationCount: { type: Number },
-      tokenName: { type: String, required: true },
-      tokenSymbol: { type: String, required: true },
+      tokenName: { type: String }, // required: true },
+      tokenSymbol: { type: String }, // required: true },
       ownerAddress: { type: String, required: true, index: true },
       pluginAddress: { type: String },
       tokenAddress: { type: String },
