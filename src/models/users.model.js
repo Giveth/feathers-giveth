@@ -10,7 +10,7 @@ module.exports = function User(app) {
       address: { type: String, required: true, index: true, unique: true },
       name: { type: String },
       email: { type: String },
-      giverId: { type: Number },
+      giverId: { type: String },
       commitTime: { type: String },
       avatar: { type: String },
     },
