@@ -1,5 +1,3 @@
-const shortid = require('shortid');
-
 // milestones-model.js - A mongoose model
 //
 // See http://mongoosejs.com/docs/models.html
@@ -33,7 +31,7 @@ module.exports = function Milestone(app) {
       recipientAddress: { type: String, required: true, index: true },
       campaignReviewerAddress: { type: String, required: true, index: true },
       campaignId: { type: String, required: true, index: true },
-      projectId: { type: String, index: true },
+      projectId: { type: Number, index: true },
       status: { type: String, required: true },
       items: [Item],
       ethConversionRateTimestamp: { type: Date, required: true },

@@ -21,7 +21,7 @@ export default function createModel(app) {
       description: { type: String }, // required: true },
       communityUrl: { type: String },
       summary: { type: String },
-      delegateId: { type: String, index: true },
+      delegateId: { type: Number, index: true },
       status: {
         type: String,
         require: true,
