@@ -3,7 +3,6 @@ import logger from 'winston';
 import { Kernel, AppProxyUpgradeable } from 'giveth-liquidpledging/build/contracts';
 import { LPPCappedMilestone } from 'lpp-capped-milestone';
 import { LPPCampaign } from 'lpp-campaign';
-import { LPPDac } from 'lpp-dac';
 
 import { getTokenInformation, milestoneStatus, pledgeState } from './helpers';
 import { status as DACStatus } from '../models/dacs.model';
@@ -214,21 +213,13 @@ class Admins {
         return data[0];
       });
 
-    const getTokenInfo = delegate =>
-      new LPPDac(this.web3, delegate.plugin)
-        .dacToken()
-        .then(token => getTokenInformation(this.web3, token));
-
     return this.liquidPledging
       .getPledgeAdmin(delegateId)
-      .then(delegate => Promise.all([delegate, findDAC(delegate), getTokenInfo(delegate)]))
-      .then(([delegate, dac, tokenInfo]) =>
+      .then(delegate => Promise.all([delegate, findDAC(delegate)]))
+      .then(([delegate, dac]) =>
         dacs.patch(dac._id, {
           delegateId,
           pluginAddress: delegate.plugin,
-          tokenAddress: tokenInfo.address,
-          tokenSymbol: tokenInfo.symbol,
-          tokenName: tokenInfo.name,
           status: DACStatus.ACTIVE,
         }),
       )
@@ -434,16 +425,8 @@ class Admins {
 
     const lppCampaign = new LPPCampaign(this.web3, project.plugin);
 
-    const getTokenInfo = () =>
-      lppCampaign.campaignToken().then(addr => getTokenInformation(this.web3, addr));
-
-    return Promise.all([
-      findCampaign(),
-      lppCampaign.isCanceled(),
-      lppCampaign.reviewer(),
-      getTokenInfo(),
-    ])
-      .then(([campaign, canceled, reviewer, tokenInfo]) =>
+    return Promise.all([findCampaign(), lppCampaign.isCanceled(), lppCampaign.reviewer()])
+      .then(([campaign, canceled, reviewer]) =>
         campaigns.patch(campaign._id, {
           projectId,
           title: project.name,
@@ -451,9 +434,6 @@ class Admins {
           pluginAddress: project.plugin,
           status: canceled ? CampaignStatus.CANCELED : CampaignStatus.ACTIVE,
           mined: true,
-          tokenAddress: tokenInfo.address,
-          tokenSymbol: tokenInfo.symbol,
-          tokenName: tokenInfo.name,
         }),
       )
       .then(campaign => {

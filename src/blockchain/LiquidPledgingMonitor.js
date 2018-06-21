@@ -6,7 +6,6 @@ import Admins from './Admins';
 import Pledges from './Pledges';
 import Payments from './Payments';
 import CappedMilestones from './CappedMilestones';
-import Tokens from './Tokens';
 import createModel from '../models/blockchain.model';
 import EventQueue from './EventQueue';
 
@@ -37,7 +36,6 @@ export default class {
     this.admins = new Admins(app, this.liquidPledging, eventQueue);
     this.pledges = new Pledges(app, this.liquidPledging, eventQueue);
     this.cappedMilestones = new CappedMilestones(app, this.web3);
-    this.tokens = new Tokens(app, this.web3);
     this.model = createModel(app);
 
     if (opts.startingBlock && opts.startingBlock !== 0) {
@@ -58,8 +56,6 @@ export default class {
         this.subscribeLP();
         this.subscribeCappedMilestones();
         this.subscribeVault();
-        this.subscribeGenerateTokens();
-        this.subscribeDestroyTokens();
       },
     );
 
@@ -156,26 +152,6 @@ export default class {
       .allEvents({ fromBlock })
       .on('data', this.newEvent.bind(this))
       .on('error', err => logger.error('SUBSCRIPTION ERROR: ', err));
-  }
-
-  /**
-   * subscribe to GenerateTokens event for any liquidPledging lpp-campaign & lpp-dac plugins
-   */
-  subscribeGenerateTokens() {
-    this.subscribeLogs([
-      keccak256('GenerateTokens(address,address,uint256)'), // hash of the event signature we're interested in
-      utils.padLeft(`0x${this.liquidPledging.$address.substring(2).toLowerCase()}`, 64), // remove leading 0x from address
-    ]).on('data', e => this.newEvent(Tokens.decodeGenerateTokensEventABI(e)));
-  }
-
-  /**
-   * subscribe to DestroyTokens event for any liquidPledging lpp-dac plugins
-   */
-  subscribeDestroyTokens() {
-    this.subscribeLogs([
-      keccak256('DestroyTokens(address,address,uint256)'), // hash of the event signature we're interested in
-      utils.padLeft(`0x${this.liquidPledging.$address.substring(2).toLowerCase()}`, 64), // remove leading 0x from address
-    ]).on('data', e => this.newEvent(Tokens.decodeDestroyTokensEventABI(e)));
   }
 
   subscribeLogs(topics) {
@@ -461,12 +437,6 @@ export default class {
         break;
       case 'PaymentCollected':
         this.cappedMilestones.paymentCollected(event);
-        break;
-      case 'GenerateTokens':
-        this.tokens.tokensGenerated(event);
-        break;
-      case 'DestroyTokens':
-        this.tokens.tokensDestroyed(event);
         break;
       default:
         logger.error('Unknown event: ', event);

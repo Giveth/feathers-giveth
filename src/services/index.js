@@ -1,7 +1,6 @@
 import challenges from './challenges/challenges.service';
 import pledgeAdmins from './pledgeAdmins/pledgeAdmins.service';
 import donationsHistory from './donationsHistory/donationsHistory.service';
-import donationTokens from './donationTokens/donationTokens.service';
 import events from './events/events.service';
 
 const dacs = require('./dacs/dacs.service.js');
@@ -27,7 +26,6 @@ module.exports = function() {
   app.configure(donations);
   app.configure(challenges);
   app.configure(pledgeAdmins);
-  app.configure(donationTokens);
   app.configure(whitelist);
   app.configure(gasprice);
   app.configure(ethconversion);

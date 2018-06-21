@@ -1,7 +1,6 @@
 /* eslint-disable import/no-extraneous-dependencies */
 const Web3 = require('web3');
 const { Kernel, ACL, LPVault, LiquidPledging, LPFactory, test } = require('giveth-liquidpledging');
-const { LPPDac, LPPDacFactory } = require('lpp-dac');
 const { LPPCampaign, LPPCampaignFactory } = require('lpp-campaign');
 const { LPPCappedMilestone, LPPCappedMilestoneFactory } = require('lpp-capped-milestone');
 const { MiniMeTokenFactory } = require('minimetoken');
@@ -68,12 +67,9 @@ async function deploy() {
 
     // deploy campaign plugin
     const tokenFactory = await MiniMeTokenFactory.new(foreignWeb3);
-    const lppCampaignFactory = await LPPCampaignFactory.new(
-      foreignWeb3,
-      kernel.$address,
-      tokenFactory.$address,
-      { $extraGas: 100000 },
-    );
+    const lppCampaignFactory = await LPPCampaignFactory.new(foreignWeb3, kernel.$address, {
+      $extraGas: 100000,
+    });
     await acl.grantPermission(
       lppCampaignFactory.$address,
       acl.$address,
@@ -94,36 +90,6 @@ async function deploy() {
       await kernel.APP_BASES_NAMESPACE(),
       await lppCampaignFactory.CAMPAIGN_APP_ID(),
       campaignApp.$address,
-      { $extraGas: 100000 },
-    );
-
-    // deploy dac plugin
-    const lppDacFactory = await LPPDacFactory.new(
-      foreignWeb3,
-      kernel.$address,
-      tokenFactory.$address,
-      { $extraGas: 100000 },
-    );
-    await acl.grantPermission(
-      lppDacFactory.$address,
-      acl.$address,
-      await acl.CREATE_PERMISSIONS_ROLE(),
-      {
-        $extraGas: 100000,
-      },
-    );
-    await acl.grantPermission(
-      lppDacFactory.$address,
-      liquidPledging.$address,
-      await liquidPledging.PLUGIN_MANAGER_ROLE(),
-      { $extraGas: 100000 },
-    );
-
-    const dacApp = await LPPDac.new(foreignWeb3);
-    await kernel.setApp(
-      await kernel.APP_BASES_NAMESPACE(),
-      await lppDacFactory.DAC_APP_ID(),
-      dacApp.$address,
       { $extraGas: 100000 },
     );
 
@@ -197,7 +163,6 @@ async function deploy() {
     console.log('\n\n', {
       vault: vault.$address,
       liquidPledging: liquidPledging.$address,
-      lppDacFactory: lppDacFactory.$address,
       lppCampaignFactory: lppCampaignFactory.$address,
       lppCappedMilestoneFactory: lppCappedMilestoneFactory.$address,
       givethBridge: homeBridge.$address,

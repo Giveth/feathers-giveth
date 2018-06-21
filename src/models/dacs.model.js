@@ -31,8 +31,6 @@ export default function createModel(app) {
       txHash: { type: String },
       totalDonated: { type: String },
       donationCount: { type: Number },
-      tokenName: { type: String }, // required: true },
-      tokenSymbol: { type: String }, // required: true },
       ownerAddress: { type: String, required: true, index: true },
       pluginAddress: { type: String },
       tokenAddress: { type: String },

@@ -21,8 +21,6 @@ export default function createModel(app) {
       totalDonated: { type: String },
       donationCount: { type: Number },
       peopleCount: { type: Number },
-      tokenName: { type: String, required: true },
-      tokenSymbol: { type: String, required: true },
       dacs: { type: [String] },
       reviewerAddress: { type: String, required: true, index: true },
       ownerAddress: { type: String, required: true, index: true },
