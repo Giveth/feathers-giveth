@@ -9,7 +9,7 @@ module.exports = function Conversations(app) {
     {
       milestoneId: { type: String, required: true, index: true },
       messageContext: { type: String, required: true },
-      message: { type: String, required: true },
+      message: { type: String },
       replyToId: { type: String },
       performedByRole: { type: String, required: true },
       ownerAddress: { type: String, required: true },
