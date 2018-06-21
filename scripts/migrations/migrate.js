@@ -91,7 +91,6 @@ const migrateMilestones = () => {
     {
       title: { type: String, required: true },
       description: { type: String, required: true },
-      summary: { type: String },
       image: { type: String },
       maxAmount: { type: String, required: true },
       ownerAddress: { type: String, required: true, index: true },
@@ -174,7 +173,6 @@ const migrateMilestones = () => {
             newMilestone = new Milestone({
               title: m.title,
               description: m.description,
-              summary: m.summary,
               image: constructNewImageUrl(m.image),
               maxAmount: m.maxAmount,
               ownerAddress: m.ownerAddress,
