@@ -49,19 +49,19 @@ class Web3Strategy extends Strategy {
     }
 
     // no signature, then they need a challenge msg to sign
-    if (!signature) return this._issueChallenge(address);
+    if (!signature) return this.issueChallenge(address);
 
     this.challenger.getMessage(address, (err, message) => {
       if (err) {
-        if (err.name === 'NotFound') return this._issueChallenge(address);
+        if (err.name === 'NotFound') return this.issueChallenge(address);
 
         return this.fail(err.message, 500);
       }
 
       // issue a challenge if there is not a valid message
-      if (!message) return this._issueChallenge(address);
+      if (!message) return this.issueChallenge(address);
 
-      const recoveredAddress = this._recoverAddress(message, signature);
+      const recoveredAddress = this.recoverAddress(message, signature);
       const cAddress = toChecksumAddress(address);
 
       if (recoveredAddress !== cAddress)
@@ -75,14 +75,16 @@ class Web3Strategy extends Strategy {
     });
   }
 
-  _recoverAddress(message, signature) {
+  /* eslint-disable class-methods-use-this */
+  recoverAddress(message, signature) {
     const accounts = new Accounts();
-    const address = accounts.recover(accounts.hashMessage(message), signature);
+    // const address = accounts.recover(accounts.hashMessage(message), signature);
+    const address = accounts.recover(message, signature);
 
     return toChecksumAddress(address);
   }
 
-  _issueChallenge(address) {
+  issueChallenge(address) {
     this.challenger.generateMessage(address, (err, message) => {
       if (err) return this.fail('Error generating challenge', 500);
 

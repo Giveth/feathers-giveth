@@ -1,14 +1,14 @@
-import onlyInternal from '../../hooks/onlyInternal';
+import { disallow } from 'feathers-hooks-common';
 
 export default {
   before: {
     all: [],
     find: [],
     get: [],
-    create: [onlyInternal()],
-    update: [onlyInternal()],
-    patch: [onlyInternal()],
-    remove: [onlyInternal()],
+    create: [disallow('external')],
+    update: [disallow('external')],
+    patch: [disallow('external')],
+    remove: [disallow('external')],
   },
 
   after: {

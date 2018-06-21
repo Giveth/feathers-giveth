@@ -1,6 +1,7 @@
+import { disallow } from 'feathers-hooks-common';
+
 import onlyInternal from '../../hooks/onlyInternal';
 import { getEthConversion } from './getEthConversionService';
-import { disallow } from 'feathers-hooks-common';
 
 const getConversionRates = () => context => {
   const { app, params } = context;
@@ -10,8 +11,11 @@ const getConversionRates = () => context => {
   if (params.internal) return context;
 
   return getEthConversion(app, params.query.date).then(res => {
-    context.result = res;
-    return context;
+    const context2 = Object.assign({}, context);
+    const res2 = Object.assign({}, res);
+    res2.rates.ETH = 1;
+    context2.result = res2;
+    return context2;
   });
 };
 
@@ -22,7 +26,7 @@ module.exports = {
     get: [disallow()],
     create: [onlyInternal()],
     update: [disallow()],
-    patch: [disallow()],
+    patch: [onlyInternal()], // New currencies can be added, but disallow update
     remove: [disallow()],
   },
 

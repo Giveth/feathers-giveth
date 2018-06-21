@@ -4,7 +4,7 @@ import { restrictToOwner } from 'feathers-authentication-hooks';
 import sanitizeAddress from '../../hooks/sanitizeAddress';
 import setAddress from '../../hooks/setAddress';
 import sanitizeHtml from '../../hooks/sanitizeHtml';
-import { updatedAt, createdAt } from '../../hooks/timestamps';
+import addConfirmations from '../../hooks/addConfirmations';
 
 const restrict = [
   restrictToOwner({
@@ -59,6 +59,7 @@ const addCampaignCounts = () => context => {
 };
 
 const isDacAllowed = () => context => {
+  console.log(commons.getItems(context));
   if (!context.app.get('useDelegateWhitelist')) {
     return context;
   }
@@ -92,27 +93,24 @@ module.exports = {
       isDacAllowed(),
       sanitizeAddress('ownerAddress', { required: true, validate: true }),
       sanitizeHtml('description'),
-      createdAt,
     ],
     update: [
       ...restrict,
       sanitizeAddress('ownerAddress', { required: true, validate: true }),
       sanitizeHtml('description'),
-      updatedAt,
     ],
     patch: [
       ...restrict,
       sanitizeAddress('ownerAddress', { validate: true }),
       sanitizeHtml('description'),
-      updatedAt,
     ],
     remove: [commons.disallow()],
   },
 
   after: {
     all: [commons.populate({ schema })],
-    find: [addCampaignCounts()],
-    get: [addCampaignCounts()],
+    find: [addCampaignCounts(), addConfirmations()],
+    get: [addCampaignCounts(), addConfirmations()],
     create: [],
     update: [],
     patch: [],
