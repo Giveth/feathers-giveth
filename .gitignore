@@ -3,8 +3,8 @@ scripts/deployGiveth.js
 scripts/deployBridge.js
 scripts/upgradeForeignBridge.js
 scripts/upgradeHomeBridge.js
-config/production.json
-config/development.json
+config
+!config/default.json
 ecosystem.config.js
 
 # Logs

@@ -33,7 +33,6 @@ app.configure(configuration());
 let origin;
 
 app.get('env') === 'production' ? origin = app.get('dappUrl') : origin = "*"; 
-console.log('origin', origin);
 
 var corsOptions = {
   origin: origin,
