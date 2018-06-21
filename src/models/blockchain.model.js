@@ -15,5 +15,12 @@ module.exports = function Blockchain(app) {
     },
   );
 
-  return mongooseClient.model('blockchain', blockchain);
+  try {
+    return mongooseClient.model('blockchain');
+  } catch (e) {
+    if (e.name === 'MissingSchemaError') {
+      return mongooseClient.model('blockchain', blockchain);
+    }
+    throw e;
+  }
 };

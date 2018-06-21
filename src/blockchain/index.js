@@ -39,6 +39,7 @@ export default function() {
     // for some reason, if we have the contracts in getNetwork as in commit #67196cd807c52785367aee5224e8d6e5134015c8
     // upon reconnection, the web3 provider will not update and will throw "connection not open on send()"
     // maybe https://github.com/ethereum/web3.js/issues/1188 is the issue?
+    // can move back to getNetwork when https://github.com/ethereum/web3.js/pull/1726 is merged
     const liquidPledging = new LiquidPledging(web3, blockchain.liquidPledgingAddress);
     liquidPledging.$vault = new LPVault(web3, blockchain.vaultAddress);
 
@@ -65,6 +66,10 @@ export default function() {
         newProvider.on('connect', () => {
           logger.info('successfully connected');
           clearInterval(intervalId);
+          // note: "connection not open on send()" will appear in the logs when setProvider is called
+          // This is because web3.setProvider will attempt to clear any subscriptions on the currentProvider
+          // before setting the newProvider. Our currentProvider has been disconnected, so thus the not open
+          // error is logged
           web3.setProvider(newProvider);
           reconnectOnEnd();
 
@@ -73,11 +78,12 @@ export default function() {
           // not sure of the cause, but it appears the the subscriptions are not updated
           // with the latest provider. https://github.com/ethereum/web3.js/issues/1188 may
           // be something to look into
+          // PR: https://github.com/ethereum/web3.js/pull/1726
 
           // txMonitor.start();
           // if (lpMonitor) {
-          // web3.setProvider will clear any existing subscriptions, so we need to re-subscribe
-          // lpMonitor.start();
+            // web3.setProvider will clear any existing subscriptions, so we need to re-subscribe
+            // lpMonitor.start();
           // }
 
           // using this instead of the above.
