@@ -77,7 +77,7 @@
     "semaphore": "^1.1.0",
     "serve-favicon": "^2.4.3",
     "shortid": "^2.2.8",
-    "web3": "1.0.0-beta.34",
+    "web3": "git://github.com/perissology/web3.js.git#contract-provider",
     "web3-core-promievent": "1.0.0-beta.34",
     "web3-eth-accounts": "1.0.0-beta.34",
     "web3-eth-contract": "1.0.0-beta.34",

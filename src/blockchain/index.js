@@ -6,7 +6,7 @@ import LiquidPledgingMonitor from './LiquidPledgingMonitor';
 import FailedTxMonitor from './FailedTxMonitor';
 import BalanceMonitor from './BalanceMonitor';
 
-const ONE_MINUTE = 60 * 1000;
+const THIRTY_SECONDS = 30 * 1000;
 
 export default function() {
   const app = this;
@@ -80,16 +80,16 @@ export default function() {
           // be something to look into
           // PR: https://github.com/ethereum/web3.js/pull/1726
 
-          // txMonitor.start();
-          // if (lpMonitor) {
+          txMonitor.start();
+          if (lpMonitor) {
             // web3.setProvider will clear any existing subscriptions, so we need to re-subscribe
-            // lpMonitor.start();
-          // }
+            lpMonitor.start();
+          }
 
           // using this instead of the above.
-          init();
+          // init();
         });
-      }, ONE_MINUTE);
+      }, THIRTY_SECONDS);
     });
   };
 
