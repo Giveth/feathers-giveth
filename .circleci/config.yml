@@ -26,7 +26,9 @@ jobs:
           # fallback to using the latest cache if no exact match is found
           - v1-dependencies-
 
-      - run: npm ci
+      - run:
+        command: |
+          npm install -g lerna@^2.2.0 && npm ci
 
       - save_cache:
           paths:
