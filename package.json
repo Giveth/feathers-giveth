@@ -4,7 +4,9 @@
   "version": "0.0.0",
   "homepage": "",
   "main": "src",
-  "keywords": ["feathers"],
+  "keywords": [
+    "feathers"
+  ],
   "author": {
     "name": "ojones",
     "email": "wakeupoj@gmail.com"
