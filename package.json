@@ -4,9 +4,7 @@
   "version": "0.0.0",
   "homepage": "",
   "main": "src",
-  "keywords": [
-    "feathers"
-  ],
+  "keywords": ["feathers"],
   "author": {
     "name": "ojones",
     "email": "wakeupoj@gmail.com"
@@ -62,6 +60,7 @@
     "fs-blob-store": "^5.2.1",
     "giveth-liquidpledging": "1.0.0-beta.6",
     "helmet": "^3.8.1",
+    "lerna": "^2.5.1",
     "lpp-campaign": "1.0.0-beta.3",
     "lpp-capped-milestone": "1.0.0-beta.4",
     "minimetoken": "^0.2.0",
