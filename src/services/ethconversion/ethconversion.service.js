@@ -1,5 +1,5 @@
 // Initializes the `ethconversion` service on path `/ethconversion`
-const createService = require('feathers-nedb');
+const createService = require('feathers-mongoose');
 const createModel = require('../../models/ethconversion.model');
 const hooks = require('./ethconversion.hooks');
 const filters = require('./ethconversion.filters');

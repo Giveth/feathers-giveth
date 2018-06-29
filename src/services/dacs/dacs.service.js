@@ -1,10 +1,10 @@
 // Initializes the `dacs` service on path `/dacs`
-const createService = require('feathers-nedb');
-const createModel = require('../../models/dacs.model');
+const createService = require('feathers-mongoose');
+const createModel = require('../../models/dacs.model').default;
 const hooks = require('./dacs.hooks');
 const filters = require('./dacs.filters');
 
-module.exports = function() {
+module.exports = function dacs() {
   const app = this;
   const Model = createModel(app);
   const paginate = app.get('paginate');

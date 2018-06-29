@@ -1,23 +1,28 @@
 import logger from 'winston';
 
-import { LPPCappedMilestones } from 'lpp-capped-milestone-token';
-import { LPPCappedMilestonesRuntimeByteCode } from 'lpp-capped-milestone-token/build/LPPCappedMilestones.sol';
+import { Kernel, AppProxyUpgradeable } from 'giveth-liquidpledging/build/contracts';
+import { LPPCappedMilestone } from 'lpp-capped-milestone';
 import { LPPCampaign } from 'lpp-campaign';
-import { LPPCampaignRuntimeByteCode } from 'lpp-campaign/build/LPPCampaignFactory.sol';
 
 import { getTokenInformation, milestoneStatus, pledgeState } from './helpers';
+import { status as DACStatus } from '../models/dacs.model';
+import { status as CampaignStatus } from '../models/campaigns.model';
 
-const BreakSignal = () => {};
+class BreakSignal extends Error {
+  constructor(...args) {
+    super(...args);
+    Error.captureStackTrace(this, BreakSignal);
+  }
+}
 
 /**
  * class to keep feathers cache in sync with liquidpledging admins
  */
 class Admins {
-  constructor(app, liquidPledging, lppDacs, eventQueue) {
+  constructor(app, liquidPledging, eventQueue) {
     this.app = app;
     this.web3 = liquidPledging.$web3;
     this.liquidPledging = liquidPledging;
-    this.lppDacs = lppDacs;
     this.queue = eventQueue;
   }
 
@@ -102,7 +107,11 @@ class Admins {
       })
       .then(u => {
         user = u;
-        if (user.giverId && (user.giverId !== 0 || user.giverId !== '0')) {
+        if (
+          user.giverId &&
+          (user.giverId !== 0 || user.giverId !== '0') &&
+          user.giverId !== giverId
+        ) {
           logger.error(
             `user already has a giverId set. existing giverId: ${
               user.giverId
@@ -123,7 +132,6 @@ class Admins {
       .catch(err => logger.error('_addGiver error ->', err));
   }
 
-  // TODO support delegates other then dacs
   addDelegate(event) {
     if (event.event !== 'DelegateAdded')
       throw new Error('addDelegate only handles DelegateAdded events');
@@ -205,19 +213,14 @@ class Admins {
         return data[0];
       });
 
-    const getTokenInfo = () =>
-      this.lppDacs.getDac(delegateId).then(({ token }) => getTokenInformation(this.web3, token));
-
     return this.liquidPledging
       .getPledgeAdmin(delegateId)
-      .then(delegate => Promise.all([delegate, findDAC(delegate), getTokenInfo(delegate)]))
-      .then(([delegate, dac, tokenInfo]) =>
+      .then(delegate => Promise.all([delegate, findDAC(delegate)]))
+      .then(([delegate, dac]) =>
         dacs.patch(dac._id, {
           delegateId,
           pluginAddress: delegate.plugin,
-          tokenAddress: tokenInfo.address,
-          tokenSymbol: tokenInfo.symbol,
-          tokenName: tokenInfo.name,
+          status: DACStatus.ACTIVE,
         }),
       )
       .then(dac => {
@@ -236,24 +239,34 @@ class Admins {
     const projectId = event.returnValues.idProject;
     const txHash = event.transactionHash;
 
-    return this.liquidPledging
-      .getPledgeAdmin(projectId)
-      .then(project => Promise.all([project, this.web3.eth.getCode(project.plugin)]))
-      .then(([project, byteCode]) => {
-        if (byteCode === LPPCappedMilestonesRuntimeByteCode)
-          return this._addMilestone(project, projectId, txHash);
-        if (byteCode === LPPCampaignRuntimeByteCode)
-          return this._addCampaign(project, projectId, txHash);
+    return this.getAndSetAppBases().then(() =>
+      this.liquidPledging
+        .getPledgeAdmin(projectId)
+        .then(project =>
+          Promise.all([
+            project,
+            new AppProxyUpgradeable(this.web3, project.plugin).implementation(),
+          ]),
+        )
+        .then(([project, baseCode]) => {
+          if (!this.milestoneBase || !this.campaignBase)
+            logger.error(
+              'missing milestone or campaign base',
+              this.milestoneBase,
+              this.campaignBase,
+            );
+          if (baseCode === this.milestoneBase)
+            return this._addMilestone(project, projectId, txHash);
+          if (baseCode === this.campaignBase) return this._addCampaign(project, projectId, txHash);
 
-        logger.error('AddProject event with unknown plugin byteCode ->', event);
-      });
+          logger.error('AddProject event with unknown plugin baseCode ->', event, baseCode);
+        }),
+    );
   }
 
   _addMilestone(project, projectId, txHash, retry = false) {
     const milestones = this.app.service('/milestones');
     const campaigns = this.app.service('/campaigns');
-
-    const cappedMilestones = new LPPCappedMilestones(this.web3, project.plugin);
 
     // get_or_create campaign by projectId
     const findCampaign = campaignProjectId =>
@@ -327,23 +340,34 @@ class Admins {
         return data[0];
       });
 
+    const cappedMilestone = new LPPCappedMilestone(this.web3, project.plugin);
+
     return Promise.all([
       findMilestone(),
-      cappedMilestones.getMilestone(projectId),
+      cappedMilestone.maxAmount(),
+      cappedMilestone.reviewer(),
+      cappedMilestone.campaignReviewer(),
+      cappedMilestone.recipient(),
+      cappedMilestone.completed(),
       this.liquidPledging.isProjectCanceled(projectId),
     ])
-      .then(([milestone, bMilestone, canceled]) =>
-        milestones.patch(milestone._id, {
-          projectId,
-          maxAmount: bMilestone.maxAmount,
-          reviewerAddress: bMilestone.reviewer,
-          campaignReviewerAddress: bMilestone.campaignReviewer,
-          recipientAddress: bMilestone.recipient,
-          title: project.name,
-          pluginAddress: project.plugin,
-          status: milestoneStatus(bMilestone.accepted, canceled),
-          mined: true,
-        }),
+      .then(([milestone, maxAmount, reviewer, campaignReviewer, recipient, completed, canceled]) =>
+        milestones.patch(
+          milestone._id,
+          {
+            projectId,
+            maxAmount,
+            reviewerAddress: reviewer,
+            campaignReviewerAddress: campaignReviewer,
+            recipientAddress: recipient,
+            title: project.name,
+            pluginAddress: project.plugin,
+            status: milestoneStatus(completed, canceled),
+            mined: true,
+            performedByAddress: milestone.ownerAddress,
+          },
+          { eventTxHash: txHash },
+        ),
       )
       .then(milestone => {
         this._addPledgeAdmin(projectId, 'milestone', milestone._id).then(() => milestone);
@@ -369,12 +393,14 @@ class Admins {
             throw new BreakSignal();
           }
 
-          return this.web3.eth
-            .getTransaction(txHash)
-            .then(tx =>
+          const lppCampaign = new LPPCampaign(this.web3, project.plugin);
+
+          return Promise.all([this.web3.eth.getTransaction(txHash), lppCampaign.reviewer()])
+            .then(([tx, reviewerAddress]) =>
               campaigns.create({
                 ownerAddress: tx.from,
                 pluginAddress: project.plugin,
+                reviewerAddress,
                 title: project.name,
                 description: '',
                 txHash,
@@ -399,26 +425,15 @@ class Admins {
 
     const lppCampaign = new LPPCampaign(this.web3, project.plugin);
 
-    const getTokenInfo = () =>
-      lppCampaign.token().then(addr => getTokenInformation(this.web3, addr));
-
-    return Promise.all([
-      findCampaign(),
-      lppCampaign.isCanceled(),
-      lppCampaign.reviewer(),
-      getTokenInfo(),
-    ])
-      .then(([campaign, canceled, reviewer, tokenInfo]) =>
+    return Promise.all([findCampaign(), lppCampaign.isCanceled(), lppCampaign.reviewer()])
+      .then(([campaign, canceled, reviewer]) =>
         campaigns.patch(campaign._id, {
           projectId,
           title: project.name,
           reviewerAddress: reviewer,
           pluginAddress: project.plugin,
-          status: canceled ? 'Canceled' : 'Active',
+          status: canceled ? CampaignStatus.CANCELED : CampaignStatus.ACTIVE,
           mined: true,
-          tokenAddress: tokenInfo.address,
-          tokenSymbol: tokenInfo.symbol,
-          tokenName: tokenInfo.name,
         }),
       )
       .then(campaign => {
@@ -507,6 +522,42 @@ class Admins {
       });
   }
 
+  setApp(event) {
+    if (event.event !== 'SetApp') throw new Error('setApp only handles SetApp events');
+
+    const { name, app } = event.returnValues;
+    const { keccak256 } = this.web3.utils;
+
+    if (name === keccak256('lpp-capped-milestone')) {
+      this.milestoneBase = app;
+    } else if (name === keccak256('lpp-campaign')) {
+      this.campaignBase = app;
+    } else {
+      logger.warn(`Unkonwn name in SetApp event:`, event);
+    }
+  }
+
+  getAndSetAppBases() {
+    if (this.campaignBase && this.milestoneBase) return Promise.resolve();
+
+    const { keccak256 } = this.web3.utils;
+
+    return this.liquidPledging
+      .kernel()
+      .then(kernel => {
+        const k = new Kernel(this.web3, kernel);
+
+        return Promise.all([
+          k.getApp(keccak256(keccak256('base') + keccak256('lpp-campaign').substr(2))),
+          k.getApp(keccak256(keccak256('base') + keccak256('lpp-capped-milestone').substr(2))),
+        ]);
+      })
+      .then(([campaignBase, milestoneBase]) => {
+        this.campaignBase = campaignBase;
+        this.milestoneBase = milestoneBase;
+      });
+  }
+
   cancelProject(event) {
     if (event.event !== 'CancelProject')
       throw new Error('cancelProject only handles CancelProject events');
@@ -533,9 +584,7 @@ class Admins {
               {
                 query: {
                   campaignId: pledgeAdmin.typeId,
-                  $not: {
-                    status: 'Canceled',
-                  },
+                  status: { $ne: 'Canceled' },
                 },
               },
             )
@@ -573,10 +622,14 @@ class Admins {
           .catch(logger.error);
 
         // update admin entity
-        return service.patch(pledgeAdmin.typeId, {
-          status: 'Canceled',
-          mined: true,
-        });
+        return service.patch(
+          pledgeAdmin.typeId,
+          {
+            status: 'Canceled',
+            mined: true,
+          },
+          { eventTxHash: event.transactionHash },
+        );
       })
       .catch(error => {
         if (error.name === 'NotFound') return;

@@ -2,11 +2,11 @@
 import logger from 'winston';
 
 export default function() {
-  return function(hook) {
+  return function log(hook) {
     let message = `${hook.type}: ${hook.path} - Method: ${hook.method}`;
 
     if (hook.type === 'error') {
-      message += `: ${hook.error.message}`;
+      message += ` - ${hook.error.message}`;
     }
 
     if (hook.params.provider) {
@@ -22,10 +22,15 @@ export default function() {
     }
 
     if (hook.error) {
-      if (hook.path === 'authentication/challenges' && hook.error.message.includes('Challenge =')) {
-        logger.warn(hook.error);
+      const e = hook.error;
+      delete e.hook;
+
+      if (hook.path === 'authentication') {
+        logger.debug(e);
+      } else if (hook.error.name === 'NotFound') {
+        logger.info(`${hook.path} - ${hook.error.message}`);
       } else {
-        logger.warn(hook.error);
+        logger.error(e);
       }
     }
   };

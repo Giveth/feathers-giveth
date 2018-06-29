@@ -1,8 +1,11 @@
 build
-scripts/deployRopsten.js
 scripts/deployGiveth.js
-config/production.json
-config/development.json
+scripts/deployBridge.js
+scripts/upgradeForeignBridge.js
+scripts/upgradeHomeBridge.js
+config
+!config/default.json
+ecosystem.config.js
 
 # Logs
 logs

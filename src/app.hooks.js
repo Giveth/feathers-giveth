@@ -1,13 +1,7 @@
 // Application hooks that run for every service
-import { restrictToAuthenticated } from 'feathers-authentication-hooks';
 import auth from 'feathers-authentication';
+import { discard } from 'feathers-hooks-common';
 import logger from './hooks/logger';
-
-const excludableRestrictToAuthenticated = (...servicesToExclude) => context => {
-  if (servicesToExclude.indexOf(context.path) > -1) return context;
-
-  return restrictToAuthenticated()(context);
-};
 
 const authenticate = () => context => {
   // socket connection is already authenticated
@@ -21,14 +15,14 @@ export default {
     all: [],
     find: [],
     get: [],
-    create: [authenticate(), excludableRestrictToAuthenticated('authentication')],
-    update: [authenticate(), restrictToAuthenticated()],
-    patch: [authenticate(), restrictToAuthenticated()],
-    remove: [authenticate(), excludableRestrictToAuthenticated('authentication')],
+    create: [authenticate()],
+    update: [authenticate()],
+    patch: [authenticate()],
+    remove: [authenticate()],
   },
 
   after: {
-    all: [logger()],
+    all: [logger(), discard('__v')],
     find: [],
     get: [],
     create: [],
