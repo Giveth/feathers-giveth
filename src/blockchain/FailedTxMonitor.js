@@ -170,7 +170,7 @@ class FailedTxMonitor extends EventEmitter {
         if (!receipt || !receipt.status) {
           dacs
             .patch(dac._id, {
-              status: 'failed',
+              status: DACStatus.FAILED,
             })
             .catch(logger.error);
 
@@ -241,7 +241,7 @@ class FailedTxMonitor extends EventEmitter {
           // if status !== pending, then the cancel campaign transaction failed, so reset
           const mutation =
             campaign.status === CampaignStatus.PENDING
-              ? { status: 'failed' }
+              ? { status: CampaignStatus.FAILED }
               : { status: CampaignStatus.ACTIVE, mined: true };
 
           campaigns.patch(campaign._id, mutation).catch(logger.error);
