@@ -2,6 +2,7 @@ export const status = {
   ACTIVE: 'Active',
   PENDING: 'Pending',
   CANCELED: 'Canceled',
+  FAILED: 'Failed',
 };
 
 // campaigns-model.js - A mongoose model
