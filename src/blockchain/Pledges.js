@@ -38,27 +38,31 @@ class Pledges {
     const txHash = event.transactionHash;
 
     const processEvent = (retry = false) => {
-      this.queue.startProcessing(txHash);
-      return this.getBlockTimestamp(event.blockNumber)
-        .then(ts => {
-          if (from === '0') {
-            return this.newDonation(to, amount, txHash, retry)
-              .then(() => this.queue.purge(txHash))
-              .catch(err => {
-                if (err instanceof ReProcessEvent) {
-                  // this is really only useful when instant mining. Other then that, the
-                  // donation should always be created before the tx was mined.
-                  setTimeout(() => processEvent(true), 5000);
-                  return;
-                }
+      this.queue.add(event.transactionHash, () =>
+        this.getBlockTimestamp(event.blockNumber)
+          .then(ts => {
+            if (from === '0') {
+              return this.newDonation(to, amount, txHash, retry)
+                .then(() => this.queue.purge(txHash))
+                .catch(err => {
+                  if (err instanceof ReProcessEvent) {
+                    // this is really only useful when instant mining. Other then that, the
+                    // donation should always be created before the tx was mined.
+                    setTimeout(() => processEvent(true), 5000);
+                    return;
+                  }
 
-                logger.error('newDonation error ->', err);
-              });
-          }
+                  logger.error('newDonation error ->', err);
+                });
+            }
 
-          return this._transfer(from, to, amount, ts, txHash).then(() => this.queue.purge(txHash));
-        })
-        .then(() => this.queue.finishedProcessing(txHash));
+            return this._transfer(from, to, amount, ts, txHash);
+          })
+          .then(() => this.queue.purge(txHash)),
+      );
+      // immediately start processing this event. We add to the queue first, so
+      // the queue can track the event processing for the txHash
+      this.queue.purge(event.transactionHash);
     };
 
     // parity uses transactionLogIndex

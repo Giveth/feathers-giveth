@@ -4,7 +4,7 @@ import { Kernel, AppProxyUpgradeable } from 'giveth-liquidpledging/build/contrac
 import { LPPCappedMilestone } from 'lpp-capped-milestone';
 import { LPPCampaign } from 'lpp-campaign';
 
-import { getTokenInformation, milestoneStatus, pledgeState } from './helpers';
+import { milestoneStatus, pledgeState } from './helpers';
 import { status as DACStatus } from '../models/dacs.model';
 import { status as CampaignStatus } from '../models/campaigns.model';
 
@@ -31,11 +31,15 @@ class Admins {
 
     const { returnValues } = event;
 
-    this.queue.startProcessing(event.transactionHash);
-    this.liquidPledging
-      .getPledgeAdmin(returnValues.idGiver)
-      .then(giver => this._addGiver(giver, returnValues.idGiver, event.transactionHash))
-      .catch(err => logger.error('addGiver error ->', err));
+    this.queue.add(event.transactionHash, () =>
+      this.liquidPledging
+        .getPledgeAdmin(returnValues.idGiver)
+        .then(giver => this._addGiver(giver, returnValues.idGiver, event.transactionHash))
+        .catch(err => logger.error('addGiver error ->', err)),
+    );
+    // immediately start processing this event. We add to the queue first, so
+    // the queue can track the event processing for the txHash
+    this.queue.purge(event.transactionHash);
   }
 
   updateGiver(event) {
@@ -127,7 +131,6 @@ class Admins {
       })
       .then(user => this._addPledgeAdmin(giverId, 'giver', user.address))
       .then(() => this.queue.purge(txHash))
-      .then(() => this.queue.finishedProcessing(txHash))
       .then(() => user)
       .catch(err => logger.error('_addGiver error ->', err));
   }

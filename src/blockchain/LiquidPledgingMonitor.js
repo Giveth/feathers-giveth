@@ -7,7 +7,7 @@ import Pledges from './Pledges';
 import Payments from './Payments';
 import CappedMilestones from './CappedMilestones';
 import createModel from '../models/blockchain.model';
-import EventQueue from './EventQueue';
+import getQueue from '../utils/processingQueue';
 
 const to = require('../utils/to');
 const { removeHexPrefix } = require('./web3Helpers');
@@ -28,9 +28,9 @@ export default class {
     this.requiredConfirmations = opts.requiredConfirmations || 0;
     this.currentBlock = 0;
 
-    this.newEventQueue = new EventQueue();
+    this.newEventQueue = getQueue('NewEventQueue');
 
-    const confirmedEventQueue = new EventQueue();
+    const confirmedEventQueue = getQueue('ConfirmedEventQueue');
 
     this.payments = new Payments(app, this.liquidPledging.$vault, confirmedEventQueue);
     this.admins = new Admins(app, this.liquidPledging, confirmedEventQueue);
