@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 const altered = require('./altered.js');
 const missing = require('./missing.js');
+const fs = require('fs');
+const crypto = require('crypto');
 
 const Schema = mongoose.Schema;
 const shortid = require('shortid');
@@ -9,13 +11,45 @@ const shortid = require('shortid');
 const baseUploadUrl = 'localhost:3010/uploads';
 const mongoUrl = 'mongodb://localhost:27017/giveth';
 
+if (!fs.existsSync('uploads')) fs.mkdirSync('uploads');
+
+/**
+ * Get extension from base64 encoded image string
+ *
+ * @param {String} data Base 64 image data
+ *
+ * @return {String} one of jpeg, gif, png
+ */
+function guessImageExtension(data) {
+  if (data.charAt(0) === '/') {
+    return 'jpeg';
+  } else if (data.charAt(0) === 'R') {
+    return 'gif';
+  } else if (data.charAt(0) === 'i') {
+    return 'png';
+  }
+  return 'jpeg';
+}
+
 /**
  * Constructs new image url
  */
 const constructNewImageUrl = url => {
   if (url) {
+    // The image is directly stored in the DB data, extract it
+    if (url.startsWith('data:')) {
+      const base64Image = url.split(';base64,').pop();
+
+      const filename = `${crypto.randomBytes(32).toString('hex')}.${guessImageExtension(
+        base64Image,
+      )}`;
+
+      fs.writeFile(`uploads/${filename}`, base64Image, { encoding: 'base64' }, () => {});
+      return baseUploadUrl + filename;
+    }
     return baseUploadUrl + url.split('/uploads')[1];
   }
+  return '';
 };
 
 /**
@@ -170,7 +204,7 @@ const migrateMilestones = () => {
 
             console.log('processing milestone > ', m._id);
 
-            newMilestone = new Milestone({
+            const newMilestone = new Milestone({
               title: m.title,
               description: m.description,
               image: constructNewImageUrl(m.image),
@@ -199,9 +233,9 @@ const migrateMilestones = () => {
               migratedId: m._id,
             });
 
-            m.items &&
-              m.items.map(i => {
-                newItem = {
+            if (m.items) {
+              m.items.foreach(i => {
+                const newItem = {
                   id: i.id,
                   date: i.date,
                   description: i.description,
@@ -216,6 +250,7 @@ const migrateMilestones = () => {
 
                 newMilestone.items.push(newItem);
               });
+            }
 
             newMilestone
               .save()
