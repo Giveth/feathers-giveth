@@ -1,7 +1,16 @@
-import logger from 'winston';
-import { lockNonceAndSendTransaction } from './helpers';
+const logger = require('winston');
+const { lockNonceAndSendTransaction } = require('./helpers');
 
-export default class {
+// recursively execute all requests in batches of 100
+function batchAndExecuteRequests(web3, requests) {
+  const batch = new web3.BatchRequest();
+  requests.splice(0, 100).forEach(r => batch.add(r));
+  batch.execute();
+
+  batchAndExecuteRequests(web3, requests);
+}
+
+module.exports = class {
   constructor(app, web3) {
     this.app = app;
     this.web3 = web3;
@@ -13,7 +22,6 @@ export default class {
     this.fundingTimeout = blockchain.walletFundingTimeout;
     this.blacklist = blockchain.walletFundingBlacklist;
 
-    this.queue = [];
     this.isRunning = false;
 
     const { ethFunderPK } = blockchain;
@@ -24,57 +32,49 @@ export default class {
   }
 
   start() {
-    if (!this.account) logger.warn('Not starting BalanceMonitor as no ethFunderPK was provided');
+    if (!this.account) {
+      logger.warn('Not starting BalanceMonitor as no ethFunderPK was provided');
+      return;
+    }
 
     const poll = () => {
-      this.checkBalances();
+      this.fundAccountsWithLowBalance();
       setTimeout(poll, this.pollTime);
     };
 
     poll();
   }
 
-  checkBalances() {
-    return this.app
-      .service('users')
-      .find({
-        paginate: false,
-        query: {
-          address: {
-            $nin: this.blacklist,
-          },
-          $or: [
-            { lastFunded: { $exists: false } },
-            { lastFunded: { $lte: new Date().getTime() - this.fundingTimeout } },
-          ],
-        },
-      })
-      .then(users => {
-        if (users.length === 0) return;
+  async fundAccountsWithLowBalance() {
+    // fetch all users that are not blacklisted and were lastFunded before the fundingTimeout
+    const query = {
+      address: {
+        $nin: this.blacklist,
+      },
+      $or: [
+        { lastFunded: { $exists: false } },
+        { lastFunded: { $lte: new Date().getTime() - this.fundingTimeout } },
+      ],
+    };
 
-        let i = 0;
-        let batch = new this.web3.BatchRequest();
+    const usersToCheck = await this.app.service('users').find({ paginate: false, query });
 
-        users.forEach(u => {
-          batch.add(
-            this.web3.eth.getBalance.request(u.address, 'pending', (err, bal) => {
-              if (err) logger.error('Error fetching balance for address: ', u.address, err);
-              this.sendEthIfNecessary(u, bal);
-            }),
-          );
+    if (usersToCheck.length === 0) return;
 
-          i += 1;
-          if (i % 100 === 0) {
-            batch.execute();
-            batch = new this.web3.BatchRequest();
-          }
-        });
+    const handleBalanceResponse = user => (err, balance) => {
+      if (err) logger.error('Error fetching balance for address: ', user.address, err);
+      this.fundAccountIfLow(user, balance);
+    };
 
-        batch.execute();
-      });
+    // generate a request to execute to fetch each users balance
+    const balRequests = usersToCheck.map(user =>
+      this.web3.getBalance.request(user.address, 'pending', handleBalanceResponse(user)),
+    );
+
+    batchAndExecuteRequests(this.web3, balRequests);
   }
 
-  sendEthIfNecessary(user, currentBal) {
+  fundAccountIfLow(user, currentBal) {
     const { toBN } = this.web3.utils;
 
     if (toBN(currentBal).lt(toBN(this.minBal))) {
@@ -90,4 +90,4 @@ export default class {
       });
     }
   }
-}
+};
