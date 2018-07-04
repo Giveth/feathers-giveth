@@ -1,13 +1,65 @@
-import LiquidPledgingArtifact from 'giveth-liquidpledging/build/LiquidPledging.json';
-import LPVaultArtifact from 'giveth-liquidpledging/build/LPVault.json';
-import LPPCappedMilestoneArtifact from 'lpp-capped-milestone/build/LPPCappedMilestone.json';
-import EventEmitter from 'events';
-import logger from 'winston';
-import { status as DACStatus } from '../models/dacs.model';
-import { status as CampaignStatus } from '../models/campaigns.model';
+const Contract = require('web3-eth-contract');
+const EventEmitter = require('events');
+const LiquidPledgingArtifact = require('giveth-liquidpledging/build/LiquidPledging.json');
+const logger = require('winston');
+const LPVaultArtifact = require('giveth-liquidpledging/build/LPVault.json');
+const LPPCappedMilestoneArtifact = require('lpp-capped-milestone/build/LPPCappedMilestone.json');
+
+const { status: DACStatus } = require('../models/dacs.model');
+const { status: CampaignStatus } = require('../models/campaigns.model');
 
 const FIFTEEN_MINUTES = 1000 * 60 * 15;
 const TWO_HOURS = 1000 * 60 * 60 * 2;
+
+/**
+ * @param {object} artifact solcpiler generated artifact for a solidity contract
+ * @returns {object} map of event names => log decoder
+ */
+function eventDecodersFromArtifact(artifact) {
+  return artifact.compilerOutput.abi.filter(method => method.type === 'event').reduce(
+    (decoders, event) =>
+      Object.assign({}, decoders, {
+        [event.name]: Contract.prototype._decodeEventABI.bind(event),
+      }),
+    {},
+  );
+}
+
+function eventDecoders() {
+  return {
+    lp: eventDecodersFromArtifact(LiquidPledgingArtifact),
+    vault: eventDecodersFromArtifact(LPVaultArtifact),
+    milestone: eventDecodersFromArtifact(LPPCappedMilestoneArtifact),
+  };
+}
+
+function getPending(app, service, query) {
+  return app.service(service).find({ paginate: false, query });
+}
+
+function getPendingDonations(app) {
+  const query = { $or: [{ status: 'pending' }, { status: 'Pending' }] };
+  return getPending(app, 'donations', query);
+}
+
+function getPendingDacs(app) {
+  const query = { status: DACStatus.PENDING };
+  return getPending(app, 'dacs', query);
+}
+
+function getPendingCampaigns(app) {
+  const query = {
+    $or: [{ status: CampaignStatus.PENDING }, { mined: false }],
+  };
+  return getPending(app, 'campaigns', query);
+}
+
+function getPendingMilestones(app) {
+  const query = {
+    $or: [{ status: 'pending' }, { status: 'Pending' }, { mined: false }],
+  };
+  return getPending(app, 'milestones', query);
+}
 
 /**
  * class to check if any transactions failed and to revert the ui state if so
@@ -23,16 +75,10 @@ class FailedTxMonitor extends EventEmitter {
     this.MILESTONE_EVENT = 'milestoneEvent';
     this.VAULT_EVENT = 'vaultEvent';
 
-    this.decoders = {
-      lp: {},
-      vault: {},
-      milestone: {},
-    };
+    this.decoders = eventDecoders();
   }
 
   start() {
-    this.setDecoders();
-
     this.donationIntervalId = setInterval(this.checkPendingDonations.bind(this), FIFTEEN_MINUTES);
     this.dacIntervalId = setInterval(this.checkPendingDACS.bind(this), FIFTEEN_MINUTES);
     this.campaignIntervalId = setInterval(this.checkPendingCampaigns.bind(this), FIFTEEN_MINUTES);
@@ -52,369 +98,330 @@ class FailedTxMonitor extends EventEmitter {
     clearInterval(this.milestoneIntervalId);
   }
 
-  setDecoders() {
-    LiquidPledgingArtifact.compilerOutput.abi
-      .filter(method => method.type === 'event')
-      .forEach(event => {
-        this.decoders.lp[event.name] = this.web3.eth.Contract.prototype._decodeEventABI.bind(event);
-      });
-
-    LPVaultArtifact.compilerOutput.abi.filter(method => method.type === 'event').forEach(event => {
-      this.decoders.vault[event.name] = this.web3.eth.Contract.prototype._decodeEventABI.bind(
-        event,
-      );
-    });
-
-    LPPCappedMilestoneArtifact.compilerOutput.abi
-      .filter(method => method.type === 'event')
-      .forEach(event => {
-        this.decoders.milestone[event.name] = this.web3.eth.Contract.prototype._decodeEventABI.bind(
-          event,
-        );
-      });
-  }
-
-  checkPendingDonations() {
-    const donations = this.app.service('donations');
-
-    const revertDonationIfFailed = (currentBlock, donation) => {
+  async checkPendingDonations() {
+    const revertDonationIfFailed = async (currentBlock, donation) => {
       if (!donation.previousState || !donation.txHash) return;
 
-      this.web3.eth.getTransactionReceipt(donation.txHash).then(receipt => {
-        // reset the donation status if the tx has been pending for more then 2 hrs, otherwise ignore
-        if (!receipt && donation.updatedAt <= Date.now() - TWO_HOURS) return;
-        // ignore if there isn't enough confirmations
-        if (receipt && currentBlock - receipt.blockNumber < this.requiredConfirmations) return;
+      const receipt = await this.web3.eth.getTransactionReceipt(donation.txHash);
 
-        if (!receipt || !receipt.status) {
-          donations
-            .patch(
-              donation._id,
-              Object.assign({}, donation.previousState, { $unset: { previousState: true } }),
-            )
-            .catch(logger.error);
-          return;
+      // reset the donation status if the tx has been pending for more then 2 hrs, otherwise ignore
+      if (!receipt && donation.updatedAt <= Date.now() - TWO_HOURS) return;
+      // ignore if there isn't enough confirmations
+      if (receipt && currentBlock - receipt.blockNumber < this.requiredConfirmations) return;
+
+      if (!receipt || !receipt.status) {
+        this.app
+          .service('donations')
+          .patch(
+            donation._id,
+            Object.assign({}, donation.previousState, { $unset: { previousState: true } }),
+          )
+          .catch(logger.error);
+        return;
+      }
+
+      const topics = [
+        {
+          name: 'Transfer',
+          hash: this.web3.utils.keccak256('Transfer(uint256,uint256,uint256)'),
+        },
+        {
+          name: 'AuthorizePayment',
+          hash: this.web3.utils.keccak256(
+            'AuthorizePayment(uint256,bytes32,address,address,uint256)',
+          ),
+        },
+      ];
+
+      // get logs we're interested in.
+      const logs = receipt.logs.filter(log => topics.some(t => t.hash === log.topics[0]));
+
+      if (logs.length === 0) {
+        logger.error(
+          'donation has status === `pending` but transaction was successful donation:',
+          donation,
+          'receipt:',
+          receipt,
+        );
+      }
+
+      logs.forEach(log => {
+        logger.info(
+          'donation has status === `pending` but transaction was successful. re-emitting event donation:',
+          donation,
+          'receipt:',
+          receipt,
+        );
+
+        const topic = topics.find(t => t.hash === log.topics[0]);
+
+        if (topic.name === 'AuthorizePayment') {
+          this.emit(this.VAULT_EVENT, this.decoders.vault[topic.name](log));
+        } else {
+          this.emit(this.LP_EVENT, this.decoders.lp[topic.name](log));
         }
-
-        const topics = [
-          {
-            name: 'Transfer',
-            hash: this.web3.utils.keccak256('Transfer(uint256,uint256,uint256)'),
-          },
-          {
-            name: 'AuthorizePayment',
-            hash: this.web3.utils.keccak256(
-              'AuthorizePayment(uint256,bytes32,address,address,uint256)',
-            ),
-          },
-        ];
-
-        // get logs we're interested in.
-        const logs = receipt.logs.filter(log => topics.some(t => t.hash === log.topics[0]));
-
-        if (logs.length === 0) {
-          logger.error(
-            'donation has status === `pending` but transaction was successful donation:',
-            donation,
-            'receipt:',
-            receipt,
-          );
-        }
-
-        logs.forEach(log => {
-          logger.info(
-            'donation has status === `pending` but transaction was successful. re-emitting event donation:',
-            donation,
-            'receipt:',
-            receipt,
-          );
-
-          const topic = topics.find(t => t.hash === log.topics[0]);
-
-          if (topic.name === 'AuthorizePayment') {
-            this.emit(this.VAULT_EVENT, this.decoders.vault[topic.name](log));
-          } else {
-            this.emit(this.LP_EVENT, this.decoders.lp[topic.name](log));
-          }
-        });
       });
     };
 
-    Promise.all([
-      this.web3.eth.getBlockNumber(),
-      donations.find({
-        paginate: false,
-        query: {
-          $or: [{ status: 'pending' }, { status: 'Pending' }],
-        },
-      }),
-    ])
-      .then(([blockNumber, pendingDonations]) =>
-        pendingDonations.forEach(d => revertDonationIfFailed(blockNumber, d)),
-      )
-      .catch(logger.error);
+    try {
+      const [blockNumber, pendingDonations] = await Promise.all([
+        this.web3.eth.getBlockNumber(),
+        getPendingDonations(this.app),
+      ]);
+
+      pendingDonations.forEach(d => revertDonationIfFailed(blockNumber, d));
+    } catch (e) {
+      logger.error(e);
+    }
   }
 
-  checkPendingDACS() {
-    const dacs = this.app.service('dacs');
-
-    const updateDACIfFailed = (currentBlock, dac) => {
+  async checkPendingDACS() {
+    const updateDACIfFailed = async (currentBlock, dac) => {
       if (!dac.txHash) return;
 
-      this.web3.eth.getTransactionReceipt(dac.txHash).then(receipt => {
-        // reset the dac status if the tx has been pending for more then 2 hrs, otherwise ignore
-        if (!receipt && dac.updatedAt <= Date.now() - TWO_HOURS) return;
-        // ignore if there isn't enough confirmations
-        if (receipt && currentBlock - receipt.blockNumber < this.requiredConfirmations) return;
+      const receipt = await this.web3.eth.getTransactionReceipt(dac.txHash);
+      // reset the dac status if the tx has been pending for more then 2 hrs, otherwise ignore
+      if (!receipt && dac.updatedAt <= Date.now() - TWO_HOURS) return;
+      // ignore if there isn't enough confirmations
+      if (receipt && currentBlock - receipt.blockNumber < this.requiredConfirmations) return;
 
-        if (!receipt || !receipt.status) {
-          dacs
-            .patch(dac._id, {
-              status: DACStatus.FAILED,
-            })
-            .catch(logger.error);
+      if (!receipt || !receipt.status) {
+        this.app
+          .service('dacs')
+          .patch(dac._id, {
+            status: DACStatus.FAILED,
+          })
+          .catch(logger.error);
 
-          return;
-        }
+        return;
+      }
 
-        const topics = [
-          {
-            name: 'DelegateAdded',
-            hash: this.web3.utils.keccak256('DelegateAdded(uint64,string)'),
-          },
-        ];
+      const topics = [
+        {
+          name: 'DelegateAdded',
+          hash: this.web3.utils.keccak256('DelegateAdded(uint64,string)'),
+        },
+      ];
 
-        // get logs we're interested in.
-        const logs = receipt.logs.filter(log => topics.some(t => t.hash === log.topics[0]));
+      // get logs we're interested in.
+      const logs = receipt.logs.filter(log => topics.some(t => t.hash === log.topics[0]));
 
-        if (logs.length === 0) {
-          logger.error(
-            'dac has no delegateId but transaction was successful dac:',
-            dac,
-            'receipt:',
-            receipt,
-          );
-        }
+      if (logs.length === 0) {
+        logger.error(
+          'dac has no delegateId but transaction was successful dac:',
+          dac,
+          'receipt:',
+          receipt,
+        );
+      }
 
-        logs.forEach(log => {
-          logger.info(
-            'dac has no delegateId but transaction was successful. re-emitting AddDelegate event. dac:',
-            dac,
-            'receipt:',
-            receipt,
-          );
+      logs.forEach(log => {
+        logger.info(
+          'dac has no delegateId but transaction was successful. re-emitting AddDelegate event. dac:',
+          dac,
+          'receipt:',
+          receipt,
+        );
 
-          const topic = topics.find(t => t.hash === log.topics[0]);
-          this.emit(this.LP_EVENT, this.decoders.lp[topic.name](log));
-        });
+        const topic = topics.find(t => t.hash === log.topics[0]);
+        this.emit(this.LP_EVENT, this.decoders.lp[topic.name](log));
       });
     };
 
-    Promise.all([
-      this.web3.eth.getBlockNumber(),
-      dacs.find({
-        paginate: false,
-        query: {
-          status: DACStatus.PENDING,
-        },
-      }),
-    ])
-      .then(([blockNumber, pendingDACs]) =>
-        pendingDACs.forEach(d => updateDACIfFailed(blockNumber, d)),
-      )
-      .catch(logger.error);
+    try {
+      const [blockNumber, pendingDacs] = await Promise.all([
+        this.web3.eth.getBlockNumber(),
+        getPendingDacs(this.app),
+      ]);
+
+      pendingDacs.forEach(d => updateDACIfFailed(blockNumber, d));
+    } catch (e) {
+      logger.error(e);
+    }
   }
 
-  checkPendingCampaigns() {
-    const campaigns = this.app.service('campaigns');
-
-    const updateCampaignIfFailed = (currentBlock, campaign) => {
+  async checkPendingCampaigns() {
+    const updateCampaignIfFailed = async (currentBlock, campaign) => {
       if (!campaign.txHash) return;
 
-      this.web3.eth.getTransactionReceipt(campaign.txHash).then(receipt => {
-        // reset the campaign status if the tx has been pending for more then 2 hrs, otherwise ignore
-        if (!receipt && campaign.updatedAt <= Date.now() - TWO_HOURS) return;
-        // ignore if there isn't enough confirmations
-        if (receipt && currentBlock - receipt.blockNumber < this.requiredConfirmations) return;
+      const receipt = await this.web3.eth.getTransactionReceipt(campaign.txHash);
+      // reset the campaign status if the tx has been pending for more then 2 hrs, otherwise ignore
+      if (!receipt && campaign.updatedAt <= Date.now() - TWO_HOURS) return;
+      // ignore if there isn't enough confirmations
+      if (receipt && currentBlock - receipt.blockNumber < this.requiredConfirmations) return;
 
-        if (!receipt || !receipt.status) {
-          // if status !== pending, then the cancel campaign transaction failed, so reset
-          const mutation =
-            campaign.status === CampaignStatus.PENDING
-              ? { status: CampaignStatus.FAILED }
-              : { status: CampaignStatus.ACTIVE, mined: true };
+      if (!receipt || !receipt.status) {
+        // if status !== pending, then the cancel campaign transaction failed, so reset
+        const mutation =
+          campaign.status === CampaignStatus.PENDING
+            ? { status: CampaignStatus.FAILED }
+            : { status: CampaignStatus.ACTIVE, mined: true };
 
-          campaigns.patch(campaign._id, mutation).catch(logger.error);
-          return;
-        }
+        this.app
+          .service('campaigns')
+          .patch(campaign._id, mutation)
+          .catch(logger.error);
+        return;
+      }
 
-        const topics = [
-          { name: 'ProjectAdded', hash: this.web3.utils.keccak256('ProjectAdded(uint64,string)') },
-          { name: 'CancelProject', hash: this.web3.utils.keccak256('CancelProject(uint256)') },
-        ];
+      const topics = [
+        { name: 'ProjectAdded', hash: this.web3.utils.keccak256('ProjectAdded(uint64,string)') },
+        { name: 'CancelProject', hash: this.web3.utils.keccak256('CancelProject(uint256)') },
+      ];
 
-        // get logs we're interested in.
-        const logs = receipt.logs.filter(log => topics.some(t => t.hash === log.topics[0]));
+      // get logs we're interested in.
+      const logs = receipt.logs.filter(log => topics.some(t => t.hash === log.topics[0]));
 
-        if (logs.length === 0) {
-          logger.error(
-            'campaign status === `pending` or mined === false but transaction was successful campaign:',
-            campaign,
-            'receipt:',
-            receipt,
-          );
-        }
+      if (logs.length === 0) {
+        logger.error(
+          'campaign status === `pending` or mined === false but transaction was successful campaign:',
+          campaign,
+          'receipt:',
+          receipt,
+        );
+      }
 
-        logs.forEach(log => {
-          logger.info(
-            'campaign status === `pending` or mined === false but transaction was successful. re-emitting event. campaign:',
-            campaign,
-            'receipt:',
-            receipt,
-          );
+      logs.forEach(log => {
+        logger.info(
+          'campaign status === `pending` or mined === false but transaction was successful. re-emitting event. campaign:',
+          campaign,
+          'receipt:',
+          receipt,
+        );
 
-          const topic = topics.find(t => t.hash === log.topics[0]);
-          this.emit(this.LP_EVENT, this.decoders.lp[topic.name](log));
-        });
+        const topic = topics.find(t => t.hash === log.topics[0]);
+        this.emit(this.LP_EVENT, this.decoders.lp[topic.name](log));
       });
     };
 
-    Promise.all([
-      this.web3.eth.getBlockNumber(),
-      campaigns.find({
-        paginate: false,
-        query: {
-          $or: [{ status: CampaignStatus.PENDING }, { mined: false }],
-        },
-      }),
-    ])
-      .then(([blockNumber, pendingCampaigns]) =>
-        pendingCampaigns.forEach(c => updateCampaignIfFailed(blockNumber, c)),
-      )
-      .catch(logger.error);
+    try {
+      const [blockNumber, pendingCampaigns] = await Promise.all([
+        this.web3.eth.getBlockNumber(),
+        getPendingCampaigns(this.app),
+      ]);
+
+      pendingCampaigns.forEach(c => updateCampaignIfFailed(blockNumber, c));
+    } catch (e) {
+      logger.error(e);
+    }
   }
 
-  checkPendingMilestones() {
-    const milestones = this.app.service('milestones');
-
-    const updateMilestoneIfFailed = (currentBlock, milestone) => {
+  async checkPendingMilestones() {
+    const updateMilestoneIfFailed = async (currentBlock, milestone) => {
       if (!milestone.txHash) return; // we can't revert
 
-      this.web3.eth.getTransactionReceipt(milestone.txHash).then(receipt => {
-        // reset the milestone status if the tx has been pending for more then 2 hrs, otherwise ignore
-        if (!receipt && milestone.updatedAt <= Date.now() - TWO_HOURS) return;
-        // ignore if there isn't enough confirmations
-        if (receipt && currentBlock - receipt.blockNumber < this.requiredConfirmations) return;
+      const receipt = await this.web3.eth.getTransactionReceipt(milestone.txHash);
+      // reset the milestone status if the tx has been pending for more then 2 hrs, otherwise ignore
+      if (!receipt && milestone.updatedAt <= Date.now() - TWO_HOURS) return;
+      // ignore if there isn't enough confirmations
+      if (receipt && currentBlock - receipt.blockNumber < this.requiredConfirmations) return;
 
-        if (!receipt || !receipt.status) {
-          // Here we simply revert back to the previous state of the milestone
-          milestones
-            .patch(milestone._id, {
-              status: milestone.prevStatus,
-              mined: true,
-            })
-            .catch(logger.error);
-          return;
+      if (!receipt || !receipt.status) {
+        // Here we simply revert back to the previous state of the milestone
+        this.app
+          .service('milestones')
+          .patch(milestone._id, {
+            status: milestone.prevStatus,
+            mined: true,
+          })
+          .catch(logger.error);
+        return;
+      }
+
+      const topics = [
+        { name: 'ProjectAdded', hash: this.web3.utils.keccak256('ProjectAdded(uint64,string)') },
+        { name: 'CancelProject', hash: this.web3.utils.keccak256('CancelProject(uint256)') },
+        {
+          name: 'MilestoneCompleteRequested',
+          hash: this.web3.utils.keccak256('MilestoneCompleteRequested(address,uint64)'),
+        },
+        {
+          name: 'MilestoneCompleteRequestRejected',
+          hash: this.web3.utils.keccak256('MilestoneCompleteRequested(address,uint64)'),
+        },
+        {
+          name: 'MilestoneCompleteRequestApproved',
+          hash: this.web3.utils.keccak256('MilestoneCompleteRequestApproved(address,uint64)'),
+        },
+        {
+          name: 'MilestoneChangeReviewerRequested',
+          hash: this.web3.utils.keccak256(
+            'MilestoneChangeReviewerRequested(address,uint64,address)',
+          ),
+        },
+        {
+          name: 'MilestoneReviewerChanged',
+          hash: this.web3.utils.keccak256('MilestoneReviewerChanged(address,uint64,address)'),
+        },
+        {
+          name: 'MilestoneChangeCampaignReviewerRequested',
+          hash: this.web3.utils.keccak256(
+            'MilestoneChangeCampaignReviewerRequested(address,uint64,address)',
+          ),
+        },
+        {
+          name: 'MilestoneCampaignReviewerChanged',
+          hash: this.web3.utils.keccak256(
+            'MilestoneCampaignReviewerChanged(address,uint64,address)',
+          ),
+        },
+        {
+          name: 'MilestoneChangeRecipientRequested',
+          hash: this.web3.utils.keccak256(
+            'MilestoneChangeRecipientRequested(address,uint64,address)',
+          ),
+        },
+        {
+          name: 'MilestoneRecipientChanged',
+          hash: this.web3.utils.keccak256('MilestoneRecipientChanged(address,uint64,address)'),
+        },
+        {
+          name: 'PaymentCollected',
+          hash: this.web3.utils.keccak256('PaymentCollected(address,uint64)'),
+        },
+      ];
+
+      // get logs we're interested in.
+      const logs = receipt.logs.filter(log => topics.some(t => t.hash === log.topics[0]));
+
+      if (logs.length === 0) {
+        logger.error(
+          'milestone status === `pending` or mined === false but transaction was successful milestone:',
+          milestone,
+          'receipt:',
+          receipt,
+        );
+      }
+
+      logs.forEach(log => {
+        logger.info(
+          'milestone status === `pending` or mined === false but transaction was successful. re-emitting event. milestone:',
+          milestone,
+          'receipt:',
+          receipt,
+        );
+
+        const topic = topics.find(t => t.hash === log.topics[0]);
+
+        if (topic.name === 'MilestoneAccepted') {
+          this.emit(this.MILESTONE_EVENT, this.decoders.milestone[topic.name](log));
+        } else {
+          this.emit(this.LP_EVENT, this.decoders.lp[topic.name](log));
         }
-
-        const topics = [
-          { name: 'ProjectAdded', hash: this.web3.utils.keccak256('ProjectAdded(uint64,string)') },
-          { name: 'CancelProject', hash: this.web3.utils.keccak256('CancelProject(uint256)') },
-          {
-            name: 'MilestoneCompleteRequested',
-            hash: this.web3.utils.keccak256('MilestoneCompleteRequested(address,uint64)'),
-          },
-          {
-            name: 'MilestoneCompleteRequestRejected',
-            hash: this.web3.utils.keccak256('MilestoneCompleteRequested(address,uint64)'),
-          },
-          {
-            name: 'MilestoneCompleteRequestApproved',
-            hash: this.web3.utils.keccak256('MilestoneCompleteRequestApproved(address,uint64)'),
-          },
-          {
-            name: 'MilestoneChangeReviewerRequested',
-            hash: this.web3.utils.keccak256(
-              'MilestoneChangeReviewerRequested(address,uint64,address)',
-            ),
-          },
-          {
-            name: 'MilestoneReviewerChanged',
-            hash: this.web3.utils.keccak256('MilestoneReviewerChanged(address,uint64,address)'),
-          },
-          {
-            name: 'MilestoneChangeCampaignReviewerRequested',
-            hash: this.web3.utils.keccak256(
-              'MilestoneChangeCampaignReviewerRequested(address,uint64,address)',
-            ),
-          },
-          {
-            name: 'MilestoneCampaignReviewerChanged',
-            hash: this.web3.utils.keccak256(
-              'MilestoneCampaignReviewerChanged(address,uint64,address)',
-            ),
-          },
-          {
-            name: 'MilestoneChangeRecipientRequested',
-            hash: this.web3.utils.keccak256(
-              'MilestoneChangeRecipientRequested(address,uint64,address)',
-            ),
-          },
-          {
-            name: 'MilestoneRecipientChanged',
-            hash: this.web3.utils.keccak256('MilestoneRecipientChanged(address,uint64,address)'),
-          },
-          {
-            name: 'PaymentCollected',
-            hash: this.web3.utils.keccak256('PaymentCollected(address,uint64)'),
-          },
-        ];
-
-        // get logs we're interested in.
-        const logs = receipt.logs.filter(log => topics.some(t => t.hash === log.topics[0]));
-
-        if (logs.length === 0) {
-          logger.error(
-            'milestone status === `pending` or mined === false but transaction was successful milestone:',
-            milestone,
-            'receipt:',
-            receipt,
-          );
-        }
-
-        logs.forEach(log => {
-          logger.info(
-            'milestone status === `pending` or mined === false but transaction was successful. re-emitting event. milestone:',
-            milestone,
-            'receipt:',
-            receipt,
-          );
-
-          const topic = topics.find(t => t.hash === log.topics[0]);
-
-          if (topic.name === 'MilestoneAccepted') {
-            this.emit(this.MILESTONE_EVENT, this.decoders.milestone[topic.name](log));
-          } else {
-            this.emit(this.LP_EVENT, this.decoders.lp[topic.name](log));
-          }
-        });
       });
     };
 
-    Promise.all([
-      this.web3.eth.getBlockNumber(),
-      milestones.find({
-        paginate: false,
-        query: {
-          $or: [{ status: 'pending' }, { status: 'Pending' }, { mined: false }],
-        },
-      }),
-    ])
-      .then(([blockNumber, pendingMilestones]) =>
-        pendingMilestones.forEach(m => updateMilestoneIfFailed(blockNumber, m)),
-      )
-      .catch(logger.error);
+    try {
+      const [blockNumber, pendingMilestones] = await Promise.all([
+        this.web3.eth.getBlockNumber(),
+        getPendingMilestones(this.app),
+      ]);
+
+      pendingMilestones.forEach(m => updateMilestoneIfFailed(blockNumber, m));
+    } catch (e) {
+      logger.error(e);
+    }
   }
 }
 
-export default FailedTxMonitor;
+module.exports = FailedTxMonitor;
