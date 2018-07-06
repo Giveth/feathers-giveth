@@ -97,7 +97,7 @@
     "eslint-plugin-import": "^2.8.0",
     "eslint-plugin-prettier": "^2.4.0",
     "ganache-cli": "^6.1.2",
-    "giveth-bridge": "1.0.2",
+    "giveth-bridge": "1.0.3",
     "lerna": "^2.2.0",
     "mocha": "^3.5.0",
     "prettier": "1.9.2",
