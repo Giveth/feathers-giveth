@@ -40,6 +40,6 @@ function getQueue(name) {
 }
 
 module.exports = {
-  default: getQueue,
+  getQueue,
   processingQueue,
 };

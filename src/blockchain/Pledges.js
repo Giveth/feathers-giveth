@@ -1,6 +1,7 @@
 import logger from 'winston';
 import { hexToNumber, toBN } from 'web3-utils';
 import { pledgeState } from './helpers';
+import errWrapper from '../utils/to';
 
 class ReProcessEvent extends Error {
   constructor(...args) {
@@ -8,8 +9,6 @@ class ReProcessEvent extends Error {
     Error.captureStackTrace(this, ReProcessEvent);
   }
 }
-
-const has = Object.prototype.hasOwnProperty;
 
 function getDonationStatus(pledge, pledgeAdmin, hasIntendedProject, hasDelegate) {
   if (pledge.pledgeState === '1') return 'paying';
@@ -37,46 +36,33 @@ class Pledges {
     const { from, to, amount } = event.returnValues;
     const txHash = event.transactionHash;
 
-    const processEvent = (retry = false) => {
-      this.queue.add(event.transactionHash, () =>
-        this.getBlockTimestamp(event.blockNumber)
-          .then(ts => {
-            if (from === '0') {
-              return this.newDonation(to, amount, txHash, retry)
-                .then(() => this.queue.purge(txHash))
-                .catch(err => {
-                  if (err instanceof ReProcessEvent) {
-                    // this is really only useful when instant mining. Other then that, the
-                    // donation should always be created before the tx was mined.
-                    setTimeout(() => processEvent(true), 5000);
-                    return;
-                  }
+    const processEvent = async (retry = false) => {
+      const ts = await this.getBlockTimestamp(event.blockNumber);
+      if (from === '0') {
+        const [err, res] = await errWrapper(this.newDonation(to, amount, txHash, retry));
 
-                  logger.error('newDonation error ->', err);
-                });
-            }
+        if (err && err instanceof ReProcessEvent) {
+          // this is really only useful when instant mining. Other then that, the
+          // donation should always be created before the tx was mined.
+          setTimeout(() => processEvent(true), 5000);
+          return;
+        }
 
-            return this._transfer(from, to, amount, ts, txHash);
-          })
-          .then(() => this.queue.purge(txHash)),
-      );
-      // immediately start processing this event. We add to the queue first, so
-      // the queue can track the event processing for the txHash
-      this.queue.purge(event.transactionHash);
+        logger.error('newDonation error ->', err);
+      } else {
+        await this._transfer(from, to, amount, ts, txHash);
+      }
+      await this.queue.purge(txHash);
     };
-
-    // parity uses transactionLogIndex
-    const logIndex = has.call(event, 'transactionLogIndex') ? event.transactionLogIndex : undefined;
 
     // there will be multiple events in a single transaction
     // we need to process them in order so we use a queue
-    // if logIndex is not undefined, then use that otherwise
-    // b/c geth doesn't include transactionLogIndex, we are
-    // making the assumption that events will be passed in order.
-    if ((logIndex !== undefined && hexToNumber(logIndex) > 0) || this.queue.isProcessing(txHash)) {
-      this.queue.add(event.transactionHash, processEvent);
-    } else {
-      return processEvent();
+    this.queue.add(event.transactionHash, processEvent);
+
+    if (!this.queue.isProcessing(txHash)) {
+      // start processing this event. We add to the queue first, so
+      // the queue can track the event processing for the txHash
+      this.queue.purge(event.transactionHash);
     }
   }
 
@@ -151,7 +137,11 @@ class Pledges {
           // TODO is this comment only applicable while we don't support splits?
           // this is probably a split which happened outside of the ui
           throw new Error(
-            `unable to determine what donations entity to update -> from: ${from}, to: ${to}, amount: ${amount}, ts: ${ts}, txHash: ${txHash}, donations: ${donations}`,
+            `unable to determine what donations entity to update -> from: ${from}, to: ${to}, amount: ${amount}, ts: ${ts}, txHash: ${txHash}, donations: ${JSON.stringify(
+              donations,
+              null,
+              2,
+            )}`,
           );
         });
 

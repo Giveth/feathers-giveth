@@ -7,7 +7,7 @@ import Pledges from './Pledges';
 import Payments from './Payments';
 import CappedMilestones from './CappedMilestones';
 import createModel from '../models/blockchain.model';
-import getQueue from '../utils/processingQueue';
+import { getQueue } from '../utils/processingQueue';
 
 const to = require('../utils/to');
 const { removeHexPrefix } = require('./web3Helpers');

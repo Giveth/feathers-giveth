@@ -3,6 +3,7 @@ const { lockNonceAndSendTransaction } = require('./helpers');
 
 // recursively execute all requests in batches of 100
 function batchAndExecuteRequests(web3, requests) {
+  if (requests.length === 0) return;
   const batch = new web3.BatchRequest();
   requests.splice(0, 100).forEach(r => batch.add(r));
   batch.execute();
@@ -68,7 +69,7 @@ module.exports = class {
 
     // generate a request to execute to fetch each users balance
     const balRequests = usersToCheck.map(user =>
-      this.web3.getBalance.request(user.address, 'pending', handleBalanceResponse(user)),
+      this.web3.eth.getBalance.request(user.address, 'pending', handleBalanceResponse(user)),
     );
 
     batchAndExecuteRequests(this.web3, balRequests);

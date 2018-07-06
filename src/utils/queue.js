@@ -1,9 +1,9 @@
 const logger = require('winston');
 
-function queueMixin() {
+const queueMixin = target => {
   const queue = {};
 
-  return Object.assign(this, {
+  return Object.assign(target, {
     /**
      * Add a function to the queue at the given id
      * @param {id} id The id of the queue to add to
@@ -52,9 +52,6 @@ function queueMixin() {
       }
     },
   });
-}
+};
 
-// queue factory function
-const queue = target => queueMixin.call(target);
-
-module.exports = queue;
+module.exports = queueMixin;

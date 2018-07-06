@@ -1,10 +1,10 @@
 /**
  * Mixin used to manage when something is processing
  */
-function processorMixin() {
+const processorMixin = target => {
   const processing = {};
 
-  return Object.assign(this, {
+  return Object.assign(target, {
     isProcessing(id) {
       return processing[id] || false;
     },
@@ -18,8 +18,6 @@ function processorMixin() {
       if (processing[id]) delete processing[id];
     },
   });
-}
+};
 
-const processor = target => processorMixin.call(target);
-
-module.exports = processor;
+module.exports = processorMixin;
