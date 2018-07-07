@@ -2,7 +2,6 @@
 import createService from 'feathers-mongoose';
 import createModel from '../../models/pledgeAdmins.model';
 import hooks from './pledgeAdmins.hooks';
-import filters from './pledgeAdmins.filters';
 
 export default function() {
   const app = this;
@@ -23,8 +22,4 @@ export default function() {
   const service = app.service('pledgeAdmins');
 
   service.hooks(hooks);
-
-  if (service.filter) {
-    service.filter(filters);
-  }
 }

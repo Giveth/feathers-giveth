@@ -39,16 +39,17 @@ class Pledges {
     const processEvent = async (retry = false) => {
       const ts = await this.getBlockTimestamp(event.blockNumber);
       if (from === '0') {
-        const [err, res] = await errWrapper(this.newDonation(to, amount, txHash, retry));
+        const [err] = await errWrapper(this.newDonation(to, amount, txHash, retry));
 
-        if (err && err instanceof ReProcessEvent) {
-          // this is really only useful when instant mining. Other then that, the
-          // donation should always be created before the tx was mined.
-          setTimeout(() => processEvent(true), 5000);
-          return;
+        if (err) {
+          if (err instanceof ReProcessEvent) {
+            // this is really only useful when instant mining. Other then that, the
+            // donation should always be created before the tx was mined.
+            setTimeout(() => processEvent(true), 5000);
+            return;
+          }
+          logger.error('newDonation error ->', err);
         }
-
-        logger.error('newDonation error ->', err);
       } else {
         await this._transfer(from, to, amount, ts, txHash);
       }

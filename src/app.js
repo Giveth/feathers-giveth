@@ -7,24 +7,23 @@ import appHooks from './app.hooks';
 import authentication from './authentication';
 import blockchain from './blockchain';
 
+const channels = require('./channels');
+
 const path = require('path');
 const favicon = require('serve-favicon');
 const compress = require('compression');
 const cors = require('cors');
 const helmet = require('helmet');
-const bodyParser = require('body-parser');
 
-const feathers = require('feathers');
-const configuration = require('feathers-configuration');
-const hooks = require('feathers-hooks');
-const rest = require('feathers-rest');
+const feathers = require('@feathersjs/feathers');
+const express = require('@feathersjs/express');
+const configuration = require('@feathersjs/configuration');
 
-const handler = require('feathers-errors/handler');
-const notFound = require('feathers-errors/not-found');
+const notFound = require('@feathersjs/errors/not-found');
 
 const mongoose = require('./mongoose');
 
-const app = feathers();
+const app = express(feathers());
 
 // Load app configuration
 app.configure(configuration());
@@ -41,9 +40,9 @@ app.use(cors(corsOptions));
 
 app.use(helmet());
 app.use(compress());
-app.use(bodyParser.json({ limit: '10mb' }));
+app.use(express.json({ limit: '10mb' }));
 app.use(
-  bodyParser.urlencoded({
+  express.urlencoded({
     limit: '10mb',
     extended: true,
   }),
@@ -51,12 +50,10 @@ app.use(
 
 app.use(favicon(path.join(app.get('public'), 'favicon.ico')));
 // Host the public folder
-app.use('/', feathers.static(app.get('public')));
+app.use('/', express.static(app.get('public')));
 
-// Set up Plugins and providers
-app.configure(hooks());
 app.configure(mongoose);
-app.configure(rest());
+app.configure(express.rest());
 app.configure(socketsConfig);
 
 app.configure(logger);
@@ -66,11 +63,12 @@ app.configure(middleware);
 app.configure(authentication);
 // Set up our services (see `services/index.js`)
 app.configure(services);
+app.configure(channels);
 // blockchain must be initialized after services
 app.configure(blockchain);
 // Configure a middleware for 404s and the error handler
 app.use(notFound());
-app.use(handler());
+app.use(express.errorHandler());
 
 app.hooks(appHooks);
 

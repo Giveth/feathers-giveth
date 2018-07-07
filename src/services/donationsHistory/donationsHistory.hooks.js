@@ -3,7 +3,6 @@ import { disallow } from 'feathers-hooks-common';
 import onlyInternal from '../../hooks/onlyInternal';
 import { populate } from 'feathers-hooks-common';
 import { toBN } from 'web3-utils';
-import _ from 'underscore';
 
 // // A hook that updates `data` with the route parameter
 // const mapDonationIdToQuery = () => (context) => {
@@ -67,11 +66,12 @@ const updateType = () => context => {
         context.app
           .service('donations/history')
           .find({
+            paginate: false,
             query: donationQuery,
             $select: ['ownerId'],
           })
           .then(donationsForEntity => {
-            peopleCount = _.uniq(_.pluck(donationsForEntity.data, 'ownerId')).length;
+            peopleCount = new Set(donationsForEntity.map(d => d.ownerId)).size;
 
             const amount = toBN(data.amount);
             if (amount > 0) donationCount += 1; // incoming donation

@@ -2,7 +2,7 @@ import logger from 'winston';
 import commons from 'feathers-hooks-common';
 import { disallow } from 'feathers-hooks-common';
 import sanitizeAddress from '../../hooks/sanitizeAddress';
-import errors from 'feathers-errors';
+import errors from '@feathersjs/errors';
 import sanitizeHtml from '../../hooks/sanitizeHtml';
 
 /**

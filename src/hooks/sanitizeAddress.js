@@ -1,4 +1,4 @@
-import errors from 'feathers-errors';
+import errors from '@feathersjs/errors';
 import commons from 'feathers-hooks-common';
 import { toChecksumAddress } from 'web3-utils';
 

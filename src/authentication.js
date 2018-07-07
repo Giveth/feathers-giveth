@@ -1,5 +1,5 @@
-import authentication from 'feathers-authentication';
-import jwt from 'feathers-authentication-jwt';
+import authentication from '@feathersjs/authentication';
+import jwt from '@feathersjs/authentication-jwt';
 import web3 from './authenticationWeb3';
 
 export default function() {

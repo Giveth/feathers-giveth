@@ -1,5 +1,5 @@
 import commons from 'feathers-hooks-common';
-import errors from 'feathers-errors';
+import errors from '@feathersjs/errors';
 import logger from 'winston';
 import { utils } from 'web3';
 import BigNumber from 'bignumber.js';

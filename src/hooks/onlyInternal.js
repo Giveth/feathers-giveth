@@ -1,4 +1,4 @@
-import errors from 'feathers-errors';
+import errors from '@feathersjs/errors';
 
 export default () => context => {
   if (context.params.provider !== undefined) {

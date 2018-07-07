@@ -3,8 +3,6 @@ import createService from 'feathers-mongoose';
 import createModel from '../../models/donationsHistory.model';
 import hooks from './donationsHistory.hooks';
 
-import filters from './donationsHistory.filters';
-
 export default function() {
   const app = this;
   const Model = createModel(app);
@@ -28,12 +26,4 @@ export default function() {
 
   // nestedService.hooks(nestedHistoryHooks);
   service.hooks(hooks);
-
-  if (service.filter) {
-    service.filter(filters);
-  }
-
-  // if (nestedService.filter) {
-  //   nestedService.filter(filters);
-  // }
 }

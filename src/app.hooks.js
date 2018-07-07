@@ -1,5 +1,5 @@
 // Application hooks that run for every service
-import auth from 'feathers-authentication';
+import auth from '@feathersjs/authentication';
 import { discard } from 'feathers-hooks-common';
 import logger from './hooks/logger';
 
