@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 const altered = require('./altered.js');
 const missing = require('./missing.js');
+const fs = require('fs');
+const crypto = require('crypto');
 
 const Schema = mongoose.Schema;
 const shortid = require('shortid');
@@ -8,14 +10,83 @@ const shortid = require('shortid');
 // development database
 const baseUploadUrl = 'localhost:3010/uploads';
 const mongoUrl = 'mongodb://localhost:27017/giveth';
+const campaignMap = {
+  Bub3WLo6jmlG8V6j: {
+    // Governance
+    id: '5b37e5caa239ac21b383d4dd',
+    campaignReviewerAddress: '0x27786AA843d68dB6Cf7e5f7c49981a946a4E9196',
+  },
+  Wze7njNMv5Z68M2X: {
+    // Migration
+    id: '5b37e9daa239ac21b383d4e0',
+    campaignReviewerAddress: '0x51e37e3716c0ED418a90e519CeEE395d8f6deCB9',
+  },
+  R1WkS0obautijkvJ: {
+    // Communication
+    id: '5b3789513a65c31e4e4e8328',
+    campaignReviewerAddress: '0x839395e20bbB182fa440d08F850E6c7A8f6F0780',
+  },
+  ap6KXg8iJwwUAxBY: {
+    // ScalingNOW
+    id: '5b37ed82a239ac21b383d4e3',
+    campaignReviewerAddress: '0x51e37e3716c0ED418a90e519CeEE395d8f6deCB9',
+  },
+  fzOahNwFVyY7qLTI: {
+    // DApp campaign
+    id: '5b39d45e14cec916d00dab20',
+    campaignReviewerAddress: '0x567355f84d44a982629D8675AB4aadBB92dbfD54',
+  },
+  OcKJryNwjeidMXi9: {
+    // DAppNode
+    id: '5b3a2a7fdf629170d472b3bb',
+    campaignReviewerAddress: '0xF35960302a07022aBa880DFFaEC2Fdd64d5BF1c1',
+  },
+  NMhA6QLwfsUmPQld: {
+    // DAppNode
+    id: '5b3b3a34329bc64ae74d13cd',
+    campaignReviewerAddress: '0x27786AA843d68dB6Cf7e5f7c49981a946a4E9196',
+  },
+};
+
+if (!fs.existsSync('uploads')) fs.mkdirSync('uploads');
+
+/**
+ * Get extension from base64 encoded image string
+ *
+ * @param {String} data Base 64 image data
+ *
+ * @return {String} one of jpeg, gif, png
+ */
+function guessImageExtension(data) {
+  if (data.charAt(0) === '/') {
+    return 'jpeg';
+  } else if (data.charAt(0) === 'R') {
+    return 'gif';
+  } else if (data.charAt(0) === 'i') {
+    return 'png';
+  }
+  return 'jpeg';
+}
 
 /**
  * Constructs new image url
  */
 const constructNewImageUrl = url => {
   if (url) {
+    // The image is directly stored in the DB data, extract it
+    if (url.startsWith('data:')) {
+      const base64Image = url.split(';base64,').pop();
+
+      const filename = `${crypto.randomBytes(32).toString('hex')}.${guessImageExtension(
+        base64Image,
+      )}`;
+
+      fs.writeFile(`uploads/${filename}`, base64Image, { encoding: 'base64' }, () => {});
+      return baseUploadUrl + filename;
+    }
     return baseUploadUrl + url.split('/uploads')[1];
   }
+  return '';
 };
 
 /**
@@ -170,7 +241,7 @@ const migrateMilestones = () => {
 
             console.log('processing milestone > ', m._id);
 
-            newMilestone = new Milestone({
+            const newMilestone = new Milestone({
               title: m.title,
               description: m.description,
               image: constructNewImageUrl(m.image),
@@ -178,8 +249,8 @@ const migrateMilestones = () => {
               ownerAddress: m.ownerAddress,
               reviewerAddress: m.reviewerAddress,
               recipientAddress: m.recipientAddress,
-              campaignReviewerAddress: m.campaignReviewerAddress,
-              campaignId: m.campaignId,
+              campaignReviewerAddress: campaignMap[m.campaignId].campaignReviewerAddress,
+              campaignId: campaignMap[m.campaignId].id,
               projectId: m.projectId,
               status: 'Paid',
               items: [],
@@ -199,9 +270,9 @@ const migrateMilestones = () => {
               migratedId: m._id,
             });
 
-            m.items &&
-              m.items.map(i => {
-                newItem = {
+            if (m.items) {
+              m.items.forEach(i => {
+                const newItem = {
                   id: i.id,
                   date: i.date,
                   description: i.description,
@@ -216,6 +287,7 @@ const migrateMilestones = () => {
 
                 newMilestone.items.push(newItem);
               });
+            }
 
             newMilestone
               .save()

@@ -87,8 +87,8 @@ const _saveToDB = (app, timestamp, rates, _id = undefined) => {
  * @return {Promise} Promise that resolves to object {timestamp, rates: { EUR: 100, USD: 90 } }
  */
 export const getEthConversion = (app, requestedDate) => {
-  // Get yesterday date
-  const yesterday = new Date(new Date().setDate(new Date().getDate() - 1));
+  // Get yesterday date from today respecting UTC
+  const yesterday = new Date(new Date().setUTCDate(new Date().getUTCDate() - 1));
   const yesterdayUTC = yesterday.setUTCHours(0, 0, 0, 0);
 
   // Parse the date for which the rate is requested
@@ -106,7 +106,7 @@ export const getEthConversion = (app, requestedDate) => {
     try {
       const dbRates = await _getRatesDb(app, timestamp);
 
-      const retrievedRates = new Set(Object.keys(dbRates.rates));
+      const retrievedRates = new Set(Object.keys(dbRates.rates || {}));
       const unknownRates = fiat.filter(cur => !retrievedRates.has(cur));
 
       let { rates } = dbRates;

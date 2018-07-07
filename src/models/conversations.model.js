@@ -13,6 +13,7 @@ module.exports = function Conversations(app) {
       replyToId: { type: String },
       performedByRole: { type: String, required: true },
       ownerAddress: { type: String, required: true },
+      txHash: { type: String }
     },
     {
       timestamps: true,
