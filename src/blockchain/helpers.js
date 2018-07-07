@@ -2,6 +2,7 @@ import Web3PromiEvent from 'web3-core-promievent';
 import logger from 'winston';
 import { MiniMeToken } from 'minimetoken';
 import NonceTracker from './NonceTracker';
+import { getWeb3 } from './web3Helpers';
 
 export const milestoneStatus = (completed, canceled) => {
   if (canceled) return 'Canceled';
@@ -78,3 +79,26 @@ export const lockNonceAndSendTransaction = (web3, txFn, opts, ...args) => {
 
   return defer.eventEmitter;
 };
+
+export function fundAccountIfLow(address, currentBal) {
+  const app = this;
+  const web3 = getWeb3();
+  const { toBN } = web3.utils;
+
+  const { walletMinBalance, walletSeedAmount } = app.get('blockchain');
+
+  // fund wallet if the bal is < minBal
+  if (toBN(currentBal).lt(toBN(walletMinBalance))) {
+    lockNonceAndSendTransaction(web3, web3.eth.sendTransaction, {
+      from: web3.eth.accounts.wallet[0].address,
+      to: address,
+      value: walletSeedAmount,
+      gas: 21000,
+    }).on('transactionHash', txHash => {
+      app.service('users').patch(address, {
+        lastFunded: new Date(),
+        fundingTxHash: txHash,
+      });
+    });
+  }
+}

@@ -7,7 +7,7 @@ import { multipartTransfer } from '../../middleware/upload';
 
 const hooks = require('./uploads.hooks');
 
-module.exports = function() {
+module.exports = function uploadService() {
   const app = this;
 
   const blobStorage = fs(app.get('uploads'));
