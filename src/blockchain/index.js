@@ -4,7 +4,7 @@ import LiquidPledgingMonitor from './LiquidPledgingMonitor';
 import FailedTxMonitor from './FailedTxMonitor';
 import balanceMonitor from './balanceMonitor';
 
-const { getWeb3 } = require('./web3Helpers');
+const { getWeb3 } = require('./lib/web3Helpers');
 
 export default function() {
   const app = this;

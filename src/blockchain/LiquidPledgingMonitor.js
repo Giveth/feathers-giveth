@@ -10,7 +10,7 @@ import createModel from '../models/blockchain.model';
 import { getQueue } from '../utils/processingQueue';
 
 const to = require('../utils/to');
-const { removeHexPrefix } = require('./web3Helpers');
+const { removeHexPrefix } = require('./lib/web3Helpers');
 
 // Storing this in the db ensures that we don't miss any events on a restart
 const defaultConfig = {

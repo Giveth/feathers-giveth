@@ -1,5 +1,5 @@
 const lockNonceAndSendTransaction = require('./lib/lockNonceAndSendTransaction');
-const { getWeb3 } = require('../web3Helpers');
+const { getWeb3 } = require('../lib/web3Helpers');
 
 /**
  * Send funds to an account if the currentBal is <

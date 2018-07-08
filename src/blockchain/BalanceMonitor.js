@@ -1,6 +1,6 @@
 const logger = require('winston');
 const { fundAccountIfLow } = require('./helpers');
-const { getWeb3, batchAndExecuteRequests, addAccountToWallet } = require('./web3Helpers');
+const { getWeb3, batchAndExecuteRequests, addAccountToWallet } = require('./lib/web3Helpers');
 
 /**
  * Factory function to create an object that will monitor the balance for
