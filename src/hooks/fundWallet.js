@@ -1,14 +1,12 @@
-import logger from 'winston';
-import { checkContext } from 'feathers-hooks-common';
-
-import { fundAccountIfLow } from '../blockchain/helpers';
-
-const { getWeb3, addAccountToWallet } = require('../blockchain/web3Helpers');
+const logger = require('winston');
+const { checkContext } = require('feathers-hooks-common');
+const { fundAccountIfLow } = require('../blockchain/helpers');
+const { addAccountToWallet } = require('../blockchain/lib/web3Helpers');
 
 const fundWallet = () => async context => {
   checkContext(context, 'after', ['create']);
   const { app } = context;
-  const web3 = getWeb3(app);
+  const web3 = app.getWeb3();
 
   const { ethFunderPK, walletFundingBlacklist = [] } = app.get('blockchain');
 

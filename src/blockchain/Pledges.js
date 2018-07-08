@@ -1,5 +1,5 @@
 import logger from 'winston';
-import { hexToNumber, toBN } from 'web3-utils';
+import { toBN } from 'web3-utils';
 import { pledgeState } from './helpers';
 import errWrapper from '../utils/to';
 

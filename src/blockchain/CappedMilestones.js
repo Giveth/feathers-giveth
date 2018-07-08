@@ -5,9 +5,8 @@ import logger from 'winston';
  */
 class CappedMilestones {
   constructor(app, web3) {
-    this.app = app;
     this.web3 = web3;
-    this.milestones = this.app.service('milestones');
+    this.milestones = app.service('milestones');
   }
 
   reviewRequested(event) {

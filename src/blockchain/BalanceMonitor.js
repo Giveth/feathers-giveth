@@ -1,6 +1,6 @@
 const logger = require('winston');
-const { fundAccountIfLow } = require('./helpers');
-const { getWeb3, batchAndExecuteRequests, addAccountToWallet } = require('./lib/web3Helpers');
+const fundAccountIfLow = require('./lib/fundAccountIfLow');
+const { batchAndExecuteRequests, addAccountToWallet } = require('./lib/web3Helpers');
 
 /**
  * Factory function to create an object that will monitor the balance for
@@ -9,7 +9,7 @@ const { getWeb3, batchAndExecuteRequests, addAccountToWallet } = require('./lib/
  * @param {object} app feathers app instance
  */
 function balanceMonitor(app) {
-  const web3 = getWeb3(app);
+  const web3 = app.getWeb3();
 
   const {
     ethFunderInterval: pollTime,
@@ -56,7 +56,7 @@ function balanceMonitor(app) {
         return;
       }
 
-      setTimeout(fundAccountsWithLowBalance, pollTime);
+      setInterval(fundAccountsWithLowBalance, pollTime);
       fundAccountsWithLowBalance();
     },
   };

@@ -1,5 +1,4 @@
-const lockNonceAndSendTransaction = require('./lib/lockNonceAndSendTransaction');
-const { getWeb3 } = require('../lib/web3Helpers');
+const lockNonceAndSendTransaction = require('./lockNonceAndSendTransaction');
 
 /**
  * Send funds to an account if the currentBal is <
@@ -10,7 +9,7 @@ const { getWeb3 } = require('../lib/web3Helpers');
  * @param {string} currentBal current balance of the address
  */
 module.exports = function fundAccountIfLow(app, address, currentBal) {
-  const web3 = getWeb3(app);
+  const web3 = app.getWeb3();
   const { toBN } = web3.utils;
 
   const { walletMinBalance, walletSeedAmount } = app.get('blockchain');
