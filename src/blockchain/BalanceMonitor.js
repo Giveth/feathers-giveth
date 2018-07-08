@@ -1,10 +1,15 @@
 const logger = require('winston');
 const { fundAccountIfLow } = require('./helpers');
-const { getWeb3, batchAndExecuteRequests } = require('./web3Helpers');
+const { getWeb3, batchAndExecuteRequests, addAccountToWallet } = require('./web3Helpers');
 
-function balanceMonitor() {
-  const app = this;
-  const web3 = getWeb3();
+/**
+ * Factory function to create an object that will monitor the balance for
+ * existing users and topup their accounts if their balance is low
+ *
+ * @param {object} app feathers app instance
+ */
+function balanceMonitor(app) {
+  const web3 = getWeb3(app);
 
   const {
     ethFunderInterval: pollTime,
@@ -13,12 +18,9 @@ function balanceMonitor() {
     walletFundingBlacklist: blacklist,
   } = app.get('blockchain');
 
-  const account = ethFunderPK ? web3.eth.accounts.privateKeyToAccount(ethFunderPK) : undefined;
-  if (web3.eth.accounts.wallet.length === 0 && ethFunderPK) {
-    web3.eth.accounts.wallet.add(account);
-  }
+  const hasAccount = !!addAccountToWallet(web3, ethFunderPK);
 
-  const fundAccountsWithLowBalance = async () => {
+  async function fundAccountsWithLowBalance() {
     // fetch all users that are not blacklisted and were lastFunded before the fundingTimeout
     const query = {
       address: {
@@ -34,22 +36,22 @@ function balanceMonitor() {
 
     if (usersToCheck.length === 0) return;
 
-    const handleBalanceResponse = user => (err, balance) => {
-      if (err) logger.error('Error fetching balance for address: ', user.address, err);
-      fundAccountIfLow(user.address, balance);
+    const handleBalanceResponse = address => (err, balance) => {
+      if (err) logger.error('Error fetching balance for address: ', address, err);
+      fundAccountIfLow(app, address, balance);
     };
 
     // generate a request to execute to fetch each users balance
-    const balRequests = usersToCheck.map(user =>
-      web3.eth.getBalance.request(user.address, 'pending', handleBalanceResponse(user)),
+    const balRequests = usersToCheck.map(({ address }) =>
+      web3.eth.getBalance.request(address, 'pending', handleBalanceResponse(address)),
     );
 
     batchAndExecuteRequests(web3, balRequests);
-  };
+  }
 
   return {
     start() {
-      if (!account) {
+      if (!hasAccount) {
         logger.warn('Not starting BalanceMonitor as ethFunderPK is missing from the config');
         return;
       }

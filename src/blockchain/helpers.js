@@ -80,9 +80,16 @@ export const lockNonceAndSendTransaction = (web3, txFn, opts, ...args) => {
   return defer.eventEmitter;
 };
 
-export function fundAccountIfLow(address, currentBal) {
-  const app = this;
-  const web3 = getWeb3();
+/**
+ * Send funds to an account if the currentBal is <
+ * the configured `walletMinBalane`
+ *
+ * @param {object} app feathers app instance
+ * @param {string} address address to fund
+ * @param {string} currentBal current balance of the address
+ */
+export function fundAccountIfLow(app, address, currentBal) {
+  const web3 = getWeb3(app);
   const { toBN } = web3.utils;
 
   const { walletMinBalance, walletSeedAmount } = app.get('blockchain');

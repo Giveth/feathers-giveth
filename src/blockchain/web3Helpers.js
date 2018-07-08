@@ -33,6 +33,27 @@ function batchAndExecuteRequests(web3, requests) {
   batchAndExecuteRequests(web3, requests);
 }
 
+/**
+ * Adds an account to the wallet of the provided web3 instance
+ * if it has not be previously added
+ *
+ * @param {object} web3 Web3 instance
+ * @param {string} privateKey pk of the account to add to the wallet
+ * @returns {object} web3 account instance
+ */
+const addAccountToWallet = (web3, privateKey) => {
+  let account = [].find.call(web3.eth.accounts.wallet, a => a.privateKey === privateKey);
+
+  if (account) return account;
+
+  if (web3.eth.accounts.wallet.length === 0 && privateKey) {
+    account = web3.eth.accounts.privateKeyToAccount(privateKey);
+    web3.eth.accounts.wallet.add(account);
+  }
+
+  return account;
+};
+
 // if the websocket connection drops, attempt to re-connect
 // upon successful re-connection, we re-start all listeners
 const reconnectOnEnd = (web3, nodeUrl) => {
@@ -53,7 +74,8 @@ const reconnectOnEnd = (web3, nodeUrl) => {
         // before setting the newProvider. Our currentProvider has been disconnected, so thus the not open
         // error is logged
         web3.setProvider(newProvider);
-        reconnectOnEnd(web3);
+        // attach reconnection logic to newProvider
+        reconnectOnEnd(web3, nodeUrl);
         web3.emit(RECONNECT_EVENT);
       });
     }, THIRTY_SECONDS);
@@ -67,14 +89,14 @@ let web3;
  * This web3 instance will emit the following events:
  *   - disconnect
  *   - reconnect
+ * @param {object} app feathers application object
  */
-function getWeb3() {
+function getWeb3(app) {
   if (web3) return web3;
 
-  const app = this;
-  const blockchain = app.get('blockchain');
+  const { nodeUrl } = app.get('blockchain');
 
-  web3 = Object.assign(new Web3(blockchain.nodeUrl), EventEmitter.prototype);
+  web3 = Object.assign(new Web3(nodeUrl), EventEmitter.prototype);
 
   web3.currentProvider.on('connect', () => {
     // keep geth node connection alive
@@ -82,7 +104,7 @@ function getWeb3() {
   });
 
   // attach the re-connection logic to the current web3 provider
-  reconnectOnEnd();
+  reconnectOnEnd(web3, nodeUrl);
 
   return web3;
 }
@@ -91,6 +113,7 @@ module.exports = {
   getWeb3,
   batchAndExecuteRequests,
   removeHexPrefix,
+  addAccountToWallet,
   DISCONNECT_EVENT,
   RECONNECT_EVENT,
 };

@@ -10,7 +10,7 @@ export default function() {
   const app = this;
   const blockchain = app.get('blockchain');
 
-  const web3 = getWeb3();
+  const web3 = getWeb3(app);
 
   const opts = {
     startingBlock: blockchain.startingBlock,
@@ -18,7 +18,7 @@ export default function() {
   };
 
   // initialize the event listeners
-  const balMonitor = balanceMonitor();
+  const balMonitor = balanceMonitor(app);
   balMonitor.start();
 
   const txMonitor = new FailedTxMonitor(web3, app);
