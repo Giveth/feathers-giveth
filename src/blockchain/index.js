@@ -4,7 +4,7 @@ import LiquidPledgingMonitor from './LiquidPledgingMonitor';
 import FailedTxMonitor from './FailedTxMonitor';
 import balanceMonitor from './balanceMonitor';
 
-const { getWeb3, DISCONNECT_EVENT, RECONNECT_EVENT } = require('./web3Helpers');
+const { getWeb3 } = require('./web3Helpers');
 
 export default function() {
   const app = this;
@@ -30,11 +30,11 @@ export default function() {
   const lpMonitor = new LiquidPledgingMonitor(app, web3, liquidPledging, txMonitor, opts);
   lpMonitor.start();
 
-  web3.on(DISCONNECT_EVENT, () => {
+  web3.on(web3.DISCONNECT_EVENT, () => {
     txMonitor.close();
   });
 
-  web3.on(RECONNECT_EVENT, () => {
+  web3.on(web3.RECONNECT_EVENT, () => {
     // web3.setProvider will clear any existing subscriptions, so we need to re-subscribe
     txMonitor.start();
     if (lpMonitor) {

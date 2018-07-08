@@ -3,8 +3,6 @@ import logger from 'winston';
 import EventEmitter from 'events';
 
 const THIRTY_SECONDS = 30 * 1000;
-const DISCONNECT_EVENT = 'disconnect';
-const RECONNECT_EVENT = 'reconnect';
 
 /**
  * remove 0x prefix from hex string if present
@@ -58,7 +56,7 @@ const addAccountToWallet = (web3, privateKey) => {
 // upon successful re-connection, we re-start all listeners
 const reconnectOnEnd = (web3, nodeUrl) => {
   web3.currentProvider.on('end', e => {
-    web3.emit(DISCONNECT_EVENT);
+    web3.emit(web3.DISCONNECT_EVENT);
     logger.error(`connection closed reason: ${e.reason}, code: ${e.code}`);
 
     const intervalId = setInterval(() => {
@@ -76,7 +74,7 @@ const reconnectOnEnd = (web3, nodeUrl) => {
         web3.setProvider(newProvider);
         // attach reconnection logic to newProvider
         reconnectOnEnd(web3, nodeUrl);
-        web3.emit(RECONNECT_EVENT);
+        web3.emit(web3.RECONNECT_EVENT);
       });
     }, THIRTY_SECONDS);
   });
@@ -106,6 +104,11 @@ function getWeb3(app) {
   // attach the re-connection logic to the current web3 provider
   reconnectOnEnd(web3, nodeUrl);
 
+  Object.assign(web3, {
+    DISCONNECT_EVENT: 'disconnect',
+    RECONNECT_EVENT: 'reconnect',
+  });
+
   return web3;
 }
 
@@ -114,6 +117,4 @@ module.exports = {
   batchAndExecuteRequests,
   removeHexPrefix,
   addAccountToWallet,
-  DISCONNECT_EVENT,
-  RECONNECT_EVENT,
 };
