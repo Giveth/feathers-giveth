@@ -1,3 +1,4 @@
+import Web3 from 'web3';
 import logger from 'winston';
 import { LiquidPledging, LPVault } from 'giveth-liquidpledging';
 
@@ -5,15 +6,15 @@ import LiquidPledgingMonitor from './LiquidPledgingMonitor';
 import FailedTxMonitor from './FailedTxMonitor';
 import BalanceMonitor from './BalanceMonitor';
 
-const { getWeb3 } = require('./web3Helpers');
-
 const THIRTY_SECONDS = 30 * 1000;
 
 export default function() {
   const app = this;
   const blockchain = app.get('blockchain');
 
-  const web3 = getWeb3();
+  const web3 = new Web3(blockchain.nodeUrl);
+
+  app.set('web3', web3);
 
   const opts = {
     startingBlock: blockchain.startingBlock,

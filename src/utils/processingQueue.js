@@ -2,9 +2,6 @@ const logger = require('winston');
 const queue = require('./queue');
 const processor = require('./processor');
 
-/**
- * Factory function for a queue that tracks which id's are currently being processed
- */
 const processingQueue = target => {
   const q = queue(target);
   const p = processor({});
@@ -26,12 +23,6 @@ const processingQueue = target => {
 // cache queues by name
 const queues = {};
 
-/**
- * Attempts to get a processingQueue by name. If not found, a new
- * processing queue is created and returned
- *
- * @param {string} name name of the processingQueue
- */
 function getQueue(name) {
   if (queues[name]) return queues[name];
 
