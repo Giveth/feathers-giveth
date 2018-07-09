@@ -1,6 +1,5 @@
-import FailedTxMonitor from './FailedTxMonitor';
-
 const balanceMonitor = require('./balanceMonitor');
+const failedTxMonitor = require('./failedTxMonitor');
 const eventWatcher = require('./watcher');
 const eventHandler = require('./lib/eventHandler');
 const { getWeb3 } = require('./lib/web3Helpers');
@@ -17,7 +16,7 @@ export default function() {
   const balMonitor = balanceMonitor(app);
   balMonitor.start();
 
-  const txMonitor = new FailedTxMonitor(web3, app);
+  const txMonitor = failedTxMonitor(app, eventHandler);
   txMonitor.start();
 
   const watcher = eventWatcher(app, handler);
