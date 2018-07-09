@@ -2,7 +2,7 @@ const { LiquidPledging } = require('giveth-liquidpledging');
 const logger = require('winston');
 const paymentsFactory = require('../payments');
 const adminsFactory = require('../admins');
-const Pledges = require('../Pledges').default;
+const pledgesFactory = require('../pledges');
 const cappedMilestonesFactory = require('../cappedMilestones');
 const processingQueue = require('../../utils/processingQueue');
 
@@ -21,7 +21,7 @@ const eventHandler = app => {
 
   const payments = paymentsFactory(app, queue);
   const admins = adminsFactory(app, liquidPledging, queue);
-  const pledges = new Pledges(app, liquidPledging, queue);
+  const pledges = pledgesFactory(app, liquidPledging, queue);
   const cappedMilestones = cappedMilestonesFactory(app);
 
   return {

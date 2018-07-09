@@ -5,24 +5,12 @@ const { LPPCappedMilestone } = require('lpp-capped-milestone');
 const { LPPCampaign } = require('lpp-campaign');
 const logger = require('winston');
 
+const getPaymentStatus = require('./lib/getPaymentStatus');
 const ReprocessError = require('./lib/ReprocessError');
 const { removeHexPrefix } = require('./lib/web3Helpers');
 const { status: CampaignStatus } = require('../models/campaigns.model');
 const { status: MilestoneStatus } = require('../models/milestones.model');
 const reprocess = require('../utils/reprocess');
-
-const pledgeState = val => {
-  switch (val) {
-    case '0':
-      return 'Pledged';
-    case '1':
-      return 'Paying';
-    case '2':
-      return 'Paid';
-    default:
-      return 'Unknown';
-  }
-};
 
 const milestoneStatus = (completed, canceled) => {
   if (canceled) return MilestoneStatus.CANCELED;
@@ -325,7 +313,7 @@ const projects = (app, liquidPledging) => {
         pledgeOwnerAdmin.type === 'giver' || pledgeDelegateAdmin ? 'waiting' : 'committed';
 
       const mutation = {
-        paymentStatus: pledgeState(pledge.pledgeState),
+        paymentStatus: getPaymentStatus(pledge.pledgeState),
         owner: pledge.owner,
         ownerId: pledgeOwnerAdmin.typeId,
         ownerType: pledgeOwnerAdmin.type,

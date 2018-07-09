@@ -2,7 +2,24 @@
 //
 // See http://mongoosejs.com/docs/models.html
 // for more of what you can do here.
-module.exports = function Donation(app) {
+
+const DonationStatus = {
+  PENDING: 'Pending',
+  PAYING: 'Paying',
+  PAID: 'Paid',
+  TO_APPROVE: 'ToApprove',
+  WAITING: 'Waiting',
+  COMMITTED: 'Committed',
+  FAILED: 'Failed',
+};
+
+const PaymentStatus = {
+  PLEDGED: 'Pledged',
+  PAYING: 'Paying',
+  PAID: 'Paid',
+};
+
+function Donation(app) {
   const mongooseClient = app.get('mongooseClient');
   const { Schema } = mongooseClient;
   const donation = new Schema(
@@ -22,8 +39,18 @@ module.exports = function Donation(app) {
       delegate: { type: String },
       delegateId: { type: String },
       delegateType: { type: String },
-      status: { type: String, required: true },
-      paymentStatus: { type: String, required: true },
+      status: {
+        type: String,
+        require: true,
+        enum: Object.values(DonationStatus),
+        default: DonationStatus.PENDING,
+      },
+      paymentStatus: {
+        type: String,
+        require: true,
+        enum: Object.values(PaymentStatus),
+        default: PaymentStatus.PLEDGED,
+      },
       txHash: { type: String, index: true },
       commitTime: { type: Date },
       mined: { type: Boolean },
@@ -39,4 +66,10 @@ module.exports = function Donation(app) {
   );
 
   return mongooseClient.model('donations', donation);
+}
+
+module.exports = {
+  Donation,
+  DonationStatus,
+  PaymentStatus,
 };
