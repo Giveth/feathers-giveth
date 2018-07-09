@@ -1,7 +1,7 @@
 const logger = require('winston');
 
 /**
- * object keep feathers cache in sync with lpp-capped-milestone contracts
+ * object factory to keep feathers cache in sync with lpp-capped-milestone contracts
  */
 const cappedMilestones = app => {
   const milestones = app.service('milestones');

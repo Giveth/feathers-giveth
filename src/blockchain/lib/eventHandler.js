@@ -1,6 +1,6 @@
-const { LiquidPledging, LPVault } = require('giveth-liquidpledging');
+const { LiquidPledging } = require('giveth-liquidpledging');
 const logger = require('winston');
-const Payments = require('../Payments');
+const paymentsFactory = require('../payments');
 const Admins = require('../Admins').default;
 const Pledges = require('../Pledges').default;
 const cappedMilestonesFactory = require('../cappedMilestones');
@@ -9,21 +9,17 @@ const processingQueue = require('../../utils/processingQueue');
 const eventHandler = app => {
   const web3 = app.getWeb3();
 
-  const { liquidPledgingAddress, vaultAddress } = app.get('blockchain');
+  const { liquidPledgingAddress } = app.get('blockchain');
 
-  if (!vaultAddress) {
-    throw new Error('vaultAddress is not defined in the configuration file');
-  }
   if (!liquidPledgingAddress) {
     throw new Error('liquidPledgingAddress is not defined in the configuration file');
   }
 
   const liquidPledging = new LiquidPledging(web3, liquidPledgingAddress);
-  const lpVault = new LPVault(web3, vaultAddress);
 
   const queue = processingQueue('eventHandler');
 
-  const payments = new Payments(app, lpVault, queue);
+  const payments = paymentsFactory(app, queue);
   const admins = new Admins(app, liquidPledging, queue);
   const pledges = new Pledges(app, liquidPledging, queue);
   const cappedMilestones = cappedMilestonesFactory(app);
