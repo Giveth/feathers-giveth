@@ -3,7 +3,7 @@ const logger = require('winston');
 const Payments = require('../Payments');
 const Admins = require('../Admins').default;
 const Pledges = require('../Pledges').default;
-const CappedMilestones = require('../CappedMilestones').default;
+const cappedMilestonesFactory = require('../cappedMilestones');
 const processingQueue = require('../../utils/processingQueue');
 
 const eventHandler = app => {
@@ -26,7 +26,7 @@ const eventHandler = app => {
   const payments = new Payments(app, lpVault, queue);
   const admins = new Admins(app, liquidPledging, queue);
   const pledges = new Pledges(app, liquidPledging, queue);
-  const cappedMilestones = new CappedMilestones(app, web3);
+  const cappedMilestones = cappedMilestonesFactory(app);
 
   return {
     /**

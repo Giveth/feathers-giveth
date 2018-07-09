@@ -1,58 +1,91 @@
-import logger from 'winston';
+const logger = require('winston');
 
 /**
- * class to keep feathers cache in sync with lpp-capped-milestone contracts
+ * object keep feathers cache in sync with lpp-capped-milestone contracts
  */
-class CappedMilestones {
-  constructor(app, web3) {
-    this.web3 = web3;
-    this.milestones = app.service('milestones');
-  }
+const cappedMilestones = app => {
+  const milestones = app.service('milestones');
 
-  reviewRequested(event) {
-    if (event.event !== 'MilestoneCompleteRequested')
-      throw new Error('reviewRequested only handles MilestoneCompleteRequested events');
+  /**
+   *
+   * @param {string|int} projectId the liquidPledging adminId for this milestone
+   * @param {string} status The status to set
+   * @param {string} txHash The txHash of the event that triggered this update
+   */
+  async function updateMilestoneStatus(projectId, status, txHash) {
+    try {
+      const data = await milestones.find({ paginate: false, query: { projectId } });
+      // only interested in milestones we are aware of.
+      if (data.length === 1) {
+        const m = data[0];
 
-    this.updateMilestoneStatus(event.returnValues.idProject, 'NeedsReview', event.transactionHash);
-  }
-
-  rejected(event) {
-    if (event.event !== 'MilestoneCompleteRequestRejected')
-      throw new Error('rejected only handles MilestoneCompleteRequestRejected events');
-
-    this.updateMilestoneStatus(event.returnValues.idProject, 'InProgress', event.transactionHash);
-  }
-
-  accepted(event) {
-    if (event.event !== 'MilestoneCompleteRequestApproved')
-      throw new Error('accepted only handles MilestoneCompleteRequestApproved events');
-
-    this.updateMilestoneStatus(event.returnValues.idProject, 'Completed', event.transactionHash);
-  }
-
-  paymentCollected(event) {
-    if (event.event !== 'PaymentCollected')
-      throw new Error('paymentCollected only handles PaymentCollected events');
-
-    this.updateMilestoneStatus(event.returnValues.idProject, 'Paid', event.transactionHash);
-  }
-
-  updateMilestoneStatus(projectId, status, txHash) {
-    this.milestones
-      .find({ query: { projectId } })
-      .then(({ data }) => {
-        // only interested in milestones we are aware of.
-        if (data.length === 1) {
-          const m = data[0];
-
-          this.milestones.patch(m._id, {
+        milestones.patch(
+          m._id,
+          {
             status,
             mined: true,
-          }, { eventTxHash: txHash });
-        }
-      })
-      .catch(logger.error);
+          },
+          { eventTxHash: txHash },
+        );
+      }
+    } catch (e) {
+      logger.error(e);
+    }
   }
-}
 
-export default CappedMilestones;
+  return {
+    /**
+     * handle `MilestoneCompleteRequested` events
+     *
+     * @param {object} event Web3 event object
+     */
+    reviewRequested(event) {
+      if (event.event !== 'MilestoneCompleteRequested') {
+        throw new Error('reviewRequested only handles MilestoneCompleteRequested events');
+      }
+
+      updateMilestoneStatus(event.returnValues.idProject, 'NeedsReview', event.transactionHash);
+    },
+
+    /**
+     * handle `MilestoneCompleteRequestRejected` events
+     *
+     * @param {object} event Web3 event object
+     */
+    rejected(event) {
+      if (event.event !== 'MilestoneCompleteRequestRejected') {
+        throw new Error('rejected only handles MilestoneCompleteRequestRejected events');
+      }
+
+      updateMilestoneStatus(event.returnValues.idProject, 'InProgress', event.transactionHash);
+    },
+
+    /**
+     * handle `MilestoneCompleteRequestApproved` events
+     *
+     * @param {object} event Web3 event object
+     */
+    accepted(event) {
+      if (event.event !== 'MilestoneCompleteRequestApproved') {
+        throw new Error('accepted only handles MilestoneCompleteRequestApproved events');
+      }
+
+      updateMilestoneStatus(event.returnValues.idProject, 'Completed', event.transactionHash);
+    },
+
+    /**
+     * handle `PaymentCollected` events
+     *
+     * @param {object} event Web3 event object
+     */
+    paymentCollected(event) {
+      if (event.event !== 'PaymentCollected') {
+        throw new Error('paymentCollected only handles PaymentCollected events');
+      }
+
+      updateMilestoneStatus(event.returnValues.idProject, 'Paid', event.transactionHash);
+    },
+  };
+};
+
+module.exports = cappedMilestones;
