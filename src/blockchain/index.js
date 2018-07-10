@@ -33,7 +33,7 @@ export default function() {
     });
 
     txMonitor = new FailedTxMonitor(web3, app);
-    txMonitor.start();
+    // txMonitor.start();
 
     // TODO investigate this
     // for some reason, if we have the contracts in getNetwork as in commit #67196cd807c52785367aee5224e8d6e5134015c8
@@ -80,7 +80,7 @@ export default function() {
           // be something to look into
           // PR: https://github.com/ethereum/web3.js/pull/1726
 
-          txMonitor.start();
+          // txMonitor.start();
           if (lpMonitor) {
             // web3.setProvider will clear any existing subscriptions, so we need to re-subscribe
             lpMonitor.start();
