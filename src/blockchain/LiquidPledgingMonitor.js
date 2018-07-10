@@ -2,6 +2,7 @@ import logger from 'winston';
 import { keccak256, padLeft, toHex } from 'web3-utils';
 import { Kernel } from 'giveth-liquidpledging';
 import { LPPCappedMilestone } from 'lpp-capped-milestone';
+import semaphore from 'semaphore';
 import Admins from './Admins';
 import Pledges from './Pledges';
 import Payments from './Payments';
@@ -24,6 +25,7 @@ export default class {
     this.txMonitor = txMonitor;
     this.liquidPledging = liquidPledging;
     this.events = app.service('events');
+    this.sem = semaphore();
 
     this.requiredConfirmations = opts.requiredConfirmations || 0;
     this.currentBlock = 0;
@@ -333,57 +335,67 @@ export default class {
    * processing of the event if the requiredConfirmations has been reached
    */
   async updateEventConfirmations() {
-    const { currentBlock } = this;
+    this.sem.take(async () => {
+      try {
+        const { currentBlock } = this;
 
-    // all unconfirmed events sorted by txHash & logIndex
-    const confirmedQuery = { $or: [{ confirmed: false }, { confirmed: { $exists: false } }] };
-    const query = Object.assign(
-      {
-        $sort: { transactionHash: 1, logIndex: 1 },
-      },
-      confirmedQuery,
-    );
-
-    // fetch all un-confirmend events
-    const [err, data] = await to(this.events.find({ paginate: false, query }));
-    if (err) {
-      logger.error('Error fetching un-confirmed events', err);
-      return;
-    }
-
-    // sort the events into buckets by # of confirmations
-    const eventsByConfirmations = data.reduce((val, event) => {
-      const diff = currentBlock - event.blockNumber;
-      const c = diff >= this.requiredConfirmations ? this.requiredConfirmations : diff;
-
-      if (this.requiredConfirmations === 0 || c > 0) {
-        // eslint-ignore-next-line no-param-reassign
-        if (!val[c]) val[c] = [];
-        val[c].push(event);
-      }
-      return val;
-    }, []);
-
-    // updated the # of confirmations for the events and proceess the event if confirmed
-    eventsByConfirmations.forEach((events, confirmations) => {
-      if (confirmations === this.requiredConfirmations) {
-        const q = Object.assign({}, confirmedQuery, {
-          blockNumber: {
-            $lte: currentBlock - this.requiredConfirmations,
+        // all unconfirmed events sorted by txHash & logIndex
+        const confirmedQuery = { $or: [{ confirmed: false }, { confirmed: { $exists: false } }] };
+        const query = Object.assign(
+          {
+            $sort: { transactionHash: 1, logIndex: 1 },
           },
+          confirmedQuery,
+        );
+
+        // fetch all un-confirmed events
+        const [err, data] = await to(this.events.find({ paginate: false, query }));
+        if (err) {
+          logger.error('Error fetching un-confirmed events', err);
+          this.sem.leave();
+          return;
+        }
+
+        // sort the events into buckets by # of confirmations
+        const eventsByConfirmations = data.reduce((val, event) => {
+          const diff = currentBlock - event.blockNumber;
+          const c = diff >= this.requiredConfirmations ? this.requiredConfirmations : diff;
+
+          if (this.requiredConfirmations === 0 || c > 0) {
+            // eslint-ignore-next-line no-param-reassign
+            if (!val[c]) val[c] = [];
+            val[c].push(event);
+          }
+          return val;
+        }, []);
+
+        // updated the # of confirmations for the events and process the event if confirmed
+        const promises = eventsByConfirmations.map(async (events, confirmations) => {
+          if (confirmations === this.requiredConfirmations) {
+            const q = Object.assign({}, confirmedQuery, {
+              blockNumber: {
+                $lte: currentBlock - this.requiredConfirmations,
+              },
+            });
+
+            await this.events.patch(null, { confirmed: true, confirmations }, { query: q });
+
+            // now that the event is confirmed, handle the event
+            events.forEach(event => this.handleEvent(event));
+          } else {
+            await this.events.patch(
+              null,
+              { confirmations },
+              { query: { blockNumber: currentBlock - this.requiredConfirmations + confirmations } },
+            );
+          }
         });
 
-        this.events.patch(null, { confirmed: true, confirmations }, { query: q });
-
-        // now that the event is confirmed, handle the event
-        events.forEach(event => this.handleEvent(event));
-      } else {
-        this.events.patch(
-          null,
-          { confirmations },
-          { query: { blockNumber: currentBlock - this.requiredConfirmations + confirmations } },
-        );
+        await Promise.all(promises);
+      } catch (err) {
+        logger.error('error calling updateConfirmations', err);
       }
+      this.sem.leave();
     });
   }
 
