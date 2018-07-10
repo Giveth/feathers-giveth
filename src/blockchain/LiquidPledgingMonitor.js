@@ -23,7 +23,6 @@ export default class {
     this.txMonitor = txMonitor;
     this.liquidPledging = liquidPledging;
     this.events = app.service('events');
-    this.newEvents = {};
 
     this.requiredConfirmations = opts.requiredConfirmations || 0;
     this.currentBlock = 0;
@@ -94,6 +93,7 @@ export default class {
       // .allEvents({ fromBlock: this.config.lastBlock + 1 || 1 })
       .allEvents({})
       .on('data', this.newEvent.bind(this))
+      .on('changed', e => e.removed && this.removeEvent(e))
       .on('error', err => logger.error('SUBSCRIPTION ERROR: ', err));
   }
 
@@ -111,6 +111,7 @@ export default class {
           },
         })
         .on('data', this.newEvent.bind(this))
+        .on('changed', e => e.removed && this.removeEvent(e))
         .on('error', err => logger.error('SUBSCRIPTION ERROR: ', err));
     });
   }
@@ -137,9 +138,11 @@ export default class {
         keccak256('PaymentCollected(address,uint64)'),
       ],
       utils.padLeft(`0x${this.liquidPledging.$address.substring(2).toLowerCase()}`, 64), // remove leading 0x from address
-    ]).on('data', e => {
-      this.newEvent(decodeEventABI(e));
-    });
+    ])
+      .on('data', e => {
+        this.newEvent(decodeEventABI(e));
+      })
+      .on('changed', e => e.removed && this.removeEvent(e));
   }
 
   /**
@@ -151,6 +154,7 @@ export default class {
     this.liquidPledging.$vault.$contract.events
       .allEvents({ fromBlock })
       .on('data', this.newEvent.bind(this))
+      .on('changed', e => e.removed && this.removeEvent(e))
       .on('error', err => logger.error('SUBSCRIPTION ERROR: ', err));
   }
 
@@ -229,93 +233,80 @@ export default class {
   }
 
   /**
+   * remove this event if it has yet to be confirmed
+   */
+  removeEvent(event, isQueued = false) {
+    const { id, transactionHash } = event;
+
+    if (!isQueued && this.eventQueue.isProcessing(transactionHash)) {
+      this.eventQueue.add(transactionHash, () => this.removeEvent(event, true));
+      return Promise.resolve();
+    }
+
+    logger.info('attempting to remove event:', event);
+    this.eventQueue.startProcessing(transactionHash);
+    return this.events
+      .remove(undefined, { query: { id, transactionHash, confirmed: false } })
+      .then(() => {
+        this.events.find({ query: { id, transactionHash, confirmed: true } }).then(({ data }) => {
+          if (data.length > 0) {
+            logger.error(
+              'RE-ORG ERROR: LiquidPledgingMonitor.removeEvent was called, however the matching event has already been confirmed so we did not remove it. Consider increasing the requiredConfirmations.',
+              event,
+              data,
+            );
+          }
+        });
+      })
+      .then(() => this.eventQueue.purge(transactionHash))
+      .then(() => this.eventQueue.finishedProcessing(transactionHash));
+  }
+
+  /**
    * Handle new events as they are emitted. Here we save the event so that they can be processed
    * later after waiting for x number of confirmations (defined in config).
    */
-  newEvent(event, reprocess = false) {
+  newEvent(event, reprocess = false, isQueued = false) {
     this.updateConfig(event.blockNumber);
+    const { logIndex, transactionHash } = event;
 
-    // NOTE: perissology: I'm not sure if we want to do this. If we uncomment the following code, 
-    // the events won't be stored in the events db
-    // on startup, we fetch past logs. We can immediatly process the event if the required confirmatinos have past
-    // if (event.blockNumber >= this.currentBlock - this.requiredConfirmations) {
-    //   this.handleEvent(event);
-    //   return;
-    // }
+    if (!isQueued && this.eventQueue.isProcessing(transactionHash)) {
+      this.eventQueue.add(transactionHash, () => this.newEvent(event, false, true));
+      return Promise.resolve();
+    }
 
-    const { id, address, signature, transactionHash, raw } = event;
-    const hash = utils.keccak256(address + signature + transactionHash + JSON.stringify(raw));
+    this.eventQueue.startProcessing(transactionHash);
+    return this.events
+      .find({ paginate: false, query: { logIndex, transactionHash } })
+      .then(data => {
+        if (data.some(e => e.confirmed)) {
+          if (reprocess) {
+            if (data.length > 1) {
+              logger.error(
+                'reprocessing event, but query returned multiple matching events. Only updating the first',
+              );
+            }
 
-    // during a reorg, the same event can occur in quick succession, so we cache the event until
-    // it has been successfully saved
-    if (!this.newEvents[transactionHash]) this.newEvents[transactionHash] = [];
-    this.newEvents[transactionHash].push(Object.assign({}, event, { hash }));
+            return this.events.update(data[0]._id, Object.assign({}, event, { confirmed: false }));
+          }
 
-    const removeFromCache = () => {
-      const i = this.newEvents[transactionHash].findIndex(ev => ev.hash === hash && ev.id === id);
-      this.newEvents[transactionHash].splice(i, 1);
-      if (this.newEvents[transactionHash].length === 0) delete this.newEvents[transactionHash];
-    };
-
-    this.events.find({ paginate: false, query: { id } }).then(data => {
-      if (data.length === 0) {
-        // re-org may have occurred, check if we have a cached event
-        const existingEvent = this.newEvents[transactionHash].find(
-          ev => ev.hash === hash && ev.id !== id,
-        );
-
-        // if we have a cached event, add this one to the queue so it will be processed
-        // after the event it is replacing
-        if (existingEvent) {
-          this.eventQueue.add(hash, () => this.newEvent(event));
-        } else {
-          this.events.create(Object.assign({}, event, { confirmations: 0 })).then(() => {
-            removeFromCache();
-            this.eventQueue.purge(hash);
-          });
-        }
-        return;
-      }
-
-      if (data.length > 1) {
-        logger.error(
-          'LiquidPledgingMonitor.newEvent found more then 1 matching event.',
-          event,
-          data,
-        );
-      }
-
-      const oldEvent = data[0];
-
-      const mutation = Object.assign({}, oldEvent, event);
-      if (oldEvent.confirmed) {
-        if (!reprocess) {
           logger.error(
             'RE-ORG ERROR: LiquidPledgingMonitor.newEvent was called, however the matching event has already been confirmed. Consider increasing the requiredConfirmations.',
             event,
-            oldEvent,
+            data,
+          );
+        } else if (data.length > 0) {
+          logger.error(
+            'RE-ORG ERROR: LiquidPledgingMonitor.newEvent found existing event with matching logIndex and transactionHash.',
+            event,
+            data,
           );
         }
 
-        if (reprocess || JSON.stringify(oldEvent.raw) !== JSON.stringify(raw)) {
-          // TODO the event data is different then prevously processed. We need to update the models in feathers.
-          // need to test this, but maybe just re-processing the event is enough
-          mutation.confirmed = false;
-        }
-      }
-
-      if (mutation.confirmations) {
-        const diff = mutation.blockNumber - oldEvent.blockNumber;
-
-        if (diff > 0) {
-          mutation.confirmations += diff;
-        } else if (diff < 0) {
-          mutation.confirmations -= diff;
-        }
-      }
-
-      this.events.patch(oldEvent._id, mutation).then(() => removeFromCache());
-    });
+        return this.events.create(Object.assign({}, event, { confirmations: 0 }));
+      })
+      .then(() => this.eventQueue.purge(transactionHash))
+      .then(() => this.eventQueue.finishedProcessing(transactionHash));
   }
 
   updateConfirmations() {
