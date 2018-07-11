@@ -258,6 +258,8 @@ export default class {
    * @param {object} event the web3 log to process
    */
   async processRemoveEvent(event) {
+    const { id, transactionHash } = event;
+
     logger.info('attempting to remove event:', event);
     await this.events.remove(undefined, { query: { id, transactionHash, confirmed: false } });
 
@@ -309,7 +311,7 @@ export default class {
         }
 
         await this.events.update(data[0]._id, Object.assign({}, event, { confirmed: false }));
-        this.newEventQueue.purge(hash);
+        this.newEventQueue.purge(transactionHash);
         return;
       }
 
