@@ -2,11 +2,16 @@
 //
 // See http://mongoosejs.com/docs/models.html
 // for more of what you can do here.
-const status = {
-  INPROGRESS: 'InProgress',
+const MilestoneStatus = {
+  PROPOSED: 'Proposed',
+  REJECTED: 'Rejected',
   PENDING: 'Pending',
-  CANCELED: 'Canceled',
+  IN_PROGRESS: 'InProgress',
+  NEEDS_REVIEW: 'NeedsReview',
   COMPLETED: 'Completed',
+  CANCELED: 'Canceled',
+  PAYING: 'Paying',
+  PAID: 'Paid',
   FAILED: 'Failed',
 };
 
@@ -70,6 +75,6 @@ function Milestone(app) {
 }
 
 module.exports = {
-  status,
-  Milestone,
+  MilestoneStatus,
+  createModel: Milestone,
 };

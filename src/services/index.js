@@ -1,6 +1,5 @@
 import challenges from './challenges/challenges.service';
 import pledgeAdmins from './pledgeAdmins/pledgeAdmins.service';
-import donationsHistory from './donationsHistory/donationsHistory.service';
 import events from './events/events.service';
 
 const dacs = require('./dacs/dacs.service.js');
@@ -22,7 +21,6 @@ module.exports = function() {
   app.configure(campaigns);
   app.configure(users);
   app.configure(uploads);
-  app.configure(donationsHistory);
   app.configure(donations);
   app.configure(challenges);
   app.configure(pledgeAdmins);

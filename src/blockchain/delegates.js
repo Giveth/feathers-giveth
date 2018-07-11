@@ -2,7 +2,7 @@
 
 const logger = require('winston');
 const ReprocessError = require('./lib/ReprocessError');
-const { status: DACStatus } = require('../models/dacs.model');
+const { DacStatus } = require('../models/dacs.model');
 const reprocess = require('../utils/reprocess');
 
 const delegates = (app, liquidPledging) => {
@@ -52,7 +52,7 @@ const delegates = (app, liquidPledging) => {
       return dacs.patch(dac._id, {
         delegateId,
         pluginAddress: delegate.plugin,
-        status: DACStatus.ACTIVE,
+        status: DacStatus.ACTIVE,
       });
     } catch (err) {
       if (!(err instanceof ReprocessError)) {

@@ -10,13 +10,8 @@ const DonationStatus = {
   TO_APPROVE: 'ToApprove',
   WAITING: 'Waiting',
   COMMITTED: 'Committed',
+  REJECTED: 'Rejected',
   FAILED: 'Failed',
-};
-
-const PaymentStatus = {
-  PLEDGED: 'Pledged',
-  PAYING: 'Paying',
-  PAID: 'Paid',
 };
 
 function Donation(app) {
@@ -26,6 +21,7 @@ function Donation(app) {
     {
       giverAddress: { type: String, required: true, index: true },
       amount: { type: String, required: true },
+      amountRemaining: { type: String, required: true },
       pledgeId: { type: String, required: true },
       owner: { type: String, required: true },
       ownerId: { type: String },
@@ -45,12 +41,6 @@ function Donation(app) {
         enum: Object.values(DonationStatus),
         default: DonationStatus.PENDING,
       },
-      paymentStatus: {
-        type: String,
-        require: true,
-        enum: Object.values(PaymentStatus),
-        default: PaymentStatus.PLEDGED,
-      },
       txHash: { type: String, index: true },
       commitTime: { type: Date },
       mined: { type: Boolean },
@@ -59,6 +49,8 @@ function Donation(app) {
       ownerEntity: { type: String },
       giver: { type: String },
       previousState: { type: Object },
+      parentDonations: { type: [String], default: [], required: true },
+      isReturn: { type: Boolean, default: false },
     },
     {
       timestamps: true,
@@ -71,5 +63,4 @@ function Donation(app) {
 module.exports = {
   Donation,
   DonationStatus,
-  PaymentStatus,
 };

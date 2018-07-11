@@ -1,4 +1,4 @@
-export const status = {
+export const DacStatus = {
   ACTIVE: 'Active',
   PENDING: 'Pending',
   CANCELED: 'Canceled',
@@ -25,8 +25,8 @@ export default function createModel(app) {
       status: {
         type: String,
         require: true,
-        enum: Object.values(status),
-        default: status.PENDING,
+        enum: Object.values(DacStatus),
+        default: DacStatus.PENDING,
       },
       image: { type: String }, // required: true },
       txHash: { type: String },

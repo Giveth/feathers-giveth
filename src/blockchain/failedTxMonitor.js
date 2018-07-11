@@ -4,8 +4,8 @@ const logger = require('winston');
 const LPVaultArtifact = require('giveth-liquidpledging/build/LPVault.json');
 const LPPCappedMilestoneArtifact = require('lpp-capped-milestone/build/LPPCappedMilestone.json');
 
-const { status: DACStatus } = require('../models/dacs.model');
-const { status: CampaignStatus } = require('../models/campaigns.model');
+const { DacStatus } = require('../models/dacs.model');
+const { CampaignStatus } = require('../models/campaigns.model');
 
 const FIFTEEN_MINUTES = 1000 * 60 * 15;
 const TWO_HOURS = 1000 * 60 * 60 * 2;
@@ -45,7 +45,7 @@ function getPendingDonations(app) {
 }
 
 function getPendingDacs(app) {
-  const query = { status: DACStatus.PENDING };
+  const query = { status: DacStatus.PENDING };
   return getPending(app, 'dacs', query);
 }
 
@@ -148,7 +148,7 @@ const failedTxMonitor = (app, eventHandler) => {
       app
         .service('dacs')
         .patch(dac._id, {
-          status: DACStatus.FAILED,
+          status: DacStatus.FAILED,
         })
         .catch(logger.error);
 

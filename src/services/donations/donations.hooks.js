@@ -5,6 +5,9 @@ import commons from 'feathers-hooks-common';
 import sanitizeAddress from '../../hooks/sanitizeAddress';
 import setAddress from '../../hooks/setAddress';
 import addConfirmations from '../../hooks/addConfirmations';
+import { DonationStatus } from '../../models/donations.model';
+import { AdminTypes } from '../../models/pledgeAdmins.model';
+import { MilestoneStatus } from '../../models/milestones.model';
 
 const restrict = () => context => {
   // internal call are fine
@@ -204,6 +207,113 @@ const joinDonationRecipient = (item, context) => {
     .then(context => context.result);
 };
 
+const updateMilestoneIfNotPledged = () => context => {
+  commons.checkContext(context, 'before', ['create']);
+
+  const { data: donation } = context;
+
+  if (
+    donation.ownerType === AdminTypes.MILESTONE &&
+    [DonationStatus.PAYING, DonationStatus.PAID].includes(donation.status)
+  ) {
+    return context.app.service('milestones').patch(donation.ownerTypeId, {
+      status:
+        donation.status === DonationStatus.PAYING ? MilestoneStatus.PAYING : MilestoneStatus.PAID,
+      // mined: true
+    });
+  }
+};
+
+const updateType = () => context => {
+  const updateEntity = data => {
+    let serviceName;
+    let id;
+    let donationQuery;
+
+    if (data.ownerType.toLowerCase() === 'giver') {
+      return Promise.resolve(context);
+    } else if (data.ownerType.toLowerCase() === 'campaign') {
+      serviceName = 'campaigns';
+      id = data.ownerId;
+      donationQuery = { ownerId: id, $select: ['ownerId'] };
+    } else if (data.ownerType.toLowerCase() === 'milestone') {
+      serviceName = 'milestones';
+      id = data.ownerId;
+      donationQuery = { ownerId: id, $select: ['ownerId'] };
+    } else if (data.delegateId) {
+      serviceName = 'dacs';
+      id = data.delegateId;
+      donationQuery = { delegateId: id, $select: ['ownerId'] };
+    }
+
+    const service = context.app.service(serviceName);
+
+    if (!service) return Promise.resolve();
+
+    return service
+      .get(id)
+      .then(entity => {
+        let totalDonated = entity.totalDonated || 0;
+        let donationCount = entity.donationCount || 0;
+        let peopleCount = entity.peopleCount || 0;
+
+        if (typeof donationCount !== 'number') {
+          donationCount = parseInt(donationCount);
+        }
+
+        context.app
+          .service('donations/history')
+          .find({
+            paginate: false,
+            query: donationQuery,
+            $select: ['ownerId'],
+          })
+          .then(donationsForEntity => {
+            peopleCount = new Set(donationsForEntity.map(d => d.ownerId)).size;
+
+            const amount = toBN(data.amount);
+            if (amount > 0) donationCount += 1; // incoming donation
+            totalDonated = toBN(totalDonated)
+              .add(amount)
+              .toString();
+
+            return service.patch(entity._id, { donationCount, totalDonated, peopleCount });
+          });
+      })
+      .catch(error => {
+        console.error(error); // eslint-disable-line no-console
+        return context;
+      });
+  };
+
+  const updateEntities = data => {
+    const toData = {
+      ownerType: data.ownerType,
+      ownerId: data.ownerId,
+      delegateId: data.delegateId,
+      amount: data.amount,
+    };
+
+    if (!data.fromDonationId) return updateEntity(toData);
+
+    const fromData = {
+      ownerType: data.fromOwnerType,
+      ownerId: data.fromOwnerId,
+      delegateId: data.delegateId,
+      amount: `-${data.amount}`,
+    };
+
+    return Promise.all([updateEntity(toData), updateEntity(fromData)]);
+  };
+
+  if (Array.isArray(context.data)) {
+    return Promise.all([...context.data.map(updateEntities)]).then(() => context);
+  }
+
+  return updateEntities(context.data).then(() => context);
+};
+
+
 const populateSchema = () => context => {
   if (context.params.schema === 'includeGiverDetails') {
     return commons.populate({ schema: poSchemas['po-giver'] })(context);
@@ -245,6 +355,7 @@ module.exports = {
         required: true,
         validate: true,
       }),
+      updateMilestoneIfNotPledged(),
     ],
     update: [restrict(), sanitizeAddress('giverAddress', { validate: true })],
     patch: [

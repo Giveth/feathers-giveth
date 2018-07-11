@@ -10,23 +10,11 @@ import sanitizeHtml from '../../hooks/sanitizeHtml';
 import isProjectAllowed from '../../hooks/isProjectAllowed';
 import Notifications from './../../utils/dappMailer';
 import addConfirmations from '../../hooks/addConfirmations';
+import { MilestoneStatus } from '../../models/milestones.model';
 
 /* eslint no-underscore-dangle: 0 */
 
 BigNumber.config({ DECIMAL_PLACES: 18 });
-
-/**
- * Milestone states enum
- */
-const MILESTONE = {
-  PROPOSED: 'proposed',
-  REJECTED: 'rejected',
-  PENDING: 'pending',
-  INPROGRESS: 'InProgress',
-  NEEDSREVIEW: 'NeedsReview',
-  COMPLETED: 'Completed',
-  CANCELED: 'Canceled',
-};
 
 /**
  * Get keys that can be updated based on the state of the milestone and the user's permission
@@ -59,9 +47,9 @@ const getApprovedKeys = (milestone, data, user) => {
   const editMilestoneKeysOnChain = ['title', 'description', 'message', 'mined'];
 
   switch (milestone.status) {
-    case MILESTONE.PROPOSED:
+    case MilestoneStatus.PROPOSED:
       // Accept proposed milestone by Campaign Manager
-      if (data.status === MILESTONE.PENDING) {
+      if (data.status === MilestoneStatus.PENDING) {
         if (user.address !== milestone.campaign.ownerAddress) {
           throw new errors.Forbidden('Only the Campaing Manager can accept a milestone');
         }
@@ -71,7 +59,7 @@ const getApprovedKeys = (milestone, data, user) => {
       }
 
       // Reject proposed milestone by Campaign Manager
-      if (data.status === MILESTONE.REJECTED) {
+      if (data.status === MilestoneStatus.REJECTED) {
         if (user.address !== milestone.campaign.ownerAddress) {
           throw new errors.Forbidden('Only the Campaign Manager can reject a milestone');
         }
@@ -81,7 +69,7 @@ const getApprovedKeys = (milestone, data, user) => {
       }
 
       // Editing milestone can be done by Milestone or Campaing Manager
-      if (data.status === MILESTONE.PROPOSED) {
+      if (data.status === MilestoneStatus.PROPOSED) {
         if (![milestone.ownerAddress, milestone.campaign.ownerAddress].includes(user.address)) {
           throw new errors.Forbidden(
             'Only the Milestone or Campaign Manager can edit proposed milestone',
@@ -97,9 +85,9 @@ const getApprovedKeys = (milestone, data, user) => {
       }
       break;
 
-    case MILESTONE.REJECTED:
+    case MilestoneStatus.REJECTED:
       // Editing milestone can be done by Milestone Manager
-      if (data.status === MILESTONE.REJECTED) {
+      if (data.status === MilestoneStatus.REJECTED) {
         if (user.address !== milestone.ownerAddress) {
           throw new errors.Forbidden('Only the Milestone Manager can edit rejected milestone');
         }
@@ -112,7 +100,7 @@ const getApprovedKeys = (milestone, data, user) => {
       }
 
       // Re-proposing milestone can be done by Milestone Manager
-      if (data.status === MILESTONE.PROPOSED) {
+      if (data.status === MilestoneStatus.PROPOSED) {
         if (user.address !== milestone.ownerAddress) {
           throw new errors.Forbidden('Only the Milestone Manager can repropose rejected milestone');
         }
@@ -121,9 +109,9 @@ const getApprovedKeys = (milestone, data, user) => {
       }
       break;
 
-    case MILESTONE.INPROGRESS:
+    case MilestoneStatus.IN_PROGRESS:
       // Mark milestone complete by Recipient or Milestone Manager
-      if (data.status === MILESTONE.NEEDSREVIEW) {
+      if (data.status === MilestoneStatus.NEEDS_REVIEW) {
         if (![milestone.recipientAddress, milestone.ownerAddress].includes(user.address)) {
           throw new errors.Forbidden(
             'Only the Milestone Manager or Recipient can mark a milestone complete',
@@ -135,7 +123,7 @@ const getApprovedKeys = (milestone, data, user) => {
       }
 
       // Cancel milestone by Campaign or Milestone Reviewer
-      if (data.status === MILESTONE.CANCELED && data.mined === false) {
+      if (data.status === MilestoneStatus.CANCELED && data.mined === false) {
         if (!reviewers.includes(user.address)) {
           throw new errors.Forbidden(
             'Only the Milestone or Campaign Reviewer can cancel a milestone',
@@ -146,7 +134,7 @@ const getApprovedKeys = (milestone, data, user) => {
       }
 
       // Editing milestone can be done by Campaign or Milestone Manager
-      if (data.status === MILESTONE.INPROGRESS) {
+      if (data.status === MilestoneStatus.IN_PROGRESS) {
         if (![milestone.ownerAddress, milestone.campaign.ownerAddress].includes(user.address)) {
           throw new errors.Forbidden('Only the Milestone and Campaign Manager can edit milestone');
         }
@@ -155,9 +143,9 @@ const getApprovedKeys = (milestone, data, user) => {
       }
       break;
 
-    case MILESTONE.NEEDSREVIEW:
+    case MilestoneStatus.NEEDS_REVIEW:
       // Approve milestone completed by Campaign or Milestone Reviewer
-      if (data.status === MILESTONE.COMPLETED && data.mined === false) {
+      if (data.status === MilestoneStatus.COMPLETED && data.mined === false) {
         if (!reviewers.includes(user.address)) {
           throw new errors.Forbidden(
             'Only the Milestone or Campaign Reviewer can approve milestone has been completed',
@@ -168,7 +156,7 @@ const getApprovedKeys = (milestone, data, user) => {
       }
 
       // Reject milestone completed by Campaign or Milestone Reviewer
-      if (data.status === MILESTONE.INPROGRESS) {
+      if (data.status === MilestoneStatus.IN_PROGRESS) {
         if (!reviewers.includes(user.address)) {
           throw new errors.Forbidden(
             'Only the Milestone or Campaign Reviewer can reject that milestone has been completed',
@@ -179,7 +167,7 @@ const getApprovedKeys = (milestone, data, user) => {
       }
 
       // Cancel milestone by Campaign or Milestone Reviewer
-      if (data.status === MILESTONE.CANCELED && data.mined === false) {
+      if (data.status === MilestoneStatus.CANCELED && data.mined === false) {
         if (!reviewers.includes(user.address)) {
           throw new errors.Forbidden(
             'Only the Milestone or Campaign Reviewer can cancel a milestone',
@@ -194,7 +182,7 @@ const getApprovedKeys = (milestone, data, user) => {
       }
 
       // Editing milestone can be done by Milestone or Campaign Manager
-      if (data.status === MILESTONE.NEEDSREVIEW) {
+      if (data.status === MilestoneStatus.NEEDS_REVIEW) {
         if (![milestone.ownerAddress, milestone.campaign.ownerAddress].includes(user.address)) {
           throw new errors.Forbidden('Only the Milestone and Campaign Manager can edit milestone');
         }
@@ -208,9 +196,9 @@ const getApprovedKeys = (milestone, data, user) => {
       break;
 
     // States that do not have any action
-    case MILESTONE.PENDING:
-    case MILESTONE.COMPLETED:
-    case MILESTONE.CANCELED:
+    case MilestoneStatus.PENDING:
+    case MilestoneStatus.COMPLETED:
+    case MilestoneStatus.CANCELED:
     default:
       break;
   }
