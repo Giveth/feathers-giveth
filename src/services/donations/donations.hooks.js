@@ -195,7 +195,7 @@ const joinDonationRecipient = (item, context) => {
     )
     .then(
       context =>
-        item.intendedProject > 0
+        Number(item.intendedProject) > 0
           ? commons.populate({
               schema: poSchemas[`po-${item.intendedProjectType.toLowerCase()}-intended`],
             })(context)

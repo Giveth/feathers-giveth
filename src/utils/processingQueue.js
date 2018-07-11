@@ -2,9 +2,6 @@ const logger = require('winston');
 const queue = require('./queue');
 const processor = require('./processor');
 
-/**
- * Factory function for a queue that tracks which id's are currently being processed
- */
 const processingQueue = target => {
   const q = queue(target);
   const p = processor({});
