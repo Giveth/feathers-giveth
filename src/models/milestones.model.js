@@ -1,3 +1,5 @@
+import Item from './item.model.js';
+
 // milestones-model.js - A mongoose model
 //
 // See http://mongoosejs.com/docs/models.html
@@ -5,19 +7,6 @@
 module.exports = function Milestone(app) {
   const mongooseClient = app.get('mongooseClient');
   const { Schema } = mongooseClient;
-
-  const Item = new Schema({
-    // id: { type: String, 'default': shortid.generate },
-    date: { type: Date, required: true },
-    description: { type: String, required: true },
-    image: { type: String },
-    selectedFiatType: { type: String, required: true },
-    fiatAmount: { type: String, required: true },
-    etherAmount: { type: String },
-    wei: { type: String },
-    conversionRate: { type: Number, required: true },
-    ethConversionRateTimestamp: { type: Date, required: true },
-  });
 
   const milestone = new Schema(
     {
@@ -51,6 +40,7 @@ module.exports = function Milestone(app) {
       // but we need them for temporary storage
       // as mongoose virtuals do not persist in after hooks
       message: { type: String },
+      proofItems: [ Item ],
       messageContext: { type: String },
     },
     {
