@@ -287,12 +287,12 @@ const projects = (app, liquidPledging) => {
       return donation;
     }
 
-    const pledgeOwnerAdmin = await getAdmin(donation.owner);
+    const pledgeOwnerAdmin = await getAdmin(donation.ownerId);
 
     // if pledgeOwnerAdmin is canceled or donation is a delegation, go back 1 donation
     if (
       [CampaignStatus.CANCELED, MilestoneStatus.CANCELED].includes(pledgeOwnerAdmin.admin.status) ||
-      Number(donation.intendedProject) > 0
+      Number(donation.intendedProjectId) > 0
     ) {
       // we use the 1st parentDonation b/c the owner of all parentDonations
       // is the same
@@ -348,7 +348,7 @@ const projects = (app, liquidPledging) => {
     const milestoneIds = await milestones.patch(null, mutation, { query }).map(m => m._id);
 
     const donationQuery = {
-      $or: [{ ownerId: { $in: milestoneIds } }, { intendedProjectId: { $in: milestoneIds } }],
+      $or: [{ ownerTypeId: { $in: milestoneIds } }, { intendedProjectTypeId: { $in: milestoneIds } }],
       status: { $nin: [DonationStatus.PAYING, DonationStatus.PAID] },
     };
     donations
@@ -463,7 +463,7 @@ const projects = (app, liquidPledging) => {
 
         // revert donations
         const query = {
-          $or: [{ ownerId: pledgeAdmin.typeId }, { intendedProjectId: pledgeAdmin.typeId }],
+          $or: [{ ownerTypeId: pledgeAdmin.typeId }, { intendedProjectTypeId: pledgeAdmin.typeId }],
           amountRemaining: { $ne: '0' },
         };
         try {

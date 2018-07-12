@@ -65,8 +65,8 @@ async function createToDonationMutation(milestoneService, transferInfo) {
     amount,
     amountRemaining: amount,
     giverAddress: donations[0].giverAddress, // all donations should have same giverAddress
-    owner: toPledge.owner,
-    ownerId: toPledgeAdmin.typeId,
+    ownerId: toPledge.owner,
+    ownerTypeId: toPledgeAdmin.typeId,
     ownerType: toPledgeAdmin.type,
     pledgeId: toPledgeId,
     commitTime: getCommitTime(toPledge.commitTime, ts),
@@ -76,16 +76,16 @@ async function createToDonationMutation(milestoneService, transferInfo) {
 
   if (delegate) {
     Object.assign(mutation, {
-      delegate: delegate.id,
-      delegateId: delegate.typeId,
+      delegateId: delegate.id,
+      delegateTypeId: delegate.typeId,
       delegateType: delegate.type,
     });
   }
 
   if (intendedProject) {
     Object.assign(mutation, {
-      intendedProject: intendedProject.id,
-      intendedProjectId: intendedProject.typeId,
+      intendedProjectId: intendedProject.id,
+      intendedProjectTypeId: intendedProject.typeId,
       intendedProjectType: intendedProject.type,
     });
   }
@@ -172,8 +172,8 @@ const pledges = (app, liquidPledging, queue) => {
       giverAddress: giver.admin.address, // giver is a user type
       amount,
       pledgeId,
-      owner: pledge.owner,
-      ownerId: giver.typeId,
+      ownerId: pledge.owner,
+      ownerTypeId: giver.typeId,
       ownerType: giver.type,
       status: DonationStatus.WAITING, // waiting for delegation by owner
     };

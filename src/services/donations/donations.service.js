@@ -13,7 +13,7 @@ const pollForCommittedDonations = service => {
       .find({
         paginate: false,
         query: {
-          intendedProject: {
+          intendedProjectId: {
             $gt: '0',
           },
           commitTime: {
@@ -26,15 +26,15 @@ const pollForCommittedDonations = service => {
           service
             .patch(donation._id, {
               status: 'committed',
-              owner: donation.intendedProject,
               ownerId: donation.intendedProjectId,
+              ownerTypeId: donation.intendedProjectTypeId,
               ownerType: donation.intendedProjectType,
               $unset: {
-                intendedProject: true,
                 intendedProjectId: true,
+                intendedProjectTypeId: true,
                 intendedProjectType: true,
-                delegate: true,
                 delegateId: true,
+                delegateTypeId: true,
                 delegateType: true,
               },
             })

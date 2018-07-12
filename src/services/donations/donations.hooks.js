@@ -8,6 +8,7 @@ import addConfirmations from '../../hooks/addConfirmations';
 import { DonationStatus } from '../../models/donations.model';
 import { AdminTypes } from '../../models/pledgeAdmins.model';
 import { MilestoneStatus } from '../../models/milestones.model';
+const updateEntityCounters = require('./updateEntityCounters');
 
 const restrict = () => context => {
   // internal call are fine
@@ -35,11 +36,11 @@ const restrict = () => context => {
 
     if (
       data.status === 'pending' &&
-      (data.intendedProjectId || data.delegateId !== donation.delegateId)
+      (data.intendedProjectTypeId || data.delegateTypeId !== donation.delegateTypeId)
     ) {
       // delegate made this call
       if (
-        user.address !== donation.ownerId &&
+        user.address !== donation.ownerTypeId &&
         user.address !== donation.delegateEntity.ownerAddress
       )
         throw new errors.Forbidden();
@@ -48,17 +49,17 @@ const restrict = () => context => {
       const approvedKeys = [
         'txHash',
         'status',
-        'delegate',
         'delegateId',
-        'intendedProject',
+        'delegateTypeId',
         'intendedProjectId',
+        'intendedProjectTypeId',
         'intendedProjectType',
       ];
 
       const keysToRemove = Object.keys(data).map(key => !approvedKeys.includes(key));
       keysToRemove.forEach(key => delete data[key]);
     } else if (
-      (donation.ownerType === 'giver' && user.address !== donation.ownerId) ||
+      (donation.ownerType === 'giver' && user.address !== donation.ownerTypeId) ||
       (donation.ownerType !== 'giver' && user.address !== donation.ownerEntity.ownerAddress)
     ) {
       throw new errors.Forbidden();
@@ -96,7 +97,7 @@ const poSchemas = {
       {
         service: 'campaigns',
         nameAs: 'ownerEntity',
-        parentField: 'ownerId',
+        parentField: 'ownerTypeId',
         childField: '_id',
         useInnerPopulate: true,
       },
@@ -129,7 +130,7 @@ const poSchemas = {
       {
         service: 'milestones',
         nameAs: 'ownerEntity',
-        parentField: 'ownerId',
+        parentField: 'ownerTypeId',
         childField: '_id',
         useInnerPopulate: true,
       },
@@ -194,11 +195,11 @@ const joinDonationRecipient = (item, context) => {
     .populate({ schema: ownerSchema })(newContext)
     .then(
       context =>
-        item.delegate ? commons.populate({ schema: poSchemas['po-dac'] })(context) : context,
+        item.delegateId ? commons.populate({ schema: poSchemas['po-dac'] })(context) : context,
     )
     .then(
       context =>
-        Number(item.intendedProject) > 0
+        Number(item.intendedProjectId) > 0
           ? commons.populate({
               schema: poSchemas[`po-${item.intendedProjectType.toLowerCase()}-intended`],
             })(context)
@@ -223,96 +224,6 @@ const updateMilestoneIfNotPledged = () => context => {
     });
   }
 };
-
-const updateType = () => context => {
-  const updateEntity = data => {
-    let serviceName;
-    let id;
-    let donationQuery;
-
-    if (data.ownerType.toLowerCase() === 'giver') {
-      return Promise.resolve(context);
-    } else if (data.ownerType.toLowerCase() === 'campaign') {
-      serviceName = 'campaigns';
-      id = data.ownerId;
-      donationQuery = { ownerId: id, $select: ['ownerId'] };
-    } else if (data.ownerType.toLowerCase() === 'milestone') {
-      serviceName = 'milestones';
-      id = data.ownerId;
-      donationQuery = { ownerId: id, $select: ['ownerId'] };
-    } else if (data.delegateId) {
-      serviceName = 'dacs';
-      id = data.delegateId;
-      donationQuery = { delegateId: id, $select: ['ownerId'] };
-    }
-
-    const service = context.app.service(serviceName);
-
-    if (!service) return Promise.resolve();
-
-    return service
-      .get(id)
-      .then(entity => {
-        let totalDonated = entity.totalDonated || 0;
-        let donationCount = entity.donationCount || 0;
-        let peopleCount = entity.peopleCount || 0;
-
-        if (typeof donationCount !== 'number') {
-          donationCount = parseInt(donationCount);
-        }
-
-        context.app
-          .service('donations/history')
-          .find({
-            paginate: false,
-            query: donationQuery,
-            $select: ['ownerId'],
-          })
-          .then(donationsForEntity => {
-            peopleCount = new Set(donationsForEntity.map(d => d.ownerId)).size;
-
-            const amount = toBN(data.amount);
-            if (amount > 0) donationCount += 1; // incoming donation
-            totalDonated = toBN(totalDonated)
-              .add(amount)
-              .toString();
-
-            return service.patch(entity._id, { donationCount, totalDonated, peopleCount });
-          });
-      })
-      .catch(error => {
-        console.error(error); // eslint-disable-line no-console
-        return context;
-      });
-  };
-
-  const updateEntities = data => {
-    const toData = {
-      ownerType: data.ownerType,
-      ownerId: data.ownerId,
-      delegateId: data.delegateId,
-      amount: data.amount,
-    };
-
-    if (!data.fromDonationId) return updateEntity(toData);
-
-    const fromData = {
-      ownerType: data.fromOwnerType,
-      ownerId: data.fromOwnerId,
-      delegateId: data.delegateId,
-      amount: `-${data.amount}`,
-    };
-
-    return Promise.all([updateEntity(toData), updateEntity(fromData)]);
-  };
-
-  if (Array.isArray(context.data)) {
-    return Promise.all([...context.data.map(updateEntities)]).then(() => context);
-  }
-
-  return updateEntities(context.data).then(() => context);
-};
-
 
 const populateSchema = () => context => {
   if (context.params.schema === 'includeGiverDetails') {
@@ -356,6 +267,7 @@ module.exports = {
         validate: true,
       }),
       updateMilestoneIfNotPledged(),
+      updateEntityCounters(),
     ],
     update: [restrict(), sanitizeAddress('giverAddress', { validate: true })],
     patch: [
