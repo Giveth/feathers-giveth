@@ -4,24 +4,18 @@ const { hexToNumberString } = require('web3-utils');
 /**
  * object factory to keep feathers cache in sync with LPVault payments contracts
  */
-const payments = (app, queue) => ({
+const payments = app => ({
   /**
    * handle `AuthorizePayment` events
    *
    * @param {object} event Web3 event object
-   * @param {boolean} isQueued is this function being called from a queue
    */
-  async authorizePayment(event, isQueued = false) {
+  async authorizePayment(event) {
     if (event.event !== 'AuthorizePayment') {
       throw new Error('authorizePayment only handles AuthorizePayment events');
     }
 
-    if (!isQueued && queue.isProcessing(event.transactionHash)) {
-      queue.add(event.transactionHash, () => this.authorizePayment(event, true));
-      return;
-    }
-
-    const { returnValues, transactionHash } = event;
+    const { returnValues } = event;
     const paymentId = returnValues.idPayment;
     const pledgeId = hexToNumberString(returnValues.ref);
     const query = { pledgeId };
@@ -37,8 +31,6 @@ const payments = (app, queue) => ({
       }
 
       await donations.patch(null, { paymentId }, { query });
-
-      if (isQueued) queue.purge(transactionHash);
     } catch (error) {
       logger.error('authorizePayment error ->', error);
     }

@@ -19,7 +19,7 @@ const cappedMilestones = app => {
       if (data.length === 1) {
         const m = data[0];
 
-        milestones.patch(
+        await milestones.patch(
           m._id,
           {
             status,
@@ -39,12 +39,16 @@ const cappedMilestones = app => {
      *
      * @param {object} event Web3 event object
      */
-    reviewRequested(event) {
+    async reviewRequested(event) {
       if (event.event !== 'MilestoneCompleteRequested') {
         throw new Error('reviewRequested only handles MilestoneCompleteRequested events');
       }
 
-      updateMilestoneStatus(event.returnValues.idProject, 'NeedsReview', event.transactionHash);
+      await updateMilestoneStatus(
+        event.returnValues.idProject,
+        'NeedsReview',
+        event.transactionHash,
+      );
     },
 
     /**
@@ -52,12 +56,16 @@ const cappedMilestones = app => {
      *
      * @param {object} event Web3 event object
      */
-    rejected(event) {
+    async rejected(event) {
       if (event.event !== 'MilestoneCompleteRequestRejected') {
         throw new Error('rejected only handles MilestoneCompleteRequestRejected events');
       }
 
-      updateMilestoneStatus(event.returnValues.idProject, 'InProgress', event.transactionHash);
+      await updateMilestoneStatus(
+        event.returnValues.idProject,
+        'InProgress',
+        event.transactionHash,
+      );
     },
 
     /**
@@ -65,12 +73,12 @@ const cappedMilestones = app => {
      *
      * @param {object} event Web3 event object
      */
-    accepted(event) {
+    async accepted(event) {
       if (event.event !== 'MilestoneCompleteRequestApproved') {
         throw new Error('accepted only handles MilestoneCompleteRequestApproved events');
       }
 
-      updateMilestoneStatus(event.returnValues.idProject, 'Completed', event.transactionHash);
+      await updateMilestoneStatus(event.returnValues.idProject, 'Completed', event.transactionHash);
     },
 
     /**
@@ -78,12 +86,12 @@ const cappedMilestones = app => {
      *
      * @param {object} event Web3 event object
      */
-    paymentCollected(event) {
+    async paymentCollected(event) {
       if (event.event !== 'PaymentCollected') {
         throw new Error('paymentCollected only handles PaymentCollected events');
       }
 
-      updateMilestoneStatus(event.returnValues.idProject, 'Paid', event.transactionHash);
+      await updateMilestoneStatus(event.returnValues.idProject, 'Paid', event.transactionHash);
     },
   };
 };

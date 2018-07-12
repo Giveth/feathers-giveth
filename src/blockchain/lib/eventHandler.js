@@ -16,12 +16,11 @@ const eventHandler = app => {
   }
 
   const liquidPledging = new LiquidPledging(web3, liquidPledgingAddress);
-
   const queue = processingQueue('eventHandler');
 
-  const payments = paymentsFactory(app, queue);
-  const admins = adminsFactory(app, liquidPledging, queue);
-  const pledges = pledgesFactory(app, liquidPledging, queue);
+  const payments = paymentsFactory(app);
+  const admins = adminsFactory(app, liquidPledging);
+  const pledges = pledgesFactory(app, liquidPledging);
   const cappedMilestones = cappedMilestonesFactory(app);
 
   return {
@@ -67,9 +66,20 @@ const eventHandler = app => {
 
       if (typeof handler !== 'function') {
         logger.error('Unknown event: ', event);
+        return;
       }
 
-      handler();
+      queue.add(async () => {
+        try {
+          await handler();
+        } catch (err) {
+          logger.error(err);
+        }
+        await queue.purge();
+      });
+
+      // start processing the queued events if we haven't already
+      if (!queue.isProcessing()) queue.purge();
     },
   };
 };

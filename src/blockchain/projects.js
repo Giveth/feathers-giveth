@@ -76,7 +76,7 @@ const projects = (app, liquidPledging) => {
       // created before the tx was mined.
       if (!retry) throw new ReprocessError();
 
-      const [campaign, tx] = Promise.all([
+      const [campaign, tx] = await Promise.all([
         getOrCreateCampaignById(project.parentProject),
         web3.eth.getTransaction(txHash),
       ]);
@@ -118,7 +118,7 @@ const projects = (app, liquidPledging) => {
 
       const lppCampaign = new LPPCampaign(web3, project.plugin);
 
-      const [tx, reviewerAddress] = Promise.all([
+      const [tx, reviewerAddress] = await Promise.all([
         web3.eth.getTransaction(txHash),
         lppCampaign.reviewer(),
       ]);
@@ -223,7 +223,7 @@ const projects = (app, liquidPledging) => {
     const lppCampaign = new LPPCampaign(web3, project.plugin);
 
     try {
-      const [campaign, canceled, reviewer] = Promise.all([
+      const [campaign, canceled, reviewer] = await Promise.all([
         getOrCreateCampaign(project, txHash, retry),
         lppCampaign.isCanceled(),
         lppCampaign.reviewer(),
@@ -273,7 +273,7 @@ const projects = (app, liquidPledging) => {
     }
   }
 
-  async function getAdmin(adminId) {
+  function getAdmin(adminId) {
     return app.service('pledgeAdmins').get(adminId);
   }
 
@@ -302,8 +302,8 @@ const projects = (app, liquidPledging) => {
     return donation;
   }
 
-  function createToDonation(donation, txHash) {
-    const revertToDonation = getMostRecentDonationNotCanceled(donation._id);
+  async function createToDonation(donation, txHash) {
+    const revertToDonation = await getMostRecentDonationNotCanceled(donation._id);
 
     const newDonation = Object.assign({}, revertToDonation, {
       txHash,
@@ -348,10 +348,13 @@ const projects = (app, liquidPledging) => {
     const milestoneIds = await milestones.patch(null, mutation, { query }).map(m => m._id);
 
     const donationQuery = {
-      $or: [{ ownerTypeId: { $in: milestoneIds } }, { intendedProjectTypeId: { $in: milestoneIds } }],
+      $or: [
+        { ownerTypeId: { $in: milestoneIds } },
+        { intendedProjectTypeId: { $in: milestoneIds } },
+      ],
       status: { $nin: [DonationStatus.PAYING, DonationStatus.PAID] },
     };
-    donations
+    await donations
       .find({ paginate: false, query: donationQuery })
       .forEach(donation => revertDonation(donation, txHash));
   }
@@ -458,7 +461,7 @@ const projects = (app, liquidPledging) => {
         );
 
         if (pledgeAdmin.type === AdminTypes.CAMPAIGN) {
-          cancelCampaignMilestones(pledgeAdmin.typeId);
+          await cancelCampaignMilestones(pledgeAdmin.typeId);
         }
 
         // revert donations
@@ -467,7 +470,7 @@ const projects = (app, liquidPledging) => {
           amountRemaining: { $ne: '0' },
         };
         try {
-          donations
+          await donations
             .find({ paginate: false, query })
             .forEach(donation => revertDonation(donation, event.transactionHash));
         } catch (error) {

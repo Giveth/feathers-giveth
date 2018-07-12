@@ -118,7 +118,7 @@ const watcher = (app, eventHandler) => {
     }
 
     await eventService.create(Object.assign({}, event, { confirmations: 0 }));
-    queue.purge(transactionHash);
+    queue.purge();
   }
 
   async function getUnconfirmedEventsByConfirmations(currentBlock) {
@@ -145,14 +145,12 @@ const watcher = (app, eventHandler) => {
   async function newEvent(event) {
     setLastBlock(event.blockNumber);
 
-    const { transactionHash } = event;
-
     // during a reorg, the same event can occur in quick succession, so we add everything to a
     // queue so they are processed synchronously
-    queue.add(transactionHash, () => processNewEvent(event));
+    queue.add(() => processNewEvent(event));
 
     // start processing the queued events if we haven't already
-    if (!queue.isProcessing(transactionHash)) queue.purge(transactionHash);
+    if (!queue.isProcessing()) queue.purge();
   }
 
   /**
@@ -174,21 +172,19 @@ const watcher = (app, eventHandler) => {
         data,
       );
     }
-    await queue.purge(transactionHash);
+    await queue.purge();
   }
 
   /**
    * remove this event if it has yet to be confirmed
    */
   function removeEvent(event) {
-    const { transactionHash } = event;
-
     // during a reorg, the same event can occur in quick succession, so we add everything to a
     // queue so they are processed synchronously
-    queue.add(transactionHash, () => processRemoveEvent(event));
+    queue.add(() => processRemoveEvent(event));
 
     // start processing the queued events if we haven't already
-    if (!queue.isProcessing(transactionHash)) queue.purge(transactionHash);
+    if (!queue.isProcessing()) queue.purge();
   }
 
   /**

@@ -26,30 +26,29 @@ const isRejectedDelegation = ({ fromPledge, toPledge }) =>
  */
 const isDelegation = ({ intendedProject }) => !!intendedProject;
 
-function getDonationStatus(transferInfo) {
+const getDonationStatus = transferInfo => {
   const { pledgeState, pledgeAdmin, delegate } = transferInfo;
   if (pledgeState === '1') return DonationStatus.PAYING;
   if (pledgeState === '2') return DonationStatus.PAID;
   if (isDelegation(transferInfo)) return DonationStatus.TO_APPROVE;
   if (pledgeAdmin.type === AdminTypes.GIVER || !!delegate) return DonationStatus.WAITING;
   return DonationStatus.COMMITTED;
-}
+};
 
 /**
  * @param {number|string} commitTime liquidPledging `commitTime`
  * @param {number} ts default commitTime
  */
-function getCommitTime(commitTime, ts) {
+const getCommitTime = (commitTime, ts) =>
   // * 1000 is to convert evm ts to js ts
-  return Number(commitTime) > 0 ? new Date(commitTime * 1000) : ts;
-}
+  Number(commitTime) > 0 ? new Date(commitTime * 1000) : ts;
 
 /**
  * generate a mutation object used to create/update the `to` donation
  *
  * @param {object} transferInfo object containing information regarding the Transfer event
  */
-async function createToDonationMutation(milestoneService, transferInfo) {
+function createToDonationMutation(transferInfo) {
   const {
     toPledgeAdmin,
     toPledge,
@@ -101,9 +100,8 @@ async function createToDonationMutation(milestoneService, transferInfo) {
  *
  * @param {object} app feathers app instance
  * @param {object} liquidPledging liquidPledging contract instance
- * @param {object} queue processingQueue
  */
-const pledges = (app, liquidPledging, queue) => {
+const pledges = (app, liquidPledging) => {
   const web3 = app.getWeb3();
   const donationService = app.service('donations');
   const pledgeAdmins = app.service('pledgeAdmins');
@@ -276,7 +274,7 @@ const pledges = (app, liquidPledging, queue) => {
         promises.push(undefined);
       }
 
-      const [toPledgeAdmin, donations, delegate, intendedProject] = await promises;
+      const [toPledgeAdmin, donations, delegate, intendedProject] = await Promise.all(promises);
 
       const transferInfo = {
         fromPledgeAdmin,
@@ -303,39 +301,26 @@ const pledges = (app, liquidPledging, queue) => {
     }
   }
 
-  async function processEvent(event, retry = false) {
-    const { from, to, amount } = event.returnValues;
-    const txHash = event.transactionHash;
-    const ts = await getBlockTimestamp(web3, event.blockNumber);
-    if (Number(from) === 0) {
-      const [err] = await toWrapper(newDonation(to, amount, txHash, retry));
-
-      if (err) {
-        logger.error('newDonation error ->', err);
-      }
-    } else {
-      await transfer(from, to, amount, ts, txHash);
-    }
-    await queue.purge(txHash);
-  }
-
   return {
     /**
      * handle `Transfer` events
      *
      * @param {object} event Web3 event object
      */
-    transfer(event) {
+    async transfer(event) {
       if (event.event !== 'Transfer') throw new Error('transfer only handles Transfer events');
 
-      // there will be multiple events in a single transaction
-      // we need to process them in order so we use a queue
-      queue.add(event.transactionHash, processEvent);
+      const { from, to, amount } = event.returnValues;
+      const txHash = event.transactionHash;
+      const ts = await getBlockTimestamp(web3, event.blockNumber);
+      if (Number(from) === 0) {
+        const [err] = await toWrapper(newDonation(to, amount, txHash));
 
-      if (!queue.isProcessing(event.transactionHash)) {
-        // start processing this event. We add to the queue first, so
-        // the queue can track the event processing for the txHash
-        queue.purge(event.transactionHash);
+        if (err) {
+          logger.error('newDonation error ->', err);
+        }
+      } else {
+        await transfer(from, to, amount, ts, txHash);
       }
     },
   };

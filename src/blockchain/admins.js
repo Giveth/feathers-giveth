@@ -8,11 +8,10 @@ const to = require('../utils/to');
  *
  * @param {object} app feathers app instance
  * @param {object} liquidPledging lp contract instance
- * @param {object} queue queue instance
  * @returns {object} obj to handle events from lp Admins
  */
-const adminFactory = (app, liquidPledging, queue) => {
-  const givers = giversFactory(app, liquidPledging, queue);
+const adminFactory = (app, liquidPledging) => {
+  const givers = giversFactory(app, liquidPledging);
   const delegates = delegatesFactory(app, liquidPledging);
   const projects = projectsFactory(app, liquidPledging);
 
@@ -52,7 +51,7 @@ const adminFactory = (app, liquidPledging, queue) => {
     async addGiver(event) {
       const user = await givers.addGiver(event);
       if (user) {
-        createPledgeAdmin(user.giverId, 'giver', user.address);
+        await createPledgeAdmin(user.giverId, 'giver', user.address);
       }
     },
 
@@ -64,7 +63,7 @@ const adminFactory = (app, liquidPledging, queue) => {
     async updateGiver(event) {
       const user = await givers.updateGiver(event);
       if (user) {
-        createPledgeAdmin(user.giverId, 'giver', user.address);
+        await createPledgeAdmin(user.giverId, 'giver', user.address);
       }
     },
 
@@ -77,7 +76,7 @@ const adminFactory = (app, liquidPledging, queue) => {
       const delegate = await delegates.addDelegate(event);
 
       if (delegate) {
-        createPledgeAdmin(delegate.delegateId, 'dac', delegate._id);
+        await createPledgeAdmin(delegate.delegateId, 'dac', delegate._id);
       }
     },
 
@@ -92,7 +91,7 @@ const adminFactory = (app, liquidPledging, queue) => {
       // a new delegate is created if the createdAt & updatedAt are significantly different
       const fifteenSeconds = 15 * 1000;
       if (delegate.updatedAt - delegate.createdAt > fifteenSeconds) {
-        createPledgeAdmin(delegate.delegateId, 'dac', delegate._id);
+        await createPledgeAdmin(delegate.delegateId, 'dac', delegate._id);
       }
     },
 
@@ -107,7 +106,7 @@ const adminFactory = (app, liquidPledging, queue) => {
       if (project) {
         // only milestones have a maxAmount
         const type = project.maxAmount ? 'milestone' : 'campaign';
-        createPledgeAdmin(project.projectId, type, project._id);
+        await createPledgeAdmin(project.projectId, type, project._id);
       }
     },
 
@@ -124,7 +123,7 @@ const adminFactory = (app, liquidPledging, queue) => {
       if (project.updatedAt - project.createdAt > fifteenSeconds) {
         // only milestones have a maxAmount
         const type = project.maxAmount ? 'milestone' : 'campaign';
-        createPledgeAdmin(project.projectId, type, project._id);
+        await createPledgeAdmin(project.projectId, type, project._id);
       }
     },
 
@@ -133,8 +132,8 @@ const adminFactory = (app, liquidPledging, queue) => {
      *
      * @param {object} event Web3 event object
      */
-    cancelProject(event) {
-      projects.cancelProject(event);
+    async cancelProject(event) {
+      await projects.cancelProject(event);
     },
 
     /**
@@ -142,8 +141,8 @@ const adminFactory = (app, liquidPledging, queue) => {
      *
      * @param {object} event Web3 event object
      */
-    setApp(event) {
-      projects.setApp(event);
+    async setApp(event) {
+      await projects.setApp(event);
     },
   };
 };

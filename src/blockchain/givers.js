@@ -1,6 +1,6 @@
 const logger = require('winston');
 
-const givers = (app, liquidPledging, queue) => {
+const givers = (app, liquidPledging) => {
   const users = app.service('/users');
 
   async function getOrCreateUser(address) {
@@ -17,7 +17,7 @@ const givers = (app, liquidPledging, queue) => {
     }
   }
 
-  async function addGiver(giver, giverId, txHash) {
+  async function addGiver(giver, giverId) {
     const { commitTime, addr, name } = giver;
 
     let user = getOrCreateUser(addr);
@@ -36,8 +36,6 @@ const givers = (app, liquidPledging, queue) => {
     }
 
     user = await users.patch(user.address, mutation);
-
-    await queue.purge(txHash);
     return user;
   }
 
@@ -63,23 +61,18 @@ const givers = (app, liquidPledging, queue) => {
      * @param {object} event Web3 event object
      * @returns {object} user|undefined
      */
-    addGiver(event) {
+    // eslint-disable-next-line consistent-return
+    async addGiver(event) {
       if (event.event !== 'GiverAdded') throw new Error('addGiver only handles GiverAdded events');
 
       const { returnValues } = event;
 
-      // eslint-disable-next-line consistent-return
-      queue.add(event.transactionHash, async () => {
-        try {
-          const giver = await liquidPledging.getPledgeAdmin(returnValues.idGiver);
-          return addGiver(giver, returnValues.idGiver, event.transactionHash);
-        } catch (err) {
-          logger.error('addGiver error ->', err);
-        }
-      });
-      // immediately start processing this event. We add to the queue first, so
-      // the queue can track the event processing for the txHash
-      return queue.purge(event.transactionHash);
+      try {
+        const giver = await liquidPledging.getPledgeAdmin(returnValues.idGiver);
+        return addGiver(giver, returnValues.idGiver, event.transactionHash);
+      } catch (err) {
+        logger.error('addGiver error ->', err);
+      }
     },
 
     /**
@@ -118,7 +111,7 @@ const givers = (app, liquidPledging, queue) => {
           mutation.name = giver.name;
         }
 
-        users.patch(user.address, mutation);
+        await users.patch(user.address, mutation);
       } catch (err) {
         logger.error('updateGiver error ->', err);
       }
