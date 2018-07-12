@@ -41,10 +41,6 @@ function Donation(app) {
       txHash: { type: String, index: true },
       commitTime: { type: Date },
       mined: { type: Boolean },
-      requiredConfirmations: { type: Number },
-      confirmations: { type: Number },
-      ownerEntity: { type: String }, // TODO do we need this?
-      giver: { type: String }, // TODO or this?
       previousState: { type: Object },
       parentDonations: { type: [String], default: [], required: true },
       isReturn: { type: Boolean, default: false },
