@@ -6,6 +6,7 @@ import setAddress from '../../hooks/setAddress';
 import sanitizeHtml from '../../hooks/sanitizeHtml';
 import isProjectAllowed from '../../hooks/isProjectAllowed';
 import addConfirmations from '../../hooks/addConfirmations';
+import { CampaignStatus } from '../../models/campaigns.model';
 
 const restrict = () => context => {
   // internal call are fine
@@ -26,7 +27,7 @@ const restrict = () => context => {
     if (!campaign) throw new errors.Forbidden();
 
     // reviewer Canceled
-    if (data.status === 'Canceled' && data.mined === false) {
+    if (data.status === CampaignStatus.CANCELED && data.mined === false) {
       if (user.address !== campaign.reviewerAddress && user.address !== campaign.ownerAddress)
         throw new errors.Forbidden();
 

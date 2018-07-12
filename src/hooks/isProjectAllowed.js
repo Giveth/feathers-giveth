@@ -1,5 +1,7 @@
 import commons from 'feathers-hooks-common';
 import errors from '@feathersjs/errors';
+import { CampaignStatus } from '../models/campaigns.model';
+import { MilestoneStatus } from '../models/milestones.model';
 
 const checkReviewer = context => {
   if (!context.app.get('useReviewerWhitelist')) {
@@ -44,7 +46,7 @@ const checkOwner = context => {
   const inWhitelist = project => {
     if (
       ownerWhitelist.includes(project.ownerAddress.toLowerCase()) ||
-      project.status === 'proposed'
+      [MilestoneStatus.PROPOSED, CampaignStatus.PROPOSED].includes(project.status)
     ) {
       return;
     }

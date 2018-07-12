@@ -234,7 +234,7 @@ const restrict = () => context => {
     });
 
     // Milestone is not yet on chain, check the ETH conversion
-    if (['proposed', 'rejected'].includes(milestone.status)) {
+    if ([MilestoneStatus.PROPOSED, MilestoneStatus.REJECTED].includes(milestone.status)) {
       return checkEthConversion()(context);
     }
     // Milestone is on chain, remove data stored on-chain that can't be updated
@@ -305,7 +305,7 @@ const sendNotification = () => async context => {
    * Notifications when a milestone get created
    * */
   if (context.method === 'create') {
-    if (result.status === 'proposed') {
+    if (result.status === MilestoneStatus.PROPOSED) {
       try {
         const campaign = await app.service('campaigns').get(data.campaignId);
 
@@ -328,7 +328,10 @@ const sendNotification = () => async context => {
    * Which basically means the event is really mined
    * */
   if (context.method === 'patch' && context.params.eventTxHash) {
-    if (result.prevStatus === 'proposed' && result.status === 'InProgress') {
+    if (
+      result.prevStatus === MilestoneStatus.PROPOSED &&
+      result.status === MilestoneStatus.IN_PROGRESS
+    ) {
       _createConversion(app, result, context.params.eventTxHash, 'proposedAccepted', user);
 
       // find the milestone owner and send a notification that his/her proposed milestone is approved
@@ -342,7 +345,7 @@ const sendNotification = () => async context => {
       });
     }
 
-    if (result.status === 'NeedsReview') {
+    if (result.status === MilestoneStatus.NEEDS_REVIEW) {
       // find the milestone reviewer owner and send a notification that this milestone is been marked as complete and needs review
       _createConversion(app, result, context.params.eventTxHash, result.status, user);
 
@@ -355,7 +358,7 @@ const sendNotification = () => async context => {
       });
     }
 
-    if (result.status === 'Completed' && result.mined) {
+    if (result.status === MilestoneStatus.COMPLETED && result.mined) {
       _createConversion(app, result, context.params.eventTxHash, result.status, user);
 
       // find the milestone owner and send a notification that his/her milestone is marked complete
@@ -368,7 +371,10 @@ const sendNotification = () => async context => {
       });
     }
 
-    if (result.prevStatus === 'NeedsReview' && result.status === 'InProgress') {
+    if (
+      result.prevStatus === MilestoneStatus.NEEDS_REVIEW &&
+      result.status === MilestoneStatus.IN_PROGRESS
+    ) {
       _createConversion(app, result, context.params.eventTxHash, 'rejected', user);
 
       // find the milestone reviewer and send a notification that his/her milestone has been rejected by reviewer
@@ -381,7 +387,7 @@ const sendNotification = () => async context => {
       });
     }
 
-    if (result.status === 'Canceled' && result.mined) {
+    if (result.status === MilestoneStatus.CANCELED && result.mined) {
       _createConversion(app, result, context.params.eventTxHash, result.status, user);
 
       // find the milestone owner and send a notification that his/her milestone is canceled
@@ -396,7 +402,10 @@ const sendNotification = () => async context => {
   }
 
   if (context.method === 'patch' && !context.params.eventTxHash) {
-    if (result.prevStatus === 'proposed' && result.status === 'rejected') {
+    if (
+      result.prevStatus === MilestoneStatus.PROPOSED &&
+      result.status === MilestoneStatus.REJECTED
+    ) {
       _createConversion(app, result, 'proposedRejected', user);
 
       // find the milestone owner and send a notification that his/her proposed milestone is rejected
@@ -409,7 +418,10 @@ const sendNotification = () => async context => {
       });
     }
 
-    if (result.prevStatus === 'rejected' && result.status === 'proposed') {
+    if (
+      result.prevStatus === MilestoneStatus.REJECTED &&
+      result.status === MilestoneStatus.PROPOSED
+    ) {
       _createConversion(app, result, 'rePropose', user);
     }
   }

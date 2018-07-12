@@ -1,4 +1,5 @@
 const logger = require('winston');
+const { MilestoneStatus } = require('../models/milestones.model');
 
 /**
  * object factory to keep feathers cache in sync with lpp-capped-milestone contracts
@@ -46,7 +47,7 @@ const cappedMilestones = app => {
 
       await updateMilestoneStatus(
         event.returnValues.idProject,
-        'NeedsReview',
+        MilestoneStatus.NEEDS_REVIEW,
         event.transactionHash,
       );
     },
@@ -63,7 +64,7 @@ const cappedMilestones = app => {
 
       await updateMilestoneStatus(
         event.returnValues.idProject,
-        'InProgress',
+        MilestoneStatus.IN_PROGRESS,
         event.transactionHash,
       );
     },
@@ -78,7 +79,11 @@ const cappedMilestones = app => {
         throw new Error('accepted only handles MilestoneCompleteRequestApproved events');
       }
 
-      await updateMilestoneStatus(event.returnValues.idProject, 'Completed', event.transactionHash);
+      await updateMilestoneStatus(
+        event.returnValues.idProject,
+        MilestoneStatus.COMPLETED,
+        event.transactionHash,
+      );
     },
 
     /**
@@ -91,7 +96,11 @@ const cappedMilestones = app => {
         throw new Error('paymentCollected only handles PaymentCollected events');
       }
 
-      await updateMilestoneStatus(event.returnValues.idProject, 'Paid', event.transactionHash);
+      await updateMilestoneStatus(
+        event.returnValues.idProject,
+        MilestoneStatus.PAID,
+        event.transactionHash,
+      );
     },
   };
 };

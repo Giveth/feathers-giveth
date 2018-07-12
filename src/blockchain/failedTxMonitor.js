@@ -5,7 +5,9 @@ const LPVaultArtifact = require('giveth-liquidpledging/build/LPVault.json');
 const LPPCappedMilestoneArtifact = require('lpp-capped-milestone/build/LPPCappedMilestone.json');
 
 const { DacStatus } = require('../models/dacs.model');
+const { DonationStatus } = require('../models/donations.model');
 const { CampaignStatus } = require('../models/campaigns.model');
+const { MilestonStatus } = require('../models/milestones.model');
 
 const FIFTEEN_MINUTES = 1000 * 60 * 15;
 const TWO_HOURS = 1000 * 60 * 60 * 2;
@@ -40,7 +42,7 @@ function getPending(app, service, query) {
 }
 
 function getPendingDonations(app) {
-  const query = { $or: [{ status: 'pending' }, { status: 'Pending' }] };
+  const query = { status: DonationStatus.PENDING };
   return getPending(app, 'donations', query);
 }
 
@@ -58,7 +60,7 @@ function getPendingCampaigns(app) {
 
 function getPendingMilestones(app) {
   const query = {
-    $or: [{ status: 'pending' }, { status: 'Pending' }, { mined: false }],
+    $or: [{ status: MilestonStatus.PENDING }, { mined: false }],
   };
   return getPending(app, 'milestones', query);
 }
@@ -110,7 +112,7 @@ const failedTxMonitor = (app, eventHandler) => {
 
     if (logs.length === 0) {
       logger.error(
-        'donation has status === `pending` but transaction was successful donation:',
+        'donation has status === `Pending` but transaction was successful donation:',
         donation,
         'receipt:',
         receipt,
@@ -119,7 +121,7 @@ const failedTxMonitor = (app, eventHandler) => {
 
     logs.forEach(log => {
       logger.info(
-        'donation has status === `pending` but transaction was successful. re-emitting event donation:',
+        'donation has status === `Pending` but transaction was successful. re-emitting event donation:',
         donation,
         'receipt:',
         receipt,
@@ -220,7 +222,7 @@ const failedTxMonitor = (app, eventHandler) => {
 
     if (logs.length === 0) {
       logger.error(
-        'campaign status === `pending` or mined === false but transaction was successful campaign:',
+        'campaign status === `Pending` or mined === false but transaction was successful campaign:',
         campaign,
         'receipt:',
         receipt,
@@ -229,7 +231,7 @@ const failedTxMonitor = (app, eventHandler) => {
 
     logs.forEach(log => {
       logger.info(
-        'campaign status === `pending` or mined === false but transaction was successful. re-emitting event. campaign:',
+        'campaign status === `Pending` or mined === false but transaction was successful. re-emitting event. campaign:',
         campaign,
         'receipt:',
         receipt,
@@ -313,7 +315,7 @@ const failedTxMonitor = (app, eventHandler) => {
 
     if (logs.length === 0) {
       logger.error(
-        'milestone status === `pending` or mined === false but transaction was successful milestone:',
+        'milestone status === `Pending` or mined === false but transaction was successful milestone:',
         milestone,
         'receipt:',
         receipt,
@@ -322,7 +324,7 @@ const failedTxMonitor = (app, eventHandler) => {
 
     logs.forEach(log => {
       logger.info(
-        'milestone status === `pending` or mined === false but transaction was successful. re-emitting event. milestone:',
+        'milestone status === `Pending` or mined === false but transaction was successful. re-emitting event. milestone:',
         milestone,
         'receipt:',
         receipt,

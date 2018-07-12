@@ -8,34 +8,34 @@ import addConfirmations from '../../hooks/addConfirmations';
 import { DonationStatus } from '../../models/donations.model';
 import { AdminTypes } from '../../models/pledgeAdmins.model';
 import { MilestoneStatus } from '../../models/milestones.model';
+
 const updateEntityCounters = require('./updateEntityCounters');
 
-const restrict = () => context => {
+const restrict = () => async context => {
   // internal call are fine
   if (!context.params.provider) return context;
 
+  throw new errors.Forbidden();
   const { data, service } = context;
   const { user } = context.params;
 
   if (!user) throw new errors.NotAuthenticated();
 
-  const getDonations = () => {
-    if (context.id)
-      return service.get(context.id, { paginate: false, schema: 'includeTypeDetails' });
-    if (!context.id && context.params.query)
-      return service.find({
-        paginate: false,
-        query: context.params.query,
-        schema: 'includeTypeDetails',
-      });
-    return undefined;
-  };
+  let donations = [];
+  if (context.id)
+    donations = await service.get(context.id, { paginate: false, schema: 'includeTypeDetails' });
+  if (!context.id && context.params.query)
+    donations = await service.find({
+      paginate: false,
+      query: context.params.query,
+      schema: 'includeTypeDetails',
+    });
 
-  const canUpdate = donation => {
+  const canUpdate = async donation => {
     if (!donation) throw new errors.Forbidden();
 
     if (
-      data.status === 'pending' &&
+      data.status === DonationStatus.PENDING &&
       (data.intendedProjectTypeId || data.delegateTypeId !== donation.delegateTypeId)
     ) {
       // delegate made this call
@@ -47,28 +47,31 @@ const restrict = () => context => {
 
       // whitelist of what the delegate can update
       const approvedKeys = [
-        'txHash',
+        // 'txHash',
         'status',
-        'delegateId',
-        'delegateTypeId',
-        'intendedProjectId',
-        'intendedProjectTypeId',
-        'intendedProjectType',
+        // 'delegateId',
+        // 'delegateTypeId',
+        // 'intendedProjectId',
+        // 'intendedProjectTypeId',
+        // 'intendedProjectType',
       ];
 
       const keysToRemove = Object.keys(data).map(key => !approvedKeys.includes(key));
       keysToRemove.forEach(key => delete data[key]);
     } else if (
-      (donation.ownerType === 'giver' && user.address !== donation.ownerTypeId) ||
-      (donation.ownerType !== 'giver' && user.address !== donation.ownerEntity.ownerAddress)
+      (donation.ownerType === AdminTypes.GIVER && user.address !== donation.ownerTypeId) ||
+      (donation.ownerType !== AdminTypes.GIVER &&
+        user.address !== donation.ownerEntity.ownerAddress)
     ) {
       throw new errors.Forbidden();
     }
   };
 
-  return getDonations().then(
-    donations => (Array.isArray(donations) ? donations.forEach(canUpdate) : canUpdate(donations)),
-  );
+  if (Array.isArray(donations)) {
+    await Promise.all(donations.map(canUpdate));
+  } else {
+    await canUpdate(donations);
+  }
 };
 
 const poSchemas = {
@@ -156,7 +159,7 @@ const stashDonationIfPending = () => context => {
 
   const { data } = context;
 
-  if (data.status === 'pending') {
+  if (data.status === DonationStatus.PENDING) {
     return context.app
       .service('donations')
       .get(context.id)
@@ -217,7 +220,8 @@ const updateMilestoneIfNotPledged = () => context => {
     donation.ownerType === AdminTypes.MILESTONE &&
     [DonationStatus.PAYING, DonationStatus.PAID].includes(donation.status)
   ) {
-    return context.app.service('milestones').patch(donation.ownerTypeId, {
+    // return context.app.service('milestones').patch(donation.ownerTypeId, {
+    context.app.service('milestones').patch(donation.ownerTypeId, {
       status:
         donation.status === DonationStatus.PAYING ? MilestoneStatus.PAYING : MilestoneStatus.PAID,
       // mined: true
@@ -269,9 +273,10 @@ module.exports = {
       updateMilestoneIfNotPledged(),
       updateEntityCounters(),
     ],
-    update: [restrict(), sanitizeAddress('giverAddress', { validate: true })],
+    update: [commons.disallow('external'), sanitizeAddress('giverAddress', { validate: true })],
     patch: [
-      restrict(),
+      // restrict(),
+      commons.disallow('external'),
       sanitizeAddress('giverAddress', { validate: true }),
       stashDonationIfPending(),
     ],

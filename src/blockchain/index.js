@@ -17,7 +17,7 @@ export default function() {
   balMonitor.start();
 
   const txMonitor = failedTxMonitor(app, eventHandler);
-  txMonitor.start();
+  // txMonitor.start();
 
   const watcher = eventWatcher(app, handler);
   watcher.start();

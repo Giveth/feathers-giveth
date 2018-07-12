@@ -33,7 +33,11 @@ function Milestone(app) {
       campaignReviewerAddress: { type: String, required: true, index: true },
       campaignId: { type: String, required: true, index: true },
       projectId: { type: Schema.Types.Long, index: true },
-      status: { type: String, required: true },
+      status: {
+        type: String,
+        require: true,
+        enum: Object.values(MilestoneStatus),
+      },
       items: [Item],
       ethConversionRateTimestamp: { type: Date, required: true },
       selectedFiatType: { type: String, required: true },
