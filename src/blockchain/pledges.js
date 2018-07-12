@@ -124,7 +124,7 @@ const pledges = (app, liquidPledging) => {
       query: {
         $sort: { createdAt: 1 },
         pledgeId,
-        amountRemaining: { $ne: '0' },
+        amountRemaining: { $gt: 0 },
       },
     });
     let remaining = toBN(amount);

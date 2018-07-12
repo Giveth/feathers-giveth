@@ -30,7 +30,7 @@ const countCampaigns = (item, service) =>
       query: {
         dacs: item._id,
         projectId: {
-          $gt: '0', // 0 is a pending campaign
+          $gt: 0, // 0 is a pending campaign
         },
         $limit: 0,
       },

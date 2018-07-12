@@ -267,7 +267,7 @@ module.exports = {
         validate: true,
       }),
       updateMilestoneIfNotPledged(),
-      // updateEntityCounters(),
+      updateEntityCounters(),
     ],
     update: [restrict(), sanitizeAddress('giverAddress', { validate: true })],
     patch: [

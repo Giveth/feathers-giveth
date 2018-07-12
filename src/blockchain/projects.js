@@ -467,7 +467,7 @@ const projects = (app, liquidPledging) => {
         // revert donations
         const query = {
           $or: [{ ownerTypeId: pledgeAdmin.typeId }, { intendedProjectTypeId: pledgeAdmin.typeId }],
-          amountRemaining: { $ne: '0' },
+          amountRemaining: { $gt: 0 },
         };
         try {
           await donations

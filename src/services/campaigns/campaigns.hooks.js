@@ -65,7 +65,7 @@ const countMilestones = (item, service) =>
       query: {
         campaignId: item._id,
         projectId: {
-          $gt: '0', // 0 is a pending milestone
+          $gt: 0, // 0 is a pending milestone
         },
         $limit: 0,
       },
