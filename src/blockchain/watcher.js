@@ -37,7 +37,7 @@ const getLastBlock = async app => {
 
 /**
  * fetch any events that have yet to be confirmed
- * @param {object} feathersjs `events` service
+ * @param {object} eventsService feathersjs `events` service
  * @returns {array} events sorted by transactionHash & logIndex
  */
 async function getUnconfirmedEvents(eventsService) {

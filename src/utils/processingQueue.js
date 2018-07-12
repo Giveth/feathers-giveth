@@ -27,7 +27,7 @@ const factory = name => {
 
   // for debugging purposes. check if there are any stuck txs every 5 mins
   setInterval(() => {
-    if (Object.keys(q.get()).length > 0) {
+    if (q.get().length > 0) {
       logger.info(`current "${name}" QUEUE status ->`, JSON.stringify(q.get(), null, 2));
     }
   }, 1000 * 60 * 5);
