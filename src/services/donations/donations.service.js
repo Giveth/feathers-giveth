@@ -11,7 +11,7 @@ const pollForCommittedDonations = service => {
 
   const doUpdate = async () => {
     try {
-      const donations = service.find({
+      const donations = await service.find({
         paginate: false,
         query: {
           status: DonationStatus.TO_APPROVE,
@@ -82,6 +82,8 @@ module.exports = function serviceFactory() {
 
   // Get our initialized service so that we can register hooks and filters
   const service = app.service('donations');
+
+  service.get('5b44ed2f81685696ad702aec').then(console.log);
 
   pollForCommittedDonations(service);
 

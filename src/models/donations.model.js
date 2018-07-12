@@ -20,16 +20,16 @@ function Donation(app) {
   const donation = new Schema(
     {
       giverAddress: { type: String, required: true, index: true },
-      amount: { type: String, required: true },
-      amountRemaining: { type: String, required: true },
-      pledgeId: { type: String, required: true },
-      ownerId: { type: String, required: true },
+      amount: { type: Schema.Types.Long, required: true },
+      amountRemaining: { type: Schema.Types.Long, required: true },
+      pledgeId: { type: Schema.Types.Long, required: true },
+      ownerId: { type: Schema.Types.Long, required: true },
       ownerTypeId: { type: String },
       ownerType: { type: String, required: true },
-      intendedProjectId: { type: String },
+      intendedProjectId: { type: Schema.Types.Long },
       intendedProjectTypeId: { type: String },
       intendedProjectType: { type: String },
-      delegateId: { type: String },
+      delegateId: { type: Schema.Types.Long },
       delegateTypeId: { type: String },
       delegateType: { type: String },
       status: {
@@ -54,6 +54,6 @@ function Donation(app) {
 }
 
 module.exports = {
-  Donation,
   DonationStatus,
+  createModel: Donation,
 };

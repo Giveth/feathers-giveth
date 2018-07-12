@@ -21,7 +21,7 @@ export default function createModel(app) {
       title: { type: String, required: true },
       description: { type: String }, // required: true },
       communityUrl: { type: String },
-      delegateId: { type: String, index: true },
+      delegateId: { type: Schema.Types.Long, index: true },
       status: {
         type: String,
         require: true,
@@ -30,7 +30,7 @@ export default function createModel(app) {
       },
       image: { type: String }, // required: true },
       txHash: { type: String },
-      totalDonated: { type: String },
+      totalDonated: { type: Schema.Types.Long },
       donationCount: { type: Number },
       ownerAddress: { type: String, required: true, index: true },
       pluginAddress: { type: String },

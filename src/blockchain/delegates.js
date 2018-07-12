@@ -119,4 +119,4 @@ const delegates = (app, liquidPledging) => {
   };
 };
 
-module.export = delegates;
+module.exports = delegates;

@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+
 const { Schema } = mongoose;
 
 const Item = new Schema({
@@ -6,9 +7,9 @@ const Item = new Schema({
   description: { type: String, required: true },
   image: { type: String },
   selectedFiatType: { type: String, required: true },
-  fiatAmount: { type: String, required: true },
-  etherAmount: { type: String },
-  wei: { type: String },
+  fiatAmount: { type: Number, required: true },
+  etherAmount: { type: Number },
+  wei: { type: Schema.Types.Long },
   conversionRate: { type: Number, required: true },
   ethConversionRateTimestamp: { type: Date, required: true },
 });

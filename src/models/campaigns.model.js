@@ -16,10 +16,10 @@ export default function createModel(app) {
     {
       title: { type: String, required: true },
       description: { type: String, required: true },
-      projectId: { type: String, index: true },
+      projectId: { type: Schema.Types.Long, index: true },
       image: { type: String, required: true },
       txHash: { type: String },
-      totalDonated: { type: String },
+      totalDonated: { type: Schema.Types.Long },
       donationCount: { type: Number },
       peopleCount: { type: Number },
       dacs: { type: [String] },

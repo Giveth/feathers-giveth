@@ -14,14 +14,14 @@ function PledgeAdmin(app) {
   const { Schema } = mongooseClient;
   const pledgeAdmin = new Schema(
     {
-      id: { type: String, required: true, index: true, unique: true },
+      id: { type: Schema.Types.Long, required: true, index: true, unique: true },
       type: {
         type: String,
         required: true,
         index: true,
         enum: Object.values(AdminTypes),
       },
-      typeId: { type: String }, // --> TO DO: This should be an ObjectID
+      typeId: { type: String },
     },
     {
       timestamps: true,
