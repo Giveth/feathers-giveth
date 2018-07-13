@@ -28,7 +28,7 @@ const app = appFactory();
 app.set('mongooseClient', mongoose);
 
 const Campaign = require('../../src/models/campaigns.model').createModel(app);
-const Conversation = require('../../src/models/conversations.model')(app);
+// const Conversation = require('../../src/models/conversations.model')(app);
 const Dac = require('../../src/models/dacs.model').createModel(app);
 const Donation = require('../../src/models/donations.model').createModel(app);
 const { DonationStatus } = require('../../src/models/donations.model');
@@ -37,6 +37,7 @@ const Milestone = require('../../src/models/milestones.model').createModel(app);
 const { MilestoneStatus } = require('../../src/models/milestones.model');
 const PledgeAdmin = require('../../src/models/pledgeAdmins.model').createModel(app);
 const User = require('../../src/models/users.model')(app);
+const Item = require('../../src/models/item.model');
 
 const migrateCampaign = () => {
   // re-save all campaigns so the types are updated
@@ -45,10 +46,46 @@ const migrateCampaign = () => {
   });
 };
 const migrateConversation = () => {
+  const mongooseClient = app.get('mongooseClient');
+  const { Schema } = mongooseClient;
+
+  // we need to define the schema here b/c the models/conversation.model
+  // schema defines a composite unique index that will fail
+  const conversation = new Schema(
+    {
+      milestoneId: { type: String, required: true, index: true },
+      messageContext: { type: String, required: true },
+      message: { type: String },
+      replyToId: { type: String },
+      performedByRole: { type: String, required: true },
+      ownerAddress: { type: String, required: true },
+      items: [Item],
+      txHash: { type: String },
+      mined: { type: Boolean, default: false },
+    },
+    {
+      timestamps: true,
+    },
+  );
+
+  const Conversation = mongooseClient.model('conversation', conversation);
+
   // re-save all conversations so the types are updated
-  Conversation.find({}, (err, conversations) => {
-    conversations.forEach(c => Conversation.update({ _id: c._id }, c).exec());
-  });
+  const existingVals = {};
+  Conversation.find({})
+    .sort({ milestoneId: 1, txHash: 1, messageContext: 1 })
+    .exec(async (err, conversations) => {
+      conversations.forEach(c => {
+        // remove any duplicates
+        const id = `${c.milestoneId}${c.txHash}${c.messageContext}`;
+        if (existingVals[id]) {
+          c.remove();
+        } else {
+          existingVals[id] = true;
+          Conversation.update({ _id: c._id }, c).exec();
+        }
+      });
+    });
 };
 const migrateDac = () => {
   // re-save all dacs so the types are updated
