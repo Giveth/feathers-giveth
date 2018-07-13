@@ -1,4 +1,4 @@
-export const CampaignStatus = {
+const CampaignStatus = {
   ACTIVE: 'Active',
   PENDING: 'Pending',
   CANCELED: 'Canceled',
@@ -9,7 +9,7 @@ export const CampaignStatus = {
 //
 // See http://mongoosejs.com/docs/models.html
 // for more of what you can do here.
-export default function createModel(app) {
+function createModel(app) {
   const mongooseClient = app.get('mongooseClient');
   const { Schema } = mongooseClient;
   const campaign = new Schema(
@@ -42,3 +42,8 @@ export default function createModel(app) {
 
   return mongooseClient.model('campaign', campaign);
 }
+
+module.exports = {
+  CampaignStatus,
+  createModel,
+};

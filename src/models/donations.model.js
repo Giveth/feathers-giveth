@@ -24,7 +24,7 @@ function Donation(app) {
       amountRemaining: { type: Schema.Types.Long, required: true },
       pledgeId: { type: Schema.Types.Long, required: true },
       ownerId: { type: Schema.Types.Long, required: true },
-      ownerTypeId: { type: String },
+      ownerTypeId: { type: String, required: true },
       ownerType: { type: String, required: true },
       intendedProjectId: { type: Schema.Types.Long },
       intendedProjectTypeId: { type: String },

@@ -1,4 +1,4 @@
-import Item from './item.model';
+const Item = require('./item.model');
 
 // conversations-model.js - A mongoose model
 //

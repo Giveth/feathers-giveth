@@ -1,4 +1,4 @@
-import Item from './item.model.js';
+const Item = require('./item.model');
 
 // milestones-model.js - A mongoose model
 //

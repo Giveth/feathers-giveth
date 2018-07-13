@@ -1,4 +1,4 @@
-export const DacStatus = {
+const DacStatus = {
   ACTIVE: 'Active',
   PENDING: 'Pending',
   CANCELED: 'Canceled',
@@ -9,7 +9,7 @@ export const DacStatus = {
 //
 // See http://mongoosejs.com/docs/models.html
 // for more of what you can do here.
-export default function createModel(app) {
+function createModel(app) {
   const mongooseClient = app.get('mongooseClient');
   const { Schema } = mongooseClient;
   const dac = new Schema(
@@ -44,3 +44,8 @@ export default function createModel(app) {
 
   return mongooseClient.model('dac', dac);
 }
+
+module.exports = {
+  DacStatus,
+  createModel,
+};

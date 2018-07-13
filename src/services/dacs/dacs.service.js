@@ -1,6 +1,6 @@
 // Initializes the `dacs` service on path `/dacs`
 const createService = require('feathers-mongoose');
-const createModel = require('../../models/dacs.model').default;
+const { createModel } = require('../../models/dacs.model');
 const hooks = require('./dacs.hooks');
 
 module.exports = function dacs() {
