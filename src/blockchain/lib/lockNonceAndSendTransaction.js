@@ -1,6 +1,6 @@
 const Web3PromiEvent = require('web3-core-promievent');
 const logger = require('winston');
-const NonceTracker = require('../NonceTracker').default;
+const NonceTracker = require('../NonceTracker');
 
 const nonceCache = {};
 

@@ -1,12 +1,12 @@
-import commons from 'feathers-hooks-common';
-import errors from '@feathersjs/errors';
+const commons = require('feathers-hooks-common');
+const errors = require('@feathersjs/errors');
 
-import sanitizeAddress from '../../hooks/sanitizeAddress';
-import setAddress from '../../hooks/setAddress';
-import sanitizeHtml from '../../hooks/sanitizeHtml';
-import isProjectAllowed from '../../hooks/isProjectAllowed';
-import addConfirmations from '../../hooks/addConfirmations';
-import { CampaignStatus } from '../../models/campaigns.model';
+const sanitizeAddress = require('../../hooks/sanitizeAddress');
+const setAddress = require('../../hooks/setAddress');
+const sanitizeHtml = require('../../hooks/sanitizeHtml');
+const isProjectAllowed = require('../../hooks/isProjectAllowed');
+const addConfirmations = require('../../hooks/addConfirmations');
+const { CampaignStatus } = require('../../models/campaigns.model');
 
 const restrict = () => context => {
   // internal call are fine

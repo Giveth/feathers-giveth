@@ -1,6 +1,6 @@
-import { disallow } from 'feathers-hooks-common';
+const { disallow } = require('feathers-hooks-common');
 
-export default {
+module.exports = {
   before: {
     all: [],
     find: [],

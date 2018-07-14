@@ -1,5 +1,5 @@
-import dauria from 'dauria';
-import { disallow } from 'feathers-hooks-common';
+const dauria = require('dauria');
+const { disallow } = require('feathers-hooks-common');
 
 const transformFile = () => context => {
   if (!context.data.uri && context.params.file) {

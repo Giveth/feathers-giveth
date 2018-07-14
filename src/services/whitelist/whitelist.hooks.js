@@ -40,7 +40,7 @@ const getWhitelist = () => context => {
   });
 };
 
-export default {
+module.exports = {
   before: {
     all: [],
     find: [],

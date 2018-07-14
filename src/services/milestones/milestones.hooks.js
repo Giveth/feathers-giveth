@@ -1,16 +1,16 @@
-import commons from 'feathers-hooks-common';
-import errors from '@feathersjs/errors';
-import logger from 'winston';
-import { utils } from 'web3';
-import BigNumber from 'bignumber.js';
+const commons = require('feathers-hooks-common');
+const errors = require('@feathersjs/errors');
+const logger = require('winston');
+const { utils } = require('web3');
+const BigNumber = require('bignumber.js');
 
-import sanitizeAddress from '../../hooks/sanitizeAddress';
-import setAddress from '../../hooks/setAddress';
-import sanitizeHtml from '../../hooks/sanitizeHtml';
-import isProjectAllowed from '../../hooks/isProjectAllowed';
-import Notifications from './../../utils/dappMailer';
-import addConfirmations from '../../hooks/addConfirmations';
-import { MilestoneStatus } from '../../models/milestones.model';
+const sanitizeAddress = require('../../hooks/sanitizeAddress');
+const setAddress = require('../../hooks/setAddress');
+const sanitizeHtml = require('../../hooks/sanitizeHtml');
+const isProjectAllowed = require('../../hooks/isProjectAllowed');
+const Notifications = require('./../../utils/dappMailer');
+const addConfirmations = require('../../hooks/addConfirmations');
+const { MilestoneStatus } = require('../../models/milestones.model');
 
 /* eslint no-underscore-dangle: 0 */
 

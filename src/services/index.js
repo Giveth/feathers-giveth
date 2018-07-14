@@ -1,6 +1,6 @@
-import challenges from './challenges/challenges.service';
-import pledgeAdmins from './pledgeAdmins/pledgeAdmins.service';
-import events from './events/events.service';
+const challenges = require('./challenges/challenges.service');
+const pledgeAdmins = require('./pledgeAdmins/pledgeAdmins.service');
+const events = require('./events/events.service');
 
 const dacs = require('./dacs/dacs.service.js');
 const milestones = require('./milestones/milestones.service.js');

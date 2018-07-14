@@ -86,7 +86,7 @@ const _saveToDB = (app, timestamp, rates, _id = undefined) => {
  *
  * @return {Promise} Promise that resolves to object {timestamp, rates: { EUR: 100, USD: 90 } }
  */
-export const getEthConversion = (app, requestedDate) => {
+const getEthConversion = (app, requestedDate) => {
   // Get yesterday date from today respecting UTC
   const yesterday = new Date(new Date().setUTCDate(new Date().getUTCDate() - 1));
   const yesterdayUTC = yesterday.setUTCHours(0, 0, 0, 0);
@@ -129,11 +129,16 @@ export const getEthConversion = (app, requestedDate) => {
 };
 
 // Query the conversion rate every minute
-export const queryEthConversion = app => {
+const queryEthConversion = app => {
   getEthConversion(app);
 
   // TODO: Do we actually need to do this in interval? Can't we just let it update when users request exchange rate?
   setInterval(() => {
     getEthConversion(app);
   }, MINUTE);
+};
+
+module.exports = {
+  getEthConversion,
+  queryEthConversion,
 };

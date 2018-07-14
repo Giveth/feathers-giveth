@@ -1,11 +1,11 @@
-import socketsConfig from './socketsConfig';
-import logger from './utils/logger';
+const socketsConfig = require('./socketsConfig');
+const logger = require('./utils/logger');
 
-import middleware from './middleware';
-import services from './services';
-import appHooks from './app.hooks';
-import authentication from './authentication';
-import blockchain from './blockchain';
+const middleware = require('./middleware');
+const services = require('./services');
+const appHooks = require('./app.hooks');
+const authentication = require('./authentication');
+const blockchain = require('./blockchain');
 
 const channels = require('./channels');
 

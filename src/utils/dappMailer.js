@@ -1,6 +1,6 @@
-import { utils } from 'web3';
-import logger from 'winston';
-import rp from 'request-promise';
+const { utils } = require('web3');
+const logger = require('winston');
+const rp = require('request-promise');
 
 const sendEmail = (app, data) => {
   // add the dapp url that this feathers serves for
@@ -35,7 +35,7 @@ const sendEmail = (app, data) => {
     });
 };
 
-export default {
+module.exports = {
   donation: (app, data) => {
     data.amount = utils.fromWei(data.amount);
 
@@ -150,7 +150,7 @@ export default {
       ctaRelativeUrl: `/my-milestones`,
       unsubscribeType: 'milestone-proposed',
       unsubscribeReason: `You receive this email because you run a campaign`,
-      message: data.message
+      message: data.message,
     });
 
     sendEmail(app, data);
@@ -179,7 +179,7 @@ export default {
       ctaRelativeUrl: `/my-milestones`,
       unsubscribeType: 'proposed-milestone-accepted',
       unsubscribeReason: `You receive this email because you run a milestone`,
-      message: data.message      
+      message: data.message,
     });
 
     sendEmail(app, data);
@@ -210,7 +210,7 @@ export default {
       ctaRelativeUrl: `/my-milestones`,
       unsubscribeType: 'proposed-milestone-rejected',
       unsubscribeReason: `You receive this email because you proposed a milestone`,
-      message: data.message      
+      message: data.message,
     });
 
     sendEmail(app, data);
@@ -243,7 +243,7 @@ export default {
       ctaRelativeUrl: `/my-milestones`,
       unsubscribeType: 'milestone-request-review',
       unsubscribeReason: `You receive this email because you run a milestone`,
-      message: data.message      
+      message: data.message,
     });
 
     sendEmail(app, data);
@@ -273,7 +273,7 @@ export default {
       ctaRelativeUrl: `/my-milestones`,
       unsubscribeType: 'milestone-review-approved',
       unsubscribeReason: `You receive this email because you run a milestone`,
-      message: data.message      
+      message: data.message,
     });
 
     sendEmail(app, data);
@@ -281,7 +281,7 @@ export default {
 
   milestoneReviewRejected: (app, data) => {
     Object.assign(data, {
-      template: 'notification',      
+      template: 'notification',
       subject: 'Giveth - Milestone rejected by reviewer :-(',
       type: 'milestone-review-rejected',
       secretIntro: `The completion of your milestone ${
@@ -301,7 +301,7 @@ export default {
       ctaRelativeUrl: `/my-milestones`,
       unsubscribeType: 'milestone-review-rejected',
       unsubscribeReason: `You receive this email because you run a milestone`,
-      message: data.message      
+      message: data.message,
     });
 
     sendEmail(app, data);
@@ -309,12 +309,10 @@ export default {
 
   milestoneCanceled: (app, data) => {
     Object.assign(data, {
-      template: 'notification',      
+      template: 'notification',
       subject: 'Giveth - Milestone canceled :-(',
       type: 'milestone-canceled',
-      secretIntro: `Your milestone ${
-        data.milestoneTitle
-      } has been canceled.`,
+      secretIntro: `Your milestone ${data.milestoneTitle} has been canceled.`,
       title: 'Milestone canceled.',
       image: 'Giveth-milestone-canceled-banner-email.png',
       text: `
@@ -329,7 +327,7 @@ export default {
       ctaRelativeUrl: `/my-milestones`,
       unsubscribeType: 'milestone-canceled',
       unsubscribeReason: `You receive this email because you run a milestone`,
-      message: data.message      
+      message: data.message,
     });
 
     sendEmail(app, data);

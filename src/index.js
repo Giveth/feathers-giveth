@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
-import queryGasPrice from './blockchain/gasPriceService';
-import { queryEthConversion } from './services/ethconversion/getEthConversionService';
+const queryGasPrice = require('./blockchain/gasPriceService');
+const { queryEthConversion } = require('./services/ethconversion/getEthConversionService');
 
 const logger = require('winston');
 const app = require('./app');

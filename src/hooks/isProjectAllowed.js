@@ -1,7 +1,7 @@
-import commons from 'feathers-hooks-common';
-import errors from '@feathersjs/errors';
-import { CampaignStatus } from '../models/campaigns.model';
-import { MilestoneStatus } from '../models/milestones.model';
+const commons = require('feathers-hooks-common');
+const errors = require('@feathersjs/errors');
+const { CampaignStatus } = require('../models/campaigns.model');
+const { MilestoneStatus } = require('../models/milestones.model');
 
 const checkReviewer = context => {
   if (!context.app.get('useReviewerWhitelist')) {
@@ -63,7 +63,7 @@ const checkOwner = context => {
   }
 };
 
-export default () => context => {
+module.exports = () => context => {
   checkOwner(context);
   checkReviewer(context);
 };

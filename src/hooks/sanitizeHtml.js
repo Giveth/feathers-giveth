@@ -1,7 +1,7 @@
-import commons from 'feathers-hooks-common';
-import sanitizeHtml from 'sanitize-html';
+const commons = require('feathers-hooks-common');
+const sanitizeHtml = require('sanitize-html');
 
-export default (...fieldNames) => context => {
+module.exports = (...fieldNames) => context => {
   commons.checkContext(context, 'before', ['create', 'update', 'patch']);
 
   const items = commons.getItems(context);
@@ -30,7 +30,7 @@ export default (...fieldNames) => context => {
           allowedAttributes: {
             iframe: ['src', 'allowfullscreen', 'frameborder'],
             a: ['target', 'href'],
-            img: ['src']
+            img: ['src'],
           },
           allowedClasses: {
             '*': ['ql-indent-*'],

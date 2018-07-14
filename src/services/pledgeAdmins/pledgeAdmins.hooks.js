@@ -1,5 +1,5 @@
-import commons from 'feathers-hooks-common';
-import onlyInternal from '../../hooks/onlyInternal';
+const commons = require('feathers-hooks-common');
+const onlyInternal = require('../../hooks/onlyInternal');
 
 const { AdminTypes } = require('../../models/pledgeAdmins.model');
 
@@ -32,7 +32,7 @@ const populateAdmin = () => context => {
   return promise.then(() => commons.replaceItems(items));
 };
 
-export default {
+module.exports = {
   before: {
     all: [],
     find: [],

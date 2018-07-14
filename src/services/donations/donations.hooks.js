@@ -1,13 +1,13 @@
 /* eslint-disable no-unused-vars */
-import errors from '@feathersjs/errors';
-import commons from 'feathers-hooks-common';
+const errors = require('@feathersjs/errors');
+const commons = require('feathers-hooks-common');
 
-import sanitizeAddress from '../../hooks/sanitizeAddress';
-import setAddress from '../../hooks/setAddress';
-import addConfirmations from '../../hooks/addConfirmations';
-import { DonationStatus } from '../../models/donations.model';
-import { AdminTypes } from '../../models/pledgeAdmins.model';
-import { MilestoneStatus } from '../../models/milestones.model';
+const sanitizeAddress = require('../../hooks/sanitizeAddress');
+const setAddress = require('../../hooks/setAddress');
+const addConfirmations = require('../../hooks/addConfirmations');
+const { DonationStatus } = require('../../models/donations.model');
+const { AdminTypes } = require('../../models/pledgeAdmins.model');
+const { MilestoneStatus } = require('../../models/milestones.model');
 
 const updateEntityCounters = require('./updateEntityCounters');
 

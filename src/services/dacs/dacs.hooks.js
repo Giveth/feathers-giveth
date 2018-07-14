@@ -1,10 +1,10 @@
-import commons from 'feathers-hooks-common';
-import errors from '@feathersjs/errors';
-import { restrictToOwner } from 'feathers-authentication-hooks';
-import sanitizeAddress from '../../hooks/sanitizeAddress';
-import setAddress from '../../hooks/setAddress';
-import sanitizeHtml from '../../hooks/sanitizeHtml';
-import addConfirmations from '../../hooks/addConfirmations';
+const commons = require('feathers-hooks-common');
+const errors = require('@feathersjs/errors');
+const { restrictToOwner } = require('feathers-authentication-hooks');
+const sanitizeAddress = require('../../hooks/sanitizeAddress');
+const setAddress = require('../../hooks/setAddress');
+const sanitizeHtml = require('../../hooks/sanitizeHtml');
+const addConfirmations = require('../../hooks/addConfirmations');
 
 const restrict = [
   restrictToOwner({

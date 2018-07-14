@@ -1,11 +1,11 @@
-import Web3 from 'web3';
-import logger from 'winston';
-import EventEmitter from 'events';
+const Web3 = require('web3');
+const logger = require('winston');
+const EventEmitter = require('events');
 
 const THIRTY_SECONDS = 30 * 1000;
 
 /**
- * remove 0x prefix from hex string if present
+ * remove 0x prefix = require(hex string if present
  *
  * @param {string} hex
  */

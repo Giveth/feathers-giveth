@@ -4,7 +4,7 @@ const eventWatcher = require('./watcher');
 const eventHandler = require('./lib/eventHandler');
 const { getWeb3 } = require('./lib/web3Helpers');
 
-export default function() {
+module.exports = function() {
   const app = this;
 
   const web3 = getWeb3(app);
@@ -32,4 +32,4 @@ export default function() {
     txMonitor.start();
     watcher.start();
   });
-}
+};
