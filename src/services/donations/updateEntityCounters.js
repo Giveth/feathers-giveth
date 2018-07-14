@@ -1,6 +1,7 @@
 const { checkContext } = require('feathers-hooks-common');
 const { toBN } = require('web3-utils');
 const logger = require('winston');
+
 const { AdminTypes } = require('../../models/pledgeAdmins.model');
 
 const updateEntity = async (context, donation) => {
@@ -47,7 +48,7 @@ const updateEntity = async (context, donation) => {
       .find({ paginate: false, query: donationQuery });
 
     const totalDonated = donations
-      .reduce((accumulator, d) => accumulator.add(toBN(d.amount.toString())), toBN(0))
+      .reduce((accumulator, d) => accumulator.add(toBN(d.amount)), toBN(0))
       .toString();
     const peopleCount = new Set(donations.map(d => d.giverAddress)).size;
     const donationCount = donations.length;
@@ -61,8 +62,8 @@ const updateEntity = async (context, donation) => {
 const updateEntityCounters = () => async context => {
   checkContext(context, 'after', ['create']);
   if (Array.isArray(context.data)) {
-    context.data.map(updateEntity.bind(context));
-    // await Promise.all(context.data.map(updateEntity.bind(context)));
+    context.data.map(updateEntity.bind(null, context));
+    // await Promise.all(context.data.map(updateEntity.bind(null, context)));
   } else {
     updateEntity(context, context.data);
     // await updateEntity(context, context.data);

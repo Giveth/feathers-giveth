@@ -22,13 +22,17 @@ const adminFactory = (app, liquidPledging) => {
     try {
       return await pledgeAdmins.create({ id, type, typeId });
     } catch (err) {
-      if (err.errorType === 'uniqueViolated') {
+      if (err.name === 'Conflict') {
         // TODO specify schema here so the 'admin' object isn't attached to the fetched pledgeAdmin
-        const [error, admin] = await to(pledgeAdmins.get(id));
+        const [error, admin] = await to(
+          pledgeAdmins.find({ paginate: false, query: { id } }).then(data => data[0]),
+        );
+
+        const normalizedTypeId = typeof typeId === 'object' ? typeId.toString() : typeId;
 
         if (error) {
           logger.error(error);
-        } else if (admin.type !== type || admin.typeId !== typeId) {
+        } else if (admin.type !== type || admin.typeId.toString() !== normalizedTypeId) {
           logger.error(
             `existing pledgeAdmin id: ${id} -> type/typeId: ${admin.type}/${
               admin.typeId

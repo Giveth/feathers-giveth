@@ -1,7 +1,6 @@
 /* eslint-disable consistent-return */
 
 const logger = require('winston');
-const ReprocessError = require('./lib/ReprocessError');
 const { DacStatus } = require('../models/dacs.model');
 const reprocess = require('../utils/reprocess');
 
@@ -9,12 +8,14 @@ const delegates = (app, liquidPledging) => {
   const web3 = app.getWeb3();
   const dacs = app.service('/dacs');
 
-  async function getOrCreateDac(delegate, txHash, retry) {
+  async function getOrCreateDac(delegate, txHash, retry = false) {
     const data = await dacs.find({ paginate: false, query: { txHash } });
     if (data.length === 0) {
       // this is really only useful when instant mining. Other then that, the dac should always be
       // created before the tx was mined.
-      if (!retry) throw new ReprocessError();
+      if (!retry) {
+        return reprocess(getOrCreateDac.bind(this, delegate, txHash, true), 5000);
+      }
 
       const tx = await web3.eth.getTransaction(txHash);
       try {
@@ -41,10 +42,10 @@ const delegates = (app, liquidPledging) => {
     return data[0];
   }
 
-  async function addDelegate(delegateId, txHash, retry) {
+  async function addDelegate(delegateId, txHash) {
     try {
       const delegate = await liquidPledging.getPledgeAdmin(delegateId);
-      const dac = await getOrCreateDac(delegate, txHash, retry);
+      const dac = await getOrCreateDac(delegate, txHash);
 
       // most likely b/c the whitelist check failed
       if (!dac) return;
@@ -55,11 +56,7 @@ const delegates = (app, liquidPledging) => {
         status: DacStatus.ACTIVE,
       });
     } catch (err) {
-      if (!(err instanceof ReprocessError)) {
-        logger.error(err);
-        return;
-      }
-      return reprocess(addDelegate.bind(delegateId, txHash, true), 5000);
+      logger.error(err);
     }
   }
 

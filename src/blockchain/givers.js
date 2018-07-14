@@ -20,9 +20,9 @@ const givers = (app, liquidPledging) => {
   async function addGiver(giver, giverId) {
     const { commitTime, addr, name } = giver;
 
-    let user = getOrCreateUser(addr);
+    let user = await getOrCreateUser(addr);
 
-    if (user.giverId && (user.giverId !== 0 || user.giverId !== '0') && user.giverId !== giverId) {
+    if (user.giverId > 0 && user.giverId !== Number(giverId)) {
       logger.error(
         `user already has a giverId set. existing giverId: ${
           user.giverId

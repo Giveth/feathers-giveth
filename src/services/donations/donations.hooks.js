@@ -111,7 +111,7 @@ const poSchemas = {
       {
         service: 'campaigns',
         nameAs: 'intendedEntity',
-        parentField: 'intendedProject',
+        parentField: 'intendedProjectId',
         childField: 'projectId',
         useInnerPopulate: true,
       },
@@ -122,7 +122,7 @@ const poSchemas = {
       {
         service: 'dacs',
         nameAs: 'delegateEntity',
-        parentField: 'delegateId',
+        parentField: 'delegateTypeId',
         childField: '_id',
         useInnerPopulate: true,
       },
@@ -144,7 +144,7 @@ const poSchemas = {
       {
         service: 'milestones',
         nameAs: 'intendedEntity',
-        parentField: 'intendedProject',
+        parentField: 'intendedProjectId',
         childField: 'projectId',
         useInnerPopulate: true,
       },
@@ -202,7 +202,7 @@ const joinDonationRecipient = (item, context) => {
     )
     .then(
       context =>
-        Number(item.intendedProjectId) > 0
+        item.intendedProjectId > 0
           ? commons.populate({
               schema: poSchemas[`po-${item.intendedProjectType.toLowerCase()}-intended`],
             })(context)
@@ -215,7 +215,6 @@ const updateMilestoneIfNotPledged = () => context => {
   commons.checkContext(context, 'before', ['create']);
 
   const { data: donation } = context;
-
   if (
     donation.ownerType === AdminTypes.MILESTONE &&
     [DonationStatus.PAYING, DonationStatus.PAID].includes(donation.status)
@@ -271,7 +270,6 @@ module.exports = {
         validate: true,
       }),
       updateMilestoneIfNotPledged(),
-      updateEntityCounters(),
     ],
     update: [commons.disallow('external'), sanitizeAddress('giverAddress', { validate: true })],
     patch: [
@@ -287,7 +285,7 @@ module.exports = {
     all: [populateSchema()],
     find: [addConfirmations()],
     get: [addConfirmations()],
-    create: [],
+    create: [updateEntityCounters()],
     update: [],
     patch: [],
     remove: [],

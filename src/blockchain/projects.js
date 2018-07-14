@@ -3,10 +3,10 @@
 const { Kernel, AppProxyUpgradeable } = require('giveth-liquidpledging/build/contracts');
 const { LPPCappedMilestone } = require('lpp-capped-milestone');
 const { LPPCampaign } = require('lpp-campaign');
+const { keccak256 } = require('web3-utils');
 const logger = require('winston');
 
-const ReprocessError = require('./lib/ReprocessError');
-const { removeHexPrefix } = require('./lib/web3Helpers');
+const { removeHexPrefix, getBlockTimestamp } = require('./lib/web3Helpers');
 const { CampaignStatus } = require('../models/campaigns.model');
 const { DonationStatus } = require('../models/donations.model');
 const { MilestoneStatus } = require('../models/milestones.model');
@@ -29,37 +29,37 @@ const projects = (app, liquidPledging) => {
   let campaignBase;
   let milestoneBase;
 
-  async function init() {
-    if (campaignBase && milestoneBase) return;
-
-    const { keccak256 } = web3.utils;
-
+  async function getKernel() {
     const kernelAddress = await liquidPledging.kernel();
-    const kernel = new Kernel(web3, kernelAddress);
-
-    [campaignBase, milestoneBase] = await Promise.all([
-      kernel.getApp(keccak256(keccak256('base') + removeHexPrefix(keccak256('lpp-campaign')))),
+    return new Kernel(web3, kernelAddress);
+  }
+  async function getLppCappedMilestoneBase() {
+    return getKernel().then(kernel =>
       kernel.getApp(
         keccak256(keccak256('base') + removeHexPrefix(keccak256('lpp-capped-milestone'))),
       ),
+    );
+  }
+  async function getLppCampaignBase() {
+    return getKernel().then(kernel =>
+      kernel.getApp(keccak256(keccak256('base') + removeHexPrefix(keccak256('lpp-campaign')))),
+    );
+  }
+
+  async function init() {
+    if (initialized || (campaignBase && milestoneBase)) return;
+    [campaignBase, milestoneBase] = await Promise.all([
+      getLppCampaignBase(),
+      getLppCappedMilestoneBase(),
     ]);
     initialized = true;
   }
 
-  async function getOrCreateCampaignById(projectId) {
+  async function getCampaignById(projectId) {
     const data = await campaigns.find({ paginate: false, query: { projectId } });
-    // create a campaign if necessary
-    if (data.length === 0) {
-      // TODO do we need to create an owner here?
 
-      const campaignAdmin = await liquidPledging.getPledgeAdmin(projectId);
-      return campaigns.create({
-        ownerAddress: campaignAdmin.addr,
-        title: campaignAdmin.name,
-        projectId,
-        totalDonated: '0',
-        donationCount: 0,
-      });
+    if (data.length === 0) {
+      throw new Error("Campaign doesn't exist -> projectId:", projectId);
     }
 
     if (data.length > 1) {
@@ -69,36 +69,21 @@ const projects = (app, liquidPledging) => {
     return data[0];
   }
 
-  async function getOrCreateMilestone(project, txHash, retry) {
-    const data = await milestones.find({ query: { txHash } });
+  async function getMilestone(project, txHash, retry = false) {
+    // const data = await milestones.find({ query: { txHash } });
+    // TODO this is okay for now b/c all projects have a plugin, but using the txHash would be better. This requires never mutating the txHash as it should be the creation txHash
+    const data = await milestones.find({
+      paginate: false,
+      query: { pluginAddress: project.plugin },
+    });
     if (data.length === 0) {
       // this is really only useful when instant mining. Other then that, the dac should always be
       // created before the tx was mined.
-      if (!retry) throw new ReprocessError();
-
-      const [campaign, tx] = await Promise.all([
-        getOrCreateCampaignById(project.parentProject),
-        web3.eth.getTransaction(txHash),
-      ]);
-
-      try {
-        return milestones.create({
-          ownerAddress: tx.from,
-          pluginAddress: project.plugin,
-          reviewerAddress: '0x0000000000000000000000000000000000000000', // these will be set in the patch
-          campaignReviewerAddress: '0x0000000000000000000000000000000000000000',
-          title: project.name,
-          description: '',
-          txHash,
-          campaignId: campaign.id,
-          totalDonated: '0',
-          donationCount: 0,
-        });
-      } catch (err) {
-        // milestones service will throw BadRequest error if reviewer/owner isn't whitelisted
-        if (err.name === 'BadRequest') return;
-        throw err;
+      if (!retry) {
+        return reprocess(getMilestone.bind(this, project, txHash, true), 5000);
       }
+
+      return;
     }
 
     if (data.length > 1) {
@@ -108,36 +93,70 @@ const projects = (app, liquidPledging) => {
     return data[0];
   }
 
-  async function getOrCreateCampaign(project, txHash, retry) {
-    const data = await campaigns.find({ query: { txHash } });
+  async function createMilestone(project, projectId, milestone, txHash) {
+    const [campaign, tx] = await Promise.all([
+      getCampaignById(project.parentProject),
+      web3.eth.getTransaction(txHash),
+    ]);
+
+    if (!campaign) {
+      logger.warn(
+        "Ignoring addMilestone. Parent campaign doesn't exist -> projectId: ",
+        project.parentProject,
+      );
+      return;
+    }
+
+    try {
+      const date = await getBlockTimestamp(web3, tx.blockNumber);
+      return milestones.create(
+        {
+          title: project.name,
+          description: 'Missing Description... Added outside of UI',
+          maxAmount: milestone.maxAmount,
+          ownerAddress: tx.from,
+          reviewerAddress: milestone.reviewer,
+          recipientAddress: milestone.recipient,
+          campaignReviewerAddress: milestone.campaignReviewer,
+          campaignId: campaign._id,
+          projectId,
+          status: milestoneStatus(milestone.completed, milestone.canceled),
+          ethConversionRateTimestamp: new Date(),
+          selectedFiatType: 'ETH',
+          date,
+          fiatAmount: milestone.maxAmount,
+          conversionRate: 1,
+          txHash,
+          pluginAddress: project.plugin,
+          totalDonated: '0',
+          donationCount: 0,
+          mined: true,
+          performedByAddress: tx.from,
+        },
+        { eventTxHash: txHash },
+      );
+    } catch (err) {
+      // milestones service will throw BadRequest error if reviewer/owner isn't whitelisted
+      if (err.name === 'BadRequest') return;
+      throw err;
+    }
+  }
+
+  async function getCampaign(project, txHash, retry = false) {
+    // const data = await campaigns.find({ query: { txHash } });
+    // TODO this is okay for now b/c all projects have a plugin, but using the txHash would be better. This requires never mutating the txHash as it should be the creation txHash
+    const data = await campaigns.find({
+      paginate: false,
+      query: { pluginAddress: project.plugin },
+    });
     // create a campaign if necessary
     if (data.length === 0) {
       // this is really only useful when instant mining. Other then that, the dac should always be
       // created before the tx was mined.
-      if (!retry) throw new ReprocessError();
-
-      const lppCampaign = new LPPCampaign(web3, project.plugin);
-
-      const [tx, reviewerAddress] = await Promise.all([
-        web3.eth.getTransaction(txHash),
-        lppCampaign.reviewer(),
-      ]);
-      try {
-        return campaigns.create({
-          ownerAddress: tx.from,
-          pluginAddress: project.plugin,
-          reviewerAddress,
-          title: project.name,
-          description: '',
-          txHash,
-          totalDonated: '0',
-          donationCount: 0,
-        });
-      } catch (err) {
-        // campaigns service will throw BadRequest error if reviewer/owner isn't whitelisted
-        if (err.name === 'BadRequest') return;
-        throw err;
+      if (!retry) {
+        return reprocess(getCampaign.bind(this, project, txHash, true), 5000);
       }
+      return;
     }
 
     if (data.length > 1) {
@@ -147,20 +166,37 @@ const projects = (app, liquidPledging) => {
     return data[0];
   }
 
-  async function addMilestone(project, projectId, txHash, retry = false) {
+  async function createCampaign(project, projectId, reviewerAddress, canceled, txHash) {
+    const tx = await web3.eth.getTransaction(txHash);
+
+    try {
+      return campaigns.create({
+        projectId,
+        ownerAddress: tx.from,
+        pluginAddress: project.plugin,
+        reviewerAddress,
+        title: project.name,
+        image: '/',
+        description: 'Missing Description... Added outside of UI',
+        txHash,
+        totalDonated: '0',
+        donationCount: 0,
+        status: canceled ? CampaignStatus.CANCELED : CampaignStatus.ACTIVE,
+        mined: true,
+      });
+    } catch (err) {
+      // campaigns service will throw BadRequest error if reviewer/owner isn't whitelisted
+      if (err.name === 'BadRequest') return;
+      throw err;
+    }
+  }
+
+  async function addMilestone(project, projectId, txHash) {
     const cappedMilestone = new LPPCappedMilestone(web3, project.plugin);
 
     try {
-      const [
-        milestone,
-        maxAmount,
-        reviewer,
-        campaignReviewer,
-        recipient,
-        completed,
-        canceled,
-      ] = await Promise.all([
-        getOrCreateMilestone(project, txHash, retry),
+      const responses = await Promise.all([
+        getMilestone(project, txHash),
         cappedMilestone.maxAmount(),
         cappedMilestone.reviewer(),
         cappedMilestone.campaignReviewer(),
@@ -168,6 +204,25 @@ const projects = (app, liquidPledging) => {
         cappedMilestone.completed(),
         liquidPledging.isProjectCanceled(projectId),
       ]);
+      let milestone = responses.splice(0, 1)[0];
+      const [maxAmount, reviewer, campaignReviewer, recipient, completed, canceled] = responses;
+
+      if (!milestone) {
+        milestone = await createMilestone(
+          project,
+          projectId,
+          { maxAmount, recipient, reviewer, campaignReviewer, completed, canceled },
+          txHash,
+        );
+
+        if (milestone) return milestone;
+
+        logger.warn(
+          'Ignoring addMilestone. The campaign or milestone failed the whitelist check -> projectId:',
+          projectId,
+        );
+        return;
+      }
 
       return milestones.patch(
         milestone._id,
@@ -186,15 +241,12 @@ const projects = (app, liquidPledging) => {
         { eventTxHash: txHash },
       );
     } catch (error) {
-      if (error instanceof ReprocessError) {
-        return reprocess(addMilestone.bind(project, projectId, txHash, true), 5000);
-      }
       logger.error('addMilestone error: ', error);
     }
   }
 
   async function getMilestoneById(projectId) {
-    const data = await milestones.find({ query: { projectId } });
+    const data = await milestones.find({ paginate: false, query: { projectId } });
     if (data.length === 0) return;
 
     if (data.length > 1) {
@@ -219,15 +271,24 @@ const projects = (app, liquidPledging) => {
     }
   }
 
-  async function addCampaign(project, projectId, txHash, retry = false) {
+  async function addCampaign(project, projectId, txHash) {
     const lppCampaign = new LPPCampaign(web3, project.plugin);
 
     try {
       const [campaign, canceled, reviewer] = await Promise.all([
-        getOrCreateCampaign(project, txHash, retry),
+        getCampaign(project, txHash),
         lppCampaign.isCanceled(),
         lppCampaign.reviewer(),
       ]);
+
+      if (!campaign) {
+        const c = await createCampaign(project, projectId, reviewer, canceled, txHash);
+
+        if (c) return c;
+
+        logger.warn('Ignoring addCampaign. Failed whitelist check -> projectId:', projectId);
+        return;
+      }
 
       return campaigns.patch(campaign._id, {
         projectId,
@@ -238,30 +299,21 @@ const projects = (app, liquidPledging) => {
         mined: true,
       });
     } catch (err) {
-      if (err instanceof ReprocessError) {
-        return reprocess(addCampaign.bind(project, projectId, txHash, true), 5000);
-      }
       logger.error('addCampaign error ->', err);
     }
   }
 
-  async function getCampaignById(projectId) {
-    const data = await campaigns.find({ query: { projectId } });
-    if (data.length === 0) return;
-
-    if (data.length > 1) {
-      logger.info('more then 1 campaign with the same projectId found: ', data);
-    }
-
-    return data[0];
-  }
-
   async function updateCampaign(project, projectId) {
     try {
-      let campaign = await getCampaignById(projectId);
-
-      if (!campaign) {
-        campaign = await addCampaign(project, projectId);
+      let campaign;
+      try {
+        campaign = await getCampaignById(projectId);
+      } catch (err) {
+        if (err.message.includes("Campaign doesn't exist")) {
+          campaign = await addCampaign(project, projectId);
+        } else {
+          throw err;
+        }
       }
 
       return campaigns.patch(campaign._id, {
@@ -274,7 +326,10 @@ const projects = (app, liquidPledging) => {
   }
 
   function getAdmin(adminId) {
-    return app.service('pledgeAdmins').get(adminId);
+    return app
+      .service('pledgeAdmins')
+      .find({ paginate: false, query: { id: adminId } })
+      .then(data => data[0]);
   }
 
   async function getMostRecentDonationNotCanceled(donationId) {
@@ -292,7 +347,7 @@ const projects = (app, liquidPledging) => {
     // if pledgeOwnerAdmin is canceled or donation is a delegation, go back 1 donation
     if (
       [CampaignStatus.CANCELED, MilestoneStatus.CANCELED].includes(pledgeOwnerAdmin.admin.status) ||
-      Number(donation.intendedProjectId) > 0
+      donation.intendedProjectId > 0
     ) {
       // we use the 1st parentDonation b/c the owner of all parentDonations
       // is the same
@@ -308,10 +363,11 @@ const projects = (app, liquidPledging) => {
     const newDonation = Object.assign({}, revertToDonation, {
       txHash,
       amountRemaining: donation.amountRemaining,
-      // we use this b/c lp will normalize the pledge before transferring
-      pledgeId: donation.pledgeId,
+      canceledPledgeId: donation.pledgeId,
+      parentDonations: [donation._id],
       isReturn: true,
     });
+    delete newDonation._id;
 
     return donations.create(newDonation);
   }
@@ -345,7 +401,7 @@ const projects = (app, liquidPledging) => {
       status: { $nin: [CANCELED, PAYING, PAID] },
     };
 
-    const milestoneIds = await milestones.patch(null, mutation, { query }).map(m => m._id);
+    const milestoneIds = (await milestones.patch(null, mutation, { query })).map(m => m._id);
 
     const donationQuery = {
       $or: [
@@ -354,9 +410,8 @@ const projects = (app, liquidPledging) => {
       ],
       status: { $nin: [DonationStatus.PAYING, DonationStatus.PAID] },
     };
-    await donations
-      .find({ paginate: false, query: donationQuery })
-      .forEach(donation => revertDonation(donation, txHash));
+    const donationsToRevert = await donations.find({ paginate: false, query: donationQuery });
+    await Promise.all(donationsToRevert.map(donation => revertDonation(donation, txHash)));
   }
 
   return {
@@ -415,18 +470,20 @@ const projects = (app, liquidPledging) => {
      *
      * @param {object} event Web3 event object
      */
-    setApp(event) {
+    async setApp(event) {
       if (event.event !== 'SetApp') throw new Error('setApp only handles SetApp events');
 
-      const { name, app: addy } = event.returnValues;
-      const { keccak256 } = web3.utils;
+      const { name } = event.returnValues;
 
+      // when fetching the implementation, we will always receive the latest baseCode
+      // when we get a SetApp event, ignore the event app, and re-fetch the current baseCode
+      // since we synchronously process events,
       if (name === keccak256('lpp-capped-milestone')) {
-        milestoneBase = addy;
+        milestoneBase = await getLppCappedMilestoneBase();
       } else if (name === keccak256('lpp-campaign')) {
-        campaignBase = addy;
+        campaignBase = await getLppCampaignBase();
       } else {
-        logger.warn(`Unkonwn name in SetApp event:`, event);
+        logger.warn(`Ignoring unknown name in SetApp -> name:`, event.returnValues.name);
       }
     },
 
@@ -443,7 +500,7 @@ const projects = (app, liquidPledging) => {
       const projectId = event.returnValues.idProject;
 
       try {
-        const pledgeAdmin = await app.service('pledgeAdmins').get(projectId);
+        const pledgeAdmin = await getAdmin(projectId);
 
         const [service, status] =
           pledgeAdmin.type === AdminTypes.CAMPAIGN
@@ -467,12 +524,13 @@ const projects = (app, liquidPledging) => {
         // revert donations
         const query = {
           $or: [{ ownerTypeId: pledgeAdmin.typeId }, { intendedProjectTypeId: pledgeAdmin.typeId }],
-          amountRemaining: { $gt: 0 },
+          amountRemaining: { $ne: 0 },
         };
         try {
-          await donations
-            .find({ paginate: false, query })
-            .forEach(donation => revertDonation(donation, event.transactionHash));
+          const donationsToRevert = await donations.find({ paginate: false, query });
+          await Promise.all(
+            donationsToRevert.map(donation => revertDonation(donation, event.transactionHash)),
+          );
         } catch (error) {
           logger.error(error);
         }

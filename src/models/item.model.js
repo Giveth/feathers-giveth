@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+require('./mongoose-bn')(mongoose);
 
 const { Schema } = mongoose;
 
@@ -9,7 +10,7 @@ const Item = new Schema({
   selectedFiatType: { type: String, required: true },
   fiatAmount: { type: Number, required: true },
   etherAmount: { type: Number },
-  wei: { type: Schema.Types.Long },
+  wei: { type: Schema.Types.BN, min: 0 },
   conversionRate: { type: Number, required: true },
   ethConversionRateTimestamp: { type: Date, required: true },
 });

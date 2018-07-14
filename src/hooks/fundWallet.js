@@ -1,6 +1,6 @@
 const logger = require('winston');
 const { checkContext } = require('feathers-hooks-common');
-const { fundAccountIfLow } = require('../blockchain/lib/fundAccountIfLow');
+const fundAccountIfLow = require('../blockchain/lib/fundAccountIfLow');
 const { addAccountToWallet } = require('../blockchain/lib/web3Helpers');
 
 const fundWallet = () => async context => {

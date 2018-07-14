@@ -1,5 +1,8 @@
 const mongoose = require('mongoose');
 require('mongoose-long')(mongoose);
+require('../../src/models/mongoose-bn')(mongoose);
+
+// NOTE: events & donations collections are removed. On the next startup, feathers will re-index all events & those collections will be repopulated
 
 // NOTE: Run the following directly from mongoshell before running this script
 
@@ -28,7 +31,6 @@ const app = appFactory();
 app.set('mongooseClient', mongoose);
 
 const Campaign = require('../../src/models/campaigns.model').createModel(app);
-// const Conversation = require('../../src/models/conversations.model')(app);
 const Dac = require('../../src/models/dacs.model').createModel(app);
 const Donation = require('../../src/models/donations.model').createModel(app);
 const { DonationStatus } = require('../../src/models/donations.model');
@@ -93,36 +95,6 @@ const migrateDac = () => {
     dacs.forEach(d => Dac.update({ _id: d._id }, d).exec());
   });
 };
-const migrateDonation = () => {
-  // re-save all donations so the types are updated
-  Donation.find({}, (err, donations) => {
-    donations.forEach(d => {
-      if (d.status === 'pending') {
-        d.status = DonationStatus.PENDING;
-      } else if (d.status === 'paying') {
-        d.status = DonationStatus.PAYING;
-      } else if (d.status === 'paid') {
-        d.status = DonationStatus.PAID;
-      } else if (d.status === 'to_approve') {
-        d.status = DonationStatus.TO_APPROVE;
-      } else if (d.status === 'waiting') {
-        d.status = DonationStatus.WAITING;
-      } else if (d.status === 'committed') {
-        d.status = DonationStatus.COMMITTED;
-      } else if (d.status === 'rejected') {
-        d.status = DonationStatus.REJECTED;
-      }
-      d.amountRemaining = d.amount;
-      Donation.update({ _id: d._id }, d).exec();
-    });
-  });
-};
-const migrateEvent = () => {
-  // re-save all events so the types are updated
-  Events.find({}, (err, events) => {
-    events.forEach(e => Events.update({ _id: e._id }, e).exec());
-  });
-};
 const migrateMilestone = () => {
   // re-save all milestones so the types are updated
   Milestone.find({}, (err, milestones) => {
@@ -165,6 +137,12 @@ const migrateUsers = () => {
 mongoose.connect(mongoUrl);
 const db = mongoose.connection;
 
+// we need to re-index all events
+db.dropCollection('donations');
+db.dropCollection('events');
+db.dropCollection('blockchains');
+db.dropCollection('donationshistories');
+
 db.on('error', err => console.error('Could not connect to Mongo', err));
 
 // once mongo connected, start migration
@@ -175,8 +153,6 @@ db.once('open', () => {
   migrateDac();
   migratePledgeAdmin();
   migrateUsers();
-  migrateEvent();
   migrateConversation();
-  migrateDonation();
   migrateMilestone();
 });

@@ -21,7 +21,7 @@ function createModel(app) {
       title: { type: String, required: true },
       description: { type: String }, // required: true },
       communityUrl: { type: String },
-      delegateId: { type: Schema.Types.Long, index: true },
+      delegateId: { type: Schema.Types.Long, index: true }, // we can use Long here b/c lp only stores adminId in pledges as uint64
       status: {
         type: String,
         require: true,
@@ -30,7 +30,7 @@ function createModel(app) {
       },
       image: { type: String }, // required: true },
       txHash: { type: String },
-      totalDonated: { type: Schema.Types.Long },
+      totalDonated: { type: Schema.Types.BN, min: 0 },
       donationCount: { type: Number },
       ownerAddress: { type: String, required: true, index: true },
       pluginAddress: { type: String },

@@ -10,6 +10,7 @@ const DonationStatus = {
   TO_APPROVE: 'ToApprove',
   WAITING: 'Waiting',
   COMMITTED: 'Committed',
+  CANCELED: 'Canceled',
   REJECTED: 'Rejected',
   FAILED: 'Failed',
 };
@@ -20,16 +21,18 @@ function Donation(app) {
   const donation = new Schema(
     {
       giverAddress: { type: String, required: true, index: true },
-      amount: { type: Schema.Types.Long, required: true },
-      amountRemaining: { type: Schema.Types.Long, required: true },
-      pledgeId: { type: Schema.Types.Long, required: true },
-      ownerId: { type: Schema.Types.Long, required: true },
+      amount: { type: Schema.Types.BN, required: true, min: 0 },
+      amountRemaining: { type: Schema.Types.BN, required: true, min: 0 },
+      pledgeId: { type: Schema.Types.BN, required: true },
+      paymentId: { type: Schema.Types.BN },
+      canceledPledgeId: { type: Schema.Types.BN },
+      ownerId: { type: Schema.Types.Long, required: true }, // we can use Long here b/c lp only stores adminId in pledges as uint64
       ownerTypeId: { type: String, required: true },
       ownerType: { type: String, required: true },
-      intendedProjectId: { type: Schema.Types.Long },
+      intendedProjectId: { type: Schema.Types.Long }, // we can use Long here b/c lp only stores adminId in pledges as uint64
       intendedProjectTypeId: { type: String },
       intendedProjectType: { type: String },
-      delegateId: { type: Schema.Types.Long },
+      delegateId: { type: Schema.Types.Long }, // we can use Long here b/c lp only stores adminId in pledges as uint64
       delegateTypeId: { type: String },
       delegateType: { type: String },
       status: {

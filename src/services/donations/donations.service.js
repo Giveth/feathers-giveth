@@ -45,7 +45,7 @@ const pollForCommittedDonations = service => {
               // eslint-disable-next-line no-param-reassign
               accumulator[key] = donation[key];
               return accumulator;
-            });
+            }, {});
           Object.assign(newDonation, {
             ownerId: donation.intendedProjectId,
             ownerType: donation.intendedProjectType,
@@ -82,8 +82,6 @@ module.exports = function serviceFactory() {
 
   // Get our initialized service so that we can register hooks and filters
   const service = app.service('donations');
-
-  service.get('5b44ed2f81685696ad702aec').then(console.log);
 
   pollForCommittedDonations(service);
 

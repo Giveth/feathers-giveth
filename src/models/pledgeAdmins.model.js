@@ -14,7 +14,7 @@ function PledgeAdmin(app) {
   const { Schema } = mongooseClient;
   const pledgeAdmin = new Schema(
     {
-      id: { type: Schema.Types.Long, required: true, index: true, unique: true },
+      id: { type: Schema.Types.Long, required: true, index: true, unique: true }, // we can use Long here b/c lp only stores adminId in pledges as uint64
       type: {
         type: String,
         required: true,

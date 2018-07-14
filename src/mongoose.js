@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 require('mongoose-long')(mongoose);
+require('./models/mongoose-bn')(mongoose);
 const logger = require('winston');
 
 module.exports = function mongooseFactory() {

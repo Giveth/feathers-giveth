@@ -55,20 +55,12 @@ async function getUnconfirmedEvents(eventsService) {
 /**
  *
  * @param {object} web3 Web3 instance
- * @param {int} lastBlock lastBlock that logs were retrieved from
  * @param {array} topics topics to subscribe to
  */
-function subscribeLogs(web3, lastBlock, topics) {
+function subscribeLogs(web3, topics) {
   // subscribe to events for the given topics
   return web3.eth
-    .subscribe(
-      'logs',
-      {
-        fromBlock: lastBlock ? toHex(lastBlock + 1) : toHex(1), // convert to hex due to web3 bug https://github.com/ethereum/web3.js/issues/1097
-        topics,
-      },
-      () => {},
-    ) // TODO fix web3 bug so we don't have to pass a cb
+    .subscribe('logs', { topics }, () => {}) // TODO fix web3 bug so we don't have to pass a cb
     .on('error', err => logger.error('SUBSCRIPTION ERROR: ', err));
 }
 
@@ -85,7 +77,12 @@ const watcher = (app, eventHandler) => {
   const eventService = app.service('events');
   const sem = semaphore();
 
+  const { vaultAddress } = app.get('blockchain');
+  const lpVault = new LPVault(web3, vaultAddress);
+  let kernel;
+
   let initialized = false;
+  let fetchedPastEvents = false;
   let lastBlock = 0;
 
   function setLastBlock(blockNumber) {
@@ -142,7 +139,7 @@ const watcher = (app, eventHandler) => {
    * Handle new events as they are emitted, and add them to a queue for sequential
    * processing of events with the same id.
    */
-  async function newEvent(event) {
+  function newEvent(event) {
     setLastBlock(event.blockNumber);
 
     // during a reorg, the same event can occur in quick succession, so we add everything to a
@@ -164,7 +161,10 @@ const watcher = (app, eventHandler) => {
     logger.info('attempting to remove event:', event);
     await eventService.remove(undefined, { query: { id, transactionHash, confirmed: false } });
 
-    const { data } = await eventService.find({ query: { id, transactionHash, confirmed: true } });
+    const data = await eventService.find({
+      paginate: false,
+      query: { id, transactionHash, confirmed: true },
+    });
     if (data.length > 0) {
       logger.error(
         'RE-ORG ERROR: removeEvent was called, however the matching event has already been confirmed so we did not remove it. Consider increasing the requiredConfirmations.',
@@ -206,7 +206,7 @@ const watcher = (app, eventHandler) => {
           return;
         }
 
-        // updated the # of confirmations for the events and proceess the event if confirmed
+        // updated the # of confirmations for the events and process the event if confirmed
         await Promise.all(
           eventsByConfirmations.map(async (e, confirmations) => {
             if (confirmations === requiredConfirmations) {
@@ -216,6 +216,9 @@ const watcher = (app, eventHandler) => {
                 },
               });
 
+              // TODO maybe we only update the event after a successful processing? This will
+              // cause issues further for an later event that rely on this. Maybe we should
+              // freeze the processing on failure?
               await eventService.patch(null, { confirmed: true, confirmations }, { query: q });
 
               // now that the event is confirmed, handle the event
@@ -246,7 +249,7 @@ const watcher = (app, eventHandler) => {
       web3.eth
         .subscribe('newBlockHeaders')
         .on('data', block => {
-          if (!block.number) return;
+          if (!block.number || !fetchedPastEvents) return;
           updateEventConfirmations(block.number);
         })
         .on('changed', e => e.removed && removeEvent(e))
@@ -256,20 +259,69 @@ const watcher = (app, eventHandler) => {
 
   const { liquidPledgingAddress } = app.get('blockchain');
   const liquidPledging = new LiquidPledging(web3, liquidPledgingAddress);
+  const lppCappedMilestone = new LPPCappedMilestone(web3).$contract;
+  const lppCappedMilestoneEventDecoder = lppCappedMilestone._decodeEventABI.bind({
+    name: 'ALLEVENTS',
+    jsonInterface: lppCappedMilestone._jsonInterface,
+  });
 
+  function getLppCappedMilestoneTopics() {
+    return [
+      [
+        keccak256('MilestoneCompleteRequested(address,uint64)'),
+        keccak256('MilestoneCompleteRequestRejected(address,uint64)'),
+        keccak256('MilestoneCompleteRequestApproved(address,uint64)'),
+        keccak256('MilestoneChangeReviewerRequested(address,uint64,address)'),
+        keccak256('MilestoneReviewerChanged(address,uint64,address)'),
+        keccak256('MilestoneChangeRecipientRequested(address,uint64,address)'),
+        keccak256('MilestoneRecipientChanged(address,uint64,address)'),
+        keccak256('PaymentCollected(address,uint64)'),
+      ],
+      padLeft(`0x${removeHexPrefix(liquidPledging.$address).toLowerCase()}`, 64),
+    ];
+  }
+
+  /**
+   * Fetch all past events we are interested in
+   */
+  async function fetchPastEvents() {
+    const fromBlock = toHex(lastBlock + 1) || toHex(1); // convert to hex due to web3 bug https://github.com/ethereum/web3.js/issues/1097
+
+    await liquidPledging.$contract
+      .getPastEvents({ fromBlock })
+      .then(events => events.forEach(newEvent));
+
+    await kernel.$contract
+      .getPastEvents({
+        fromBlock,
+        filter: {
+          namespace: keccak256('base'),
+          name: [keccak256('lpp-capped-milestone'), keccak256('lpp-campaign')],
+        },
+      })
+      .then(events => events.forEach(newEvent));
+
+    await web3.eth
+      .getPastLogs({
+        fromBlock,
+        topics: getLppCappedMilestoneTopics(),
+      })
+      .then(events => events.forEach(e => newEvent(lppCappedMilestoneEventDecoder(e))));
+
+    await lpVault.$contract.getPastEvents({ fromBlock }).then(events => events.forEach(newEvent));
+
+    // set a timeout here to give a chance for all fetched events to be added via newEvent
+    setTimeout(() => {
+      fetchedPastEvents = true;
+      // }, 1000 * 30);
+    }, 1000 * 2);
+  }
   /**
    * subscribe to LP events
    */
   function subscribeLP() {
-    // starts a listener on the liquidPledging contract
-    liquidPledging.$contract.getPastEvents({ fromBlock: lastBlock + 1 || 1 }).then(events => {
-      events.forEach(newEvent);
-    });
-
-    // TODO: why isn't this fetching pastEvents? I can't reproduce this when using node directly
     subscriptions.push(
       liquidPledging.$contract.events
-        // .allEvents({ fromBlock: this.config.lastBlock + 1 || 1 })
         .allEvents({})
         .on('data', newEvent)
         .on('changed', e => e.removed && removeEvent(e))
@@ -281,11 +333,9 @@ const watcher = (app, eventHandler) => {
    * subscribe to SetApp events for lpp-capped-milestone & lpp-campaign
    */
   async function subscribeApps() {
-    const kernel = await liquidPledging.kernel();
     subscriptions.push(
-      new Kernel(web3, kernel).$contract.events
+      kernel.$contract.events
         .SetApp({
-          fromBlock: lastBlock + 1 || 1,
           filter: {
             namespace: keccak256('base'),
             name: [keccak256('lpp-capped-milestone'), keccak256('lpp-campaign')],
@@ -301,27 +351,9 @@ const watcher = (app, eventHandler) => {
    * subscribe to lpp-capped-milestone events associated with the this lp contract
    */
   function subscribeCappedMilestones() {
-    const c = new LPPCappedMilestone(web3).$contract;
-    const decodeEventABI = c._decodeEventABI.bind({
-      name: 'ALLEVENTS',
-      jsonInterface: c._jsonInterface,
-    });
-
     subscriptions.push(
-      subscribeLogs(web3, lastBlock, [
-        [
-          keccak256('MilestoneCompleteRequested(address,uint64)'),
-          keccak256('MilestoneCompleteRequestRejected(address,uint64)'),
-          keccak256('MilestoneCompleteRequestApproved(address,uint64)'),
-          keccak256('MilestoneChangeReviewerRequested(address,uint64,address)'),
-          keccak256('MilestoneReviewerChanged(address,uint64,address)'),
-          keccak256('MilestoneChangeRecipientRequested(address,uint64,address)'),
-          keccak256('MilestoneRecipientChanged(address,uint64,address)'),
-          keccak256('PaymentCollected(address,uint64)'),
-        ],
-        padLeft(`0x${removeHexPrefix(liquidPledging.$address).toLowerCase()}`, 64),
-      ])
-        .on('data', e => newEvent(decodeEventABI(e)))
+      subscribeLogs(web3, getLppCappedMilestoneTopics())
+        .on('data', e => newEvent(lppCappedMilestoneEventDecoder(e)))
         .on('changed', e => e.removed && removeEvent(e)),
     );
   }
@@ -330,13 +362,10 @@ const watcher = (app, eventHandler) => {
    * subscribe to the lp vault events
    */
   function subscribeVault() {
-    const { vaultAddress } = app.get('blockchain');
-    const lpVault = new LPVault(web3, vaultAddress);
     // starts a listener on the vault contract
-    const fromBlock = lastBlock + 1 || 1;
     subscriptions.push(
       lpVault.$contract.events
-        .allEvents({ fromBlock })
+        .allEvents({})
         .on('data', newEvent)
         .on('changed', e => e.removed && removeEvent(e))
         .on('error', err => logger.error('SUBSCRIPTION ERROR: ', err)),
@@ -352,6 +381,11 @@ const watcher = (app, eventHandler) => {
     async start() {
       if (!initialized) {
         setLastBlock(await getLastBlock(app));
+
+        const kernelAddress = await liquidPledging.kernel();
+        kernel = new Kernel(web3, kernelAddress);
+
+        fetchPastEvents();
         initialized = true;
       }
 

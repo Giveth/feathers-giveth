@@ -16,10 +16,10 @@ function createModel(app) {
     {
       title: { type: String, required: true },
       description: { type: String, required: true },
-      projectId: { type: Schema.Types.Long, index: true },
+      projectId: { type: Schema.Types.Long, index: true }, // we can use Long here b/c lp only stores adminId in pledges as uint64
       image: { type: String, required: true },
       txHash: { type: String },
-      totalDonated: { type: Schema.Types.Long },
+      totalDonated: { type: Schema.Types.BN },
       donationCount: { type: Number },
       peopleCount: { type: Number },
       dacs: { type: [String] },

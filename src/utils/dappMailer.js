@@ -5,7 +5,12 @@ import rp from 'request-promise';
 const sendEmail = (app, data) => {
   // add the dapp url that this feathers serves for
   Object.assign(data, { dappUrl: app.get('dappUrl') });
+  const dappMailerUrl = app.get('dappMailerUrl');
 
+  if (!dappMailerUrl) {
+    logger.info(`skipping email notification. Missing dappMailerUrl in configuration file`);
+    return;
+  }
   if (!data.recipient) {
     logger.info(`skipping email notification to ${data.recipient} > ${data.unsubscribeType}`);
     return;
@@ -15,7 +20,7 @@ const sendEmail = (app, data) => {
 
   rp({
     method: 'POST',
-    url: `${app.get('dappMailerUrl')}/send`,
+    url: `${dappMailerUrl}/send`,
     headers: {
       Authorization: app.get('dappMailerSecret'),
     },

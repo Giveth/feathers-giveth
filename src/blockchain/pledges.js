@@ -1,6 +1,6 @@
 /* eslint-disable consistent-return */
-const { toBN } = require('web3-utils');
 const logger = require('winston');
+const { toBN } = require('web3-utils');
 const { getBlockTimestamp } = require('./lib/web3Helpers');
 const { CampaignStatus } = require('../models/campaigns.model');
 const { DonationStatus } = require('../models/donations.model');
@@ -27,11 +27,12 @@ const isRejectedDelegation = ({ fromPledge, toPledge }) =>
 const isDelegation = ({ intendedProject }) => !!intendedProject;
 
 const getDonationStatus = transferInfo => {
-  const { pledgeState, pledgeAdmin, delegate } = transferInfo;
+  const { toPledgeAdmin, delegate } = transferInfo;
+  const { pledgeState } = transferInfo.toPledge;
   if (pledgeState === '1') return DonationStatus.PAYING;
   if (pledgeState === '2') return DonationStatus.PAID;
   if (isDelegation(transferInfo)) return DonationStatus.TO_APPROVE;
-  if (pledgeAdmin.type === AdminTypes.GIVER || !!delegate) return DonationStatus.WAITING;
+  if (toPledgeAdmin.type === AdminTypes.GIVER || !!delegate) return DonationStatus.WAITING;
   return DonationStatus.COMMITTED;
 };
 
@@ -48,7 +49,7 @@ const getCommitTime = (commitTime, ts) =>
  *
  * @param {object} transferInfo object containing information regarding the Transfer event
  */
-function createToDonationMutation(transferInfo) {
+function createToDonationMutation(transferInfo, isReturnTransfer) {
   const {
     toPledgeAdmin,
     toPledge,
@@ -89,7 +90,7 @@ function createToDonationMutation(transferInfo) {
     });
   }
 
-  if (isRejectedDelegation(transferInfo)) {
+  if (isReturnTransfer || isRejectedDelegation(transferInfo)) {
     mutation.isReturn = true;
   }
 
@@ -124,7 +125,7 @@ const pledges = (app, liquidPledging) => {
       query: {
         $sort: { createdAt: 1 },
         pledgeId,
-        amountRemaining: { $gt: 0 },
+        amountRemaining: { $ne: 0 },
       },
     });
     let remaining = toBN(amount);
@@ -138,17 +139,22 @@ const pledges = (app, liquidPledging) => {
     });
   }
 
+  function getPledgeAdmin(id) {
+    return pledgeAdmins.find({ paginate: false, query: { id } }).then(data => data[0]);
+  }
+
   async function createDonation(mutation, txHash, retry = false) {
-    // const findDonation = () =>
-    // donations
-    // .find({ query: { txHash } })
-    // .then(resp => (resp.data.length > 0 ? resp.data[0] : undefined));
+    const donations = await donationService.find({
+      paginate: false,
+      $limit: 1,
+      query: {
+        txHash,
+        amount: mutation.amount,
+        $or: [{ pledgeId: { $exists: false } }, { pledgeId: '0' }, { pledgeId: mutation.pledgeId }],
+      },
+    });
 
-    // TODO we only want the first donation, will this return an array or object? will it return undefined?
-    const donation = await donationService.find({ paginate: false, $limit: 1, query: { txHash } });
-    console.log(donation);
-
-    if (!donation) {
+    if (donations.length === 0) {
       // if this is the second attempt, then create a donation object
       // otherwise, try and process the event later, giving time for
       // the donation entity to be created via REST api first
@@ -156,19 +162,20 @@ const pledges = (app, liquidPledging) => {
       // Other then that, the donation should always be created before the tx was mined.
       return retry
         ? donationService.create(Object.assign(mutation, { txHash }))
-        : reprocess(createDonation.bind(mutation, txHash, true), 5000);
+        : reprocess(createDonation.bind(this, mutation, txHash, true), 5000);
     }
 
-    return donationService.patch(donation._id, mutation);
+    return donationService.patch(donations[0]._id, mutation);
   }
 
   async function newDonation(pledgeId, amount, txHash) {
     const pledge = await liquidPledging.getPledge(pledgeId);
-    const giver = await pledgeAdmins.get(pledge.owner);
+    const giver = await getPledgeAdmin(pledge.owner);
 
     const mutation = {
       giverAddress: giver.admin.address, // giver is a user type
       amount,
+      amountRemaining: amount,
       pledgeId,
       ownerId: pledge.owner,
       ownerTypeId: giver.typeId,
@@ -180,12 +187,35 @@ const pledges = (app, liquidPledging) => {
   }
 
   /**
+   * Determine if this transfer was a return of excess funds of an over-funded milestone
+   * @param {object} transferInfo
+   */
+  async function isReturnTransfer(transferInfo) {
+    const { fromPledgeAdmin, toPledgeId, txHash, donations } = transferInfo;
+    // currently only milestones will can be over-funded
+    if (!fromPledgeAdmin.type === AdminTypes.MILESTONE) return false;
+
+    const from = donations[0].pledgeId; // all donations will have same pledgeId
+    const transferEventsInTx = await app
+      .service('events')
+      .find({ paginate: false, query: { txHash, event: 'Transfer' } });
+
+    // ex events in return case:
+    // Transfer(from: 1, to: 2, amount: 1000)
+    // Transfer(from: 2, to: 1, amount: < 1000)
+    return transferEventsInTx.some(
+      e => e.returnValues.from === toPledgeId && e.returnValues.to === from,
+    );
+  }
+
+  /**
    * create a new donation for the `to` pledge
    *
    * @param {object} transferInfo
    */
-  function createToDonation(transferInfo) {
-    return createDonation(createToDonationMutation(transferInfo), transferInfo.txHash);
+  async function createToDonation(transferInfo) {
+    const mutation = createToDonationMutation(transferInfo, await isReturnTransfer(transferInfo));
+    return createDonation(mutation, transferInfo.txHash);
   }
 
   /**
@@ -206,8 +236,13 @@ const pledges = (app, liquidPledging) => {
 
         // calculate remaining total & donation amountRemaining
         let a = toBN(d.amountRemaining);
-        total = a.gte(total) ? toBN(0) : total.sub(a);
-        a = total.eqn(0) ? a.sub(toBN(amount)) : toBN(0);
+        if (a.gte(total)) {
+          a = a.sub(total);
+          total = toBN(0);
+        } else {
+          total = total.sub(a);
+          a = toBN(0);
+        }
 
         if (a.ltn(0)) {
           throw new Error(`donation.amountRemaining is < 0: ${JSON.stringify(d)}`);
@@ -237,7 +272,7 @@ const pledges = (app, liquidPledging) => {
         liquidPledging.getPledge(to),
       ]);
 
-      const fromPledgeAdmin = await pledgeAdmins.get(fromPledge.owner);
+      const fromPledgeAdmin = await getPledgeAdmin(fromPledge.owner);
 
       if (
         (fromPledgeAdmin.type === AdminTypes.MILESTONE &&
@@ -253,7 +288,7 @@ const pledges = (app, liquidPledging) => {
         return;
       }
 
-      const promises = [pledgeAdmins.get(toPledge.owner), getDonations(from, amount)];
+      const promises = [getPledgeAdmin(toPledge.owner), getDonations(from, amount)];
 
       // In lp any delegate in the chain can delegate, but currently we only allow last delegate
       // to have that ability
@@ -261,7 +296,7 @@ const pledges = (app, liquidPledging) => {
         promises.push(
           liquidPledging
             .getPledgeDelegate(to, toPledge.nDelegates)
-            .then(delegate => pledgeAdmins.get(delegate.idDelegate)),
+            .then(delegate => getPledgeAdmin(delegate.idDelegate)),
         );
       } else {
         promises.push(undefined);
@@ -269,7 +304,7 @@ const pledges = (app, liquidPledging) => {
 
       // fetch intendedProject pledgeAdmin
       if (Number(toPledge.intendedProject) > 0) {
-        promises.push(pledgeAdmins.get(toPledge.intendedProject));
+        promises.push(getPledgeAdmin(toPledge.intendedProject));
       } else {
         promises.push(undefined);
       }
@@ -291,7 +326,16 @@ const pledges = (app, liquidPledging) => {
       };
 
       if (donations.length === 0) {
-        logger.error('missing donation for ->', JSON.stringify(transferInfo, null, 2));
+        logTransferInfo(transferInfo);
+        transferInfo.donations = transferInfo.donations.map(d => {
+          delete d.ownerEntity;
+          return d;
+        });
+        delete transferInfo.fromPledgeAdmin.admin;
+        delete transferInfo.toPledgeAdmin.admin;
+        logger.error('missing from donation ->', JSON.stringify(transferInfo, null, 2));
+        // if from donation is missing, we can't do anything
+        return;
       }
 
       await spendAndUpdateExistingDonations(transferInfo);

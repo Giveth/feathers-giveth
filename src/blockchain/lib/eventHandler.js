@@ -30,52 +30,51 @@ const eventHandler = app => {
      * @param {object} event Web3 event/log object
      */
     handle(event) {
-      logger.info('handlingEvent: ', event);
-
       const handlers = {
         // lp admin events
-        GiverAdded: admins.addGiver(event),
-        GiverUpdated: admins.updateGiver(event),
-        DelegateAdded: admins.addDelegate(event),
-        DelegateUpdated: admins.updateDelegate(event),
-        ProjectAdded: admins.addProject(event),
-        ProjectUpdated: admins.updateProject(event),
-        CancelProject: admins.cancelProject(event),
-        SetApp: admins.setApp(event),
+        GiverAdded: admins.addGiver,
+        GiverUpdated: admins.updateGiver,
+        DelegateAdded: admins.addDelegate,
+        DelegateUpdated: admins.updateDelegate,
+        ProjectAdded: admins.addProject,
+        ProjectUpdated: admins.updateProject,
+        CancelProject: admins.cancelProject,
+        SetApp: admins.setApp,
 
         // lp pledge events
-        Transfer: pledges.transfer(event),
+        Transfer: pledges.transfer,
 
         // lp vault events
-        AuthorizePayment: payments.authorizePayment(event),
-        ConfirmPayment: payments.confirmPayment(event),
-        CancelPayment: payments.cancelPayment(event),
+        AuthorizePayment: payments.authorizePayment,
+        ConfirmPayment: undefined,
+        CancelPayment: undefined,
 
         // lpp-capped-milestone events
-        MilestoneCompleteRequested: cappedMilestones.reviewRequested(event),
-        MilestoneCompleteRequestRejected: cappedMilestones.rejected(event),
-        MilestoneCompleteRequestApproved: cappedMilestones.accepted(event),
+        MilestoneCompleteRequested: cappedMilestones.reviewRequested,
+        MilestoneCompleteRequestRejected: cappedMilestones.rejected,
+        MilestoneCompleteRequestApproved: cappedMilestones.accepted,
         MilestoneChangeReviewerRequested: undefined,
         MilestoneReviewerChanged: undefined,
         MilestoneChangeRecipientRequested: undefined,
         MilestoneRecipientChanged: undefined,
-        PaymentCollected: cappedMilestones.paymentCollected(event),
+        PaymentCollected: cappedMilestones.paymentCollected,
       };
 
       const handler = handlers[event.event];
 
       if (typeof handler !== 'function') {
-        logger.error('Unknown event: ', event);
+        logger.error('Unknown event: ', event.event);
         return;
       }
 
       queue.add(async () => {
         try {
-          await handler();
+          logger.info('Handling Event: ', event);
+          await handler(event);
         } catch (err) {
           logger.error(err);
         }
-        await queue.purge();
+        queue.purge();
       });
 
       // start processing the queued events if we haven't already
