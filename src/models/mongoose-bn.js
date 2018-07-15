@@ -65,8 +65,8 @@ module.exports = function NumberBN(mongoose) {
    */
 
   BN.prototype.cast = function cast(val, scope, init) {
-    if (val === null) return val;
-    if (val === '') return null;
+    if (val === null || val === undefined) return undefined;
+    if (val === '') return undefined;
 
     if (val instanceof utils.BN) return init ? val : val.toString();
 

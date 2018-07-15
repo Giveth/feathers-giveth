@@ -15,7 +15,6 @@ const restrict = () => async context => {
   // internal call are fine
   if (!context.params.provider) return context;
 
-  throw new errors.Forbidden();
   const { data, service } = context;
   const { user } = context.params;
 
@@ -45,19 +44,20 @@ const restrict = () => async context => {
       )
         throw new errors.Forbidden();
 
-      // whitelist of what the delegate can update
-      const approvedKeys = [
-        // 'txHash',
-        'status',
-        // 'delegateId',
-        // 'delegateTypeId',
-        // 'intendedProjectId',
-        // 'intendedProjectTypeId',
-        // 'intendedProjectType',
-      ];
+      // // whitelist of what the delegate can update
+      // const approvedKeys = [
+      //   'pendingAmountRemaining',
+      //   // 'txHash',
+      //   // 'status',
+      //   // 'delegateId',
+      //   // 'delegateTypeId',
+      //   // 'intendedProjectId',
+      //   // 'intendedProjectTypeId',
+      //   // 'intendedProjectType',
+      // ];
 
-      const keysToRemove = Object.keys(data).map(key => !approvedKeys.includes(key));
-      keysToRemove.forEach(key => delete data[key]);
+      // const keysToRemove = Object.keys(data).map(key => !approvedKeys.includes(key));
+      // keysToRemove.forEach(key => delete data[key]);
     } else if (
       (donation.ownerType === AdminTypes.GIVER && user.address !== donation.ownerTypeId) ||
       (donation.ownerType !== AdminTypes.GIVER &&
@@ -65,6 +65,21 @@ const restrict = () => async context => {
     ) {
       throw new errors.Forbidden();
     }
+
+    // whitelist of what the delegate can update
+    const approvedKeys = [
+      'pendingAmountRemaining',
+      // 'txHash',
+      // 'status',
+      // 'delegateId',
+      // 'delegateTypeId',
+      // 'intendedProjectId',
+      // 'intendedProjectTypeId',
+      // 'intendedProjectType',
+    ];
+
+    const keysToRemove = Object.keys(data).map(key => !approvedKeys.includes(key));
+    keysToRemove.forEach(key => delete data[key]);
   };
 
   if (Array.isArray(donations)) {
@@ -271,10 +286,9 @@ module.exports = {
       }),
       updateMilestoneIfNotPledged(),
     ],
-    update: [commons.disallow('external'), sanitizeAddress('giverAddress', { validate: true })],
+    update: [commons.disallow(), sanitizeAddress('giverAddress', { validate: true })],
     patch: [
-      // restrict(),
-      commons.disallow('external'),
+      restrict(),
       sanitizeAddress('giverAddress', { validate: true }),
       stashDonationIfPending(),
     ],
@@ -287,7 +301,7 @@ module.exports = {
     get: [addConfirmations()],
     create: [updateEntityCounters()],
     update: [],
-    patch: [],
+    patch: [updateEntityCounters()],
     remove: [],
   },
 

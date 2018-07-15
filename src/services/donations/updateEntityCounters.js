@@ -5,15 +5,25 @@ const logger = require('winston');
 const { AdminTypes } = require('../../models/pledgeAdmins.model');
 
 const updateEntity = async (context, donation) => {
+  if (!donation.mined) return;
+
   let serviceName;
   let id;
   const donationQuery = {
     $select: ['amount', 'giverAddress'],
-    $or: [{ isRefund: false }, { isRefund: { $exists: false } }],
+    isReturn: false,
+    mined: true,
   };
 
-  if (donation.ownerType === AdminTypes.GIVER) {
-    return;
+  if (donation.delegateTypeId) {
+    serviceName = 'dacs';
+    id = donation.delegateTypeId;
+    // TODO I think this can be gamed if the donor refunds their donation from the dac
+    Object.assign(donationQuery, {
+      delegateTypeId: id,
+      delegateType: AdminTypes.DAC,
+      $or: [{ intendedProjectId: 0 }, { intendedProjectId: undefined }],
+    });
   } else if (donation.ownerType === AdminTypes.CAMPAIGN) {
     serviceName = 'campaigns';
     id = donation.ownerTypeId;
@@ -28,15 +38,8 @@ const updateEntity = async (context, donation) => {
       ownerTypeId: id,
       ownerType: AdminTypes.MILESTONE,
     });
-  } else if (donation.delegateTypeId) {
-    serviceName = 'dacs';
-    id = donation.delegateTypeId;
-    // TODO I think this can be gamed if the donor refunds their donation to the dac
-    Object.assign(donationQuery, {
-      delegateTypeId: id,
-      ownerType: AdminTypes.DAC,
-      $or: [{ intendedProjectId: 0 }, { intendedProjectId: { $exists: false } }],
-    });
+  } else {
+    return;
   }
 
   const service = context.app.service(serviceName);
@@ -60,13 +63,11 @@ const updateEntity = async (context, donation) => {
 };
 
 const updateEntityCounters = () => async context => {
-  checkContext(context, 'after', ['create']);
+  checkContext(context, 'after', ['create', 'patch']);
   if (Array.isArray(context.data)) {
     context.data.map(updateEntity.bind(null, context));
-    // await Promise.all(context.data.map(updateEntity.bind(null, context)));
   } else {
     updateEntity(context, context.data);
-    // await updateEntity(context, context.data);
   }
   return context;
 };

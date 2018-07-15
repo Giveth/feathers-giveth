@@ -27,7 +27,7 @@ function createModel(app) {
       ownerAddress: { type: String, required: true, index: true },
       pluginAddress: { type: String },
       tokenAddress: { type: String },
-      mined: { type: Boolean },
+      mined: { type: Boolean, required: true, default: false },
       status: {
         type: String,
         require: true,

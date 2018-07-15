@@ -313,8 +313,7 @@ const watcher = (app, eventHandler) => {
     // set a timeout here to give a chance for all fetched events to be added via newEvent
     setTimeout(() => {
       fetchedPastEvents = true;
-      // }, 1000 * 30);
-    }, 1000 * 2);
+    }, 1000 * 30);
   }
   /**
    * subscribe to LP events

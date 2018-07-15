@@ -7,6 +7,7 @@ const sanitizeHtml = require('../../hooks/sanitizeHtml');
 const addConfirmations = require('../../hooks/addConfirmations');
 
 const restrict = [
+  context => commons.deleteByDot(context.data, 'txHash'),
   restrictToOwner({
     idField: 'address',
     ownerField: 'ownerAddress',
@@ -93,11 +94,7 @@ module.exports = {
       sanitizeAddress('ownerAddress', { required: true, validate: true }),
       sanitizeHtml('description'),
     ],
-    update: [
-      ...restrict,
-      sanitizeAddress('ownerAddress', { required: true, validate: true }),
-      sanitizeHtml('description'),
-    ],
+    update: [commons.disallow()],
     patch: [
       ...restrict,
       sanitizeAddress('ownerAddress', { validate: true }),

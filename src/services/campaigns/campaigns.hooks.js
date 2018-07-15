@@ -32,11 +32,14 @@ const restrict = () => context => {
         throw new errors.Forbidden();
 
       // whitelist of what the reviewer can update
-      const approvedKeys = ['txHash', 'status', 'mined'];
+      const approvedKeys = ['status', 'mined'];
 
       const keysToRemove = Object.keys(data).map(key => !approvedKeys.includes(key));
       keysToRemove.forEach(key => delete data[key]);
     } else if (user.address !== campaign.ownerAddress) throw new errors.Forbidden();
+
+    // never allow setting txHash in an update/patch
+    commons.deleteByDot(data, 'txHash');
   };
 
   return getCampaigns().then(
@@ -108,11 +111,7 @@ module.exports = {
       isProjectAllowed(),
       sanitizeHtml('description'),
     ],
-    update: [
-      restrict(),
-      sanitizeAddress('ownerAddress', { required: true, validate: true }),
-      sanitizeHtml('description'),
-    ],
+    update: [commons.disallow()],
     patch: [
       restrict(),
       sanitizeAddress('ownerAddress', { validate: true }),

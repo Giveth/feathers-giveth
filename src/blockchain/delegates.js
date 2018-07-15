@@ -23,9 +23,10 @@ const delegates = (app, liquidPledging) => {
           ownerAddress: tx.from,
           pluginAddress: delegate.plugin,
           title: delegate.name,
+          txHash,
           totalDonated: '0',
           donationCount: 0,
-          description: '',
+          description: 'Missing Description... Added outside of UI',
         });
       } catch (err) {
         // dacs service will throw BadRequest error if owner isn't whitelisted

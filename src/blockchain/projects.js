@@ -70,11 +70,11 @@ const projects = (app, liquidPledging) => {
   }
 
   async function getMilestone(project, txHash, retry = false) {
-    // const data = await milestones.find({ query: { txHash } });
-    // TODO this is okay for now b/c all projects have a plugin, but using the txHash would be better. This requires never mutating the txHash as it should be the creation txHash
+    // const data = await milestones.find({ paginate: false, query: { txHash } });
+    // TODO remove this once the txHash is never mutated.
     const data = await milestones.find({
       paginate: false,
-      query: { pluginAddress: project.plugin },
+      query: { $or: [{ pluginAddress: project.plugin }, { txHash }] },
     });
     if (data.length === 0) {
       // this is really only useful when instant mining. Other then that, the dac should always be
@@ -143,11 +143,11 @@ const projects = (app, liquidPledging) => {
   }
 
   async function getCampaign(project, txHash, retry = false) {
-    // const data = await campaigns.find({ query: { txHash } });
-    // TODO this is okay for now b/c all projects have a plugin, but using the txHash would be better. This requires never mutating the txHash as it should be the creation txHash
+    // const data = await campaigns.find({ paginate: false, query: { txHash } });
+    // TODO remove this once the txHash is never mutated.
     const data = await campaigns.find({
       paginate: false,
-      query: { pluginAddress: project.plugin },
+      query: { $or: [{ pluginAddress: project.plugin }, { txHash }] },
     });
     // create a campaign if necessary
     if (data.length === 0) {
@@ -366,6 +366,7 @@ const projects = (app, liquidPledging) => {
       canceledPledgeId: donation.pledgeId,
       parentDonations: [donation._id],
       isReturn: true,
+      mined: true,
     });
     delete newDonation._id;
 
@@ -392,8 +393,7 @@ const projects = (app, liquidPledging) => {
     // cancel all milestones
     const mutation = {
       status: CANCELED,
-      // mined: true,
-      // txHash,
+      mined: true,
     };
 
     const query = {

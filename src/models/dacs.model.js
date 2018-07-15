@@ -15,11 +15,11 @@ function createModel(app) {
   const dac = new Schema(
     // TODO note: the following commenting out of required is b/c
     // if a dac is added to lp not from the dapp, we can't
-    // guarnantee that those fields are present until we have
+    // guarantee that those fields are present until we have
     // ipfs enabled
     {
       title: { type: String, required: true },
-      description: { type: String }, // required: true },
+      description: { type: String, required: true },
       communityUrl: { type: String },
       delegateId: { type: Schema.Types.Long, index: true }, // we can use Long here b/c lp only stores adminId in pledges as uint64
       status: {
@@ -29,9 +29,10 @@ function createModel(app) {
         default: DacStatus.PENDING,
       },
       image: { type: String }, // required: true },
-      txHash: { type: String },
+      txHash: { type: String, required: true },
       totalDonated: { type: Schema.Types.BN, min: 0 },
       donationCount: { type: Number },
+      peopleCount: { type: Number },
       ownerAddress: { type: String, required: true, index: true },
       pluginAddress: { type: String },
       tokenAddress: { type: String },

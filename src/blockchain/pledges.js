@@ -9,6 +9,42 @@ const { AdminTypes } = require('../models/pledgeAdmins.model');
 const toWrapper = require('../utils/to');
 const reprocess = require('../utils/reprocess');
 
+// only log necessary transferInfo
+function logTransferInfo(transferInfo) {
+  const info = Object.assign({}, transferInfo, {
+    donations: transferInfo.donations.slice().map(d => {
+      // eslint-disable-next-line no-param-reassign
+      delete d.ownerEntity;
+      return d;
+    }),
+    fromPledgeAdmin: Object.assign({}, transferInfo.fromPledgeAdmin),
+    toPledgeAdmin: Object.assign({}, transferInfo.toPledgeAdmin),
+  });
+  delete info.fromPledgeAdmin.admin;
+  delete info.toPledgeAdmin.admin;
+  logger.error('missing from donation ->', JSON.stringify(info, null, 2));
+}
+
+// sort donations by pendingAmountRemaining (asc with undefined coming last)
+function donationSort(a, b) {
+  const { pendingAmountRemaining: aVal } = a;
+  const { pendingAmountRemaining: bVal } = b;
+  if (aVal !== undefined) {
+    if (bVal === undefined) return -1;
+    // both are '0'
+    if (aVal === bVal) return 0;
+    if (aVal === '0') return -1;
+    if (bVal === '0') return 1;
+    // if both are defined, at least 1 value should be 0
+    logger.warn(
+      'donation sort detected 2 donations where pendingAmountRemaining was defined & > 0. Only 1 donation should have pendingAmountRemaining > 0',
+    );
+  } else if (bVal !== undefined) {
+    return 1;
+  }
+  return 0;
+}
+
 /**
  * @param {object} transferInfo
  */
@@ -59,6 +95,7 @@ function createToDonationMutation(transferInfo, isReturnTransfer) {
     donations,
     amount,
     ts,
+    txHash,
   } = transferInfo;
 
   const mutation = {
@@ -72,6 +109,8 @@ function createToDonationMutation(transferInfo, isReturnTransfer) {
     commitTime: getCommitTime(toPledge.commitTime, ts),
     status: getDonationStatus(transferInfo),
     parentDonations: donations.map(d => d._id),
+    txHash,
+    mined: true,
   };
 
   if (delegate) {
@@ -128,6 +167,7 @@ const pledges = (app, liquidPledging) => {
         amountRemaining: { $ne: 0 },
       },
     });
+    donations.sort(donationSort);
     let remaining = toBN(amount);
 
     return donations.filter(d => {
@@ -143,15 +183,35 @@ const pledges = (app, liquidPledging) => {
     return pledgeAdmins.find({ paginate: false, query: { id } }).then(data => data[0]);
   }
 
-  async function createDonation(mutation, txHash, retry = false) {
+  async function createDonation(mutation, isInitialTransfer = false, retry = false) {
+    const query = {
+      $limit: 1,
+      giverAddress: mutation.giverAddress,
+      amount: mutation.amount,
+      mined: false,
+      $or: [{ pledgeId: '0' }, { pledgeId: mutation.pledgeId }],
+    };
+    if (isInitialTransfer) {
+      // b/c new donations occur on a different network, we can't use the txHash here
+      // so attempt to find the 1st donation where all other params are the same
+      Object.assign(query, {
+        status: DonationStatus.PENDING,
+        ownerId: { $in: [0, mutation.ownerId] }, // w/ donateAndCreateGiver, ownerId === 0
+        delegateId: mutation.delegateId,
+        intendedProjectId: mutation.intendedProjectId,
+        txHash: undefined,
+        homeTxHash: { $exists: true },
+        $sort: {
+          createdAt: 1,
+        },
+      });
+    } else {
+      query.txHash = mutation.txHash;
+    }
+
     const donations = await donationService.find({
       paginate: false,
-      $limit: 1,
-      query: {
-        txHash,
-        amount: mutation.amount,
-        $or: [{ pledgeId: { $exists: false } }, { pledgeId: '0' }, { pledgeId: mutation.pledgeId }],
-      },
+      query,
     });
 
     if (donations.length === 0) {
@@ -161,8 +221,8 @@ const pledges = (app, liquidPledging) => {
       // this is really only useful when instant mining. and re-syncing feathers w/ past events.
       // Other then that, the donation should always be created before the tx was mined.
       return retry
-        ? donationService.create(Object.assign(mutation, { txHash }))
-        : reprocess(createDonation.bind(this, mutation, txHash, true), 5000);
+        ? donationService.create(mutation)
+        : reprocess(createDonation.bind(this, mutation, isInitialTransfer, true), 5000);
     }
 
     return donationService.patch(donations[0]._id, mutation);
@@ -181,6 +241,8 @@ const pledges = (app, liquidPledging) => {
       ownerTypeId: giver.typeId,
       ownerType: giver.type,
       status: DonationStatus.WAITING, // waiting for delegation by owner
+      mined: true,
+      txHash,
     };
 
     return createDonation(mutation, txHash);
@@ -214,8 +276,10 @@ const pledges = (app, liquidPledging) => {
    * @param {object} transferInfo
    */
   async function createToDonation(transferInfo) {
+    const { donations } = transferInfo;
+    const isInitialTransfer = donations.length === 1 && donations[0].parentDonations.length === 0;
     const mutation = createToDonationMutation(transferInfo, await isReturnTransfer(transferInfo));
-    return createDonation(mutation, transferInfo.txHash);
+    return createDonation(mutation, isInitialTransfer);
   }
 
   /**
@@ -250,6 +314,7 @@ const pledges = (app, liquidPledging) => {
 
         const mutation = {
           amountRemaining: a.toString(),
+          pendingAmountRemaining: undefined,
         };
 
         if (isCommittedDelegation(transferInfo)) {
@@ -327,13 +392,6 @@ const pledges = (app, liquidPledging) => {
 
       if (donations.length === 0) {
         logTransferInfo(transferInfo);
-        transferInfo.donations = transferInfo.donations.map(d => {
-          delete d.ownerEntity;
-          return d;
-        });
-        delete transferInfo.fromPledgeAdmin.admin;
-        delete transferInfo.toPledgeAdmin.admin;
-        logger.error('missing from donation ->', JSON.stringify(transferInfo, null, 2));
         // if from donation is missing, we can't do anything
         return;
       }
