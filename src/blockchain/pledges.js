@@ -113,7 +113,8 @@ function createToDonationMutation(transferInfo, isReturnTransfer) {
     mined: true,
   };
 
-  if (delegate) {
+  // lp keeps the delegation chain, but we want to ignore it
+  if (![DonationStatus.PAYING, DonationStatus.PAID].includes(mutation.status) && delegate) {
     Object.assign(mutation, {
       delegateId: delegate.id,
       delegateTypeId: delegate.typeId,
@@ -255,12 +256,12 @@ const pledges = (app, liquidPledging) => {
   async function isReturnTransfer(transferInfo) {
     const { fromPledgeAdmin, toPledgeId, txHash, donations } = transferInfo;
     // currently only milestones will can be over-funded
-    if (!fromPledgeAdmin.type === AdminTypes.MILESTONE) return false;
+    if (fromPledgeAdmin.type !== AdminTypes.MILESTONE) return false;
 
     const from = donations[0].pledgeId; // all donations will have same pledgeId
     const transferEventsInTx = await app
       .service('events')
-      .find({ paginate: false, query: { txHash, event: 'Transfer' } });
+      .find({ paginate: false, query: { transactionHash: txHash, event: 'Transfer' } });
 
     // ex events in return case:
     // Transfer(from: 1, to: 2, amount: 1000)

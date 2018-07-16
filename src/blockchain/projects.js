@@ -338,7 +338,7 @@ const projects = (app, liquidPledging) => {
     const donation = await donations.get(donationId);
 
     // givers can never be canceled
-    if (donation.ownerType === AdminTypes.GIVER) {
+    if (donation.ownerType === AdminTypes.GIVER && !donation.intendedProjectId) {
       return donation;
     }
 
@@ -518,7 +518,7 @@ const projects = (app, liquidPledging) => {
         );
 
         if (pledgeAdmin.type === AdminTypes.CAMPAIGN) {
-          await cancelCampaignMilestones(pledgeAdmin.typeId);
+          await cancelCampaignMilestones(pledgeAdmin.typeId, event.transactionHash);
         }
 
         // revert donations

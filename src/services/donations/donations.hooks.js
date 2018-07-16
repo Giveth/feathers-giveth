@@ -33,6 +33,9 @@ const restrict = () => async context => {
   const canUpdate = async donation => {
     if (!donation) throw new errors.Forbidden();
 
+    // whitelist of what the delegate can update
+    const approvedKeys = ['pendingAmountRemaining'];
+
     if (
       data.status === DonationStatus.PENDING &&
       (data.intendedProjectTypeId || data.delegateTypeId !== donation.delegateTypeId)
@@ -43,40 +46,22 @@ const restrict = () => async context => {
         user.address !== donation.delegateEntity.ownerAddress
       )
         throw new errors.Forbidden();
-
-      // // whitelist of what the delegate can update
-      // const approvedKeys = [
-      //   'pendingAmountRemaining',
-      //   // 'txHash',
-      //   // 'status',
-      //   // 'delegateId',
-      //   // 'delegateTypeId',
-      //   // 'intendedProjectId',
-      //   // 'intendedProjectTypeId',
-      //   // 'intendedProjectType',
-      // ];
-
-      // const keysToRemove = Object.keys(data).map(key => !approvedKeys.includes(key));
-      // keysToRemove.forEach(key => delete data[key]);
     } else if (
       (donation.ownerType === AdminTypes.GIVER && user.address !== donation.ownerTypeId) ||
       (donation.ownerType !== AdminTypes.GIVER &&
         user.address !== donation.ownerEntity.ownerAddress)
     ) {
       throw new errors.Forbidden();
+    } else {
+      // owner can also update status as 'COMMITTED' or 'REJECTED'
+      if (
+        data.status &&
+        ![DonationStatus.COMMITTED, DonationStatus.REJECTED].includes(data.status)
+      ) {
+        throw new errors.BadRequest('status can only be updated to `Committed` or `Rejected`');
+      }
+      approvedKeys.push('status');
     }
-
-    // whitelist of what the delegate can update
-    const approvedKeys = [
-      'pendingAmountRemaining',
-      // 'txHash',
-      // 'status',
-      // 'delegateId',
-      // 'delegateTypeId',
-      // 'intendedProjectId',
-      // 'intendedProjectTypeId',
-      // 'intendedProjectType',
-    ];
 
     const keysToRemove = Object.keys(data).map(key => !approvedKeys.includes(key));
     keysToRemove.forEach(key => delete data[key]);
@@ -125,7 +110,7 @@ const poSchemas = {
     include: [
       {
         service: 'campaigns',
-        nameAs: 'intendedEntity',
+        nameAs: 'intendedProjectEntity',
         parentField: 'intendedProjectId',
         childField: 'projectId',
         useInnerPopulate: true,
@@ -158,7 +143,7 @@ const poSchemas = {
     include: [
       {
         service: 'milestones',
-        nameAs: 'intendedEntity',
+        nameAs: 'intendedProjectEntity',
         parentField: 'intendedProjectId',
         childField: 'projectId',
         useInnerPopulate: true,
@@ -203,7 +188,7 @@ const joinDonationRecipient = (item, context) => {
 
   let ownerSchema;
   // if this is po-giver schema, we need to change the `nameAs` to ownerEntity
-  if (item.ownerType.toLowerCase() === 'giver') {
+  if (item.ownerType === AdminTypes.GIVER) {
     ownerSchema = poSchemas['po-giver-owner'];
   } else {
     ownerSchema = poSchemas[`po-${item.ownerType.toLowerCase()}`];

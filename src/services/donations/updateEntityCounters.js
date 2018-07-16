@@ -10,7 +10,7 @@ const updateEntity = async (context, donation) => {
   let serviceName;
   let id;
   const donationQuery = {
-    $select: ['amount', 'giverAddress'],
+    $select: ['amount', 'giverAddress', 'amountRemaining'],
     isReturn: false,
     mined: true,
   };
@@ -23,6 +23,7 @@ const updateEntity = async (context, donation) => {
       delegateTypeId: id,
       delegateType: AdminTypes.DAC,
       $or: [{ intendedProjectId: 0 }, { intendedProjectId: undefined }],
+      isReturn: false,
     });
   } else if (donation.ownerType === AdminTypes.CAMPAIGN) {
     serviceName = 'campaigns';
@@ -30,6 +31,7 @@ const updateEntity = async (context, donation) => {
     Object.assign(donationQuery, {
       ownerTypeId: id,
       ownerType: AdminTypes.CAMPAIGN,
+      isReturn: false,
     });
   } else if (donation.ownerType === AdminTypes.MILESTONE) {
     serviceName = 'milestones';
@@ -51,7 +53,14 @@ const updateEntity = async (context, donation) => {
       .find({ paginate: false, query: donationQuery });
 
     const totalDonated = donations
-      .reduce((accumulator, d) => accumulator.add(toBN(d.amount)), toBN(0))
+      .reduce(
+        (accumulator, d) =>
+          accumulator.add(
+            // use amountRemaining for milestones b/c excess will be sent back in case of over donation
+            toBN(donation.ownerType === AdminTypes.MILESTONE ? d.amountRemaining : d.amount),
+          ),
+        toBN(0),
+      )
       .toString();
     const peopleCount = new Set(donations.map(d => d.giverAddress)).size;
     const donationCount = donations.length;
