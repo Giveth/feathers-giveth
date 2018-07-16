@@ -1,11 +1,11 @@
-import commons from 'feathers-hooks-common';
-import { restrictToOwner } from 'feathers-authentication-hooks';
-import { toChecksumAddress } from 'web3-utils';
+const commons = require('feathers-hooks-common');
+const { restrictToOwner } = require('feathers-authentication-hooks');
+const { toChecksumAddress } = require('web3-utils');
 
-import notifyOfChange from '../../hooks/notifyOfChange';
-import sanitizeAddress from '../../hooks/sanitizeAddress';
-import setAddress from '../../hooks/setAddress';
-import fundWallet from '../../hooks/fundWallet';
+const notifyOfChange = require('../../hooks/notifyOfChange');
+const sanitizeAddress = require('../../hooks/sanitizeAddress');
+const setAddress = require('../../hooks/setAddress');
+const fundWallet = require('../../hooks/fundWallet');
 
 const normalizeId = () => context => {
   if (context.id) {

@@ -2,36 +2,53 @@
 //
 // See http://mongoosejs.com/docs/models.html
 // for more of what you can do here.
-module.exports = function Donation(app) {
+
+const DonationStatus = {
+  PENDING: 'Pending',
+  PAYING: 'Paying',
+  PAID: 'Paid',
+  TO_APPROVE: 'ToApprove',
+  WAITING: 'Waiting',
+  COMMITTED: 'Committed',
+  CANCELED: 'Canceled',
+  REJECTED: 'Rejected',
+  FAILED: 'Failed',
+};
+
+function Donation(app) {
   const mongooseClient = app.get('mongooseClient');
   const { Schema } = mongooseClient;
   const donation = new Schema(
     {
       giverAddress: { type: String, required: true, index: true },
-      amount: { type: String, required: true },
-      pledgeId: { type: String, required: true },
-      owner: { type: String, required: true },
-      ownerId: { type: String },
+      amount: { type: Schema.Types.BN, required: true, min: 0 },
+      amountRemaining: { type: Schema.Types.BN, required: true, min: 0 },
+      pendingAmountRemaining: { type: Schema.Types.BN, min: 0 },
+      pledgeId: { type: Schema.Types.BN, required: true },
+      paymentId: { type: Schema.Types.BN },
+      canceledPledgeId: { type: Schema.Types.BN },
+      ownerId: { type: Schema.Types.Long, required: true }, // we can use Long here b/c lp only stores adminId in pledges as uint64
+      ownerTypeId: { type: String, required: true },
       ownerType: { type: String, required: true },
-      intendedProject: { type: String },
-      intendedProjectId: { type: String },
+      intendedProjectId: { type: Schema.Types.Long }, // we can use Long here b/c lp only stores adminId in pledges as uint64
+      intendedProjectTypeId: { type: String },
       intendedProjectType: { type: String },
-      pendingProject: { type: String },
-      pendingProjectId: { type: String },
-      pendingProjectType: { type: String },
-      delegate: { type: String },
-      delegateId: { type: String },
+      delegateId: { type: Schema.Types.Long }, // we can use Long here b/c lp only stores adminId in pledges as uint64
+      delegateTypeId: { type: String },
       delegateType: { type: String },
-      status: { type: String, required: true },
-      paymentStatus: { type: String, required: true },
+      status: {
+        type: String,
+        require: true,
+        enum: Object.values(DonationStatus),
+        default: DonationStatus.PENDING,
+      },
       txHash: { type: String, index: true },
+      homeTxHash: { type: String },
       commitTime: { type: Date },
-      mined: { type: Boolean },
-      requiredConfirmations: { type: Number },
-      confirmations: { type: Number },
-      ownerEntity: { type: String },
-      giver: { type: String },
+      mined: { type: Boolean, default: false, required: true },
       previousState: { type: Object },
+      parentDonations: { type: [String], default: [], required: true },
+      isReturn: { type: Boolean, default: false },
     },
     {
       timestamps: true,
@@ -39,4 +56,9 @@ module.exports = function Donation(app) {
   );
 
   return mongooseClient.model('donations', donation);
+}
+
+module.exports = {
+  DonationStatus,
+  createModel: Donation,
 };

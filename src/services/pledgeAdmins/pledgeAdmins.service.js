@@ -1,9 +1,9 @@
 // Initializes the `pledgeAdmins` service on path `/pledgeAdmins`
-import createService from 'feathers-mongoose';
-import createModel from '../../models/pledgeAdmins.model';
-import hooks from './pledgeAdmins.hooks';
+const createService = require('feathers-mongoose');
+const { createModel } = require('../../models/pledgeAdmins.model');
+const hooks = require('./pledgeAdmins.hooks');
 
-export default function() {
+module.exports = function() {
   const app = this;
   const Model = createModel(app);
   const paginate = app.get('paginate');
@@ -22,4 +22,4 @@ export default function() {
   const service = app.service('pledgeAdmins');
 
   service.hooks(hooks);
-}
+};

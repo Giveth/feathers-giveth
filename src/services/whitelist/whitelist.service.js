@@ -1,7 +1,7 @@
 // Initializes the `whitelist` service on path `/whitelist`
 const createService = require('feathers-memory');
 
-import hooks from './whitelist.hooks';
+const hooks = require('./whitelist.hooks');
 
 module.exports = function() {
   const app = this;

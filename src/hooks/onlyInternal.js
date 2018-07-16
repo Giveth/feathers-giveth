@@ -1,6 +1,6 @@
-import errors from '@feathersjs/errors';
+const errors = require('@feathersjs/errors');
 
-export default () => context => {
+module.exports = () => context => {
   if (context.params.provider !== undefined) {
     throw new errors.Forbidden();
   }

@@ -1,3 +1,3 @@
-import socketio from '@feathersjs/socketio';
+const socketio = require('@feathersjs/socketio');
 
-export default socketio();
+module.exports = socketio();

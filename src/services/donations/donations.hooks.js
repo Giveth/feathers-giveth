@@ -1,12 +1,17 @@
 /* eslint-disable no-unused-vars */
-import errors from '@feathersjs/errors';
-import commons from 'feathers-hooks-common';
+const errors = require('@feathersjs/errors');
+const commons = require('feathers-hooks-common');
 
-import sanitizeAddress from '../../hooks/sanitizeAddress';
-import setAddress from '../../hooks/setAddress';
-import addConfirmations from '../../hooks/addConfirmations';
+const sanitizeAddress = require('../../hooks/sanitizeAddress');
+const setAddress = require('../../hooks/setAddress');
+const addConfirmations = require('../../hooks/addConfirmations');
+const { DonationStatus } = require('../../models/donations.model');
+const { AdminTypes } = require('../../models/pledgeAdmins.model');
+const { MilestoneStatus } = require('../../models/milestones.model');
 
-const restrict = () => context => {
+const updateEntityCounters = require('./updateEntityCounters');
+
+const restrict = () => async context => {
   // internal call are fine
   if (!context.params.provider) return context;
 
@@ -15,56 +20,58 @@ const restrict = () => context => {
 
   if (!user) throw new errors.NotAuthenticated();
 
-  const getDonations = () => {
-    if (context.id)
-      return service.get(context.id, { paginate: false, schema: 'includeTypeDetails' });
-    if (!context.id && context.params.query)
-      return service.find({
-        paginate: false,
-        query: context.params.query,
-        schema: 'includeTypeDetails',
-      });
-    return undefined;
-  };
+  let donations = [];
+  if (context.id)
+    donations = await service.get(context.id, { paginate: false, schema: 'includeTypeDetails' });
+  if (!context.id && context.params.query)
+    donations = await service.find({
+      paginate: false,
+      query: context.params.query,
+      schema: 'includeTypeDetails',
+    });
 
-  const canUpdate = donation => {
+  const canUpdate = async donation => {
     if (!donation) throw new errors.Forbidden();
 
+    // whitelist of what the delegate can update
+    const approvedKeys = ['pendingAmountRemaining'];
+
     if (
-      data.status === 'pending' &&
-      (data.intendedProjectId || data.delegateId !== donation.delegateId)
+      data.status === DonationStatus.PENDING &&
+      (data.intendedProjectTypeId || data.delegateTypeId !== donation.delegateTypeId)
     ) {
       // delegate made this call
       if (
-        user.address !== donation.ownerId &&
+        user.address !== donation.ownerTypeId &&
         user.address !== donation.delegateEntity.ownerAddress
       )
         throw new errors.Forbidden();
-
-      // whitelist of what the delegate can update
-      const approvedKeys = [
-        'txHash',
-        'status',
-        'delegate',
-        'delegateId',
-        'intendedProject',
-        'intendedProjectId',
-        'intendedProjectType',
-      ];
-
-      const keysToRemove = Object.keys(data).map(key => !approvedKeys.includes(key));
-      keysToRemove.forEach(key => delete data[key]);
     } else if (
-      (donation.ownerType === 'giver' && user.address !== donation.ownerId) ||
-      (donation.ownerType !== 'giver' && user.address !== donation.ownerEntity.ownerAddress)
+      (donation.ownerType === AdminTypes.GIVER && user.address !== donation.ownerTypeId) ||
+      (donation.ownerType !== AdminTypes.GIVER &&
+        user.address !== donation.ownerEntity.ownerAddress)
     ) {
       throw new errors.Forbidden();
+    } else {
+      // owner can also update status as 'COMMITTED' or 'REJECTED'
+      if (
+        data.status &&
+        ![DonationStatus.COMMITTED, DonationStatus.REJECTED].includes(data.status)
+      ) {
+        throw new errors.BadRequest('status can only be updated to `Committed` or `Rejected`');
+      }
+      approvedKeys.push('status');
     }
+
+    const keysToRemove = Object.keys(data).map(key => !approvedKeys.includes(key));
+    keysToRemove.forEach(key => delete data[key]);
   };
 
-  return getDonations().then(
-    donations => (Array.isArray(donations) ? donations.forEach(canUpdate) : canUpdate(donations)),
-  );
+  if (Array.isArray(donations)) {
+    await Promise.all(donations.map(canUpdate));
+  } else {
+    await canUpdate(donations);
+  }
 };
 
 const poSchemas = {
@@ -93,7 +100,7 @@ const poSchemas = {
       {
         service: 'campaigns',
         nameAs: 'ownerEntity',
-        parentField: 'ownerId',
+        parentField: 'ownerTypeId',
         childField: '_id',
         useInnerPopulate: true,
       },
@@ -103,8 +110,8 @@ const poSchemas = {
     include: [
       {
         service: 'campaigns',
-        nameAs: 'intendedEntity',
-        parentField: 'intendedProject',
+        nameAs: 'intendedProjectEntity',
+        parentField: 'intendedProjectId',
         childField: 'projectId',
         useInnerPopulate: true,
       },
@@ -115,7 +122,7 @@ const poSchemas = {
       {
         service: 'dacs',
         nameAs: 'delegateEntity',
-        parentField: 'delegateId',
+        parentField: 'delegateTypeId',
         childField: '_id',
         useInnerPopulate: true,
       },
@@ -126,7 +133,7 @@ const poSchemas = {
       {
         service: 'milestones',
         nameAs: 'ownerEntity',
-        parentField: 'ownerId',
+        parentField: 'ownerTypeId',
         childField: '_id',
         useInnerPopulate: true,
       },
@@ -136,8 +143,8 @@ const poSchemas = {
     include: [
       {
         service: 'milestones',
-        nameAs: 'intendedEntity',
-        parentField: 'intendedProject',
+        nameAs: 'intendedProjectEntity',
+        parentField: 'intendedProjectId',
         childField: 'projectId',
         useInnerPopulate: true,
       },
@@ -152,7 +159,7 @@ const stashDonationIfPending = () => context => {
 
   const { data } = context;
 
-  if (data.status === 'pending') {
+  if (data.status === DonationStatus.PENDING) {
     return context.app
       .service('donations')
       .get(context.id)
@@ -181,7 +188,7 @@ const joinDonationRecipient = (item, context) => {
 
   let ownerSchema;
   // if this is po-giver schema, we need to change the `nameAs` to ownerEntity
-  if (item.ownerType.toLowerCase() === 'giver') {
+  if (item.ownerType === AdminTypes.GIVER) {
     ownerSchema = poSchemas['po-giver-owner'];
   } else {
     ownerSchema = poSchemas[`po-${item.ownerType.toLowerCase()}`];
@@ -191,17 +198,34 @@ const joinDonationRecipient = (item, context) => {
     .populate({ schema: ownerSchema })(newContext)
     .then(
       context =>
-        item.delegate ? commons.populate({ schema: poSchemas['po-dac'] })(context) : context,
+        item.delegateId ? commons.populate({ schema: poSchemas['po-dac'] })(context) : context,
     )
     .then(
       context =>
-        Number(item.intendedProject) > 0
+        item.intendedProjectId > 0
           ? commons.populate({
               schema: poSchemas[`po-${item.intendedProjectType.toLowerCase()}-intended`],
             })(context)
           : context,
     )
     .then(context => context.result);
+};
+
+const updateMilestoneIfNotPledged = () => context => {
+  commons.checkContext(context, 'before', ['create']);
+
+  const { data: donation } = context;
+  if (
+    donation.ownerType === AdminTypes.MILESTONE &&
+    [DonationStatus.PAYING, DonationStatus.PAID].includes(donation.status)
+  ) {
+    // return context.app.service('milestones').patch(donation.ownerTypeId, {
+    context.app.service('milestones').patch(donation.ownerTypeId, {
+      status:
+        donation.status === DonationStatus.PAYING ? MilestoneStatus.PAYING : MilestoneStatus.PAID,
+      // mined: true
+    });
+  }
 };
 
 const populateSchema = () => context => {
@@ -245,8 +269,9 @@ module.exports = {
         required: true,
         validate: true,
       }),
+      updateMilestoneIfNotPledged(),
     ],
-    update: [restrict(), sanitizeAddress('giverAddress', { validate: true })],
+    update: [commons.disallow(), sanitizeAddress('giverAddress', { validate: true })],
     patch: [
       restrict(),
       sanitizeAddress('giverAddress', { validate: true }),
@@ -259,9 +284,9 @@ module.exports = {
     all: [populateSchema()],
     find: [addConfirmations()],
     get: [addConfirmations()],
-    create: [],
+    create: [updateEntityCounters()],
     update: [],
-    patch: [],
+    patch: [updateEntityCounters()],
     remove: [],
   },
 

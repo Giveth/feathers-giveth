@@ -1,6 +1,7 @@
 // Initializes the `donations` service on path `/donations`
 const createService = require('feathers-mongoose');
-const createModel = require('../../models/donations.model');
+const logger = require('winston');
+const { DonationStatus, createModel } = require('../../models/donations.model');
 const hooks = require('./donations.hooks');
 
 // If a donation has a intendedProject & the commitTime has passed, we need to update the donation to reflect
@@ -8,46 +9,64 @@ const hooks = require('./donations.hooks');
 const pollForCommittedDonations = service => {
   const interval = 1000 * 30; // check every 30 seconds
 
-  const doUpdate = () => {
-    service
-      .find({
+  const doUpdate = async () => {
+    try {
+      const donations = await service.find({
         paginate: false,
         query: {
-          intendedProject: {
-            $gt: '0',
+          status: DonationStatus.TO_APPROVE,
+          intendedProjectId: {
+            $gt: 0,
           },
           commitTime: {
             $lte: new Date(),
           },
         },
-      })
-      .then(data => {
-        data.forEach(donation =>
-          service
-            .patch(donation._id, {
-              status: 'committed',
-              owner: donation.intendedProject,
-              ownerId: donation.intendedProjectId,
-              ownerType: donation.intendedProjectType,
-              $unset: {
-                intendedProject: true,
-                intendedProjectId: true,
-                intendedProjectType: true,
-                delegate: true,
-                delegateId: true,
-                delegateType: true,
-              },
-            })
-            .catch(console.error),
-        ); // eslint-disable-line no-console
-      })
-      .catch(console.error); // eslint-disable-line no-console
+      });
+
+      donations.forEach(async donation => {
+        try {
+          await service.patch(donation._id, {
+            status: DonationStatus.COMMITTED,
+            amountRemaining: '0',
+          });
+
+          const keysToPick = [
+            'giverAddress',
+            'amount',
+            'amountRemaining',
+            'pledgeId', // we use this b/c lp will normalize the pledge before transferring
+            'commitTime',
+            'previousState',
+          ];
+          const newDonation = Object.keys(donation)
+            .filter(k => keysToPick.includes(k))
+            .reduce((accumulator, key) => {
+              // eslint-disable-next-line no-param-reassign
+              accumulator[key] = donation[key];
+              return accumulator;
+            }, {});
+          Object.assign(newDonation, {
+            ownerId: donation.intendedProjectId,
+            ownerType: donation.intendedProjectType,
+            ownerTypeId: donation.intendedProjectTypeId,
+            status: DonationStatus.COMMITTED,
+            parentDonations: [donation._id],
+          });
+          service.create(newDonation);
+        } catch (err) {
+          logger.error(err);
+        }
+      });
+    } catch (err) {
+      logger.error(err);
+    }
   };
 
   setInterval(doUpdate, interval);
 };
 
-module.exports = function() {
+module.exports = function serviceFactory() {
   const app = this;
   const Model = createModel(app);
   const paginate = app.get('paginate');

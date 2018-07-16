@@ -1,5 +1,7 @@
-import commons from 'feathers-hooks-common';
-import errors from '@feathersjs/errors';
+const commons = require('feathers-hooks-common');
+const errors = require('@feathersjs/errors');
+const { CampaignStatus } = require('../models/campaigns.model');
+const { MilestoneStatus } = require('../models/milestones.model');
 
 const checkReviewer = context => {
   if (!context.app.get('useReviewerWhitelist')) {
@@ -44,7 +46,7 @@ const checkOwner = context => {
   const inWhitelist = project => {
     if (
       ownerWhitelist.includes(project.ownerAddress.toLowerCase()) ||
-      project.status === 'proposed'
+      [MilestoneStatus.PROPOSED, CampaignStatus.PROPOSED].includes(project.status)
     ) {
       return;
     }
@@ -61,7 +63,7 @@ const checkOwner = context => {
   }
 };
 
-export default () => context => {
+module.exports = () => context => {
   checkOwner(context);
   checkReviewer(context);
 };

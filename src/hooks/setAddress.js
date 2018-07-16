@@ -1,7 +1,7 @@
-import errors from '@feathersjs/errors';
-import { setByDot } from 'feathers-hooks-common';
+const errors = require('@feathersjs/errors');
+const { setByDot } = require('feathers-hooks-common');
 
-export default field => context => {
+module.exports = field => context => {
   if (context.params.provider === undefined) {
     if (context.method !== 'patch' && !context.data[field]) {
       throw new errors.GeneralError(
