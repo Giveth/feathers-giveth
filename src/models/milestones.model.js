@@ -1,10 +1,23 @@
-import Item from './item.model.js';
+const Item = require('./item.model');
 
 // milestones-model.js - A mongoose model
 //
 // See http://mongoosejs.com/docs/models.html
 // for more of what you can do here.
-module.exports = function Milestone(app) {
+const MilestoneStatus = {
+  PROPOSED: 'Proposed',
+  REJECTED: 'Rejected',
+  PENDING: 'Pending',
+  IN_PROGRESS: 'InProgress',
+  NEEDS_REVIEW: 'NeedsReview',
+  COMPLETED: 'Completed',
+  CANCELED: 'Canceled',
+  PAYING: 'Paying',
+  PAID: 'Paid',
+  FAILED: 'Failed',
+};
+
+function Milestone(app) {
   const mongooseClient = app.get('mongooseClient');
   const { Schema } = mongooseClient;
 
@@ -13,24 +26,27 @@ module.exports = function Milestone(app) {
       title: { type: String, required: true },
       description: { type: String, required: true },
       image: { type: String },
-      maxAmount: { type: String, required: true },
+      maxAmount: { type: Schema.Types.BN, required: true },
       ownerAddress: { type: String, required: true, index: true },
       reviewerAddress: { type: String, required: true, index: true },
       recipientAddress: { type: String, required: true, index: true },
       campaignReviewerAddress: { type: String, required: true, index: true },
       campaignId: { type: String, required: true, index: true },
-      projectId: { type: String, index: true },
-      status: { type: String, required: true },
+      projectId: { type: Schema.Types.Long, index: true }, // we can use Long here b/c lp only stores adminId in pledges as uint64
+      status: {
+        type: String,
+        require: true,
+        enum: Object.values(MilestoneStatus),
+      },
       items: [Item],
       ethConversionRateTimestamp: { type: Date, required: true },
       selectedFiatType: { type: String, required: true },
       date: { type: Date, required: true },
-      fiatAmount: { type: String, required: true },
-      etherAmount: { type: String },
+      fiatAmount: { type: Number, required: true },
       conversionRate: { type: Number, required: true },
       txHash: { type: String },
       pluginAddress: { type: String },
-      totalDonated: { type: String },
+      totalDonated: { type: Schema.Types.BN },
       donationCount: { type: Number },
       mined: { type: Boolean },
       prevStatus: { type: String },
@@ -40,7 +56,7 @@ module.exports = function Milestone(app) {
       // but we need them for temporary storage
       // as mongoose virtuals do not persist in after hooks
       message: { type: String },
-      proofItems: [ Item ],
+      proofItems: [Item],
       messageContext: { type: String },
     },
     {
@@ -49,4 +65,9 @@ module.exports = function Milestone(app) {
   );
 
   return mongooseClient.model('milestone', milestone);
+}
+
+module.exports = {
+  MilestoneStatus,
+  createModel: Milestone,
 };

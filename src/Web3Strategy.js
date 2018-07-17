@@ -1,8 +1,8 @@
-import Debug from 'debug';
-import Strategy from 'passport-strategy';
+const Debug = require('debug');
+const Strategy = require('passport-strategy');
 
-import Accounts from 'web3-eth-accounts';
-import { isAddress, toChecksumAddress } from 'web3-utils';
+const Accounts = require('web3-eth-accounts');
+const { isAddress, toChecksumAddress } = require('web3-utils');
 
 const debug = Debug('passportjs:Web3Strategy');
 
@@ -95,4 +95,4 @@ class Web3Strategy extends Strategy {
   }
 }
 
-export default Web3Strategy;
+module.exports = Web3Strategy;

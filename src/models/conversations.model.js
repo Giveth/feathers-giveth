@@ -1,4 +1,4 @@
-import Item from './item.model.js';
+const Item = require('./item.model');
 
 // conversations-model.js - A mongoose model
 //
@@ -16,14 +16,16 @@ module.exports = function Conversations(app) {
       replyToId: { type: String },
       performedByRole: { type: String, required: true },
       ownerAddress: { type: String, required: true },
-      items: [ Item ],
+      items: [Item],
       txHash: { type: String },
-      mined: { type: Boolean, default: false }
+      mined: { type: Boolean, default: false },
     },
     {
       timestamps: true,
     },
   );
+
+  conversation.index({ milestoneId: 1, txHash: 1, messageContext: 1 }, { unique: true });
 
   return mongooseClient.model('conversation', conversation);
 };

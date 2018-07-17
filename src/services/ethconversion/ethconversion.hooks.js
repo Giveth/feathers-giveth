@@ -1,7 +1,7 @@
-import { disallow } from 'feathers-hooks-common';
+const { disallow } = require('feathers-hooks-common');
 
-import onlyInternal from '../../hooks/onlyInternal';
-import { getEthConversion } from './getEthConversionService';
+const onlyInternal = require('../../hooks/onlyInternal');
+const { getEthConversion } = require('./getEthConversionService');
 
 const getConversionRates = () => context => {
   const { app, params } = context;

@@ -1,13 +1,13 @@
 // Initializes the `uploads` service on path `/uploads`
-import express from '@feathersjs/express';
-import blobService from 'feathers-blob';
-import fs from 'fs-blob-store';
-import multer from 'multer';
-import { multipartTransfer } from '../../middleware/upload';
+const express = require('@feathersjs/express');
+const blobService = require('feathers-blob');
+const fs = require('fs-blob-store');
+const multer = require('multer');
+const multipartTransfer = require('../../middleware/upload');
 
 const hooks = require('./uploads.hooks');
 
-module.exports = function() {
+module.exports = function uploadService() {
   const app = this;
 
   const blobStorage = fs(app.get('uploads'));

@@ -1,54 +1,38 @@
 const logger = require('winston');
 
 const queueMixin = target => {
-  const queue = {};
+  const queue = [];
 
   return Object.assign(target, {
     /**
-     * Add a function to the queue at the given id
-     * @param {id} id The id of the queue to add to
+     * Add a function to the queue
      * @param {function} fn The function to place in the queue
      */
-    add(id, fn) {
-      if (!fn) throw new Error('fn must not be null for id:', id);
-      logger.debug('adding to queue ->', id);
-
-      if (queue[id]) {
-        queue[id].push(fn);
-      } else {
-        queue[id] = [fn];
-      }
+    add(fn) {
+      if (!fn) throw new Error('fn must not be null');
+      logger.debug('adding to queue');
+      queue.push(fn);
     },
 
     /**
-     * Get the queue for a given id. If id is undefined, returns the entire queue
-     *
-     * @param {string} id (optional)
+     * Get the queue
      */
-    get(id) {
-      if (id) {
-        return queue[id] ? queue[id].slice() : [];
-      }
-      return Object.assign({}, queue);
+    get() {
+      return queue.slice();
     },
 
     /**
-     * Purge the next function in the queue at the given id
-     *
-     * @param {string} id The id of the queue to purge
+     * Purge the next function in the queue
      */
-    async purge(id) {
-      if (!queue[id]) return;
+    // eslint-disable-next-line consistent-return
+    async purge() {
+      if (queue.length > 0) {
+        logger.debug('purging queue');
 
-      const queued = queue[id];
-
-      if (queued.length > 0) {
-        logger.debug('purging queue ->', id);
-
-        await queued.splice(0, 1)[0](); // remove first function from list and run it
+        const val = await queue.splice(0, 1)[0](); // remove first function from list and run it
 
         logger.debug('returned from purge');
-        if (queue[id] && queue[id].length === 0) delete queue[id];
+        return val;
       }
     },
   });

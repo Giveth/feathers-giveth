@@ -1,9 +1,9 @@
-import Debug from 'debug';
-import merge from 'lodash.merge';
-import omit from 'lodash.omit';
-import pick from 'lodash.pick';
+const Debug = require('debug');
+const merge = require('lodash.merge');
+const omit = require('lodash.omit');
+const pick = require('lodash.pick');
 
-import Web3Strategy from './Web3Strategy';
+const Web3Strategy = require('./Web3Strategy');
 
 // TODO clean this up and split to separate package
 
@@ -14,7 +14,7 @@ const defaults = {
 
 const KEYS = ['secret', 'header', 'entity', 'service', 'passReqToCallback', 'session', 'jwt'];
 
-export default function web3(options = {}) {
+function web3(options = {}) {
   return function setup() {
     const app = this;
     const _super = app.setup;
@@ -84,7 +84,7 @@ export default function web3(options = {}) {
   };
 }
 
-export class Web3Challenger {
+class Web3Challenger {
   constructor(app, options = {}) {
     this.app = app;
     this.options = options;
@@ -163,3 +163,8 @@ export class Web3Challenger {
       .catch(done);
   }
 }
+
+module.exports = {
+  web3,
+  Web3Challenger,
+};

@@ -1,6 +1,6 @@
-import errors from '@feathersjs/errors';
-import commons from 'feathers-hooks-common';
-import { toChecksumAddress } from 'web3-utils';
+const errors = require('@feathersjs/errors');
+const commons = require('feathers-hooks-common');
+const { toChecksumAddress } = require('web3-utils');
 
 /**
  * sanitize the specified fieldNames when the given methods are called. prepends 0x to address if needed and converts
@@ -13,7 +13,7 @@ import { toChecksumAddress } from 'web3-utils';
  *           validate: // will throw an error if an invalid address is given
  *         }
  */
-export default (fieldNames, opts = { required: false, validate: false }) => context => {
+module.exports = (fieldNames, opts = { required: false, validate: false }) => context => {
   const { required, validate } = opts;
 
   commons.checkContext(context, 'before', ['find', 'create', 'update', 'patch', 'remove']);

@@ -8,7 +8,7 @@ module.exports = function Events(app) {
   const event = new Schema(
     {
       logIndex: { type: Number, required: true },
-      transactionIndex: { type: String },
+      transactionIndex: { type: Number, required: true },
       transactionHash: { type: String, required: true },
       blockHash: { type: String, required: true },
       blockNumber: { type: Number, required: true },

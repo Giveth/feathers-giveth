@@ -1,32 +1,20 @@
-import commons from 'feathers-hooks-common';
-import errors from '@feathersjs/errors';
-import logger from 'winston';
-import { utils } from 'web3';
-import BigNumber from 'bignumber.js';
+const commons = require('feathers-hooks-common');
+const errors = require('@feathersjs/errors');
+const logger = require('winston');
+const { utils } = require('web3');
+const BigNumber = require('bignumber.js');
 
-import sanitizeAddress from '../../hooks/sanitizeAddress';
-import setAddress from '../../hooks/setAddress';
-import sanitizeHtml from '../../hooks/sanitizeHtml';
-import isProjectAllowed from '../../hooks/isProjectAllowed';
-import Notifications from './../../utils/dappMailer';
-import addConfirmations from '../../hooks/addConfirmations';
+const sanitizeAddress = require('../../hooks/sanitizeAddress');
+const setAddress = require('../../hooks/setAddress');
+const sanitizeHtml = require('../../hooks/sanitizeHtml');
+const isProjectAllowed = require('../../hooks/isProjectAllowed');
+const Notifications = require('./../../utils/dappMailer');
+const addConfirmations = require('../../hooks/addConfirmations');
+const { MilestoneStatus } = require('../../models/milestones.model');
 
 /* eslint no-underscore-dangle: 0 */
 
 BigNumber.config({ DECIMAL_PLACES: 18 });
-
-/**
- * Milestone states enum
- */
-const MILESTONE = {
-  PROPOSED: 'proposed',
-  REJECTED: 'rejected',
-  PENDING: 'pending',
-  INPROGRESS: 'InProgress',
-  NEEDSREVIEW: 'NeedsReview',
-  COMPLETED: 'Completed',
-  CANCELED: 'Canceled',
-};
 
 /**
  * Get keys that can be updated based on the state of the milestone and the user's permission
@@ -60,9 +48,9 @@ const getApprovedKeys = (milestone, data, user) => {
   const editMilestoneKeysOnChain = ['title', 'description', 'message', 'proofItems', 'mined'];
 
   switch (milestone.status) {
-    case MILESTONE.PROPOSED:
+    case MilestoneStatus.PROPOSED:
       // Accept proposed milestone by Campaign Manager
-      if (data.status === MILESTONE.PENDING) {
+      if (data.status === MilestoneStatus.PENDING) {
         if (user.address !== milestone.campaign.ownerAddress) {
           throw new errors.Forbidden('Only the Campaing Manager can accept a milestone');
         }
@@ -72,7 +60,7 @@ const getApprovedKeys = (milestone, data, user) => {
       }
 
       // Reject proposed milestone by Campaign Manager
-      if (data.status === MILESTONE.REJECTED) {
+      if (data.status === MilestoneStatus.REJECTED) {
         if (user.address !== milestone.campaign.ownerAddress) {
           throw new errors.Forbidden('Only the Campaign Manager can reject a milestone');
         }
@@ -82,7 +70,7 @@ const getApprovedKeys = (milestone, data, user) => {
       }
 
       // Editing milestone can be done by Milestone or Campaing Manager
-      if (data.status === MILESTONE.PROPOSED) {
+      if (data.status === MilestoneStatus.PROPOSED) {
         if (![milestone.ownerAddress, milestone.campaign.ownerAddress].includes(user.address)) {
           throw new errors.Forbidden(
             'Only the Milestone or Campaign Manager can edit proposed milestone',
@@ -98,9 +86,9 @@ const getApprovedKeys = (milestone, data, user) => {
       }
       break;
 
-    case MILESTONE.REJECTED:
+    case MilestoneStatus.REJECTED:
       // Editing milestone can be done by Milestone Manager
-      if (data.status === MILESTONE.REJECTED) {
+      if (data.status === MilestoneStatus.REJECTED) {
         if (user.address !== milestone.ownerAddress) {
           throw new errors.Forbidden('Only the Milestone Manager can edit rejected milestone');
         }
@@ -113,7 +101,7 @@ const getApprovedKeys = (milestone, data, user) => {
       }
 
       // Re-proposing milestone can be done by Milestone Manager
-      if (data.status === MILESTONE.PROPOSED) {
+      if (data.status === MilestoneStatus.PROPOSED) {
         if (user.address !== milestone.ownerAddress) {
           throw new errors.Forbidden('Only the Milestone Manager can repropose rejected milestone');
         }
@@ -122,9 +110,9 @@ const getApprovedKeys = (milestone, data, user) => {
       }
       break;
 
-    case MILESTONE.INPROGRESS:
+    case MilestoneStatus.IN_PROGRESS:
       // Mark milestone complete by Recipient or Milestone Manager
-      if (data.status === MILESTONE.NEEDSREVIEW) {
+      if (data.status === MilestoneStatus.NEEDS_REVIEW) {
         if (![milestone.recipientAddress, milestone.ownerAddress].includes(user.address)) {
           throw new errors.Forbidden(
             'Only the Milestone Manager or Recipient can mark a milestone complete',
@@ -136,7 +124,7 @@ const getApprovedKeys = (milestone, data, user) => {
       }
 
       // Cancel milestone by Campaign or Milestone Reviewer
-      if (data.status === MILESTONE.CANCELED && data.mined === false) {
+      if (data.status === MilestoneStatus.CANCELED && data.mined === false) {
         if (!reviewers.includes(user.address)) {
           throw new errors.Forbidden(
             'Only the Milestone or Campaign Reviewer can cancel a milestone',
@@ -147,7 +135,7 @@ const getApprovedKeys = (milestone, data, user) => {
       }
 
       // Editing milestone can be done by Campaign or Milestone Manager
-      if (data.status === MILESTONE.INPROGRESS) {
+      if (data.status === MilestoneStatus.IN_PROGRESS) {
         if (![milestone.ownerAddress, milestone.campaign.ownerAddress].includes(user.address)) {
           throw new errors.Forbidden('Only the Milestone and Campaign Manager can edit milestone');
         }
@@ -156,9 +144,9 @@ const getApprovedKeys = (milestone, data, user) => {
       }
       break;
 
-    case MILESTONE.NEEDSREVIEW:
+    case MilestoneStatus.NEEDS_REVIEW:
       // Approve milestone completed by Campaign or Milestone Reviewer
-      if (data.status === MILESTONE.COMPLETED && data.mined === false) {
+      if (data.status === MilestoneStatus.COMPLETED && data.mined === false) {
         if (!reviewers.includes(user.address)) {
           throw new errors.Forbidden(
             'Only the Milestone or Campaign Reviewer can approve milestone has been completed',
@@ -169,7 +157,7 @@ const getApprovedKeys = (milestone, data, user) => {
       }
 
       // Reject milestone completed by Campaign or Milestone Reviewer
-      if (data.status === MILESTONE.INPROGRESS) {
+      if (data.status === MilestoneStatus.IN_PROGRESS) {
         if (!reviewers.includes(user.address)) {
           throw new errors.Forbidden(
             'Only the Milestone or Campaign Reviewer can reject that milestone has been completed',
@@ -180,7 +168,7 @@ const getApprovedKeys = (milestone, data, user) => {
       }
 
       // Cancel milestone by Campaign or Milestone Reviewer
-      if (data.status === MILESTONE.CANCELED && data.mined === false) {
+      if (data.status === MilestoneStatus.CANCELED && data.mined === false) {
         if (!reviewers.includes(user.address)) {
           throw new errors.Forbidden(
             'Only the Milestone or Campaign Reviewer can cancel a milestone',
@@ -195,7 +183,7 @@ const getApprovedKeys = (milestone, data, user) => {
       }
 
       // Editing milestone can be done by Milestone or Campaign Manager
-      if (data.status === MILESTONE.NEEDSREVIEW) {
+      if (data.status === MilestoneStatus.NEEDS_REVIEW) {
         if (![milestone.ownerAddress, milestone.campaign.ownerAddress].includes(user.address)) {
           throw new errors.Forbidden('Only the Milestone and Campaign Manager can edit milestone');
         }
@@ -209,9 +197,9 @@ const getApprovedKeys = (milestone, data, user) => {
       break;
 
     // States that do not have any action
-    case MILESTONE.PENDING:
-    case MILESTONE.COMPLETED:
-    case MILESTONE.CANCELED:
+    case MilestoneStatus.PENDING:
+    case MilestoneStatus.COMPLETED:
+    case MilestoneStatus.CANCELED:
     default:
       break;
   }
@@ -246,7 +234,7 @@ const restrict = () => context => {
     });
 
     // Milestone is not yet on chain, check the ETH conversion
-    if (['proposed', 'rejected'].includes(milestone.status)) {
+    if ([MilestoneStatus.PROPOSED, MilestoneStatus.REJECTED].includes(milestone.status)) {
       return checkEthConversion()(context);
     }
     // Milestone is on chain, remove data stored on-chain that can't be updated
@@ -317,7 +305,7 @@ const sendNotification = () => async context => {
    * Notifications when a milestone get created
    * */
   if (context.method === 'create') {
-    if (result.status === 'proposed') {
+    if (result.status === MilestoneStatus.PROPOSED) {
       try {
         const campaign = await app.service('campaigns').get(data.campaignId);
 
@@ -340,7 +328,10 @@ const sendNotification = () => async context => {
    * Which basically means the event is really mined
    * */
   if (context.method === 'patch' && context.params.eventTxHash) {
-    if (result.prevStatus === 'proposed' && result.status === 'InProgress') {
+    if (
+      result.prevStatus === MilestoneStatus.PROPOSED &&
+      result.status === MilestoneStatus.IN_PROGRESS
+    ) {
       _createConversion(app, result, context.params.eventTxHash, 'proposedAccepted', user);
 
       // find the milestone owner and send a notification that his/her proposed milestone is approved
@@ -354,7 +345,7 @@ const sendNotification = () => async context => {
       });
     }
 
-    if (result.status === 'NeedsReview') {
+    if (result.status === MilestoneStatus.NEEDS_REVIEW) {
       // find the milestone reviewer owner and send a notification that this milestone is been marked as complete and needs review
       _createConversion(app, result, context.params.eventTxHash, result.status, user);
 
@@ -367,7 +358,7 @@ const sendNotification = () => async context => {
       });
     }
 
-    if (result.status === 'Completed' && result.mined) {
+    if (result.status === MilestoneStatus.COMPLETED && result.mined) {
       _createConversion(app, result, context.params.eventTxHash, result.status, user);
 
       // find the milestone owner and send a notification that his/her milestone is marked complete
@@ -380,7 +371,10 @@ const sendNotification = () => async context => {
       });
     }
 
-    if (result.prevStatus === 'NeedsReview' && result.status === 'InProgress') {
+    if (
+      result.prevStatus === MilestoneStatus.NEEDS_REVIEW &&
+      result.status === MilestoneStatus.IN_PROGRESS
+    ) {
       _createConversion(app, result, context.params.eventTxHash, 'rejected', user);
 
       // find the milestone reviewer and send a notification that his/her milestone has been rejected by reviewer
@@ -393,7 +387,7 @@ const sendNotification = () => async context => {
       });
     }
 
-    if (result.status === 'Canceled' && result.mined) {
+    if (result.status === MilestoneStatus.CANCELED && result.mined) {
       _createConversion(app, result, context.params.eventTxHash, result.status, user);
 
       // find the milestone owner and send a notification that his/her milestone is canceled
@@ -408,7 +402,10 @@ const sendNotification = () => async context => {
   }
 
   if (context.method === 'patch' && !context.params.eventTxHash) {
-    if (result.prevStatus === 'proposed' && result.status === 'rejected') {
+    if (
+      result.prevStatus === MilestoneStatus.PROPOSED &&
+      result.status === MilestoneStatus.REJECTED
+    ) {
       _createConversion(app, result, 'proposedRejected', user);
 
       // find the milestone owner and send a notification that his/her proposed milestone is rejected
@@ -421,7 +418,10 @@ const sendNotification = () => async context => {
       });
     }
 
-    if (result.prevStatus === 'rejected' && result.status === 'proposed') {
+    if (
+      result.prevStatus === MilestoneStatus.REJECTED &&
+      result.status === MilestoneStatus.PROPOSED
+    ) {
       _createConversion(app, result, 'rePropose', user);
     }
   }

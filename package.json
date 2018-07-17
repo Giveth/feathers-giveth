@@ -22,20 +22,17 @@
     "yarn": ">= 0.18.0"
   },
   "scripts": {
-    "clean": "rm -rf build && mkdir build",
-    "build-server": "babel -d ./build src",
-    "build": "npm run clean && npm run build-server",
     "test": "npm run eslint && npm run mocha",
     "eslint": "eslint src/. test/.",
     "eslint:fix": "eslint src/. test/. --fix",
     "deploy-local": "npm run reset-db && node scripts/deploy.js",
-    "start": "babel-watch src",
+    "start": "nodemon src",
     "start:networks": "node scripts/startBridge.js",
     "start:networks:debug": "LOG_LEVEL=debug node scripts/startBridge.js",
-    "serve": "npm run build && pm2 startOrRestart ecosystem.config.js --env production",
-    "mocha": "mocha test/ --recursive --compilers js:babel-core/register",
+    "serve": "pm2 startOrRestart ecosystem.config.js --env production",
+    "mocha": "mocha test/ --recursive",
     "prettier": "prettier 'src/**/*.js*' -l",
-    "prettier:write": "prettier 'src/app/**/*.js' --write",
+    "prettier:write": "prettier 'src/**/*.js' --write",
     "reset-db": "node scripts/resetDataBase.js"
   },
   "dependencies": {
@@ -61,9 +58,9 @@
     "lerna": "^2.5.1",
     "lpp-campaign": "1.0.0",
     "lpp-capped-milestone": "1.1.0",
-    "minimetoken": "^0.2.0",
     "mkdirp": "^0.5.1",
     "mongoose": "^5.1.3",
+    "mongoose-long": "^0.2.1",
     "multer": "^1.3.0",
     "passport-strategy": "^1.0.0",
     "request-promise": "^4.2.2",
@@ -79,10 +76,7 @@
     "winston": "^2.3.1"
   },
   "devDependencies": {
-    "babel-cli": "^6.26.0",
-    "babel-core": "^6.26.0",
-    "babel-preset-env": "^1.6.0",
-    "babel-watch": "^2.0.7",
+    "babel-polyfill": "^6.26.0",
     "eslint": "^4.10.0",
     "eslint-config-airbnb-base": "^12.1.0",
     "eslint-config-prettier": "^2.9.0",
@@ -92,7 +86,9 @@
     "ganache-cli": "^6.1.2",
     "giveth-bridge": "1.0.4",
     "lerna": "^2.2.0",
+    "minimetoken": "^0.2.0",
     "mocha": "^3.5.0",
+    "nodemon": "^1.18.2",
     "prettier": "1.9.2",
     "prompt-confirm": "^2.0.4",
     "rimraf": "^2.6.2"

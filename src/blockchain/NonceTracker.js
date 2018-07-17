@@ -1,7 +1,7 @@
-import semaphore from 'semaphore';
-import logger from 'winston';
+const semaphore = require('semaphore');
+const logger = require('winston');
 
-export default class {
+module.exports = class {
   constructor(initialNonce) {
     this.nonce = initialNonce ? Number(initialNonce) : undefined;
     this.sem = semaphore();
@@ -43,4 +43,4 @@ export default class {
     if (!success) this.nonce -= 1;
     this.sem.leave();
   }
-}
+};

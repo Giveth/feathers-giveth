@@ -1,12 +1,13 @@
-import commons from 'feathers-hooks-common';
-import errors from '@feathersjs/errors';
-import { restrictToOwner } from 'feathers-authentication-hooks';
-import sanitizeAddress from '../../hooks/sanitizeAddress';
-import setAddress from '../../hooks/setAddress';
-import sanitizeHtml from '../../hooks/sanitizeHtml';
-import addConfirmations from '../../hooks/addConfirmations';
+const commons = require('feathers-hooks-common');
+const errors = require('@feathersjs/errors');
+const { restrictToOwner } = require('feathers-authentication-hooks');
+const sanitizeAddress = require('../../hooks/sanitizeAddress');
+const setAddress = require('../../hooks/setAddress');
+const sanitizeHtml = require('../../hooks/sanitizeHtml');
+const addConfirmations = require('../../hooks/addConfirmations');
 
 const restrict = [
+  context => commons.deleteByDot(context.data, 'txHash'),
   restrictToOwner({
     idField: 'address',
     ownerField: 'ownerAddress',
@@ -30,7 +31,7 @@ const countCampaigns = (item, service) =>
       query: {
         dacs: item._id,
         projectId: {
-          $gt: '0', // 0 is a pending campaign
+          $gt: 0, // 0 is a pending campaign
         },
         $limit: 0,
       },
@@ -59,7 +60,6 @@ const addCampaignCounts = () => context => {
 };
 
 const isDacAllowed = () => context => {
-  console.log(commons.getItems(context));
   if (!context.app.get('useDelegateWhitelist')) {
     return context;
   }
@@ -94,11 +94,7 @@ module.exports = {
       sanitizeAddress('ownerAddress', { required: true, validate: true }),
       sanitizeHtml('description'),
     ],
-    update: [
-      ...restrict,
-      sanitizeAddress('ownerAddress', { required: true, validate: true }),
-      sanitizeHtml('description'),
-    ],
+    update: [commons.disallow()],
     patch: [
       ...restrict,
       sanitizeAddress('ownerAddress', { validate: true }),

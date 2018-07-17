@@ -1,13 +1,15 @@
-import commons from 'feathers-hooks-common';
-import onlyInternal from '../../hooks/onlyInternal';
+const commons = require('feathers-hooks-common');
+const onlyInternal = require('../../hooks/onlyInternal');
+
+const { AdminTypes } = require('../../models/pledgeAdmins.model');
 
 const populateAdmin = () => context => {
   const fetchAdmin = item => {
     let serviceName;
-    if (item.type === 'giver') serviceName = 'users';
-    else if (item.type === 'dac') serviceName = 'dacs';
-    else if (item.type === 'campaign') serviceName = 'campaigns';
-    else if (item.type === 'milestone') serviceName = 'milestones';
+    if (item.type === AdminTypes.GIVER) serviceName = 'users';
+    else if (item.type === AdminTypes.DAC) serviceName = 'dacs';
+    else if (item.type === AdminTypes.CAMPAIGN) serviceName = 'campaigns';
+    else if (item.type === AdminTypes.MILESTONE) serviceName = 'milestones';
 
     const service = context.app.service(serviceName);
     return service.get(item.typeId);
@@ -30,7 +32,7 @@ const populateAdmin = () => context => {
   return promise.then(() => commons.replaceItems(items));
 };
 
-export default {
+module.exports = {
   before: {
     all: [],
     find: [],
