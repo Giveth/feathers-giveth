@@ -1,6 +1,6 @@
-import { checkContext, getItems } from 'feathers-hooks-common';
+const { checkContext, getItems } = require('feathers-hooks-common');
 
-export default () => context => {
+module.exports = () => context => {
   checkContext(context, 'after');
 
   const { requiredConfirmations } = context.app.get('blockchain');

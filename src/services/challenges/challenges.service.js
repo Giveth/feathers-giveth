@@ -1,12 +1,11 @@
 // Initializes the `challenges` service on path `/authentication/challenges`
-import { Service } from 'feathers-mongoose';
-import errors from 'feathers-errors';
+const { Service } = require('feathers-mongoose');
+const errors = require('@feathersjs/errors');
 
-import { toChecksumAddress } from 'web3-utils';
+const { toChecksumAddress } = require('web3-utils');
 
-import createModel from '../../models/challenges.model';
-import hooks from './challenges.hooks';
-import filters from './challenges.filters';
+const createModel = require('../../models/challenges.model');
+const hooks = require('./challenges.hooks');
 
 // TODO clean this up and move to separate package feathers-authentication-web3
 
@@ -28,7 +27,7 @@ class ChallengeService extends Service {
     if (!data.address) throw new errors.BadRequest('address is required');
     params.mongoose = {
       upsert: true,
-      new: true
+      new: true,
     };
 
     data.address = toChecksumAddress(data.address);
@@ -62,7 +61,7 @@ class ChallengeService extends Service {
   }
 }
 
-export default function() {
+module.exports = function() {
   const app = this;
   const Model = createModel(app);
   const paginate = app.get('paginate');
@@ -81,8 +80,4 @@ export default function() {
   const service = app.service('authentication/challenges');
 
   service.hooks(hooks);
-
-  if (service.filter) {
-    service.filter(filters);
-  }
-}
+};

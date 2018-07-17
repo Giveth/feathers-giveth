@@ -1,4 +1,4 @@
-import { checkContext, getByDot } from 'feathers-hooks-common';
+const { checkContext, getByDot } = require('feathers-hooks-common');
 
 const notifyParent = (context, opts) => {
   const watchFields = opts.watchFields || [];
@@ -47,7 +47,7 @@ const notifyParent = (context, opts) => {
  *             watchFields: // array of child fields to notify parent of changes
  *           }
  */
-export default (...notify) => context => {
+module.exports = (...notify) => context => {
   checkContext(context, 'after', ['remove', 'update', 'patch']);
 
   if (!context.params.before) {

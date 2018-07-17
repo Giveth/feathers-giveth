@@ -1,8 +1,7 @@
 // Initializes the `dacs` service on path `/dacs`
 const createService = require('feathers-mongoose');
-const createModel = require('../../models/dacs.model').default;
+const { createModel } = require('../../models/dacs.model');
 const hooks = require('./dacs.hooks');
-const filters = require('./dacs.filters');
 
 module.exports = function dacs() {
   const app = this;
@@ -22,8 +21,4 @@ module.exports = function dacs() {
   const service = app.service('dacs');
 
   service.hooks(hooks);
-
-  if (service.filter) {
-    service.filter(filters);
-  }
 };

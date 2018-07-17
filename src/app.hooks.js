@@ -1,7 +1,7 @@
 // Application hooks that run for every service
-import auth from 'feathers-authentication';
-import { discard } from 'feathers-hooks-common';
-import logger from './hooks/logger';
+const auth = require('@feathersjs/authentication');
+const { discard } = require('feathers-hooks-common');
+const logger = require('./hooks/logger');
 
 const authenticate = () => context => {
   // socket connection is already authenticated
@@ -10,7 +10,7 @@ const authenticate = () => context => {
   return auth.hooks.authenticate('jwt')(context);
 };
 
-export default {
+module.exports = {
   before: {
     all: [],
     find: [],

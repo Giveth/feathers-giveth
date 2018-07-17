@@ -1,7 +1,7 @@
 // A hook that logs service method before, after and error
-import logger from 'winston';
+const logger = require('winston');
 
-export default function() {
+module.exports = function loggerFactory() {
   return function log(hook) {
     let message = `${hook.type}: ${hook.path} - Method: ${hook.method}`;
 
@@ -9,7 +9,9 @@ export default function() {
       message += ` - ${hook.error.message}`;
     }
 
-    if (hook.params.provider) {
+    if (hook.params.provider && hook.type !== 'error') {
+      logger.debug(message);
+    } else if (hook.params.provider && hook.type === 'error') {
       logger.info(message);
     } else {
       logger.debug(`INTERNAL_CALL -> ${message}`);
@@ -34,4 +36,4 @@ export default function() {
       }
     }
   };
-}
+};

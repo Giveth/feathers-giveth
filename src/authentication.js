@@ -1,8 +1,8 @@
-import authentication from 'feathers-authentication';
-import jwt from 'feathers-authentication-jwt';
-import web3 from './authenticationWeb3';
+const authentication = require('@feathersjs/authentication');
+const jwt = require('@feathersjs/authentication-jwt');
+const { web3 } = require('./authenticationWeb3');
 
-export default function() {
+module.exports = function init() {
   const app = this;
   const config = app.get('authentication');
 
@@ -20,4 +20,4 @@ export default function() {
       remove: [authentication.hooks.authenticate('jwt')],
     },
   });
-}
+};
