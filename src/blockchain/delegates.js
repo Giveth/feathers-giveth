@@ -7,6 +7,8 @@ const reprocess = require('../utils/reprocess');
 const delegates = (app, liquidPledging) => {
   const web3 = app.getWeb3();
   const dacs = app.service('/dacs');
+  const events = app.service('/events');
+  const transactions = app.service('/transactions');
 
   async function getOrCreateDac(delegate, txHash, retry = false) {
     const data = await dacs.find({ paginate: false, query: { txHash } });
@@ -18,7 +20,20 @@ const delegates = (app, liquidPledging) => {
       }
 
       const tx = await web3.eth.getTransaction(txHash);
+      const thisevent = events.find(tx);
+
       try {
+        transactions.create(
+          Object.assign(
+            {
+              userAction: 'Create',
+              userRole: 'Manager',
+              projectType: 'Community',
+              title: delegate.name,
+            },
+            thisevent,
+          ),
+        );
         return dacs.create({
           ownerAddress: tx.from,
           pluginAddress: delegate.plugin,
