@@ -1,14 +1,20 @@
 // events-model.js - A mongoose model
+const EventStatus = {
+  WAITING: 'Waiting',
+  PROCESSING: 'Processing',
+  PROCESSED: 'Processed',
+  FAILED: 'Failed',
+};
 //
 // See http://mongoosejs.com/docs/models.html
 // for more of what you can do here.
-module.exports = function Events(app) {
+function createModel(app) {
   const mongooseClient = app.get('mongooseClient');
   const { Schema } = mongooseClient;
   const event = new Schema(
     {
       logIndex: { type: Number, required: true },
-      transactionIndex: { type: String },
+      transactionIndex: { type: Number, required: true },
       transactionHash: { type: String, required: true },
       blockHash: { type: String, required: true },
       blockNumber: { type: Number, required: true },
@@ -20,7 +26,13 @@ module.exports = function Events(app) {
       signature: { type: String },
       raw: { type: Object },
       topics: [String],
-      confirmed: { type: Boolean },
+      status: {
+        type: String,
+        require: true,
+        enum: Object.values(EventStatus),
+        default: EventStatus.WAITING,
+      },
+      processingError: { type: String },
       confirmations: { type: Number, require: true },
     },
     {
@@ -29,4 +41,9 @@ module.exports = function Events(app) {
   );
 
   return mongooseClient.model('event', event);
+}
+
+module.exports = {
+  createModel,
+  EventStatus,
 };

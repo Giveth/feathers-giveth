@@ -1,9 +1,9 @@
-import logger from 'winston';
+const logger = require('winston');
 
 /**
  * configures the winston logger
  */
-export default function() {
+module.exports = function() {
   logger.level = process.env.LOG_LEVEL || 'info';
 
   // replace log function to prettyPrint objects
@@ -21,4 +21,4 @@ export default function() {
 
     return origLog(level, ...newArgs);
   };
-}
+};

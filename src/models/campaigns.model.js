@@ -1,4 +1,4 @@
-export const status = {
+const CampaignStatus = {
   ACTIVE: 'Active',
   PENDING: 'Pending',
   CANCELED: 'Canceled',
@@ -9,17 +9,17 @@ export const status = {
 //
 // See http://mongoosejs.com/docs/models.html
 // for more of what you can do here.
-export default function createModel(app) {
+function createModel(app) {
   const mongooseClient = app.get('mongooseClient');
   const { Schema } = mongooseClient;
   const campaign = new Schema(
     {
       title: { type: String, required: true },
       description: { type: String, required: true },
-      projectId: { type: String, index: true },
+      projectId: { type: Schema.Types.Long, index: true }, // we can use Long here b/c lp only stores adminId in pledges as uint64
       image: { type: String, required: true },
       txHash: { type: String },
-      totalDonated: { type: String },
+      totalDonated: { type: Schema.Types.BN },
       donationCount: { type: Number },
       peopleCount: { type: Number },
       dacs: { type: [String] },
@@ -27,12 +27,12 @@ export default function createModel(app) {
       ownerAddress: { type: String, required: true, index: true },
       pluginAddress: { type: String },
       tokenAddress: { type: String },
-      mined: { type: Boolean },
+      mined: { type: Boolean, required: true, default: false },
       status: {
         type: String,
         require: true,
-        enum: Object.values(status),
-        default: status.PENDING,
+        enum: Object.values(CampaignStatus),
+        default: CampaignStatus.PENDING,
       },
     },
     {
@@ -42,3 +42,8 @@ export default function createModel(app) {
 
   return mongooseClient.model('campaign', campaign);
 }
+
+module.exports = {
+  CampaignStatus,
+  createModel,
+};

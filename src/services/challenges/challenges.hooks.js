@@ -1,6 +1,6 @@
-import { when, disallow } from 'feathers-hooks-common';
+const { when, disallow } = require('feathers-hooks-common');
 
-export default {
+module.exports = {
   before: {
     all: [when(context => context.method !== 'remove', disallow('external'))],
     find: [],

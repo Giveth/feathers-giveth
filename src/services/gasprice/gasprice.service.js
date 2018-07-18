@@ -1,7 +1,6 @@
 // Initializes the `gasprice` service on path `/gasprice`
 const createService = require('feathers-memory');
 const hooks = require('./gasprice.hooks');
-const filters = require('./gasprice.filters');
 
 module.exports = function() {
   const app = this;
@@ -19,8 +18,4 @@ module.exports = function() {
   const service = app.service('gasprice');
 
   service.hooks(hooks);
-
-  if (service.filter) {
-    service.filter(filters);
-  }
 };

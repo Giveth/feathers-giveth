@@ -1,9 +1,9 @@
-import logger from 'winston';
-import commons from 'feathers-hooks-common';
-import { disallow } from 'feathers-hooks-common';
-import sanitizeAddress from '../../hooks/sanitizeAddress';
-import errors from 'feathers-errors';
-import sanitizeHtml from '../../hooks/sanitizeHtml';
+const logger = require('winston');
+const commons = require('feathers-hooks-common');
+const { disallow } = require('feathers-hooks-common');
+const sanitizeAddress = require('../../hooks/sanitizeAddress');
+const errors = require('@feathersjs/errors');
+const sanitizeHtml = require('../../hooks/sanitizeHtml');
 
 /**
   API for creating conversations

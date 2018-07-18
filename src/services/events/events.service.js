@@ -1,9 +1,9 @@
 // Initializes the `events` service on path `/events`
-import createService from 'feathers-mongoose';
-import createModel from '../../models/events.model';
-import hooks from './events.hooks';
+const createService = require('feathers-mongoose');
+const { createModel } = require('../../models/events.model');
+const hooks = require('./events.hooks');
 
-export default function() {
+module.exports = function() {
   const app = this;
   const Model = createModel(app);
   const paginate = app.get('paginate');
@@ -21,4 +21,4 @@ export default function() {
   const service = app.service('events');
 
   service.hooks(hooks);
-}
+};

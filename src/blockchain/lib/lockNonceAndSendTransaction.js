@@ -1,39 +1,21 @@
-import Web3PromiEvent from 'web3-core-promievent';
-import logger from 'winston';
-import { MiniMeToken } from 'minimetoken';
-import NonceTracker from './NonceTracker';
-
-export const milestoneStatus = (completed, canceled) => {
-  if (canceled) return 'Canceled';
-  if (completed) return 'Completed';
-  return 'InProgress';
-};
-
-export const pledgeState = val => {
-  switch (val) {
-    case '0':
-      return 'Pledged';
-    case '1':
-      return 'Paying';
-    case '2':
-      return 'Paid';
-    default:
-      return 'Unknown';
-  }
-};
-
-export const getTokenInformation = (web3, addr) => {
-  const minime = new MiniMeToken(web3, addr);
-
-  return Promise.all([minime.name(), minime.symbol()]).then(([name, symbol]) => ({
-    name,
-    symbol,
-    address: addr,
-  }));
-};
+const Web3PromiEvent = require('web3-core-promievent');
+const logger = require('winston');
+const NonceTracker = require('../NonceTracker');
 
 const nonceCache = {};
-export const lockNonceAndSendTransaction = (web3, txFn, opts, ...args) => {
+
+/**
+ * Acquires a nonce for the `from` account specified in the opts and
+ * executes the provided `txFn` with the acquired nonce. This ensures
+ * that nonces are not overwritten when broadcasting multiple txs in
+ * quick succession.
+ *
+ * @param {object} web3 Web3 instance
+ * @param {object} txFn func that sends a tx after we obtain a nonce
+ * @param {object} opts options to pass to the txFn
+ * @param {*} args any args to pass to the txFn
+ */
+module.exports = function lockNonceAndSendTransaction(web3, txFn, opts, ...args) {
   const { from } = opts;
 
   if (!from) throw new Error('Missing from in opts');
@@ -61,8 +43,8 @@ export const lockNonceAndSendTransaction = (web3, txFn, opts, ...args) => {
 
   let txHash;
   nonceCache[from].obtainNonce().then(nonce => {
-    opts.nonce = nonce;
-    return txFn(...args, opts)
+    const options = Object.assign(opts, { nonce });
+    return txFn(...args, options)
       .on('transactionHash', tHash => {
         txHash = tHash;
         nonceCache[from].releaseNonce(nonce, true);

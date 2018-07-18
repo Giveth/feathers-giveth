@@ -1,11 +1,12 @@
-import commons from 'feathers-hooks-common';
-import errors from 'feathers-errors';
+const commons = require('feathers-hooks-common');
+const errors = require('@feathersjs/errors');
 
-import sanitizeAddress from '../../hooks/sanitizeAddress';
-import setAddress from '../../hooks/setAddress';
-import sanitizeHtml from '../../hooks/sanitizeHtml';
-import isProjectAllowed from '../../hooks/isProjectAllowed';
-import addConfirmations from '../../hooks/addConfirmations';
+const sanitizeAddress = require('../../hooks/sanitizeAddress');
+const setAddress = require('../../hooks/setAddress');
+const sanitizeHtml = require('../../hooks/sanitizeHtml');
+const isProjectAllowed = require('../../hooks/isProjectAllowed');
+const addConfirmations = require('../../hooks/addConfirmations');
+const { CampaignStatus } = require('../../models/campaigns.model');
 
 const restrict = () => context => {
   // internal call are fine
@@ -26,16 +27,19 @@ const restrict = () => context => {
     if (!campaign) throw new errors.Forbidden();
 
     // reviewer Canceled
-    if (data.status === 'Canceled' && data.mined === false) {
+    if (data.status === CampaignStatus.CANCELED && data.mined === false) {
       if (user.address !== campaign.reviewerAddress && user.address !== campaign.ownerAddress)
         throw new errors.Forbidden();
 
       // whitelist of what the reviewer can update
-      const approvedKeys = ['txHash', 'status', 'mined'];
+      const approvedKeys = ['status', 'mined'];
 
       const keysToRemove = Object.keys(data).map(key => !approvedKeys.includes(key));
       keysToRemove.forEach(key => delete data[key]);
     } else if (user.address !== campaign.ownerAddress) throw new errors.Forbidden();
+
+    // never allow setting txHash in an update/patch
+    commons.deleteByDot(data, 'txHash');
   };
 
   return getCampaigns().then(
@@ -65,7 +69,7 @@ const countMilestones = (item, service) =>
       query: {
         campaignId: item._id,
         projectId: {
-          $gt: '0', // 0 is a pending milestone
+          $gt: 0, // 0 is a pending milestone
         },
         $limit: 0,
       },
@@ -107,11 +111,7 @@ module.exports = {
       isProjectAllowed(),
       sanitizeHtml('description'),
     ],
-    update: [
-      restrict(),
-      sanitizeAddress('ownerAddress', { required: true, validate: true }),
-      sanitizeHtml('description'),
-    ],
+    update: [commons.disallow()],
     patch: [
       restrict(),
       sanitizeAddress('ownerAddress', { validate: true }),

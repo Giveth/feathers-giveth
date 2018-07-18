@@ -10,9 +10,10 @@ module.exports = function User(app) {
       address: { type: String, required: true, index: true, unique: true },
       name: { type: String },
       email: { type: String },
-      giverId: { type: String },
-      commitTime: { type: String },
+      giverId: { type: Schema.Types.Long }, // we can use Long here b/c lp only stores adminId in pledges as uint64
+      commitTime: { type: Number },
       avatar: { type: String },
+      linkedIn: { type: String },
     },
     {
       timestamps: true,

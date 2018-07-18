@@ -1,14 +1,13 @@
 // Initializes the `uploads` service on path `/uploads`
-import feathers from 'feathers';
-import blobService from 'feathers-blob';
-import fs from 'fs-blob-store';
-import multer from 'multer';
-import { multipartTransfer } from '../../middleware/upload';
+const express = require('@feathersjs/express');
+const blobService = require('feathers-blob');
+const fs = require('fs-blob-store');
+const multer = require('multer');
+const multipartTransfer = require('../../middleware/upload');
 
 const hooks = require('./uploads.hooks');
-const filters = require('./uploads.filters');
 
-module.exports = function() {
+module.exports = function uploadService() {
   const app = this;
 
   const blobStorage = fs(app.get('uploads'));
@@ -16,7 +15,7 @@ module.exports = function() {
 
   // Override the default blobService get method to directly serve the file
   // In production, nginx will serve the file. This is a fallback if that isn't setup
-  app.use('/uploads', feathers.static(app.get('uploads')));
+  app.use('/uploads', express.static(app.get('uploads')));
 
   // Initialize our service with any options it requires
   app.use(
@@ -30,8 +29,4 @@ module.exports = function() {
   const service = app.service('uploads');
 
   service.hooks(hooks);
-
-  if (service.filter) {
-    service.filter(filters);
-  }
 };
