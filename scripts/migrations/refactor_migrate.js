@@ -40,6 +40,7 @@ const { MilestoneStatus } = require('../../src/models/milestones.model');
 const PledgeAdmin = require('../../src/models/pledgeAdmins.model').createModel(app);
 const User = require('../../src/models/users.model')(app);
 const Item = require('../../src/models/item.model');
+const Transactions = require('../../src/models/transactions.model')(app);
 
 const migrateCampaign = () => {
   // re-save all campaigns so the types are updated
@@ -142,6 +143,7 @@ db.dropCollection('donations');
 db.dropCollection('events');
 db.dropCollection('blockchains');
 db.dropCollection('donationshistories');
+db.dropCollection('transactions');
 
 db.on('error', err => console.error('Could not connect to Mongo', err));
 

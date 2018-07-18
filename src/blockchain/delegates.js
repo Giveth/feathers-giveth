@@ -20,20 +20,9 @@ const delegates = (app, liquidPledging) => {
       }
 
       const tx = await web3.eth.getTransaction(txHash);
-      const thisevent = events.find(tx);
 
       try {
-        transactions.create(
-          Object.assign(
-            {
-              userAction: 'Create',
-              userRole: 'Manager',
-              projectType: 'Community',
-              title: delegate.name,
-            },
-            thisevent,
-          ),
-        );
+
         return dacs.create({
           ownerAddress: tx.from,
           pluginAddress: delegate.plugin,

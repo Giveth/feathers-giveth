@@ -6,6 +6,8 @@ const setAddress = require('../../hooks/setAddress');
 const sanitizeHtml = require('../../hooks/sanitizeHtml');
 const addConfirmations = require('../../hooks/addConfirmations');
 
+const logger = require('winston');
+
 const restrict = [
   context => commons.deleteByDot(context.data, 'txHash'),
   restrictToOwner({
@@ -83,6 +85,26 @@ const isDacAllowed = () => context => {
   }
 };
 
+const addTransaction = () => async context => {
+  const transactions = context.app.service('transactions');
+
+  console.log(JSON.stringify(context, null, 2), 'context');
+  logger.error('next to transactions.  create');
+
+  await transactions.create({
+    id:'stringid',
+    userAction: 'Create',
+    userRole: 'Manager',
+    projectType: 'Campaign',
+    blockHash: 'string',
+    blockNumber: 1111,
+    address: context.data.ownerAddress,
+    txHash: context.data.txHash,
+    title: context.data.title,
+  });
+};
+
+
 module.exports = {
   before: {
     all: [],
@@ -107,7 +129,7 @@ module.exports = {
     all: [commons.populate({ schema })],
     find: [addCampaignCounts(), addConfirmations()],
     get: [addCampaignCounts(), addConfirmations()],
-    create: [],
+    create: [addTransaction()],
     update: [],
     patch: [],
     remove: [],

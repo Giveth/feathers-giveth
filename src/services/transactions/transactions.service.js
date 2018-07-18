@@ -1,9 +1,9 @@
 // Initializes the `transactions` service on path `/transactions`
-import createService from 'feathers-mongoose';
-import createModel from '../../models/transactions.model';
-import hooks from './transactions.hooks';
+const createService = require('feathers-mongoose');
+const createModel = require('../../models/transactions.model');
+const hooks = require('./transactions.hooks');
 
-export default function() {
+module.exports = function() {
   const app = this;
   const Model = createModel(app);
   const paginate = app.get('paginate');
@@ -21,4 +21,4 @@ export default function() {
   const service = app.service('transactions');
 
   service.hooks(hooks);
-}
+};

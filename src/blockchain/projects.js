@@ -106,21 +106,9 @@ const projects = (app, liquidPledging) => {
       );
       return;
     }
-    const transactions = app.service('/transactions');
-    const events = app.service('/events');
+
     const thisevent = events.find(txHash);
 
-    transactions.create(
-      Object.assign(
-        {
-          userAction: 'Create',
-          userRole: 'Manager',
-          projectType: 'Milestone',
-          title: project.name,
-        },
-        thisevent,
-      ),
-    );
 
     try {
       const date = await getBlockTimestamp(web3, tx.blockNumber);
@@ -188,17 +176,7 @@ const projects = (app, liquidPledging) => {
     const events = app.service('/events');
     const thisevent = events.find(txHash);
 
-    transactions.create(
-      Object.assign(
-        {
-          userAction: 'Create',
-          userRole: 'Manager',
-          projectType: 'Milestone',
-          title: project.name,
-        },
-        thisevent,
-      ),
-    );
+
 
     try {
       return campaigns.create({
@@ -401,13 +379,7 @@ const projects = (app, liquidPledging) => {
     });
     delete newDonation._id;
 
-    const transactions = this.app.service('transactions');
-    const pledgeAdmins = this.app.service('pledgeAdmins');
-    const events = this.app.service('events');
-
-    let thisevent = events.find(txHash);
-    transactions.create(Object.assign({userAction: 'Donation', userRole: 'Giver'}, thisevent));
-    donations.create(newDonation)
+    donations.create(newDonation);
 
     return donations.create(newDonation);
   }
@@ -537,24 +509,9 @@ const projects = (app, liquidPledging) => {
       }
 
       const projectId = event.returnValues.idProject;
-      const transactions = app.service('/transactions');
-      const events = app.service('/events');
-      const thisevent = events.find(event.id);
-
-      const pledgeAdmin = await getAdmin(projectId);
-
-      transactions.create(
-        Object.assign(
-          {
-            userAction: 'Cancel',
-            userRole: 'Manager',
-            projectType: pledgeAdmin.type,
-          },
-          thisevent,
-        ),
-      );
 
       try {
+        const pledgeAdmin = await getAdmin(projectId);
         const [service, status] =
           pledgeAdmin.type === AdminTypes.CAMPAIGN
             ? [campaigns, CampaignStatus.CANCELED]

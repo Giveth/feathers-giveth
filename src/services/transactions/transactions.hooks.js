@@ -1,5 +1,3 @@
-
-
 module.exports = {
   before: {
     all: [],
@@ -9,14 +7,15 @@ module.exports = {
        context => { //pro tip: console.log(typeof(context))
          // switch statement for all events not considered transfers
          // context.data.event += ' transaction 2';
+            console.log(JSON.stringify(context, null, 2))
            context.data = {
              id: context.data.id,
              blockHash: context.data.blockHash,
              blockNumber: context.data.blockNumber,
              address: context.data.address,
-             txHash: context.data.transactionHash,
+             txHash: context.data.txHash,
              event: context.data.event,
-             returnValues: context.data.returnValues.amount,
+             returnValues: {},
              userRole: context.data.userRole,
              userAction: context.data.userAction,
              projectType: context.data.projectType,
@@ -28,7 +27,7 @@ module.exports = {
 
     update: [],
     patch: [],
-    remove: []
+    remove: [],
   },
 
   after: {
@@ -38,7 +37,7 @@ module.exports = {
     create: [],
     update: [],
     patch: [],
-    remove: []
+    remove: [],
   },
 
   error: {
@@ -48,6 +47,6 @@ module.exports = {
     create: [],
     update: [],
     patch: [],
-    remove: []
-  }
+    remove: [],
+  },
 };
