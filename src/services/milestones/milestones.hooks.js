@@ -606,6 +606,7 @@ const schema = {
 
 const addTransaction = () => async context => {
   const transactions = context.app.service('transactions');
+    console.log(JSON.stringify(context, null, 2), 'context at addTransaction add Milestone');
 
   await transactions.create({
     userAction: 'Create',

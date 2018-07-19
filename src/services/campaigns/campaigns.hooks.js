@@ -100,8 +100,6 @@ const addMilestoneCounts = () => context => {
 const addTransaction = () => async context => {
   const transactions = context.app.service('transactions');
 
-
-
   await transactions.create({
     userAction: 'Create',
     userRole: 'Manager',

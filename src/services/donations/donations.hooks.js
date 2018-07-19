@@ -260,15 +260,25 @@ const populateSchema = () => context => {
 
 const addTransaction = () => async context => {
   const transactions = context.app.service('transactions');
-console.log(context, 'contexttttt');
+  let projectType = '';
 
+  if (context.data.ownerType === 'campaign'){
+     projectType = 'Campaign';
+  } if (context.data.delegateType === 'dac') {
+    projectType = 'Dac';
+  } else {
+     projectType = 'Milestone';
+  }
+
+console.log('contexttttt', context);
   await transactions.create({
     userAction: 'Donate',
     userRole: 'Giver',
-    projectType: context.data.ownerType,
+    projectType,
     address: context.data.giverAddress,
-    txHash: context.data.txHash,
-    title: 'Donation',
+    txHash: context.data.homeTxHash,
+    title: 'title',
+    amount: context.data.amount,
   });
 };
 
