@@ -7,6 +7,7 @@ const logger = require('winston');
 const processingQueue = require('../utils/processingQueue');
 const to = require('../utils/to');
 const { removeHexPrefix } = require('./lib/web3Helpers');
+const { EventStatus } = require('../models/events.model');
 
 /**
  * get the last block that we have gotten logs from
@@ -36,19 +37,30 @@ const getLastBlock = async app => {
 };
 
 /**
- * fetch any events that have yet to be confirmed
+ * fetch any events that have a status `Waiting`
  * @param {object} eventsService feathersjs `events` service
  * @returns {array} events sorted by transactionHash & logIndex
  */
-async function getUnconfirmedEvents(eventsService) {
-  const confirmedQuery = { $or: [{ confirmed: false }, { confirmed: { $exists: false } }] };
+async function getWaitingEvents(eventsService) {
   // all unconfirmed events sorted by txHash & logIndex
-  const query = Object.assign(
-    {
-      $sort: { blockNumber: 1, transactionIndex: 1, transactionHash: 1, logIndex: 1 },
-    },
-    confirmedQuery,
-  );
+  const query = {
+    status: EventStatus.WAITING,
+    $sort: { blockNumber: 1, transactionIndex: 1, transactionHash: 1, logIndex: 1 },
+  };
+  return eventsService.find({ paginate: false, query });
+}
+
+/**
+ * fetch any events that have a status `Waiting` of `Processing
+ * @param {object} eventsService feathersjs `events` service
+ * @returns {array} events sorted by transactionHash & logIndex
+ */
+async function getUnProcessedEvents(eventsService) {
+  // all unprocessed events sorted by txHash & logIndex
+  const query = {
+    status: { $in: [EventStatus.WAITING, EventStatus.PROCESSING] },
+    $sort: { blockNumber: 1, transactionIndex: 1, transactionHash: 1, logIndex: 1 },
+  };
   return eventsService.find({ paginate: false, query });
 }
 
@@ -119,7 +131,7 @@ const watcher = (app, eventHandler) => {
   }
 
   async function getUnconfirmedEventsByConfirmations(currentBlock) {
-    const unconfirmedEvents = await getUnconfirmedEvents(eventService);
+    const unconfirmedEvents = await getWaitingEvents(eventService);
 
     // sort the events into buckets by # of confirmations
     return unconfirmedEvents.reduce((val, event) => {
@@ -172,7 +184,7 @@ const watcher = (app, eventHandler) => {
         data,
       );
     }
-    await queue.purge();
+    queue.purge();
   }
 
   /**
@@ -188,14 +200,39 @@ const watcher = (app, eventHandler) => {
   }
 
   /**
+   * submit events to the eventsHandler for processing.
+   *
+   * Updates the status of the event depending on the processing result
+   *
+   * @param {array} events
+   */
+  async function processEvents(events) {
+    await eventService.patch(
+      null,
+      { status: EventStatus.PROCESSING, confirmations: requiredConfirmations },
+      { query: { _id: { $in: events.map(e => e._id) } } },
+    );
+
+    // now that the event is confirmed, handle the event
+    events.forEach(event => {
+      eventHandler
+        .handle(event)
+        .then(() => eventService.patch(event._id, { status: EventStatus.PROCESSED }))
+        .catch(error =>
+          eventService.patch(event._id, {
+            status: EventStatus.FAILED,
+            processingError: error.toString(),
+          }),
+        );
+    });
+  }
+  /**
    * Finds all un-confirmed events, updates the # of confirmations and initiates
    * processing of the event if the requiredConfirmations has been reached
    */
   async function updateEventConfirmations(currentBlock) {
     sem.take(async () => {
       try {
-        const confirmedQuery = { $or: [{ confirmed: false }, { confirmed: { $exists: false } }] };
-
         const [err, eventsByConfirmations] = await to(
           getUnconfirmedEventsByConfirmations(currentBlock),
         );
@@ -210,19 +247,7 @@ const watcher = (app, eventHandler) => {
         await Promise.all(
           eventsByConfirmations.map(async (e, confirmations) => {
             if (confirmations === requiredConfirmations) {
-              const q = Object.assign({}, confirmedQuery, {
-                blockNumber: {
-                  $lte: currentBlock - requiredConfirmations,
-                },
-              });
-
-              // TODO maybe we only update the event after a successful processing? This will
-              // cause issues further for an later event that rely on this. Maybe we should
-              // freeze the processing on failure?
-              await eventService.patch(null, { confirmed: true, confirmations }, { query: q });
-
-              // now that the event is confirmed, handle the event
-              e.forEach(event => eventHandler.handle(event));
+              await processEvents(e);
             } else {
               await eventService.patch(
                 null,
@@ -385,6 +410,8 @@ const watcher = (app, eventHandler) => {
         kernel = new Kernel(web3, kernelAddress);
 
         fetchPastEvents();
+        // start processing any events that have not been processed
+        processEvents(await getUnProcessedEvents(eventService));
         initialized = true;
       }
 

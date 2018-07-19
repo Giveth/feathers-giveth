@@ -10,7 +10,7 @@ const queueMixin = target => {
      */
     add(fn) {
       if (!fn) throw new Error('fn must not be null');
-      logger.debug('adding to queue');
+      logger.debug('adding to queue ->', fn.name);
       queue.push(fn);
     },
 

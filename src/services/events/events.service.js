@@ -1,6 +1,6 @@
 // Initializes the `events` service on path `/events`
 const createService = require('feathers-mongoose');
-const createModel = require('../../models/events.model');
+const { createModel } = require('../../models/events.model');
 const hooks = require('./events.hooks');
 
 module.exports = function() {
