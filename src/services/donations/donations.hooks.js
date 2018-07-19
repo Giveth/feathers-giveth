@@ -258,6 +258,20 @@ const populateSchema = () => context => {
   return context;
 };
 
+const addTransaction = () => async context => {
+  const transactions = context.app.service('transactions');
+console.log(context, 'contexttttt');
+
+  await transactions.create({
+    userAction: 'Donate',
+    userRole: 'Giver',
+    projectType: context.data.ownerType,
+    address: context.data.giverAddress,
+    txHash: context.data.txHash,
+    title: 'Donation',
+  });
+};
+
 module.exports = {
   before: {
     all: [commons.paramsFromClient('schema')],
@@ -284,7 +298,7 @@ module.exports = {
     all: [populateSchema()],
     find: [addConfirmations()],
     get: [addConfirmations()],
-    create: [updateEntityCounters()],
+    create: [updateEntityCounters(), addTransaction()],
     update: [],
     patch: [updateEntityCounters()],
     remove: [],

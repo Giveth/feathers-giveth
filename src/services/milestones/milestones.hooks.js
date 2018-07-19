@@ -604,6 +604,19 @@ const schema = {
   ],
 };
 
+const addTransaction = () => async context => {
+  const transactions = context.app.service('transactions');
+
+  await transactions.create({
+    userAction: 'Create',
+    userRole: 'Manager',
+    projectType: 'Milestone',
+    address: context.data.ownerAddress,
+    txHash: context.data.txHash,
+    title: context.data.title,
+  });
+};
+
 module.exports = {
   before: {
     all: [],
@@ -643,7 +656,7 @@ module.exports = {
     all: [commons.populate({ schema })],
     find: [addConfirmations()],
     get: [addConfirmations()],
-    create: [sendNotification()],
+    create: [sendNotification(), addTransaction()],
     update: [],
     patch: [sendNotification()],
     remove: [],

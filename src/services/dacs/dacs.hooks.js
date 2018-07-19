@@ -88,16 +88,10 @@ const isDacAllowed = () => context => {
 const addTransaction = () => async context => {
   const transactions = context.app.service('transactions');
 
-  console.log(JSON.stringify(context, null, 2), 'context');
-  logger.error('next to transactions.  create');
-
   await transactions.create({
-    id:'stringid',
     userAction: 'Create',
     userRole: 'Manager',
-    projectType: 'Campaign',
-    blockHash: 'string',
-    blockNumber: 1111,
+    projectType: 'Community',
     address: context.data.ownerAddress,
     txHash: context.data.txHash,
     title: context.data.title,

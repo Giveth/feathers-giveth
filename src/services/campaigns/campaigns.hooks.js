@@ -97,6 +97,25 @@ const addMilestoneCounts = () => context => {
   );
 };
 
+const addTransaction = () => async context => {
+  const transactions = context.app.service('transactions');
+
+
+
+  await transactions.create({
+    userAction: 'Create',
+    userRole: 'Manager',
+    projectType: 'Campaign',
+    address: context.data.ownerAddress,
+    txHash: context.data.txHash,
+    title: context.data.title,
+  });
+    console.log(JSON.stringify(context, null, 2), 'context at addTransaction');
+};
+
+
+
+
 module.exports = {
   before: {
     all: [],
@@ -124,7 +143,7 @@ module.exports = {
     all: [commons.populate({ schema })],
     find: [addMilestoneCounts(), addConfirmations()],
     get: [addMilestoneCounts(), addConfirmations()],
-    create: [],
+    create: [addTransaction()],
     update: [],
     patch: [],
     remove: [],

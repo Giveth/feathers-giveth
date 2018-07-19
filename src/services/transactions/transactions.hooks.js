@@ -7,18 +7,14 @@ module.exports = {
        context => { //pro tip: console.log(typeof(context))
          // switch statement for all events not considered transfers
          // context.data.event += ' transaction 2';
-            console.log(JSON.stringify(context, null, 2))
            context.data = {
-             id: context.data.id,
-             blockHash: context.data.blockHash,
-             blockNumber: context.data.blockNumber,
              address: context.data.address,
              txHash: context.data.txHash,
              event: context.data.event,
-             returnValues: {},
              userRole: context.data.userRole,
              userAction: context.data.userAction,
              projectType: context.data.projectType,
+             title: context.data.title,
            };
 
          // preventing transactions from being created, below
