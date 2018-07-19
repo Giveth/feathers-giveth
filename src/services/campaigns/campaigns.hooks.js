@@ -111,7 +111,26 @@ const addTransaction = () => async context => {
     console.log(JSON.stringify(context, null, 2), 'context at addTransaction');
 };
 
+const addTransactionCancelCampaign= () => async context => {
+    const transactions = context.app.service('transactions');
 
+  if (context.result.status === 'Canceled'){
+    await transactions.create({
+      userAction: 'Cancel',
+      userRole: 'Manager',
+      projectType: 'Campaign',
+      address: context.result.reviewerAddress,
+      txHash: context.result.txHash,
+      title: context.result.title,
+    });
+  }
+
+
+  // console.log(JSON.stringify(context, null, 2), 'context at RemoveCampaign');
+  // console.log(JSON.stringify(context.data, null, 2), 'context at RemoveCampaign context.data');
+  console.log(JSON.stringify(context.result, null, 2), 'context at RemoveCampaign context.result');
+  // console.log(JSON.stringify(context.data.result, null, 2), 'context at RemoveCampaign context.data.result');
+};
 
 
 module.exports = {
@@ -143,7 +162,7 @@ module.exports = {
     get: [addMilestoneCounts(), addConfirmations()],
     create: [addTransaction()],
     update: [],
-    patch: [],
+    patch: [addTransactionCancelCampaign()],
     remove: [],
   },
 
