@@ -3,6 +3,7 @@ const { toBN } = require('web3-utils');
 const logger = require('winston');
 
 const { AdminTypes } = require('../../models/pledgeAdmins.model');
+const { DonationStatus } = require('../../models/donations.model');
 
 const updateEntity = async (context, donation) => {
   if (!donation.mined) return;
@@ -63,7 +64,7 @@ const updateEntity = async (context, donation) => {
       )
       .toString();
     const peopleCount = new Set(donations.map(d => d.giverAddress)).size;
-    const donationCount = donations.length;
+    const donationCount = donations.filter(d => ![DonationStatus.PAYING, DonationStatus.PAID].includes(d.status)).length;
 
     await service.patch(entity._id, { donationCount, totalDonated, peopleCount });
   } catch (error) {

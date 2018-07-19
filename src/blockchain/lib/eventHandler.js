@@ -64,21 +64,30 @@ const eventHandler = app => {
 
       if (typeof handler !== 'function') {
         logger.error('Unknown event: ', event.event);
-        return;
+        return Promise.resolve();
       }
 
-      queue.add(async () => {
-        try {
-          logger.info('Handling Event: ', event);
-          await handler(event);
-        } catch (err) {
-          logger.error(err);
-        }
-        queue.purge();
-      });
+      return new Promise((resolve, reject) => {
+        const fn = async () => {
+          try {
+            logger.info('Handling Event: ', event);
+            await handler(event);
+            resolve();
+          } catch (err) {
+            logger.error(err);
+            reject(err);
+          }
+          queue.purge();
+        };
 
-      // start processing the queued events if we haven't already
-      if (!queue.isProcessing()) queue.purge();
+        Object.defineProperty(fn, 'name', {
+          value: `${event.event} - ${event.blockNumber} - ${event.id}`,
+        });
+        queue.add(fn);
+
+        // start processing the queued events if we haven't already
+        if (!queue.isProcessing()) queue.purge();
+      });
     },
   };
 };
