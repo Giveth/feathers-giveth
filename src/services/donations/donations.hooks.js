@@ -261,8 +261,15 @@ const populateSchema = () => context => {
 const addTransaction = () => async context => {
   const transactions = context.app.service('transactions');
   let projectType = '';
+  console.log('AdminTypes', context.data.ownerType)
+  console.log('*********************')
+  console.log('context.data', context.data)
+console.log('*********************')
+  console.log('context.title',context.response.title)
+  console.log('*********************')
 
-  if (context.data.ownerType === 'campaign'){
+
+  if (context.data.ownerType === AdminTypes.CAMPAIGN){
      projectType = 'Campaign';
   } if (context.data.delegateType === 'dac') {
     projectType = 'Dac';
@@ -270,7 +277,6 @@ const addTransaction = () => async context => {
      projectType = 'Milestone';
   }
 
-console.log('contexttttt', context);
   await transactions.create({
     userAction: 'Donate',
     userRole: 'Giver',

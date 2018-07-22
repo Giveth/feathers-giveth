@@ -606,7 +606,6 @@ const schema = {
 
 const addTransaction = () => async context => {
   const transactions = context.app.service('transactions');
-    console.log(JSON.stringify(context, null, 2), 'context at addTransaction add Milestone');
 
   await transactions.create({
     userAction: 'Create',
@@ -631,12 +630,6 @@ const addTransactionCancelMilestone= () => async context => {
       title: context.result.title,
     });
   }
-
-
-  // console.log(JSON.stringify(context, null, 2), 'context at RemoveMilestone');
-  // console.log(JSON.stringify(context.data, null, 2), 'context at RemoveMilestone context.data');
-  // console.log(JSON.stringify(context.result, null, 2), 'context at RemoveMilestone context.result');
-  // console.log(JSON.stringify(context.data.result, null, 2), 'context at RemoveCampaign context.data.result');
 };
 
 module.exports = {
