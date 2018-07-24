@@ -15,6 +15,7 @@ module.exports = {
              userAction: context.data.userAction,
              projectType: context.data.projectType,
              title: context.data.title,
+             amount:context.data.amount || 0,
            };
 
          // preventing transactions from being created, below

@@ -620,7 +620,7 @@ const addTransaction = () => async context => {
 const addTransactionCancelMilestone= () => async context => {
     const transactions = context.app.service('transactions');
 
-  if (context.result.status === 'Canceled'){
+  if (context.result.status === 'Canceled' && context.result.mined === false){
     await transactions.create({
       userAction: 'Cancel',
       userRole: 'Manager',

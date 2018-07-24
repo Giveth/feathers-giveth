@@ -504,7 +504,6 @@ const projects = (app, liquidPledging) => {
      * @param {object} event Web3 event object
      */
     async cancelProject(event) {
-      console.trace("Here I am!")
       if (event.event !== 'CancelProject') {
         throw new Error('cancelProject only handles CancelProject events');
       }

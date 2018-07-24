@@ -17,7 +17,7 @@ module.exports = function Transactions(app) {
       userRole: { type: String },
       userAction: { type: String },
       projectType: { type: String },
-      amount: { type: String, min: 0 },
+      amount: {type: Schema.Types.BN, min: 0 },
     },
     {
       timestamps: true,

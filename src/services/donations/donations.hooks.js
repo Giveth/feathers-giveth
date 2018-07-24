@@ -261,20 +261,23 @@ const populateSchema = () => context => {
 const addTransaction = () => async context => {
   const transactions = context.app.service('transactions');
   let projectType = '';
-  console.log('AdminTypes', context.data.ownerType)
-  console.log('*********************')
-  console.log('context.data', context.data)
-console.log('*********************')
-  console.log('context.title',context.response.title)
-  console.log('*********************')
+  let title = 'title'
 
-
-  if (context.data.ownerType === AdminTypes.CAMPAIGN){
+  if (context.data.ownerType === 'campaign'){
      projectType = 'Campaign';
-  } if (context.data.delegateType === 'dac') {
-    projectType = 'Dac';
+    let campaign = await context.app.service('campaigns').get(context.data.ownerTypeId);
+      title = campaign.title;
+
+
+  } else if (context.data.delegateType === 'dac') {
+    projectType = 'DAC';
+    let dac = await context.app.service('dacs').get(context.data.delegateTypeId);
+   title = dac.title;
+
   } else {
      projectType = 'Milestone';
+     let milestone = await context.app.service('milestones').get(context.data.ownerTypeId);
+    title = milestone.title;
   }
 
   await transactions.create({
@@ -283,7 +286,7 @@ console.log('*********************')
     projectType,
     address: context.data.giverAddress,
     txHash: context.data.homeTxHash,
-    title: 'title',
+    title,
     amount: context.data.amount,
   });
 };

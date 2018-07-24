@@ -171,7 +171,7 @@ async function deploy() {
     });
     process.exit(); // some reason, this script won't exit. I think it has to do with web3 subscribing to tx confirmations?
   } catch (e) {
-    console.log(e);
+    console.log(e, 'deploy.js 174');
     process.exit();
   }
 }

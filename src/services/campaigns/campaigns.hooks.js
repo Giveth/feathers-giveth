@@ -108,16 +108,13 @@ const addTransaction = () => async context => {
     txHash: context.data.txHash,
     title: context.data.title,
   });
-    console.log(JSON.stringify(context, null, 2), 'context at addTransaction');
+
 };
 
 const addTransactionCancelCampaign= () => async context => {
     const transactions = context.app.service('transactions');
-    console.log('*****************************************************');
-console.log('context at addTransactionCancelCampaign', JSON.stringify(context, null, 2))
-console.log('*****************************************************');
 
-  if (context.result.status === 'Canceled'){
+  if (context.result.status === 'Canceled' && context.result.mined === false){
     await transactions.create({
       userAction: 'Cancel',
       userRole: 'Manager',
@@ -128,10 +125,6 @@ console.log('*****************************************************');
     });
   }
 
-  // console.log(JSON.stringify(context, null, 2), 'context at RemoveCampaign');
-  // console.log(JSON.stringify(context.data, null, 2), 'context at RemoveCampaign context.data');
-  // console.log(JSON.stringify(context.result, null, 2), 'context at RemoveCampaign context.result');
-  // console.log(JSON.stringify(context.data.result, null, 2), 'context at RemoveCampaign context.data.result');
 };
 
 
