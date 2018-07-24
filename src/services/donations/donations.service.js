@@ -83,7 +83,7 @@ module.exports = function serviceFactory() {
   // Get our initialized service so that we can register hooks and filters
   const service = app.service('donations');
 
-  pollForCommittedDonations(service);
+  // pollForCommittedDonations(service);
 
   service.hooks(hooks);
 };
