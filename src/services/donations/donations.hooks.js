@@ -264,7 +264,6 @@ module.exports = {
     find: [sanitizeAddress('giverAddress')],
     get: [],
     create: [
-      setAddress('giverAddress'),
       sanitizeAddress('giverAddress', {
         required: true,
         validate: true,
