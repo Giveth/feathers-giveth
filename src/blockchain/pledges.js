@@ -210,7 +210,6 @@ const pledges = (app, liquidPledging) => {
       query.txHash = mutation.txHash;
     }
 
-    logger.info('createDonation query ->', query);
     const donations = await donationService.find({
       paginate: false,
       query,
