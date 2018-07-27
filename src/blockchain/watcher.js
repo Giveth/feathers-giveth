@@ -176,7 +176,7 @@ const watcher = (app, eventHandler) => {
     const { id, transactionHash } = event;
 
     logger.info('attempting to remove event:', event);
-    await eventService.remove(undefined, { query: { id, transactionHash, confirmed: false } });
+    await eventService.remove(null, { query: { id, transactionHash, confirmed: false } });
 
     const data = await eventService.find({
       paginate: false,
