@@ -3,22 +3,11 @@ const createService = require('feathers-mongoose');
 const logger = require('winston');
 const { DonationStatus, createModel } = require('../../models/donations.model');
 const hooks = require('./donations.hooks');
-const { LiquidPledging } = require('giveth-liquidpledging');
-const { getWeb3 } = require('../../blockchain/lib/web3Helpers');
 
 // If a donation has a intendedProject & the commitTime has passed, we need to update the donation to reflect
 // that the intendedProject is now the owner
-const pollForCommittedDonations = (app, service) => {
+const pollForCommittedDonations = service => {
   const interval = 1000 * 30; // check every 30 seconds
-
-  const web3 = getWeb3(app);
-
-  const { liquidPledgingAddress } = app.get('blockchain');
-
-  if (!liquidPledgingAddress) {
-    throw new Error('liquidPledgingAddress is not defined in the configuration file');
-  }
-  const liquidPledging = new LiquidPledging(web3, liquidPledgingAddress);
 
   const doUpdate = async () => {
     try {
@@ -37,8 +26,6 @@ const pollForCommittedDonations = (app, service) => {
 
       donations.forEach(async donation => {
         try {
-          await liquidPledging.normalizePledge(donation.pledgeId);
-
           await service.patch(donation._id, {
             status: DonationStatus.COMMITTED,
             amountRemaining: '0',
@@ -52,12 +39,13 @@ const pollForCommittedDonations = (app, service) => {
             'commitTime',
             'previousState',
           ];
-
-          const newDonation = {};
-          keysToPick.forEach(key => {
-            newDonation[key] = donation[key];
-          });
-
+          const newDonation = Object.keys(donation)
+            .filter(k => keysToPick.includes(k))
+            .reduce((accumulator, key) => {
+              // eslint-disable-next-line no-param-reassign
+              accumulator[key] = donation[key];
+              return accumulator;
+            }, {});
           Object.assign(newDonation, {
             ownerId: donation.intendedProjectId,
             ownerType: donation.intendedProjectType,
@@ -95,7 +83,7 @@ module.exports = function serviceFactory() {
   // Get our initialized service so that we can register hooks and filters
   const service = app.service('donations');
 
-  pollForCommittedDonations(app, service);
+  // pollForCommittedDonations(service);
 
   service.hooks(hooks);
 };
