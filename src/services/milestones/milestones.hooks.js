@@ -448,7 +448,7 @@ const checkEthConversion = () => context => {
       fiatAmount,
       etherToCheck,
     );
-    // calculate the converion of the item, make sure that fiat-eth is correct
+    // calculate the conversion of the item, make sure that fiat-eth is correct
     const rate = conversionRate.rates[selectedFiatType];
     const ether = utils.toWei(new BigNumber(fiatAmount).div(rate).toFixed(18));
 
@@ -459,12 +459,11 @@ const checkEthConversion = () => context => {
 
   if (items && items.length > 0) {
     // check total amount of milestone, make sure it is correct
-    const totalItemEtherAmount = items.reduce(
-      (sum, item) => sum.plus(new BigNumber(item.etherAmount)),
-      new BigNumber('0'),
-    );
+    const totalItemWeiAmount = items
+      .reduce((sum, item) => sum.plus(new BigNumber(item.wei)), new BigNumber('0'))
+      .toString();
 
-    if (utils.toWei(totalItemEtherAmount.toFixed(18)) !== data.maxAmount) {
+    if (totalItemWeiAmount !== data.maxAmount) {
       throw new errors.Forbidden('Total amount in ether is incorrect');
     }
 
