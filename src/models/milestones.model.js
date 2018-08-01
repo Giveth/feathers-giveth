@@ -32,7 +32,7 @@ function Milestone(app) {
       recipientAddress: { type: String, required: true, index: true },
       campaignReviewerAddress: { type: String, required: true, index: true },
       campaignId: { type: String, required: true, index: true },
-      projectId: { type: Schema.Types.Long, index: true }, // we can use Long here b/c lp only stores adminId in pledges as uint64
+      projectId: { type: Schema.Types.Long, index: true, unique: true }, // we can use Long here b/c lp only stores adminId in pledges as uint64
       status: {
         type: String,
         require: true,
