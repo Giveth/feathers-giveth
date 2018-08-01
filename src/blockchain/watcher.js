@@ -127,7 +127,6 @@ const watcher = (app, eventHandler) => {
     }
 
     await eventService.create(Object.assign({}, event, { confirmations: 0 }));
-    logger.info('processNewEvent -> purging queue');
     queue.purge();
   }
 
@@ -157,14 +156,10 @@ const watcher = (app, eventHandler) => {
 
     // during a reorg, the same event can occur in quick succession, so we add everything to a
     // queue so they are processed synchronously
-    logger.info('adding processNewEvent to queue');
     queue.add(() => processNewEvent(event));
 
     // start processing the queued events if we haven't already
-    if (!queue.isProcessing()) {
-      logger.info('isProcessing = false -> purging queue');
-      queue.purge();
-    }
+    if (!queue.isProcessing()) queue.purge();
   }
 
   /**
@@ -175,7 +170,6 @@ const watcher = (app, eventHandler) => {
   async function processRemoveEvent(event) {
     const { id, transactionHash } = event;
 
-    logger.info('attempting to remove event:', event);
     await eventService.remove(null, { query: { id, transactionHash, confirmed: false } });
 
     const data = await eventService.find({
@@ -189,7 +183,6 @@ const watcher = (app, eventHandler) => {
         data,
       );
     }
-    logger.info('processRemoveEvent -> purging queue');
     queue.purge();
   }
 
@@ -199,14 +192,10 @@ const watcher = (app, eventHandler) => {
   function removeEvent(event) {
     // during a reorg, the same event can occur in quick succession, so we add everything to a
     // queue so they are processed synchronously
-    logger.info('adding processRemoveEvent to queue');
     queue.add(() => processRemoveEvent(event));
 
     // start processing the queued events if we haven't already
-    if (!queue.isProcessing()) {
-      logger.info('isProcessing = false -> purging queue');
-      queue.purge();
-    }
+    if (!queue.isProcessing()) queue.purge();
   }
 
   /**
