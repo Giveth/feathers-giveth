@@ -82,6 +82,7 @@ function normalizer(app) {
     const arg = batchSize > 1 ? batch : batch[0];
     const opts = {
       from: web3.eth.accounts.wallet[0].address,
+      $extraGas: 100000,
     };
 
     try {

@@ -37,30 +37,23 @@ const restrict = () => async context => {
     const approvedKeys = ['pendingAmountRemaining'];
 
     if (
-      data.status === DonationStatus.PENDING &&
-      (data.intendedProjectTypeId || data.delegateTypeId !== donation.delegateTypeId)
+      donation.status === DonationStatus.TO_APPROVE &&
+      [donation.ownerEntity.ownerAddress, donation.ownerEntity.address].includes(user.address)
     ) {
-      // delegate made this call
-      if (
-        user.address !== donation.ownerTypeId &&
-        user.address !== donation.delegateEntity.ownerAddress
-      )
-        throw new errors.Forbidden();
-    } else if (
-      (donation.ownerType === AdminTypes.GIVER && user.address !== donation.ownerTypeId) ||
-      (donation.ownerType !== AdminTypes.GIVER &&
-        user.address !== donation.ownerEntity.ownerAddress)
-    ) {
-      throw new errors.Forbidden();
-    } else {
       // owner can also update status as 'COMMITTED' or 'REJECTED'
-      if (
-        data.status &&
-        ![DonationStatus.COMMITTED, DonationStatus.REJECTED].includes(data.status)
-      ) {
+      if (![DonationStatus.COMMITTED, DonationStatus.REJECTED].includes(data.status)) {
         throw new errors.BadRequest('status can only be updated to `Committed` or `Rejected`');
       }
       approvedKeys.push('status');
+    } else if (
+      (donation.status === DonationStatus.WAITING &&
+        donation.delegateEntity &&
+        user.address === donation.delegateEntity.ownerAddress) ||
+      [donation.ownerEntity.ownerAddress, donation.ownerEntity.address].includes(user.address)
+    ) {
+      // owner || delegate made this call, they can update `pendingAmountRemaining`
+    } else {
+      throw new errors.Forbidden();
     }
 
     const keysToRemove = Object.keys(data).map(key => !approvedKeys.includes(key));
