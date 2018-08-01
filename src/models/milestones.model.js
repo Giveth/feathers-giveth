@@ -48,6 +48,7 @@ function Milestone(app) {
       pluginAddress: { type: String },
       totalDonated: { type: Schema.Types.BN },
       donationCount: { type: Number },
+      peopleCount: { type: Number },
       mined: { type: Boolean },
       prevStatus: { type: String },
       performedByAddress: { type: String },
