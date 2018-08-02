@@ -47,6 +47,7 @@ function Milestone(app) {
       txHash: { type: String },
       pluginAddress: { type: String },
       totalDonated: { type: Schema.Types.BN },
+      fullyFunded: { tupe: Boolean },
       donationCount: { type: Number },
       mined: { type: Boolean },
       prevStatus: { type: String },
