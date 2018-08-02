@@ -81,12 +81,16 @@ const updateEntity = async (context, donation) => {
         toBN(0),
       )
       .toString();
+
+    // NOTE: Using === to compare as both of these are strings and amounts in wei
+    const fullyFunded =
+      donation.ownerType === AdminTypes.MILESTONE && entity.maxAmount === totalDonated;
     const peopleCount = new Set(donations.map(d => d.giverAddress)).size;
     const donationCount = donations.filter(
       d => ![DonationStatus.PAYING, DonationStatus.PAID].includes(d.status),
     ).length;
 
-    await service.patch(entity._id, { donationCount, totalDonated, peopleCount });
+    await service.patch(entity._id, { donationCount, totalDonated, peopleCount, fullyFunded });
   } catch (error) {
     logger.error(error);
   }
