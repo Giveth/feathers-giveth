@@ -380,13 +380,16 @@ const sendNotification = () => async context => {
       _createConversion('rejected');
 
       // find the milestone reviewer and send a notification that his/her milestone has been rejected by reviewer
-      Notifications.milestoneReviewRejected(app, {
-        recipient: result.reviewer.email,
-        user: result.reviewer.name,
-        milestoneTitle: result.title,
-        campaignTitle: result.campaign.title,
-        message: result.message,
-      });
+      // it's possible to have a null reviewer if that address has never logged in
+      if (result.reviewer) {
+        Notifications.milestoneReviewRejected(app, {
+          recipient: result.reviewer.email,
+          user: result.reviewer.name,
+          milestoneTitle: result.title,
+          campaignTitle: result.campaign.title,
+          message: result.message,
+        });
+      }
     }
 
     if (result.status === MilestoneStatus.CANCELED && result.mined) {
