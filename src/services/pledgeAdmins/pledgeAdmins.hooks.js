@@ -21,6 +21,7 @@ const populateAdmin = () => context => {
     ? Promise.all(
         items.map(item =>
           fetchAdmin(item).then(admin => {
+            // eslint-disable-next-line no-param-reassign
             item.admin = admin;
           }),
         ),

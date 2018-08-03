@@ -105,6 +105,8 @@ const checkMessageContext = () => context => {
         logger.error(`this message is in reply to a non-existing message with id ${replyToId}`, e);
       });
   }
+
+  return context;
 };
 
 /**

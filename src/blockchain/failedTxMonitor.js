@@ -156,7 +156,7 @@ const failedTxMonitor = (app, eventHandler) => {
     const receipt = await homeWeb3.eth.getTransactionReceipt(donation.homeTxHash);
     const topics = topicsFromArtifacts([LiquidPledgingArtifact], ['Transfer']);
 
-    // TODO low priority as it isn't likely, but would be good to check foreignBridge for a Deposit 
+    // TODO low priority as it isn't likely, but would be good to check foreignBridge for a Deposit
     // event w/ homeTx === donation.homeTxHash and reprocess the event if necessary. This would require
     // re-deploying the ForeignGivethBridge w/ homeTx as an indexed event param
     if (!receipt) {

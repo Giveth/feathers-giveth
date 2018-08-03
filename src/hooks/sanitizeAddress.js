@@ -18,6 +18,7 @@ module.exports = (fieldNames, opts = { required: false, validate: false }) => co
 
   commons.checkContext(context, 'before', ['find', 'create', 'update', 'patch', 'remove']);
 
+  // eslint-disable-next-line no-param-reassign
   if (!Array.isArray(fieldNames)) fieldNames = [fieldNames];
 
   if (
@@ -52,6 +53,7 @@ module.exports = (fieldNames, opts = { required: false, validate: false }) => co
 
       if (item[fieldName]) {
         try {
+          // eslint-disable-next-line no-param-reassign
           item[fieldName] = toChecksumAddress(item[fieldName]);
         } catch (e) {
           if (validate)
@@ -66,7 +68,11 @@ module.exports = (fieldNames, opts = { required: false, validate: false }) => co
   // items may be undefined if we are removing by id;
   if (items === undefined) return context;
 
-  Array.isArray(items) ? items.forEach(item => convertItem(item)) : convertItem(items);
+  if (Array.isArray(items)) {
+    items.forEach(item => convertItem(item));
+  } else {
+    convertItem(items);
+  }
 
   commons.replaceItems(context, items);
 

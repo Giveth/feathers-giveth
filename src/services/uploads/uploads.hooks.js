@@ -6,7 +6,7 @@ const transformFile = () => context => {
   // delete id to prevent users specifying the file path to upload the file to
   delete context.data.id;
   if (!context.data.uri && context.params.file) {
-    const file = context.params.file;
+    const { file } = context.params;
     const uri = dauria.getBase64DataURI(file.buffer, file.mimetype);
     context.data = { uri };
   }
@@ -32,7 +32,7 @@ const transformCreateResponse = () => context => {
     uploadsBaseUrl = `${uploadsBaseUrl}/`;
   }
 
-  const id = context.result.id;
+  const { id } = context.result;
 
   delete context.result.id;
   delete context.result.uri;
