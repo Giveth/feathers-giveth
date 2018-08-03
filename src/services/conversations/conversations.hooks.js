@@ -41,7 +41,7 @@ const MESSAGE_CONTEXT = [
 const restrictAndSetOwner = () => context => {
   const { app, params } = context;
   const { milestoneId } = context.data;
-  const { user } = params;
+  const { user, performedByAddress } = params;
 
   // external calls need a user
   if (!user && context.params.provider) throw new errors.NotAuthenticated();
@@ -52,7 +52,7 @@ const restrictAndSetOwner = () => context => {
     .then(milestone => {
       // for internal calls there's no user, so the user creating the message is stored on the milestone
       // for external calls, the currentuser creates the message
-      context.data.ownerAddress = (user && user.address) || milestone.performedByAddress;
+      context.data.ownerAddress = (user && user.address) || performedByAddress;
 
       // set the role based on the address
       // anyone not involved with the milestone is not allowed to create conversation
@@ -61,14 +61,17 @@ const restrictAndSetOwner = () => context => {
         case milestone.ownerAddress:
           context.data.performedByRole = 'Milestone Owner';
           break;
-        case milestone.reviewerAddress:
-          context.data.performedByRole = 'Reviewer';
+        case milestone.campaign.ownerAddress:
+          context.data.performedByRole = 'Campaign Manager';
           break;
         case milestone.recipientAddress:
           context.data.performedByRole = 'Recipient';
           break;
+        case milestone.reviewerAddress:
+          context.data.performedByRole = 'Reviewer';
+          break;
         case milestone.campaignReviewerAddress:
-          context.data.performedByRole = 'Campaign reviewer';
+          context.data.performedByRole = 'Campaign Reviewer';
           break;
         default:
           throw new errors.Forbidden(
@@ -88,7 +91,7 @@ const restrictAndSetOwner = () => context => {
  * */
 const checkMessageContext = () => context => {
   const { messageContext, replyToId } = context.data;
-  const { app, params } = context;
+  const { app } = context;
 
   if (!MESSAGE_CONTEXT.includes(messageContext))
     throw new errors.BadRequest('Incorrect message context');
@@ -97,7 +100,7 @@ const checkMessageContext = () => context => {
     return app
       .service('conversations')
       .get(replyToId)
-      .then(message => context)
+      .then(() => context)
       .catch(e => {
         logger.error(`this message is in reply to a non-existing message with id ${replyToId}`, e);
       });

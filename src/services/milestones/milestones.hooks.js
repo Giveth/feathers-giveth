@@ -284,19 +284,21 @@ const restrict = () => context => {
  * */
 const sendNotification = () => async context => {
   const { data, app, result, params } = context;
-  const { user } = params;
+  const { performedByAddress } = params;
 
-  const _createConversion = (app, data, txHash, messageContext, user) => {
+  const _createConversion = messageContext => {
     app
       .service('conversations')
-      .create({
-        milestoneId: data._id,
-        message: data.message,
-        items: data.proofItems,
-        messageContext,
-        user,
-        txHash,
-      })
+      .create(
+        {
+          milestoneId: result._id,
+          message: result.message,
+          items: result.proofItems,
+          messageContext,
+          txHash: context.params.eventTxHash,
+        },
+        { performedByAddress },
+      )
       .then(res => logger.info('created conversation!', res._id))
       .catch(e => logger.error('could not create conversation', e));
   };
@@ -332,7 +334,7 @@ const sendNotification = () => async context => {
       result.prevStatus === MilestoneStatus.PROPOSED &&
       result.status === MilestoneStatus.IN_PROGRESS
     ) {
-      _createConversion(app, result, context.params.eventTxHash, 'proposedAccepted', user);
+      _createConversion('proposedAccepted');
 
       // find the milestone owner and send a notification that his/her proposed milestone is approved
       Notifications.proposedMilestoneAccepted(app, {
@@ -347,7 +349,7 @@ const sendNotification = () => async context => {
 
     if (result.status === MilestoneStatus.NEEDS_REVIEW) {
       // find the milestone reviewer owner and send a notification that this milestone is been marked as complete and needs review
-      _createConversion(app, result, context.params.eventTxHash, result.status, user);
+      _createConversion(result.status);
 
       Notifications.milestoneRequestReview(app, {
         recipient: result.reviewer.email,
@@ -359,7 +361,7 @@ const sendNotification = () => async context => {
     }
 
     if (result.status === MilestoneStatus.COMPLETED && result.mined) {
-      _createConversion(app, result, context.params.eventTxHash, result.status, user);
+      _createConversion(result.status);
 
       // find the milestone owner and send a notification that his/her milestone is marked complete
       Notifications.milestoneMarkedCompleted(app, {
@@ -375,7 +377,7 @@ const sendNotification = () => async context => {
       result.prevStatus === MilestoneStatus.NEEDS_REVIEW &&
       result.status === MilestoneStatus.IN_PROGRESS
     ) {
-      _createConversion(app, result, context.params.eventTxHash, 'rejected', user);
+      _createConversion('rejected');
 
       // find the milestone reviewer and send a notification that his/her milestone has been rejected by reviewer
       Notifications.milestoneReviewRejected(app, {
@@ -388,7 +390,7 @@ const sendNotification = () => async context => {
     }
 
     if (result.status === MilestoneStatus.CANCELED && result.mined) {
-      _createConversion(app, result, context.params.eventTxHash, result.status, user);
+      _createConversion(result.status);
 
       // find the milestone owner and send a notification that his/her milestone is canceled
       Notifications.milestoneCanceled(app, {
@@ -406,7 +408,7 @@ const sendNotification = () => async context => {
       result.prevStatus === MilestoneStatus.PROPOSED &&
       result.status === MilestoneStatus.REJECTED
     ) {
-      _createConversion(app, result, 'proposedRejected', user);
+      _createConversion('proposedRejected');
 
       // find the milestone owner and send a notification that his/her proposed milestone is rejected
       Notifications.proposedMilestoneRejected(app, {
@@ -422,7 +424,7 @@ const sendNotification = () => async context => {
       result.prevStatus === MilestoneStatus.REJECTED &&
       result.status === MilestoneStatus.PROPOSED
     ) {
-      _createConversion(app, result, 'rePropose', user);
+      _createConversion('rePropose');
     }
   }
 };
@@ -557,14 +559,13 @@ const storePrevState = () => context => {
 };
 
 /**
- * Stores the address of the user who patched (= performed action on) the milestone
+ * Capture the address of the user who patched (= performed action on) the milestone
  * */
-
 const performedBy = () => context => {
   // do not process internal calls as they have no user
   if (!context.params.provider) return context;
 
-  context.data.performedByAddress = context.params.user.address;
+  context.params.performedByAddress = context.params.user.address;
   return context;
 };
 
