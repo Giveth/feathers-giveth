@@ -47,10 +47,11 @@ function Milestone(app) {
       txHash: { type: String },
       pluginAddress: { type: String },
       totalDonated: { type: Schema.Types.BN },
+      fullyFunded: { tupe: Boolean },
       donationCount: { type: Number },
+      peopleCount: { type: Number },
       mined: { type: Boolean },
       prevStatus: { type: String },
-      performedByAddress: { type: String },
 
       // these 2 fields should not be stored in mongo
       // but we need them for temporary storage

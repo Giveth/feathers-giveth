@@ -21,7 +21,7 @@ function createModel(app) {
       title: { type: String, required: true },
       description: { type: String, required: true },
       communityUrl: { type: String },
-      delegateId: { type: Schema.Types.Long, index: true }, // we can use Long here b/c lp only stores adminId in pledges as uint64
+      delegateId: { type: Schema.Types.Long, index: true, unique: true }, // we can use Long here b/c lp only stores adminId in pledges as uint64
       status: {
         type: String,
         require: true,

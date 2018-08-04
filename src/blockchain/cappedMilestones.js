@@ -19,6 +19,34 @@ const cappedMilestones = app => {
       // only interested in milestones we are aware of.
       if (data.length === 1) {
         const m = data[0];
+        const { from } = await app.getWeb3().eth.getTransaction(txHash);
+
+        const {
+          PAID,
+          PAYING,
+          CANCELED,
+          NEEDS_REVIEW,
+          REJECTED,
+          IN_PROGRESS,
+          COMPLETED,
+        } = MilestoneStatus;
+
+        // bug in contract will allow state to be "reverted"
+        // we want to ignore that
+        if (
+          [PAYING, PAID, CANCELED, COMPLETED].includes(data.status) &&
+          [NEEDS_REVIEW, REJECTED, IN_PROGRESS, CANCELED, COMPLETED].includes(status)
+        ) {
+          logger.info(
+            'Ignoring milestone state reversion -> projectId:',
+            projectId,
+            '-> currentStatus:',
+            data.status,
+            '-> status:',
+            status,
+          );
+          return;
+        }
 
         await milestones.patch(
           m._id,
@@ -26,7 +54,10 @@ const cappedMilestones = app => {
             status,
             mined: true,
           },
-          { eventTxHash: txHash },
+          {
+            eventTxHash: txHash,
+            performedByAddress: from,
+          },
         );
       }
     } catch (e) {

@@ -13,6 +13,7 @@
   "uploadsBaseUrl": "http://localhost:3030/uploads/",
   "blockchain": {
     "nodeUrl": "ws://localhost:8546",
+    "homeNodeUrl": "ws://localhost:8545",
     "startingBlock": 0,
     "requiredConfirmations": 1,
     "vaultAddress": "0x6098441760E4614AAc6e6bb3Ec7A254C2a600b5d",

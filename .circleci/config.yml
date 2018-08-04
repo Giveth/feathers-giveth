@@ -35,6 +35,8 @@ jobs:
 
       # run tests!
      # - run: yarn test
+      # run linter
+      - run: npm run eslint
       - deploy:
           name: Production Deploy
           command: |

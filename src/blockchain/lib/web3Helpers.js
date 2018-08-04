@@ -127,7 +127,29 @@ const reconnectOnEnd = (web3, nodeUrl) => {
   });
 };
 
+function instantiateWeb3(nodeUrl) {
+  const w3 = Object.assign(new Web3(nodeUrl), EventEmitter.prototype);
+
+  if (w3.currentProvider.on) {
+    w3.currentProvider.on('connect', () => {
+      // keep geth node connection alive
+      setInterval(w3.eth.net.getId, 45 * 1000);
+    });
+
+    // attach the re-connection logic to the current web3 provider
+    reconnectOnEnd(w3, nodeUrl);
+
+    Object.assign(w3, {
+      DISCONNECT_EVENT: 'disconnect',
+      RECONNECT_EVENT: 'reconnect',
+    });
+  }
+
+  return w3;
+}
+
 let web3;
+let homeWeb3;
 /**
  * returns the cached web3 instance or instantiates a new one.
  *
@@ -141,26 +163,30 @@ function getWeb3(app) {
 
   const { nodeUrl } = app.get('blockchain');
 
-  web3 = Object.assign(new Web3(nodeUrl), EventEmitter.prototype);
-
-  web3.currentProvider.on('connect', () => {
-    // keep geth node connection alive
-    setInterval(web3.eth.net.getId, 45 * 1000);
-  });
-
-  // attach the re-connection logic to the current web3 provider
-  reconnectOnEnd(web3, nodeUrl);
-
-  Object.assign(web3, {
-    DISCONNECT_EVENT: 'disconnect',
-    RECONNECT_EVENT: 'reconnect',
-  });
-
+  web3 = instantiateWeb3(nodeUrl);
   return web3;
+}
+
+/**
+ * returns the cached homeWeb3 instance or instantiates a new one.
+ *
+ * This web3 instance will emit the following events:
+ *   - disconnect
+ *   - reconnect
+ * @param {object} app feathers application object
+ */
+function getHomeWeb3(app) {
+  if (homeWeb3) return homeWeb3;
+
+  const { homeNodeUrl } = app.get('blockchain');
+
+  homeWeb3 = instantiateWeb3(homeNodeUrl);
+  return homeWeb3;
 }
 
 module.exports = {
   getWeb3,
+  getHomeWeb3,
   batchAndExecuteRequests,
   removeHexPrefix,
   addAccountToWallet,

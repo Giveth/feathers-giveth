@@ -1,4 +1,3 @@
-/* eslint-disable consistent-return */
 const logger = require('winston');
 const { toBN } = require('web3-utils');
 const { getBlockTimestamp } = require('./lib/web3Helpers');
@@ -108,6 +107,7 @@ function createToDonationMutation(transferInfo, isReturnTransfer) {
     pledgeId: toPledgeId,
     commitTime: getCommitTime(toPledge.commitTime, ts),
     status: getDonationStatus(transferInfo),
+    createdAt: ts,
     parentDonations: donations.map(d => d._id),
     txHash,
     mined: true,

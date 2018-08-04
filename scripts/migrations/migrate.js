@@ -174,7 +174,7 @@ const migrateMilestones = () => {
       recipientAddress: { type: String, required: true, index: true },
       campaignReviewerAddress: { type: String, required: true, index: true },
       campaignId: { type: String, required: true, index: true },
-      projectId: { type: String, index: true },
+      projectId: { type: Number, index: true },
       status: { type: String, required: true },
       items: [Item],
       ethConversionRateTimestamp: { type: Date, required: true },
@@ -199,6 +199,8 @@ const migrateMilestones = () => {
 
       // migration
       migratedId: { type: String },
+      migration: { type: String },
+      migratedProjectId: { type: Number },
     },
     {
       timestamps: true,
@@ -255,66 +257,73 @@ const migrateMilestones = () => {
 
   Object.values(milestones).forEach(m => {
     // Save to DB
-    Milestone.findOne({ migratedId: m._id })
-      .then(existingMilestone => {
-        if (!existingMilestone) {
-          const newMilestone = new Milestone({
-            title: m.title,
-            description: m.description,
-            image: constructNewImageUrl(m.image),
-            maxAmount: m.maxAmount,
-            ownerAddress: replaceTestRPC(m.ownerAddress),
-            reviewerAddress: replaceTestRPC(m.reviewerAddress),
-            recipientAddress: m.recipientAddress,
-            campaignReviewerAddress: campaignMap[m.campaignId].campaignReviewerAddress,
-            campaignId: campaignMap[m.campaignId].id,
-            projectId: m.projectId,
-            status: 'Paid',
-            items: [],
-            ethConversionRateTimestamp: m.ethConversionRateTimestamp * 1000,
-            selectedFiatType: m.selectedFiatType,
-            date: m.date,
-            fiatAmount: m.fiatAmount,
-            etherAmount: m.etherAmount,
-            conversionRate: m.conversionRate,
-            txHash: m.txHash,
-            pluginAddress: m.pluginAddress,
-            totalDonated: m.maxAmount,
-            donationCount: 1,
-            mined: true,
-            prevStatus: m.prevStatus,
-            performedByAddress: m.performedByAddress,
-            migratedId: m._id,
-          });
-
-          if (m.items) {
-            m.items.forEach(i => {
-              const newItem = {
-                id: i.id,
-                date: i.date,
-                description: i.description,
-                image: constructNewImageUrl(i.image),
-                selectedFiatType: i.selectedFiatType,
-                fiatAmount: i.fiatAmount,
-                etherAmount: i.etherAmount,
-                wei: i.wei,
-                conversionRate: i.conversionRate,
-                ethConversionRateTimestamp: i.ethConversionRateTimestamp,
-              };
-
-              newMilestone.items.push(newItem);
+    Milestone.remove({ migratedId: m._id }, () => {
+      Milestone.findOne({ migratedId: m._id })
+        .then(existingMilestone => {
+          if (!existingMilestone) {
+            const newMilestone = new Milestone({
+              title: m.title,
+              description: m.description,
+              image: constructNewImageUrl(m.image),
+              maxAmount: m.maxAmount,
+              ownerAddress: replaceTestRPC(m.ownerAddress),
+              reviewerAddress: replaceTestRPC(m.reviewerAddress),
+              recipientAddress: m.recipientAddress,
+              campaignReviewerAddress: campaignMap[m.campaignId].campaignReviewerAddress,
+              campaignId: campaignMap[m.campaignId].id,
+              projectId: -1,
+              status: 'Paid',
+              items: [],
+              ethConversionRateTimestamp: m.ethConversionRateTimestamp * 1000,
+              selectedFiatType: m.selectedFiatType,
+              date: m.date,
+              createdAt: m.date,
+              fiatAmount: m.fiatAmount,
+              etherAmount: m.etherAmount,
+              conversionRate: m.conversionRate,
+              txHash: m.txHash,
+              pluginAddress: m.pluginAddress,
+              totalDonated: m.maxAmount,
+              donationCount: 1,
+              mined: true,
+              prevStatus: m.prevStatus,
+              performedByAddress: m.performedByAddress,
+              migration: '2018-07-01',
+              migratedId: m._id,
+              migratedProjectId: m.projectId,
             });
-          }
 
-          newMilestone
-            .save()
-            .then(() => console.log('migrated milestone : ', m._id))
-            .catch(e => console.log('error migrating milestone : ', m._id, Object.keys(e.errors)));
-        } else {
-          console.log('milestone already migrated :', m._id);
-        }
-      })
-      .catch(e => console.log('could not find milestone : ', m._id, e));
+            if (m.items) {
+              m.items.forEach(i => {
+                const newItem = {
+                  id: i.id,
+                  date: i.date,
+                  description: i.description,
+                  image: constructNewImageUrl(i.image),
+                  selectedFiatType: i.selectedFiatType,
+                  fiatAmount: i.fiatAmount,
+                  etherAmount: i.etherAmount,
+                  wei: i.wei,
+                  conversionRate: i.conversionRate,
+                  ethConversionRateTimestamp: i.ethConversionRateTimestamp,
+                };
+
+                newMilestone.items.push(newItem);
+              });
+            }
+
+            newMilestone
+              .save()
+              .then(() => console.log('migrated milestone : ', m._id))
+              .catch(e =>
+                console.log('error migrating milestone : ', m._id, Object.keys(e.errors)),
+              );
+          } else {
+            console.log('milestone already migrated :', m._id);
+          }
+        })
+        .catch(e => console.log('could not find milestone : ', m._id, e));
+    });
   });
 };
 

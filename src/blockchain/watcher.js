@@ -112,9 +112,9 @@ const watcher = (app, eventHandler) => {
 
     const data = await eventService.find({ paginate: false, query: { logIndex, transactionHash } });
 
-    if (data.some(e => e.confirmed)) {
+    if (data.some(e => e.status !== EventStatus.WAITING)) {
       logger.error(
-        'RE-ORG ERROR: attempting to process newEvent, however the matching event has already been confirmed. Consider increasing the requiredConfirmations.',
+        'RE-ORG ERROR: attempting to process newEvent, however the matching event has already started processing. Consider increasing the requiredConfirmations.',
         event,
         data,
       );
@@ -170,16 +170,17 @@ const watcher = (app, eventHandler) => {
   async function processRemoveEvent(event) {
     const { id, transactionHash } = event;
 
-    logger.info('attempting to remove event:', event);
-    await eventService.remove(undefined, { query: { id, transactionHash, confirmed: false } });
+    await eventService.remove(null, {
+      query: { id, transactionHash, status: EventStatus.WAITING },
+    });
 
     const data = await eventService.find({
       paginate: false,
-      query: { id, transactionHash, confirmed: true },
+      query: { id, transactionHash, status: { $ne: EventStatus.WAITING } },
     });
     if (data.length > 0) {
       logger.error(
-        'RE-ORG ERROR: removeEvent was called, however the matching event has already been confirmed so we did not remove it. Consider increasing the requiredConfirmations.',
+        'RE-ORG ERROR: removeEvent was called, however the matching event is already processing/processed so we did not remove it. Consider increasing the requiredConfirmations.',
         event,
         data,
       );
@@ -188,7 +189,7 @@ const watcher = (app, eventHandler) => {
   }
 
   /**
-   * remove this event if it has yet to be confirmed
+   * remove this event if it has yet to start processing
    */
   function removeEvent(event) {
     // during a reorg, the same event can occur in quick succession, so we add everything to a

@@ -11,69 +11,6 @@ const { MilestoneStatus } = require('../../models/milestones.model');
 
 const updateEntityCounters = require('./updateEntityCounters');
 
-const restrict = () => async context => {
-  // internal call are fine
-  if (!context.params.provider) return context;
-
-  const { data, service } = context;
-  const { user } = context.params;
-
-  if (!user) throw new errors.NotAuthenticated();
-
-  let donations = [];
-  if (context.id)
-    donations = await service.get(context.id, { paginate: false, schema: 'includeTypeDetails' });
-  if (!context.id && context.params.query)
-    donations = await service.find({
-      paginate: false,
-      query: context.params.query,
-      schema: 'includeTypeDetails',
-    });
-
-  const canUpdate = async donation => {
-    if (!donation) throw new errors.Forbidden();
-
-    // whitelist of what the delegate can update
-    const approvedKeys = ['pendingAmountRemaining'];
-
-    if (
-      data.status === DonationStatus.PENDING &&
-      (data.intendedProjectTypeId || data.delegateTypeId !== donation.delegateTypeId)
-    ) {
-      // delegate made this call
-      if (
-        user.address !== donation.ownerTypeId &&
-        user.address !== donation.delegateEntity.ownerAddress
-      )
-        throw new errors.Forbidden();
-    } else if (
-      (donation.ownerType === AdminTypes.GIVER && user.address !== donation.ownerTypeId) ||
-      (donation.ownerType !== AdminTypes.GIVER &&
-        user.address !== donation.ownerEntity.ownerAddress)
-    ) {
-      throw new errors.Forbidden();
-    } else {
-      // owner can also update status as 'COMMITTED' or 'REJECTED'
-      if (
-        data.status &&
-        ![DonationStatus.COMMITTED, DonationStatus.REJECTED].includes(data.status)
-      ) {
-        throw new errors.BadRequest('status can only be updated to `Committed` or `Rejected`');
-      }
-      approvedKeys.push('status');
-    }
-
-    const keysToRemove = Object.keys(data).map(key => !approvedKeys.includes(key));
-    keysToRemove.forEach(key => delete data[key]);
-  };
-
-  if (Array.isArray(donations)) {
-    await Promise.all(donations.map(canUpdate));
-  } else {
-    await canUpdate(donations);
-  }
-};
-
 const poSchemas = {
   'po-giver': {
     include: [
@@ -152,34 +89,60 @@ const poSchemas = {
   },
 };
 
-// a bit of a hacky way to be able to revert donations if the tx failed.
-const stashDonationIfPending = () => context => {
-  // only deal with single donation patchs
-  if (!context.id) return context;
+const restrict = () => async context => {
+  // internal call are fine
+  if (!context.params.provider) return context;
 
-  const { data } = context;
+  const { data, service } = context;
+  const { user } = context.params;
 
-  if (data.status === DonationStatus.PENDING) {
-    return context.app
-      .service('donations')
-      .get(context.id)
-      .then(donation => {
-        data.previousState = donation;
+  if (!user) throw new errors.NotAuthenticated();
 
-        return context;
-      })
-      .catch(console.error);
-  }
+  let donations = [];
+  if (context.id)
+    donations = await service.get(context.id, { paginate: false, schema: 'includeTypeDetails' });
+  if (!context.id && context.params.query)
+    donations = await service.find({
+      paginate: false,
+      query: context.params.query,
+      schema: 'includeTypeDetails',
+    });
 
-  // if not pending status, remove previousState from donation as it isn't needed
-  if (data.$unset) {
-    data.$unset.previousState = true;
+  const canUpdate = async donation => {
+    if (!donation) throw new errors.Forbidden();
+
+    // whitelist of what the delegate can update
+    const approvedKeys = ['pendingAmountRemaining'];
+
+    if (
+      donation.status === DonationStatus.TO_APPROVE &&
+      [donation.ownerEntity.ownerAddress, donation.ownerEntity.address].includes(user.address)
+    ) {
+      // owner can also update status as 'COMMITTED' or 'REJECTED'
+      if (![DonationStatus.COMMITTED, DonationStatus.REJECTED].includes(data.status)) {
+        throw new errors.BadRequest('status can only be updated to `Committed` or `Rejected`');
+      }
+      approvedKeys.push('status');
+    } else if (
+      (donation.status === DonationStatus.WAITING &&
+        donation.delegateEntity &&
+        user.address === donation.delegateEntity.ownerAddress) ||
+      [donation.ownerEntity.ownerAddress, donation.ownerEntity.address].includes(user.address)
+    ) {
+      // owner || delegate made this call, they can update `pendingAmountRemaining`
+    } else {
+      throw new errors.Forbidden();
+    }
+
+    const keysToRemove = Object.keys(data).map(key => !approvedKeys.includes(key));
+    keysToRemove.forEach(key => delete data[key]);
+  };
+
+  if (Array.isArray(donations)) {
+    await Promise.all(donations.map(canUpdate));
   } else {
-    data.$unset = {
-      previousState: true,
-    };
+    await canUpdate(donations);
   }
-
   return context;
 };
 
@@ -196,19 +159,16 @@ const joinDonationRecipient = (item, context) => {
 
   return commons
     .populate({ schema: ownerSchema })(newContext)
+    .then(c => (item.delegateId ? commons.populate({ schema: poSchemas['po-dac'] })(c) : c))
     .then(
-      context =>
-        item.delegateId ? commons.populate({ schema: poSchemas['po-dac'] })(context) : context,
-    )
-    .then(
-      context =>
+      c =>
         item.intendedProjectId > 0
           ? commons.populate({
               schema: poSchemas[`po-${item.intendedProjectType.toLowerCase()}-intended`],
-            })(context)
-          : context,
+            })(c)
+          : c,
     )
-    .then(context => context.result);
+    .then(c => c.result);
 };
 
 const updateMilestoneIfNotPledged = () => context => {
@@ -219,11 +179,9 @@ const updateMilestoneIfNotPledged = () => context => {
     donation.ownerType === AdminTypes.MILESTONE &&
     [DonationStatus.PAYING, DonationStatus.PAID].includes(donation.status)
   ) {
-    // return context.app.service('milestones').patch(donation.ownerTypeId, {
     context.app.service('milestones').patch(donation.ownerTypeId, {
       status:
         donation.status === DonationStatus.PAYING ? MilestoneStatus.PAYING : MilestoneStatus.PAID,
-      // mined: true
     });
   }
 };
@@ -264,7 +222,6 @@ module.exports = {
     find: [sanitizeAddress('giverAddress')],
     get: [],
     create: [
-      setAddress('giverAddress'),
       sanitizeAddress('giverAddress', {
         required: true,
         validate: true,
@@ -272,11 +229,7 @@ module.exports = {
       updateMilestoneIfNotPledged(),
     ],
     update: [commons.disallow(), sanitizeAddress('giverAddress', { validate: true })],
-    patch: [
-      restrict(),
-      sanitizeAddress('giverAddress', { validate: true }),
-      stashDonationIfPending(),
-    ],
+    patch: [restrict(), sanitizeAddress('giverAddress', { validate: true })],
     remove: [commons.disallow()],
   },
 
