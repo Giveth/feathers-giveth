@@ -1,211 +1,50 @@
 const commons = require('feathers-hooks-common');
 const errors = require('@feathersjs/errors');
-const logger = require('winston');
-const { utils } = require('web3');
-const BigNumber = require('bignumber.js');
 
 const sanitizeAddress = require('../../hooks/sanitizeAddress');
 const setAddress = require('../../hooks/setAddress');
 const sanitizeHtml = require('../../hooks/sanitizeHtml');
 const isProjectAllowed = require('../../hooks/isProjectAllowed');
-const Notifications = require('./../../utils/dappMailer');
 const addConfirmations = require('../../hooks/addConfirmations');
 const { MilestoneStatus } = require('../../models/milestones.model');
+const getApprovedKeys = require('./getApprovedKeys');
+const checkEthConversion = require('./checkEthConversion');
+const sendNotification = require('./sendNotification');
+const checkMilestoneDates = require('./checkMilestoneDates');
 
-/* eslint no-underscore-dangle: 0 */
-
-BigNumber.config({ DECIMAL_PLACES: 18 });
-
-/**
- * Get keys that can be updated based on the state of the milestone and the user's permission
- *
- * @param milestone  Current milestone data that are saved
- * @param data       New milestone data that are being saved
- * @param user       Address of the user making the modification
- */
-const getApprovedKeys = (milestone, data, user) => {
-  const reviewers = [milestone.reviewerAddress, milestone.campaignReviewerAddress];
-
-  // Fields that can be editted BEFORE milestone is created on the blockchain
-  const editMilestoneKeys = [
-    'title',
-    'description',
-    'maxAmount',
-    'reviewerAddress',
-    'recipientAddress',
-    'ethConversionRateTimestamp',
-    'selectedFiatType',
-    'date',
-    'fiatAmount',
-    'conversionRate',
-    'items',
-    'message',
-    'proofItems',
-    'image',
-  ];
-
-  // Fields that can be editted once milestone stored on the blockchain
-  const editMilestoneKeysOnChain = ['title', 'description', 'message', 'proofItems', 'mined'];
-
-  switch (milestone.status) {
-    case MilestoneStatus.PROPOSED:
-      // Accept proposed milestone by Campaign Manager
-      if (data.status === MilestoneStatus.PENDING) {
-        if (user.address !== milestone.campaign.ownerAddress) {
-          throw new errors.Forbidden('Only the Campaing Manager can accept a milestone');
-        }
-        logger.info(`Accepting proposed milestone with id: ${milestone._id} by: ${user.address}`);
-
-        return ['txHash', 'status', 'mined', 'ownerAddress', 'message', 'proofItems'];
-      }
-
-      // Reject proposed milestone by Campaign Manager
-      if (data.status === MilestoneStatus.REJECTED) {
-        if (user.address !== milestone.campaign.ownerAddress) {
-          throw new errors.Forbidden('Only the Campaign Manager can reject a milestone');
-        }
-        logger.info(`Rejecting proposed milestone with id: ${milestone._id} by: ${user.address}`);
-
-        return ['status', 'message', 'proofItems'];
-      }
-
-      // Editing milestone can be done by Milestone or Campaing Manager
-      if (data.status === MilestoneStatus.PROPOSED) {
-        if (![milestone.ownerAddress, milestone.campaign.ownerAddress].includes(user.address)) {
-          throw new errors.Forbidden(
-            'Only the Milestone or Campaign Manager can edit proposed milestone',
-          );
-        }
-        logger.info(
-          `Editing milestone with id: ${milestone._id} status: ${milestone.status} by: ${
-            user.address
-          }`,
-        );
-
-        return editMilestoneKeys;
-      }
-      break;
-
-    case MilestoneStatus.REJECTED:
-      // Editing milestone can be done by Milestone Manager
-      if (data.status === MilestoneStatus.REJECTED) {
-        if (user.address !== milestone.ownerAddress) {
-          throw new errors.Forbidden('Only the Milestone Manager can edit rejected milestone');
-        }
-        logger.info(
-          `Editing milestone with id: ${milestone._id} status: ${milestone.status} by: ${
-            user.address
-          }`,
-        );
-        return editMilestoneKeys;
-      }
-
-      // Re-proposing milestone can be done by Milestone Manager
-      if (data.status === MilestoneStatus.PROPOSED) {
-        if (user.address !== milestone.ownerAddress) {
-          throw new errors.Forbidden('Only the Milestone Manager can repropose rejected milestone');
-        }
-        logger.info(`Reproposing rejected milestone with id: ${milestone._id} by: ${user.address}`);
-        return ['status', 'message', 'proofItems'];
-      }
-      break;
-
-    case MilestoneStatus.IN_PROGRESS:
-      // Mark milestone complete by Recipient or Milestone Manager
-      if (data.status === MilestoneStatus.NEEDS_REVIEW) {
-        if (![milestone.recipientAddress, milestone.ownerAddress].includes(user.address)) {
-          throw new errors.Forbidden(
-            'Only the Milestone Manager or Recipient can mark a milestone complete',
-          );
-        }
-        logger.info(`Marking milestone as complete. Milestone id: ${milestone._id}`);
-
-        return ['status', 'mined', 'message', 'proofItems'];
-      }
-
-      // Cancel milestone by Campaign or Milestone Reviewer
-      if (data.status === MilestoneStatus.CANCELED && data.mined === false) {
-        if (!reviewers.includes(user.address)) {
-          throw new errors.Forbidden(
-            'Only the Milestone or Campaign Reviewer can cancel a milestone',
-          );
-        }
-
-        return ['txHash', 'status', 'mined', 'prevStatus', 'message', 'proofItems'];
-      }
-
-      // Editing milestone can be done by Campaign or Milestone Manager
-      if (data.status === MilestoneStatus.IN_PROGRESS) {
-        if (![milestone.ownerAddress, milestone.campaign.ownerAddress].includes(user.address)) {
-          throw new errors.Forbidden('Only the Milestone and Campaign Manager can edit milestone');
-        }
-        logger.info(`Editing milestone In Progress with id: ${milestone._id} by: ${user.address}`);
-        return editMilestoneKeysOnChain;
-      }
-      break;
-
-    case MilestoneStatus.NEEDS_REVIEW:
-      // Approve milestone completed by Campaign or Milestone Reviewer
-      if (data.status === MilestoneStatus.COMPLETED && data.mined === false) {
-        if (!reviewers.includes(user.address)) {
-          throw new errors.Forbidden(
-            'Only the Milestone or Campaign Reviewer can approve milestone has been completed',
-          );
-        }
-        logger.info(`Approving milestone complete with id: ${milestone._id} by: ${user.address}`);
-        return ['txHash', 'status', 'mined', 'prevStatus', 'message', 'proofItems'];
-      }
-
-      // Reject milestone completed by Campaign or Milestone Reviewer
-      if (data.status === MilestoneStatus.IN_PROGRESS) {
-        if (!reviewers.includes(user.address)) {
-          throw new errors.Forbidden(
-            'Only the Milestone or Campaign Reviewer can reject that milestone has been completed',
-          );
-        }
-        logger.info(`Rejecting milestone complete with id: ${milestone._id} by: ${user.address}`);
-        return ['status', 'mined', 'message', 'proofItems'];
-      }
-
-      // Cancel milestone by Campaign or Milestone Reviewer
-      if (data.status === MilestoneStatus.CANCELED && data.mined === false) {
-        if (!reviewers.includes(user.address)) {
-          throw new errors.Forbidden(
-            'Only the Milestone or Campaign Reviewer can cancel a milestone',
-          );
-        }
-        logger.info(
-          `Cancelling milestone with id: ${milestone._id} status: ${milestone.status} by: ${
-            user.address
-          }`,
-        );
-        return ['txHash', 'status', 'mined', 'prevStatus', 'message', 'proofItems'];
-      }
-
-      // Editing milestone can be done by Milestone or Campaign Manager
-      if (data.status === MilestoneStatus.NEEDS_REVIEW) {
-        if (![milestone.ownerAddress, milestone.campaign.ownerAddress].includes(user.address)) {
-          throw new errors.Forbidden('Only the Milestone and Campaign Manager can edit milestone');
-        }
-        logger.info(
-          `Editing milestone with id: ${milestone._id} status: ${milestone.status} by: ${
-            user.address
-          }`,
-        );
-        return editMilestoneKeysOnChain;
-      }
-      break;
-
-    // States that do not have any action
-    case MilestoneStatus.PENDING:
-    case MilestoneStatus.COMPLETED:
-    case MilestoneStatus.CANCELED:
-    default:
-      break;
-  }
-
-  // Unknown action, disallow everything
-  return [];
+const schema = {
+  include: [
+    {
+      service: 'users',
+      nameAs: 'owner',
+      parentField: 'ownerAddress',
+      childField: 'address',
+    },
+    {
+      service: 'users',
+      nameAs: 'reviewer',
+      parentField: 'reviewerAddress',
+      childField: 'address',
+    },
+    {
+      service: 'users',
+      nameAs: 'campaignReviewer',
+      parentField: 'campaignReviewerAddress',
+      childField: 'address',
+    },
+    {
+      service: 'users',
+      nameAs: 'recipient',
+      parentField: 'recipientAddress',
+      childField: 'address',
+    },
+    {
+      service: 'campaigns',
+      nameAs: 'campaign',
+      parentField: 'campaignId',
+      childField: '_id',
+    },
+  ],
 };
 
 const getMilestones = context => {
@@ -277,249 +116,6 @@ const restrict = () => context => {
   );
 };
 
-/**
- *
- * Conditionally sends a notification after patch or create
- *
- * */
-const sendNotification = () => async context => {
-  const { data, app, result, params } = context;
-  const { user } = params;
-
-  const _createConversion = (app, data, txHash, messageContext, user) => {
-    app
-      .service('conversations')
-      .create({
-        milestoneId: data._id,
-        message: data.message,
-        items: data.proofItems,
-        messageContext,
-        user,
-        txHash,
-      })
-      .then(res => logger.info('created conversation!', res._id))
-      .catch(e => logger.error('could not create conversation', e));
-  };
-
-  /**
-   * Notifications when a milestone get created
-   * */
-  if (context.method === 'create') {
-    if (result.status === MilestoneStatus.PROPOSED) {
-      try {
-        const campaign = await app.service('campaigns').get(data.campaignId);
-
-        Notifications.milestoneProposed(app, {
-          recipient: campaign.owner.email,
-          user: campaign.owner.name,
-          milestoneTitle: data.title,
-          campaignTitle: campaign.title,
-          amount: data.maxAmount,
-        });
-      } catch (e) {
-        logger.error('error sending proposed milestone notification', e);
-      }
-    }
-  }
-
-  /**
-   * Notifications when a milestone get patches
-   * This only gets triggered when the txHash is received through a milestone event
-   * Which basically means the event is really mined
-   * */
-  if (context.method === 'patch' && context.params.eventTxHash) {
-    if (
-      result.prevStatus === MilestoneStatus.PROPOSED &&
-      result.status === MilestoneStatus.IN_PROGRESS
-    ) {
-      _createConversion(app, result, context.params.eventTxHash, 'proposedAccepted', user);
-
-      // find the milestone owner and send a notification that his/her proposed milestone is approved
-      Notifications.proposedMilestoneAccepted(app, {
-        recipient: result.owner.email,
-        user: result.owner.name,
-        milestoneTitle: result.title,
-        amount: result.maxAmount,
-        txHash: result.txHash,
-        message: result.message,
-      });
-    }
-
-    if (result.status === MilestoneStatus.NEEDS_REVIEW) {
-      // find the milestone reviewer owner and send a notification that this milestone is been marked as complete and needs review
-      _createConversion(app, result, context.params.eventTxHash, result.status, user);
-
-      Notifications.milestoneRequestReview(app, {
-        recipient: result.reviewer.email,
-        user: result.reviewer.name,
-        milestoneTitle: result.title,
-        campaignTitle: result.campaign.title,
-        message: result.message,
-      });
-    }
-
-    if (result.status === MilestoneStatus.COMPLETED && result.mined) {
-      _createConversion(app, result, context.params.eventTxHash, result.status, user);
-
-      // find the milestone owner and send a notification that his/her milestone is marked complete
-      Notifications.milestoneMarkedCompleted(app, {
-        recipient: result.owner.email,
-        user: result.owner.name,
-        milestoneTitle: result.title,
-        campaignTitle: result.campaign.title,
-        message: result.message,
-      });
-    }
-
-    if (
-      result.prevStatus === MilestoneStatus.NEEDS_REVIEW &&
-      result.status === MilestoneStatus.IN_PROGRESS
-    ) {
-      _createConversion(app, result, context.params.eventTxHash, 'rejected', user);
-
-      // find the milestone reviewer and send a notification that his/her milestone has been rejected by reviewer
-      Notifications.milestoneReviewRejected(app, {
-        recipient: result.reviewer.email,
-        user: result.reviewer.name,
-        milestoneTitle: result.title,
-        campaignTitle: result.campaign.title,
-        message: result.message,
-      });
-    }
-
-    if (result.status === MilestoneStatus.CANCELED && result.mined) {
-      _createConversion(app, result, context.params.eventTxHash, result.status, user);
-
-      // find the milestone owner and send a notification that his/her milestone is canceled
-      Notifications.milestoneCanceled(app, {
-        recipient: result.owner.email,
-        user: result.owner.name,
-        milestoneTitle: result.title,
-        campaignTitle: result.campaign.title,
-        message: result.message,
-      });
-    }
-  }
-
-  if (context.method === 'patch' && !context.params.eventTxHash) {
-    if (
-      result.prevStatus === MilestoneStatus.PROPOSED &&
-      result.status === MilestoneStatus.REJECTED
-    ) {
-      _createConversion(app, result, 'proposedRejected', user);
-
-      // find the milestone owner and send a notification that his/her proposed milestone is rejected
-      Notifications.proposedMilestoneRejected(app, {
-        recipient: result.owner.email,
-        user: result.owner.name,
-        milestoneTitle: result.title,
-        campaignTitle: result.campaign.title,
-        message: result.message,
-      });
-    }
-
-    if (
-      result.prevStatus === MilestoneStatus.REJECTED &&
-      result.status === MilestoneStatus.PROPOSED
-    ) {
-      _createConversion(app, result, 'rePropose', user);
-    }
-  }
-};
-
-/** *
- * This function checks that the maxAmount in the milestone is based on the correct conversion rate of the milestone date
- * */
-const checkEthConversion = () => context => {
-  // abort check for internal calls
-  if (!context.params.provider) return context;
-
-  const { data, app } = context;
-  const { items } = data;
-
-  // skip check if the milestone has been already created
-  // FIXME: Even single expense should be stored in data.items. Unnecessary duplicity in code on both frontend and feathers.
-  if (!items && !data.fiatAmount && !data.maxAmount && !data.selectedFiatType) return context;
-
-  const calculateCorrectEther = (conversionRate, fiatAmount, etherToCheck, selectedFiatType) => {
-    logger.debug(
-      'calculating correct ether conversion',
-      conversionRate.rates[selectedFiatType],
-      fiatAmount,
-      etherToCheck,
-    );
-    // calculate the converion of the item, make sure that fiat-eth is correct
-    const rate = conversionRate.rates[selectedFiatType];
-    const ether = utils.toWei(new BigNumber(fiatAmount).div(rate).toFixed(18));
-
-    if (ether !== etherToCheck) {
-      throw new errors.Forbidden('Conversion rate is incorrect');
-    }
-  };
-
-  if (items && items.length > 0) {
-    // check total amount of milestone, make sure it is correct
-    const totalItemEtherAmount = items.reduce(
-      (sum, item) => sum.plus(new BigNumber(item.etherAmount)),
-      new BigNumber('0'),
-    );
-
-    if (utils.toWei(totalItemEtherAmount.toFixed(18)) !== data.maxAmount) {
-      throw new errors.Forbidden('Total amount in ether is incorrect');
-    }
-
-    // now check that the conversion rate for each milestone is correct
-    const promises = items.map(item =>
-      app
-        .service('ethconversion')
-        .find({ query: { date: item.date } })
-        .then(conversionRate => {
-          calculateCorrectEther(conversionRate, item.fiatAmount, item.wei, item.selectedFiatType);
-        }),
-    );
-
-    return Promise.all(promises).then(() => context);
-  }
-  // check that the conversion rate for the milestone is correct
-  return app
-    .service('ethconversion')
-    .find({ query: { date: data.date } })
-    .then(conversionRate => {
-      calculateCorrectEther(conversionRate, data.fiatAmount, data.maxAmount, data.selectedFiatType);
-      return context;
-    });
-};
-
-/**
- * This function checks that milestones and items are not created in the future, which we disallow at the moment
- * */
-const checkMilestoneDates = () => context => {
-  // abort check for internal calls
-  if (!context.params.provider) return context;
-
-  const { data } = context;
-  const { items } = data;
-
-  const today = new Date().setUTCHours(0, 0, 0, 0);
-  const todaysTimestamp = Math.round(today) / 1000;
-
-  const checkFutureTimestamp = requestedDate => {
-    const date = new Date(requestedDate);
-    const timestamp = Math.round(date) / 1000;
-
-    if (todaysTimestamp - timestamp < 0) {
-      throw new errors.Forbidden('Future items are not allowed');
-    }
-  };
-
-  if ((items && items.length) > 0) {
-    items.forEach(item => checkFutureTimestamp(item.date));
-  } else {
-    checkFutureTimestamp(data.date);
-  }
-  return context;
-};
-
 const address = [
   sanitizeAddress('pluginAddress', { required: true, validate: true }),
   sanitizeAddress(['reviewerAddress', 'campaignReviewerAddress', 'recipientAddress'], {
@@ -558,50 +154,14 @@ const storePrevState = () => context => {
 };
 
 /**
- * Stores the address of the user who patched (= performed action on) the milestone
+ * Capture the address of the user who patched (= performed action on) the milestone
  * */
-
 const performedBy = () => context => {
   // do not process internal calls as they have no user
   if (!context.params.provider) return context;
 
-  context.data.performedByAddress = context.params.user.address;
+  context.params.performedByAddress = context.params.user.address;
   return context;
-};
-
-const schema = {
-  include: [
-    {
-      service: 'users',
-      nameAs: 'owner',
-      parentField: 'ownerAddress',
-      childField: 'address',
-    },
-    {
-      service: 'users',
-      nameAs: 'reviewer',
-      parentField: 'reviewerAddress',
-      childField: 'address',
-    },
-    {
-      service: 'users',
-      nameAs: 'campaignReviewer',
-      parentField: 'campaignReviewerAddress',
-      childField: 'address',
-    },
-    {
-      service: 'users',
-      nameAs: 'recipient',
-      parentField: 'recipientAddress',
-      childField: 'address',
-    },
-    {
-      service: 'campaigns',
-      nameAs: 'campaign',
-      parentField: 'campaignId',
-      childField: '_id',
-    },
-  ],
 };
 
 module.exports = {

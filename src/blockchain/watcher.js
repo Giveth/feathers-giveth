@@ -112,7 +112,7 @@ const watcher = (app, eventHandler) => {
 
     const data = await eventService.find({ paginate: false, query: { logIndex, transactionHash } });
 
-    if (data.some(e => e.status !== EventStatus.WAITING )) {
+    if (data.some(e => e.status !== EventStatus.WAITING)) {
       logger.error(
         'RE-ORG ERROR: attempting to process newEvent, however the matching event has already started processing. Consider increasing the requiredConfirmations.',
         event,
@@ -127,7 +127,6 @@ const watcher = (app, eventHandler) => {
     }
 
     await eventService.create(Object.assign({}, event, { confirmations: 0 }));
-    logger.info('processNewEvent -> purging queue');
     queue.purge();
   }
 
@@ -157,14 +156,10 @@ const watcher = (app, eventHandler) => {
 
     // during a reorg, the same event can occur in quick succession, so we add everything to a
     // queue so they are processed synchronously
-    logger.info('adding processNewEvent to queue');
     queue.add(() => processNewEvent(event));
 
     // start processing the queued events if we haven't already
-    if (!queue.isProcessing()) {
-      logger.info('isProcessing = false -> purging queue');
-      queue.purge();
-    }
+    if (!queue.isProcessing()) queue.purge();
   }
 
   /**
@@ -175,7 +170,6 @@ const watcher = (app, eventHandler) => {
   async function processRemoveEvent(event) {
     const { id, transactionHash } = event;
 
-    logger.info('attempting to remove event:', event);
     await eventService.remove(null, {
       query: { id, transactionHash, status: EventStatus.WAITING },
     });
@@ -191,7 +185,6 @@ const watcher = (app, eventHandler) => {
         data,
       );
     }
-    logger.info('processRemoveEvent -> purging queue');
     queue.purge();
   }
 
@@ -201,14 +194,10 @@ const watcher = (app, eventHandler) => {
   function removeEvent(event) {
     // during a reorg, the same event can occur in quick succession, so we add everything to a
     // queue so they are processed synchronously
-    logger.info('adding processRemoveEvent to queue');
     queue.add(() => processRemoveEvent(event));
 
     // start processing the queued events if we haven't already
-    if (!queue.isProcessing()) {
-      logger.info('isProcessing = false -> purging queue');
-      queue.purge();
-    }
+    if (!queue.isProcessing()) queue.purge();
   }
 
   /**

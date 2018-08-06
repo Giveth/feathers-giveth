@@ -3,7 +3,7 @@ const createService = require('feathers-mongoose');
 const createModel = require('../../models/ethconversion.model');
 const hooks = require('./ethconversion.hooks');
 
-module.exports = function() {
+module.exports = function ethconversion() {
   const app = this;
   const Model = createModel(app);
   const paginate = app.get('paginate');

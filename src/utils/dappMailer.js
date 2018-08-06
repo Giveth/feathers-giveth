@@ -1,3 +1,5 @@
+/* eslint-disable no-param-reassign */
+
 const { utils } = require('web3');
 const logger = require('winston');
 const rp = require('request-promise');

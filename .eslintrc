@@ -7,21 +7,26 @@
     "node": true,
     "mocha": true
   },
-  "extends": ["airbnb-base", "plugin:prettier/recommended"],
+  "extends": ["airbnb-base", "plugin:prettier/recommended", "prettier", "prettier/standard"],
   "rules": {
     "no-underscore-dangle": 0,
-    "no-unused-vars": ["error", {
+    "no-param-reassign": [1, { "props": true, "ignorePropertyModificationsFor": ["context"] }],
+    "no-unused-vars": [
+      "error",
+      {
         "vars": "all",
         "args": "after-used",
         "ignoreRestSiblings": true,
         "argsIgnorePattern": "^_"
       }
     ],
-    "linebreak-style": "off",
-    "prettier/prettier": ["error", {
-      "singleQuote": true,
-      "trailingComma": "all",
-      "printWidth": 100
-    }]
+    "prettier/prettier": [
+      "error",
+      {
+        "singleQuote": true,
+        "trailingComma": "all",
+        "printWidth": 100
+      }
+    ]
   }
 }

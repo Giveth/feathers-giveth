@@ -8,12 +8,32 @@ const isProjectAllowed = require('../../hooks/isProjectAllowed');
 const addConfirmations = require('../../hooks/addConfirmations');
 const { CampaignStatus } = require('../../models/campaigns.model');
 
+const schema = {
+  include: [
+    {
+      service: 'users',
+      nameAs: 'owner',
+      parentField: 'ownerAddress',
+      childField: 'address',
+    },
+    {
+      service: 'users',
+      nameAs: 'reviewer',
+      parentField: 'reviewerAddress',
+      childField: 'address',
+    },
+  ],
+};
+
+/**
+ * restrict who can patch the campaign
+ */
 const restrict = () => context => {
   // internal call are fine
   if (!context.params.provider) return context;
 
   const { data, service } = context;
-  const user = context.params.user;
+  const { user } = context.params;
 
   if (!user) throw new errors.NotAuthenticated();
 
@@ -47,22 +67,6 @@ const restrict = () => context => {
   );
 };
 
-const schema = {
-  include: [
-    {
-      service: 'users',
-      nameAs: 'owner',
-      parentField: 'ownerAddress',
-      childField: 'address',
-    },
-    {
-      service: 'users',
-      nameAs: 'reviewer',
-      parentField: 'reviewerAddress',
-      childField: 'address',
-    },
-  ],
-};
 const countMilestones = (item, service) =>
   service
     .find({

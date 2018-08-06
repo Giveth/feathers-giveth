@@ -32,6 +32,7 @@ const checkReviewer = context => {
   } else {
     inWhitelist(items);
   }
+  return context;
 };
 
 const checkOwner = context => {
@@ -61,6 +62,7 @@ const checkOwner = context => {
   } else {
     inWhitelist(items);
   }
+  return context;
 };
 
 module.exports = () => context => {

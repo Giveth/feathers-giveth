@@ -8,6 +8,24 @@ const { DonationStatus } = require('../../models/donations.model');
 const updateEntity = async (context, donation) => {
   if (!donation.mined) return;
 
+  if (donation.isReturn) {
+    // update parentDonation entities to account for the return
+    context.app
+      .service('donations')
+      .find({
+        paginate: false,
+        query: {
+          _id: { $in: donation.parentDonations },
+        },
+      })
+      .then(donations =>
+        donations
+          // set isReturn = false b/c so we don't recursively update parent donations
+          .map(d => Object.assign({}, d, { isReturn: false }))
+          .forEach(d => updateEntity(context, d)),
+      );
+  }
+
   let serviceName;
   let id;
   const donationQuery = {
@@ -68,7 +86,9 @@ const updateEntity = async (context, donation) => {
     const fullyFunded =
       donation.ownerType === AdminTypes.MILESTONE && entity.maxAmount === totalDonated;
     const peopleCount = new Set(donations.map(d => d.giverAddress)).size;
-    const donationCount = donations.filter(d => ![DonationStatus.PAYING, DonationStatus.PAID].includes(d.status)).length;
+    const donationCount = donations.filter(
+      d => ![DonationStatus.PAYING, DonationStatus.PAID].includes(d.status),
+    ).length;
 
     await service.patch(entity._id, { donationCount, totalDonated, peopleCount, fullyFunded });
   } catch (error) {

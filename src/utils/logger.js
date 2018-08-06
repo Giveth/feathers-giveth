@@ -3,7 +3,7 @@ const logger = require('winston');
 /**
  * configures the winston logger
  */
-module.exports = function() {
+module.exports = function configureLogger() {
   logger.level = process.env.LOG_LEVEL || 'info';
 
   // replace log function to prettyPrint objects

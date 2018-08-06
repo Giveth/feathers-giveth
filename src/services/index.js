@@ -14,7 +14,7 @@ const ethconversion = require('./ethconversion/ethconversion.service.js');
 
 const conversations = require('./conversations/conversations.service.js');
 
-module.exports = function() {
+module.exports = function configure() {
   const app = this;
   app.configure(dacs);
   app.configure(milestones);

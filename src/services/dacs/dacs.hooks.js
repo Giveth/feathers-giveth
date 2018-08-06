@@ -81,6 +81,7 @@ const isDacAllowed = () => context => {
   } else {
     inWhitelist(items);
   }
+  return context;
 };
 
 module.exports = {
