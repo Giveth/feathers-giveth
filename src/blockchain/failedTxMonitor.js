@@ -342,10 +342,10 @@ const failedTxMonitor = (app, eventHandler) => {
 
       const topic = topics.find(t => t.hash === log.topics[0]);
 
-      if (topic.name === 'MilestoneAccepted') {
-        eventHandler.handle(decoders.milestone[topic.name](log));
-      } else {
+      if (['ProjectAdded', 'CancelProject'].includes(topic.name)) {
         eventHandler.handle(decoders.lp[topic.name](log));
+      } else {
+        eventHandler.handle(decoders.milestone[topic.name](log));
       }
     });
   }
