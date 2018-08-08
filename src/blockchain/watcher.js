@@ -106,19 +106,20 @@ const watcher = (app, eventHandler) => {
    * later after waiting for x number of confirmations (defined in config).
    *
    * @param {object} event the web3 log to process
+   * @param {boolean} isReprocess are we reprocessing the event?
    */
-  async function processNewEvent(event) {
+  async function processNewEvent(event, isReprocess = false) {
     const { logIndex, transactionHash } = event;
 
     const data = await eventService.find({ paginate: false, query: { logIndex, transactionHash } });
 
-    if (data.some(e => e.status !== EventStatus.WAITING)) {
+    if (!isReprocess && data.some(e => e.status !== EventStatus.WAITING)) {
       logger.error(
         'RE-ORG ERROR: attempting to process newEvent, however the matching event has already started processing. Consider increasing the requiredConfirmations.',
         event,
         data,
       );
-    } else if (data.length > 0) {
+    } else if (!isReprocess && data.length > 0) {
       logger.error(
         'attempting to process new event but found existing event with matching logIndex and transactionHash.',
         event,
@@ -151,12 +152,12 @@ const watcher = (app, eventHandler) => {
    * Handle new events as they are emitted, and add them to a queue for sequential
    * processing of events with the same id.
    */
-  function newEvent(event) {
-    setLastBlock(event.blockNumber);
+  function newEvent(event, isReprocess = false) {
+    if (!isReprocess) setLastBlock(event.blockNumber);
 
     // during a reorg, the same event can occur in quick succession, so we add everything to a
     // queue so they are processed synchronously
-    queue.add(() => processNewEvent(event));
+    queue.add(() => processNewEvent(event, isReprocess));
 
     // start processing the queued events if we haven't already
     if (!queue.isProcessing()) queue.purge();
@@ -423,6 +424,16 @@ const watcher = (app, eventHandler) => {
       subscribeApps();
       subscribeCappedMilestones();
       subscribeVault();
+    },
+
+    /**
+     * Add event for processing if it hasn't already been processed
+     *
+     * @param {object} event web3 event object
+     */
+    addEvent(event) {
+      console.log('adding event', event);
+      newEvent(event, true);
     },
 
     /**

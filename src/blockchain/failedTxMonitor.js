@@ -72,7 +72,11 @@ function getPending(app, service, query) {
 
 function getPendingDonations(app) {
   const query = {
-    $or: [{ status: DonationStatus.PENDING }, { pendingAmountRemaining: { $exists: true } }],
+    $or: [
+      { status: DonationStatus.PENDING },
+      { pendingAmountRemaining: { $exists: true } },
+      { mined: false },
+    ],
   };
   return getPending(app, 'donations', query);
 }
@@ -99,7 +103,7 @@ function getPendingMilestones(app) {
 /**
  * factory function for generating a failedTxMonitor.
  */
-const failedTxMonitor = (app, eventHandler) => {
+const failedTxMonitor = (app, eventWatcher) => {
   const web3 = app.getWeb3();
   const homeWeb3 = app.getHomeWeb3();
   const decoders = eventDecoders();
@@ -130,7 +134,7 @@ const failedTxMonitor = (app, eventHandler) => {
 
     if (logs.length === 0) {
       logger.error(
-        'donation has status === `Pending` but home transaction was successful -> donation:',
+        'donation has status === `Pending` but transaction was successful -> donation:',
         donation,
         'receipt:',
         receipt,
@@ -139,7 +143,7 @@ const failedTxMonitor = (app, eventHandler) => {
 
     logs.forEach(log => {
       logger.info(
-        'donation has status === `Pending` but home transaction was successful. re-emitting event donation:',
+        'donation has status === `Pending` but transaction was successful. re-emitting event donation:',
         donation,
         'receipt:',
         receipt,
@@ -147,7 +151,7 @@ const failedTxMonitor = (app, eventHandler) => {
 
       const topic = topics.find(t => t.hash === log.topics[0]);
 
-      eventHandler.handle(decoders.lp[topic.name](log));
+      eventWatcher.addEvent(decoders.lp[topic.name](log));
     });
   }
 
@@ -227,7 +231,7 @@ const failedTxMonitor = (app, eventHandler) => {
       );
 
       const topic = topics.find(t => t.hash === log.topics[0]);
-      eventHandler.handle(decoders.lp[topic.name](log));
+      eventWatcher.addEvent(decoders.lp[topic.name](log));
     });
   }
 
@@ -277,7 +281,7 @@ const failedTxMonitor = (app, eventHandler) => {
       );
 
       const topic = topics.find(t => t.hash === log.topics[0]);
-      eventHandler.handle(decoders.lp[topic.name](log));
+      eventWatcher.addEvent(decoders.lp[topic.name](log));
     });
   }
 
@@ -343,9 +347,9 @@ const failedTxMonitor = (app, eventHandler) => {
       const topic = topics.find(t => t.hash === log.topics[0]);
 
       if (['ProjectAdded', 'CancelProject'].includes(topic.name)) {
-        eventHandler.handle(decoders.lp[topic.name](log));
+        eventWatcher.addEvent(decoders.lp[topic.name](log));
       } else {
-        eventHandler.handle(decoders.milestone[topic.name](log));
+        eventWatcher.addEvent(decoders.milestone[topic.name](log));
       }
     });
   }
