@@ -38,20 +38,21 @@ function topicsFromArtifacts(artifacts, names) {
   return artifacts
     .reduce(
       (accumulator, artifact) =>
-        accumulator.push(
+        accumulator.concat(
           artifact.compilerOutput.abi.filter(
             method => method.type === 'event' && names.includes(method.name),
           ),
         ),
       [],
     )
-    .reduce((accumulator, event) => {
-      accumulator.push({
-        name: event.name,
-        hash: keccak256(`${event.name}(${event.inputs.map(i => i.type).join(',')})`),
-      });
-      return accumulator;
-    }, []);
+    .reduce(
+      (accumulator, event) =>
+        accumulator.concat({
+          name: event.name,
+          hash: keccak256(`${event.name}(${event.inputs.map(i => i.type).join(',')})`),
+        }),
+      [],
+    );
 }
 
 /**
@@ -341,10 +342,10 @@ const failedTxMonitor = (app, eventHandler) => {
 
       const topic = topics.find(t => t.hash === log.topics[0]);
 
-      if (topic.name === 'MilestoneAccepted') {
-        eventHandler.handle(decoders.milestone[topic.name](log));
-      } else {
+      if (['ProjectAdded', 'CancelProject'].includes(topic.name)) {
         eventHandler.handle(decoders.lp[topic.name](log));
+      } else {
+        eventHandler.handle(decoders.milestone[topic.name](log));
       }
     });
   }

@@ -21,7 +21,7 @@ module.exports = function init() {
   const normalizer = pledgeNormalizer(app);
   normalizer.start();
 
-  const txMonitor = failedTxMonitor(app, eventHandler);
+  const txMonitor = failedTxMonitor(app, handler);
   txMonitor.start();
 
   const watcher = eventWatcher(app, handler);
