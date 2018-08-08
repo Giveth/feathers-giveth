@@ -38,7 +38,7 @@ function topicsFromArtifacts(artifacts, names) {
   return artifacts
     .reduce(
       (accumulator, artifact) =>
-        accumulator.append(
+        accumulator.push(
           artifact.compilerOutput.abi.filter(
             method => method.type === 'event' && names.includes(method.name),
           ),
