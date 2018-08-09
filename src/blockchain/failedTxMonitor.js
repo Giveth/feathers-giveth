@@ -1,10 +1,10 @@
-const Contract = require('web3-eth-contract');
 const LiquidPledgingArtifact = require('giveth-liquidpledging/build/LiquidPledging.json');
 const logger = require('winston');
 const LPVaultArtifact = require('giveth-liquidpledging/build/LPVault.json');
 const LPPCappedMilestoneArtifact = require('lpp-capped-milestone/build/LPPCappedMilestone.json');
-const { keccak256 } = require('web3-utils');
 
+const eventDecodersFromArtifact = require('./lib/eventDecodersFromArtifact');
+const topicsFromArtifacts = require('./lib/topicsFromArtifacts');
 const { DacStatus } = require('../models/dacs.model');
 const { DonationStatus } = require('../models/donations.model');
 const { CampaignStatus } = require('../models/campaigns.model');
@@ -12,48 +12,6 @@ const { MilestoneStatus } = require('../models/milestones.model');
 
 const FIFTEEN_MINUTES = 1000 * 60 * 15;
 const TWO_HOURS = 1000 * 60 * 60 * 2;
-
-/**
- * @param {object} artifact solcpiler generated artifact for a solidity contract
- * @returns {object} map of event names => log decoder
- */
-function eventDecodersFromArtifact(artifact) {
-  return artifact.compilerOutput.abi.filter(method => method.type === 'event').reduce(
-    (decoders, event) =>
-      Object.assign({}, decoders, {
-        [event.name]: Contract.prototype._decodeEventABI.bind(event),
-      }),
-    {},
-  );
-}
-
-/**
- * Generate a list of topics, for any event in the artifacts.
- *
- * @param {array} artifacts array of solcpiler generated artifact for a solidity contract
- * @param {array} names list of events names to generate topics for
- * @returns {array} array of topics used to subscribe to the events for the contract
- */
-function topicsFromArtifacts(artifacts, names) {
-  return artifacts
-    .reduce(
-      (accumulator, artifact) =>
-        accumulator.concat(
-          artifact.compilerOutput.abi.filter(
-            method => method.type === 'event' && names.includes(method.name),
-          ),
-        ),
-      [],
-    )
-    .reduce(
-      (accumulator, event) =>
-        accumulator.concat({
-          name: event.name,
-          hash: keccak256(`${event.name}(${event.inputs.map(i => i.type).join(',')})`),
-        }),
-      [],
-    );
-}
 
 /**
  * get the log decoders for the events we are interested in
