@@ -34,7 +34,7 @@ const cappedMilestones = app => {
         // bug in contract will allow state to be "reverted"
         // we want to ignore that
         if (
-          [PAYING, PAID, CANCELED, COMPLETED].includes(data.status) &&
+          [PAYING, PAID, CANCELED, COMPLETED].includes(m.status) &&
           [NEEDS_REVIEW, REJECTED, IN_PROGRESS, CANCELED, COMPLETED].includes(status)
         ) {
           logger.info(
