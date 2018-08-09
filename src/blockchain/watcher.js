@@ -432,7 +432,6 @@ const watcher = (app, eventHandler) => {
      * @param {object} event web3 event object
      */
     addEvent(event) {
-      console.log('adding event', event);
       newEvent(event, true);
     },
 
