@@ -291,7 +291,7 @@ const pledges = (app, liquidPledging) => {
    * @param {object} transferInfo
    */
   async function isReturnTransfer(transferInfo) {
-    const { fromPledgeAdmin, toPledgeId, txHash, donations } = transferInfo;
+    const { fromPledge, fromPledgeAdmin, toPledgeId, txHash, donations } = transferInfo;
     // currently only milestones will can be over-funded
     if (fromPledgeAdmin.type !== AdminTypes.MILESTONE) return false;
 
@@ -304,7 +304,11 @@ const pledges = (app, liquidPledging) => {
     // Transfer(from: 1, to: 2, amount: 1000)
     // Transfer(from: 2, to: 1, amount: < 1000)
     return transferEventsInTx.some(
-      e => e.returnValues.from === toPledgeId && e.returnValues.to === from,
+      e =>
+        // it may go directly to fromPledge.oldPledge if this was delegated funds
+        // being returned b/c the intermediary pledge is the pledge w/ the intendedProject
+        [e.returnValues.from, fromPledge.oldPledge].includes(toPledgeId) &&
+        e.returnValues.to === from,
     );
   }
 
