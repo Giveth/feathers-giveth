@@ -1,5 +1,4 @@
 const path = require('path');
-const fs = require('fs');
 const winston = require('winston');
 require('winston-daily-rotate-file');
 const { SPLAT } = require('triple-beam');
@@ -61,15 +60,6 @@ module.exports = function configureLogger() {
   const logDir = app.get('logDir');
 
   if (logDir) {
-    fs.exists(
-      logDir,
-      exists =>
-        !exists &&
-        // eslint-disable-next-line no-console
-        console.error(
-          `Specified logDir ${logDir} in configuration file does not exist. This directory must exist before we can write logs`,
-        ),
-    );
     // - Write all logs error (and below) to `error.log`.
     config.transports.push(
       new winston.transports.DailyRotateFile({
