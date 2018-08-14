@@ -1,5 +1,5 @@
 const socketsConfig = require('./socketsConfig');
-const configureLogger = require('./utils/logger');
+const configureLogger = require('./utils/configureLogger');
 const logger = require('winston');
 
 const middleware = require('./middleware');
@@ -29,6 +29,8 @@ const app = express(feathers());
 // Load app configuration
 app.configure(configuration());
 
+app.configure(configureLogger);
+
 app.use(cors());
 
 app.use(helmet());
@@ -48,8 +50,6 @@ app.use('/', express.static(app.get('public')));
 app.configure(mongoose);
 app.configure(express.rest());
 app.configure(socketsConfig);
-
-app.configure(configureLogger);
 
 // Configure other middleware (see `middleware/index.js`)
 app.configure(middleware);
