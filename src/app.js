@@ -1,5 +1,6 @@
 const socketsConfig = require('./socketsConfig');
-const logger = require('./utils/logger');
+const configureLogger = require('./utils/logger');
+const logger = require('winston');
 
 const middleware = require('./middleware');
 const services = require('./services');
@@ -48,7 +49,7 @@ app.configure(mongoose);
 app.configure(express.rest());
 app.configure(socketsConfig);
 
-app.configure(logger);
+app.configure(configureLogger);
 
 // Configure other middleware (see `middleware/index.js`)
 app.configure(middleware);
@@ -60,7 +61,19 @@ app.configure(channels);
 app.configure(blockchain);
 // Configure a middleware for 404s and the error handler
 app.use(notFound());
-app.use(express.errorHandler());
+app.use(
+  express.errorHandler({
+    logger: {
+      error: e => {
+        if (e.name === 'NotFound') {
+          logger.warn(`404 - NotFound - ${e.data.url}`);
+        } else {
+          logger.error(e);
+        }
+      },
+    },
+  }),
+);
 
 app.hooks(appHooks);
 
