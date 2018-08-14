@@ -28,15 +28,7 @@ const app = express(feathers());
 // Load app configuration
 app.configure(configuration());
 
-// Enable and configure CORS, security, compression, favicon and body parsing
-const origin = app.get('env') === 'production' ? app.get('dappUrl') : '*';
-
-const corsOptions = {
-  origin,
-  optionsSuccessStatus: 200, // some legacy browsers (IE11, various SmartTVs) choke on 204
-};
-
-app.use(cors(corsOptions));
+app.use(cors());
 
 app.use(helmet());
 app.use(compress());
