@@ -24,6 +24,9 @@ const customFormatter = winston.format((info, opts) => {
     message += '';
   }
 
+  // return FeathersError before removing splat keys
+  if (info.type === 'FeathersError') return info;
+
   // splat keys are appended to the info object by default, we want to remove them
   Object.keys(info)
     .filter(k => !['level', 'message'].includes(k))
