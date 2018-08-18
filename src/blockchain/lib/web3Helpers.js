@@ -103,17 +103,22 @@ const getBlockTimestamp = async (web3, blockNumber) => {
 // upon successful re-connection, we re-start all listeners
 const reconnectOnEnd = (web3, nodeUrl) => {
   web3.currentProvider.on('end', e => {
+    if (web3.reconnectInterval) return;
+
     web3.emit(web3.DISCONNECT_EVENT);
     logger.error(`connection closed reason: ${e.reason}, code: ${e.code}`);
 
-    const intervalId = setInterval(() => {
+    web3.pingInterval = undefined;
+
+    web3.reconnectInterval = setInterval(() => {
       logger.info('attempting to reconnect');
 
       const newProvider = new web3.providers.WebsocketProvider(nodeUrl);
 
       newProvider.on('connect', () => {
         logger.info('successfully connected');
-        clearInterval(intervalId);
+        clearInterval(web3.reconnectInterval);
+        web3.reconnectInterval = undefined;
         // note: "connection not open on send()" will appear in the logs when setProvider is called
         // This is because web3.setProvider will attempt to clear any subscriptions on the currentProvider
         // before setting the newProvider. Our currentProvider has been disconnected, so thus the not open
@@ -133,7 +138,7 @@ function instantiateWeb3(nodeUrl) {
   if (w3.currentProvider.on) {
     w3.currentProvider.on('connect', () => {
       // keep geth node connection alive
-      setInterval(w3.eth.net.getId, 45 * 1000);
+      w3.pingInterval = setInterval(w3.eth.net.getId, 45 * 1000);
     });
 
     // attach the re-connection logic to the current web3 provider

@@ -21,11 +21,11 @@ module.exports = function init() {
   const normalizer = pledgeNormalizer(app);
   normalizer.start();
 
-  const txMonitor = failedTxMonitor(app, eventHandler);
-  txMonitor.start();
-
   const watcher = eventWatcher(app, handler);
   watcher.start();
+
+  const txMonitor = failedTxMonitor(app, watcher);
+  txMonitor.start();
 
   web3.on(web3.DISCONNECT_EVENT, () => {
     txMonitor.close();

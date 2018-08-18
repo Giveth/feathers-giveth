@@ -1,5 +1,6 @@
 const socketsConfig = require('./socketsConfig');
-const logger = require('./utils/logger');
+const configureLogger = require('./utils/configureLogger');
+const logger = require('winston');
 
 const middleware = require('./middleware');
 const services = require('./services');
@@ -28,15 +29,9 @@ const app = express(feathers());
 // Load app configuration
 app.configure(configuration());
 
-// Enable and configure CORS, security, compression, favicon and body parsing
-const origin = app.get('env') === 'production' ? app.get('dappUrl') : '*';
+app.configure(configureLogger);
 
-const corsOptions = {
-  origin,
-  optionsSuccessStatus: 200, // some legacy browsers (IE11, various SmartTVs) choke on 204
-};
-
-app.use(cors(corsOptions));
+app.use(cors());
 
 app.use(helmet());
 app.use(compress());
@@ -56,8 +51,6 @@ app.configure(mongoose);
 app.configure(express.rest());
 app.configure(socketsConfig);
 
-app.configure(logger);
-
 // Configure other middleware (see `middleware/index.js`)
 app.configure(middleware);
 app.configure(authentication);
@@ -68,7 +61,19 @@ app.configure(channels);
 app.configure(blockchain);
 // Configure a middleware for 404s and the error handler
 app.use(notFound());
-app.use(express.errorHandler());
+app.use(
+  express.errorHandler({
+    logger: {
+      error: e => {
+        if (e.name === 'NotFound') {
+          logger.warn(`404 - NotFound - ${e.data.url}`);
+        } else {
+          logger.error(e);
+        }
+      },
+    },
+  }),
+);
 
 app.hooks(appHooks);
 

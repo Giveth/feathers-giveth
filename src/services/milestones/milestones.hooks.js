@@ -128,7 +128,7 @@ const canDelete = () => context => {
   const isDeletable = milestone => {
     if (!milestone) throw new errors.NotFound();
 
-    if (!['proposed', 'rejected'].includes(milestone.status)) {
+    if (![MilestoneStatus.PROPOSED, MilestoneStatus.REJECTED].includes(milestone.status)) {
       throw new errors.Forbidden('only proposed milestones can be removed');
     }
   };

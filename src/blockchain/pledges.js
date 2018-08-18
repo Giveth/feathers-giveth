@@ -1,5 +1,8 @@
+const ForeignGivethBridgeArtifact = require('giveth-bridge/build/ForeignGivethBridge.json');
 const logger = require('winston');
 const { toBN } = require('web3-utils');
+const eventDecodersFromArtifact = require('./lib/eventDecodersFromArtifact');
+const topicsFromArtifacts = require('./lib/topicsFromArtifacts');
 const { getBlockTimestamp } = require('./lib/web3Helpers');
 const { CampaignStatus } = require('../models/campaigns.model');
 const { DonationStatus } = require('../models/donations.model');
@@ -148,6 +151,40 @@ const pledges = (app, liquidPledging) => {
   const pledgeAdmins = app.service('pledgeAdmins');
 
   /**
+   * Attempts to fetch the homeTxHash for an initial donation into lp.
+   *
+   * b/c we are using the bridge, we expect the ForeignGivethBridge Deposit event
+   * to occur in the same tx as the initial donation.
+   *
+   * @param {string} txHash txHash of the initialDonation to attempt to fetch a homeTxHash for
+   * @returns {string|undefined} homeTxHash if found
+   */
+  async function getHomeTxHash(txHash) {
+    const decoders = eventDecodersFromArtifact(ForeignGivethBridgeArtifact);
+
+    const [err, receipt] = await toWrapper(web3.eth.getTransactionReceipt(txHash));
+
+    if (err || !receipt) {
+      logger.error('Error fetching transaction, or no tx receipt found ->', err, receipt);
+      return undefined;
+    }
+
+    const topics = topicsFromArtifacts([ForeignGivethBridgeArtifact], ['Deposit']);
+
+    // get logs we're interested in.
+    const logs = receipt.logs.filter(log => topics.some(t => t.hash === log.topics[0]));
+
+    if (logs.length === 0) return undefined;
+
+    const log = logs[0];
+
+    const topic = topics.find(t => t.hash === log.topics[0]);
+    const event = decoders[topic.name](log);
+
+    return event.returnValues.homeTx;
+  }
+
+  /**
    * fetch donations for a pledge needed to fulfill the transfer amount
    *
    * lp will aggregate multiple donations by the same person to another entity
@@ -254,7 +291,7 @@ const pledges = (app, liquidPledging) => {
    * @param {object} transferInfo
    */
   async function isReturnTransfer(transferInfo) {
-    const { fromPledgeAdmin, toPledgeId, txHash, donations } = transferInfo;
+    const { fromPledge, fromPledgeAdmin, toPledgeId, txHash, donations } = transferInfo;
     // currently only milestones will can be over-funded
     if (fromPledgeAdmin.type !== AdminTypes.MILESTONE) return false;
 
@@ -267,7 +304,11 @@ const pledges = (app, liquidPledging) => {
     // Transfer(from: 1, to: 2, amount: 1000)
     // Transfer(from: 2, to: 1, amount: < 1000)
     return transferEventsInTx.some(
-      e => e.returnValues.from === toPledgeId && e.returnValues.to === from,
+      e =>
+        // it may go directly to fromPledge.oldPledge if this was delegated funds
+        // being returned b/c the intermediary pledge is the pledge w/ the intendedProject
+        [e.returnValues.from, fromPledge.oldPledge].includes(toPledgeId) &&
+        e.returnValues.to === from,
     );
   }
 
@@ -277,9 +318,15 @@ const pledges = (app, liquidPledging) => {
    * @param {object} transferInfo
    */
   async function createToDonation(transferInfo) {
-    const { donations } = transferInfo;
+    const { txHash, donations } = transferInfo;
     const isInitialTransfer = donations.length === 1 && donations[0].parentDonations.length === 0;
     const mutation = createToDonationMutation(transferInfo, await isReturnTransfer(transferInfo));
+
+    if (isInitialTransfer) {
+      // always set homeTx on mutation b/c ui checks if homeTxHash exists to check for initial donations
+      const homeTxHash = (await getHomeTxHash(txHash)) || 'unknown';
+      mutation.homeTxHash = homeTxHash;
+    }
     return createDonation(mutation, isInitialTransfer);
   }
 

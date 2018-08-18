@@ -1,10 +1,10 @@
-const Contract = require('web3-eth-contract');
 const LiquidPledgingArtifact = require('giveth-liquidpledging/build/LiquidPledging.json');
 const logger = require('winston');
 const LPVaultArtifact = require('giveth-liquidpledging/build/LPVault.json');
 const LPPCappedMilestoneArtifact = require('lpp-capped-milestone/build/LPPCappedMilestone.json');
-const { keccak256 } = require('web3-utils');
 
+const eventDecodersFromArtifact = require('./lib/eventDecodersFromArtifact');
+const topicsFromArtifacts = require('./lib/topicsFromArtifacts');
 const { DacStatus } = require('../models/dacs.model');
 const { DonationStatus } = require('../models/donations.model');
 const { CampaignStatus } = require('../models/campaigns.model');
@@ -12,47 +12,6 @@ const { MilestoneStatus } = require('../models/milestones.model');
 
 const FIFTEEN_MINUTES = 1000 * 60 * 15;
 const TWO_HOURS = 1000 * 60 * 60 * 2;
-
-/**
- * @param {object} artifact solcpiler generated artifact for a solidity contract
- * @returns {object} map of event names => log decoder
- */
-function eventDecodersFromArtifact(artifact) {
-  return artifact.compilerOutput.abi.filter(method => method.type === 'event').reduce(
-    (decoders, event) =>
-      Object.assign({}, decoders, {
-        [event.name]: Contract.prototype._decodeEventABI.bind(event),
-      }),
-    {},
-  );
-}
-
-/**
- * Generate a list of topics, for any event in the artifacts.
- *
- * @param {array} artifacts array of solcpiler generated artifact for a solidity contract
- * @param {array} names list of events names to generate topics for
- * @returns {array} array of topics used to subscribe to the events for the contract
- */
-function topicsFromArtifacts(artifacts, names) {
-  return artifacts
-    .reduce(
-      (accumulator, artifact) =>
-        accumulator.append(
-          artifact.compilerOutput.abi.filter(
-            method => method.type === 'event' && names.includes(method.name),
-          ),
-        ),
-      [],
-    )
-    .reduce((accumulator, event) => {
-      accumulator.push({
-        name: event.name,
-        hash: keccak256(`${event.name}(${event.inputs.map(i => i.type).join(',')})`),
-      });
-      return accumulator;
-    }, []);
-}
 
 /**
  * get the log decoders for the events we are interested in
@@ -71,7 +30,11 @@ function getPending(app, service, query) {
 
 function getPendingDonations(app) {
   const query = {
-    $or: [{ status: DonationStatus.PENDING }, { pendingAmountRemaining: { $exists: true } }],
+    $or: [
+      { status: DonationStatus.PENDING },
+      { pendingAmountRemaining: { $exists: true } },
+      { mined: false },
+    ],
   };
   return getPending(app, 'donations', query);
 }
@@ -98,7 +61,7 @@ function getPendingMilestones(app) {
 /**
  * factory function for generating a failedTxMonitor.
  */
-const failedTxMonitor = (app, eventHandler) => {
+const failedTxMonitor = (app, eventWatcher) => {
   const web3 = app.getWeb3();
   const homeWeb3 = app.getHomeWeb3();
   const decoders = eventDecoders();
@@ -129,7 +92,7 @@ const failedTxMonitor = (app, eventHandler) => {
 
     if (logs.length === 0) {
       logger.error(
-        'donation has status === `Pending` but home transaction was successful -> donation:',
+        'donation has status === `Pending` but transaction was successful -> donation:',
         donation,
         'receipt:',
         receipt,
@@ -138,7 +101,7 @@ const failedTxMonitor = (app, eventHandler) => {
 
     logs.forEach(log => {
       logger.info(
-        'donation has status === `Pending` but home transaction was successful. re-emitting event donation:',
+        'donation has status === `Pending` but transaction was successful. re-emitting event donation:',
         donation,
         'receipt:',
         receipt,
@@ -146,7 +109,7 @@ const failedTxMonitor = (app, eventHandler) => {
 
       const topic = topics.find(t => t.hash === log.topics[0]);
 
-      eventHandler.handle(decoders.lp[topic.name](log));
+      eventWatcher.addEvent(decoders.lp[topic.name](log));
     });
   }
 
@@ -226,7 +189,7 @@ const failedTxMonitor = (app, eventHandler) => {
       );
 
       const topic = topics.find(t => t.hash === log.topics[0]);
-      eventHandler.handle(decoders.lp[topic.name](log));
+      eventWatcher.addEvent(decoders.lp[topic.name](log));
     });
   }
 
@@ -276,7 +239,7 @@ const failedTxMonitor = (app, eventHandler) => {
       );
 
       const topic = topics.find(t => t.hash === log.topics[0]);
-      eventHandler.handle(decoders.lp[topic.name](log));
+      eventWatcher.addEvent(decoders.lp[topic.name](log));
     });
   }
 
@@ -341,10 +304,10 @@ const failedTxMonitor = (app, eventHandler) => {
 
       const topic = topics.find(t => t.hash === log.topics[0]);
 
-      if (topic.name === 'MilestoneAccepted') {
-        eventHandler.handle(decoders.milestone[topic.name](log));
+      if (['ProjectAdded', 'CancelProject'].includes(topic.name)) {
+        eventWatcher.addEvent(decoders.lp[topic.name](log));
       } else {
-        eventHandler.handle(decoders.lp[topic.name](log));
+        eventWatcher.addEvent(decoders.milestone[topic.name](log));
       }
     });
   }
