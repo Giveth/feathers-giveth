@@ -1,3 +1,4 @@
+const isIPFS = require('is-ipfs');
 const logger = require('winston');
 const to = require('../utils/to');
 
@@ -107,7 +108,13 @@ const givers = (app, liquidPledging) => {
 
           if (err) {
             logger.warn(`error fetching giver profile from ${giver.url}`, err);
-          } else if (profile && typeof profile === 'object') Object.assign(mutation, profile);
+          } else if (profile && typeof profile === 'object') {
+            app.ipfsPinner(giver.url);
+            if (profile.avatar && isIPFS.ipfsPath(profile.avatar)) {
+              app.ipfsPinner(profile.avatar);
+            }
+            Object.assign(mutation, profile);
+          }
         }
 
         await users.patch(user.address, mutation);

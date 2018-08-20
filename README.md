@@ -13,6 +13,7 @@ Welcome to the server code for Giveth's [dapp](https://github.com/Giveth/giveth-
   - [Install](#install)
   - [Run server](#run-server)
   - [Kill Ganache](#kill-ganache)
+  - [IPFS Support](#ipfs-support)
   - [Video Walkthrough](#video-walkthrough)
 - [Deploying](#deploying)
 - [Scripts](#scripts)
@@ -44,12 +45,14 @@ Welcome to the server code for Giveth's [dapp](https://github.com/Giveth/giveth-
     * note: due to a bug in yarn, `yarn install` currently does not work
 7. Install Mongo (we recommend installing via [Brew](https://treehouse.github.io/installation-guides/mac/mongo-mac.html))
 8. Run Mongo in a terminal window `mongod` or in the background `mongod --fork --syslog`
+9. (optionally) Install [IPFS](https://ipfs.io/docs/install/) (we recommend installing via [Brew](https://brew.sh/))
+  - If you don't install ipfs, image uploading will be affected. You can update the config `ipfsGateway` value to use a public ipfs gateway ex. [https://ipfs.io/ipfs/](https://ipfs.io/ipfs/), however your uploads will be removed at some point
 
 ### Run server
 The feathers server will need to connect to an ethereum node via websockets. Typically this will be a local TestRPC instance. 
 The configuration param `blockchain.nodeUrl` is used to establish a connection. The default nodeUrl is `ws://localhost:8545`
 
-1. We need to deploy any contract to that we intened to call. *NOTE:* The following cmd will clear the `data` dir, thus starting off in a clean state.
+1. We need to deploy any contract to that we intend to call. *NOTE:* The following cmd will clear the `data` dir, thus starting off in a clean state.
 
    ```
    yarn deploy-local
@@ -61,8 +64,14 @@ The configuration param `blockchain.nodeUrl` is used to establish a connection. 
     yarn start:networks
     ```
 3. Since the bridge & ganache-cli is now running, open a new terminal window and navigate to the same feathers-giveth directory.
+
+4. Optionally open a new terminal window and start the ipfs daemon
+
+   ```
+   ipfs daemon
+   ```
     
-4. Start your app
+5. Start your app
 
     ```
     yarn start
@@ -73,6 +82,9 @@ If you run into errors like wallet balance not loading, it is very likely that G
 `netstat -vanp tcp | grep 8545`
 Find the process that is listening on `*.8545` and `127.0.0.1.8545` and kill it with `kill -9 PID` (which is in the last colomn)
     
+### IPFS Support
+If the `ipfsApi` is a valid ipfs node that we can connect to, we will pin every ipfs hash that is stored in feathers. We currently do not remove any orphaned (hashes with no references in feathers) ipfs hashs. In the future we will provide a script that you can run as a cronjob to unpin any orphaned hashes.
+
 ### Video Walkthrough
 Video tutorial walkthrough here: https://tinyurl.com/y9lx6jrl
 
@@ -134,7 +146,7 @@ module.exports = {
     // First application
     {
       name: 'feathers',
-      script: 'build/index.js',
+      script: 'src/index.js',
       log_date_format: 'YYYY-MM-DD HH:mm',
       env: {
         COMMON_VARIABLE: 'true',

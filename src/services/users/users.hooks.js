@@ -61,8 +61,8 @@ module.exports = {
     find: [resolveFiles('avatar')],
     get: [resolveFiles('avatar')],
     create: [fundWallet(), resolveFiles('avatar')],
-    update: [notifyOfChange(...notifyParents)],
-    patch: [notifyOfChange(...notifyParents)],
+    update: [resolveFiles('avatar'), notifyOfChange(...notifyParents)],
+    patch: [resolveFiles('avatar'), notifyOfChange(...notifyParents)],
     remove: [notifyOfChange(...notifyParents)],
   },
 

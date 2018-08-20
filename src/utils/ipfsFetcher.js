@@ -13,8 +13,6 @@ module.exports = function init() {
   }
 
   app.ipfsFetcher = path => {
-    if (!ipfsGateway || ipfsGateway === '') return Promise.resolve();
-
     if (!isIPFS.path(path)) throw new Error(`${path} is not a valid ipfs path`);
 
     return rp({

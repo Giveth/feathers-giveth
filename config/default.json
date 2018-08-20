@@ -13,6 +13,7 @@
   "uploadsBaseUrl": "http://localhost:3030/uploads/",
   "logDir": "",
   "ipfsGateway": "http://localhost:8080/ipfs/",
+  "ipfsApi": "/ip4/127.0.0.1/tcp/5001",
   "blockchain": {
     "nodeUrl": "ws://localhost:8546",
     "homeNodeUrl": "ws://localhost:8545",

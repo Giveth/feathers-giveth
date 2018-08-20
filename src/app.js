@@ -9,6 +9,7 @@ const authentication = require('./authentication');
 const blockchain = require('./blockchain');
 const mongoose = require('./mongoose');
 const ipfsFetcher = require('./utils/ipfsFetcher');
+const ipfsPinner = require('./utils/ipfsPinner');
 
 const channels = require('./channels');
 
@@ -59,6 +60,7 @@ app.configure(channels);
 // blockchain must be initialized after services
 app.configure(blockchain);
 app.configure(ipfsFetcher);
+app.configure(ipfsPinner);
 // Configure a middleware for 404s and the error handler
 app.use(notFound());
 app.use(
