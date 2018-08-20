@@ -1,4 +1,5 @@
 const logger = require('winston');
+const to = require('../utils/to');
 
 const givers = (app, liquidPledging) => {
   const users = app.service('/users');
@@ -18,9 +19,9 @@ const givers = (app, liquidPledging) => {
   }
 
   async function addGiver(giver, giverId) {
-    const { commitTime, addr, name } = giver;
+    const { commitTime, addr, name, url } = giver;
 
-    let user = await getOrCreateUser(addr);
+    const user = await getOrCreateUser(addr);
 
     if (user.giverId > 0 && user.giverId !== Number(giverId)) {
       logger.error(
@@ -30,13 +31,7 @@ const givers = (app, liquidPledging) => {
       );
     }
 
-    const mutation = { commitTime, giverId };
-    if (!user.name) {
-      mutation.name = name;
-    }
-
-    user = await users.patch(user.address, mutation);
-    return user;
+    return users.patch(user.address, { name, commitTime, giverId, url });
   }
 
   async function getUserById(giverId) {
@@ -106,9 +101,13 @@ const givers = (app, liquidPledging) => {
           return addGiver(giver, giverId);
         }
 
-        const mutation = { commitTime: giver.commitTime };
-        if (giver.name && giver.name !== user.name) {
-          mutation.name = giver.name;
+        const mutation = { commitTime: giver.commitTime, name: giver.name, url: giver.url };
+        if (giver.url && giver.url !== user.url) {
+          const [err, profile] = await to(app.ipfsFetcher(giver.url));
+
+          if (err) {
+            logger.warn(`error fetching giver profile from ${giver.url}`, err);
+          } else if (profile && typeof profile === 'object') Object.assign(mutation, profile);
         }
 
         await users.patch(user.address, mutation);

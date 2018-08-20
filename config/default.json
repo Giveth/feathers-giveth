@@ -7,11 +7,12 @@
     "default": 25,
     "max": 100
   },
-  "mongodb": "mongodb://localhost:27017/giveth",  
+  "mongodb": "mongodb://localhost:27017/giveth",
   "nedb": "../data",
   "uploads": "../uploads",
   "uploadsBaseUrl": "http://localhost:3030/uploads/",
   "logDir": "",
+  "ipfsGateway": "http://localhost:8080/ipfs/",
   "blockchain": {
     "nodeUrl": "ws://localhost:8546",
     "homeNodeUrl": "ws://localhost:8545",
