@@ -40,6 +40,7 @@ const delegates = (app, liquidPledging) => {
           pluginAddress: delegate.plugin,
           title: delegate.name,
           commitTime: delegate.commitTime,
+          url: delegate.url,
           txHash,
           totalDonated: '0',
           donationCount: 0,
@@ -68,14 +69,14 @@ const delegates = (app, liquidPledging) => {
       // most likely b/c the whitelist check failed
       if (!dac) return;
 
-      const mutation = {
+      const profile = fetchProfile(delegate.url);
+      const mutation = Object.assign({ title: delegate.name }, profile, {
         delegateId,
         commitTime: delegate.commitTime,
         pluginAddress: delegate.plugin,
         status: DacStatus.ACTIVE,
-      };
-      const profile = fetchProfile(delegate.url);
-      if (profile) Object.assign(mutation, profile);
+        url: delegate.url,
+      });
 
       return dacs.patch(dac._id, mutation);
     } catch (err) {
@@ -131,8 +132,14 @@ const delegates = (app, liquidPledging) => {
         ]);
 
         const mutation = { title: delegate.name };
-        const profile = fetchProfile(delegate.url);
-        if (profile) Object.assign(mutation, profile);
+        if (delegate.url && delegate.url !== dac.url) {
+          const profile = fetchProfile(delegate.url);
+          Object.assign(mutation, profile);
+        }
+        Object.assign(mutation, {
+          commitTime: delegate.commitTime,
+          url: delegate.url,
+        });
 
         return dacs.patch(dac._id, mutation);
       } catch (err) {

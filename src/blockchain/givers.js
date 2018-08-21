@@ -46,9 +46,12 @@ const givers = (app, liquidPledging) => {
       );
     }
 
-    const mutation = { name, commitTime, giverId, url };
     const profile = fetchProfile(giver.url);
-    if (profile) Object.assign(mutation, profile);
+    const mutation = Object.assign({ name }, profile, {
+      commitTime,
+      giverId,
+      url,
+    });
 
     return users.patch(user.address, mutation);
   }
@@ -120,11 +123,15 @@ const givers = (app, liquidPledging) => {
           return addGiver(giver, giverId);
         }
 
-        const mutation = { commitTime: giver.commitTime, name: giver.name, url: giver.url };
+        const mutation = { name: giver.name };
         if (giver.url && giver.url !== user.url) {
           const profile = fetchProfile(giver.url);
-          if (profile) Object.assign(mutation, profile);
+          Object.assign(mutation, profile);
         }
+        Object.assign(mutation, {
+          commitTime: giver.commitTime,
+          url: giver.url,
+        });
 
         await users.patch(user.address, mutation);
       } catch (err) {

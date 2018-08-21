@@ -4,6 +4,7 @@ const errors = require('@feathersjs/errors');
 const sanitizeAddress = require('../../hooks/sanitizeAddress');
 const setAddress = require('../../hooks/setAddress');
 const sanitizeHtml = require('../../hooks/sanitizeHtml');
+const resolveFiles = require('../../hooks/resolveFiles');
 const isProjectAllowed = require('../../hooks/isProjectAllowed');
 const addConfirmations = require('../../hooks/addConfirmations');
 const { CampaignStatus } = require('../../models/campaigns.model');
@@ -126,11 +127,11 @@ module.exports = {
 
   after: {
     all: [commons.populate({ schema })],
-    find: [addMilestoneCounts(), addConfirmations()],
-    get: [addMilestoneCounts(), addConfirmations()],
-    create: [],
-    update: [],
-    patch: [],
+    find: [addMilestoneCounts(), addConfirmations(), resolveFiles('image')],
+    get: [addMilestoneCounts(), addConfirmations(), resolveFiles('image')],
+    create: [resolveFiles('image')],
+    update: [resolveFiles('image')],
+    patch: [resolveFiles('image')],
     remove: [],
   },
 
