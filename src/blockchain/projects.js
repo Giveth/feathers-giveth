@@ -140,6 +140,7 @@ const projects = (app, liquidPledging) => {
           conversionRate: 1,
           txHash: tx.transactionHash,
           pluginAddress: project.plugin,
+          url: project.url,
           totalDonated: '0',
           donationCount: 0,
           mined: true,
@@ -259,25 +260,24 @@ const projects = (app, liquidPledging) => {
         return;
       }
 
-      return milestones.patch(
-        milestone._id,
-        {
-          projectId,
-          maxAmount,
-          reviewerAddress: reviewer,
-          campaignReviewerAddress: campaignReviewer,
-          ownerAddress: manager,
-          recipientAddress: recipient,
-          title: project.name,
-          pluginAddress: project.plugin,
-          status: milestoneStatus(completed, canceled),
-          mined: true,
-        },
-        {
-          eventTxHash: txHash,
-          performedByAddress: tx.from,
-        },
-      );
+      const profile = fetchProfile(project.url);
+      const mutation = Object.assign({ title: project.name }, profile, {
+        projectId,
+        maxAmount,
+        reviewerAddress: reviewer,
+        campaignReviewerAddress: campaignReviewer,
+        ownerAddress: manager,
+        recipientAddress: recipient,
+        pluginAddress: project.plugin,
+        status: milestoneStatus(completed, canceled),
+        url: project.url,
+        mined: true,
+      });
+
+      return milestones.patch(milestone._id, mutation, {
+        eventTxHash: txHash,
+        performedByAddress: tx.from,
+      });
     } catch (error) {
       logger.error('addMilestone error: ', error);
     }
@@ -300,10 +300,19 @@ const projects = (app, liquidPledging) => {
       if (!milestone) {
         milestone = await addMilestone(project, projectId);
       }
-      return milestones.patch(milestone._id, {
+
+      const mutation = { title: project.name };
+      if (project.url && project.url !== milestone.url) {
+        const profile = fetchProfile(project.url);
+        Object.assign(mutation, profile);
+      }
+      Object.assign(mutation, {
         // ownerAddress: project.addr, // TODO project.addr is the milestone contract, need to fix
-        title: project.name,
+        commitTime: project.commitTime,
+        url: project.url,
       });
+
+      return milestones.patch(milestone._id, mutation);
     } catch (err) {
       logger.error('updateMilestone error ->', err);
     }

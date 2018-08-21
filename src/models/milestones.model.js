@@ -52,6 +52,7 @@ function Milestone(app) {
       peopleCount: { type: Number },
       mined: { type: Boolean },
       prevStatus: { type: String },
+      url: { type: String },
 
       // these 2 fields should not be stored in mongo
       // but we need them for temporary storage
