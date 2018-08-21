@@ -5,6 +5,20 @@ const to = require('../utils/to');
 const givers = (app, liquidPledging) => {
   const users = app.service('/users');
 
+  async function fetchProfile(url) {
+    const [err, profile] = await to(app.ipfsFetcher(url));
+
+    if (err) {
+      logger.warn(`error fetching giver profile from ${url}`, err);
+    } else if (profile && typeof profile === 'object') {
+      app.ipfsPinner(url);
+      if (profile.avatar && isIPFS.ipfsPath(profile.avatar)) {
+        app.ipfsPinner(profile.avatar);
+      }
+    }
+    return profile;
+  }
+
   async function getOrCreateUser(address) {
     try {
       return await users.get(address);
@@ -32,7 +46,11 @@ const givers = (app, liquidPledging) => {
       );
     }
 
-    return users.patch(user.address, { name, commitTime, giverId, url });
+    const mutation = { name, commitTime, giverId, url };
+    const profile = fetchProfile(giver.url);
+    if (profile) Object.assign(mutation, profile);
+
+    return users.patch(user.address, mutation);
   }
 
   async function getUserById(giverId) {
@@ -104,17 +122,8 @@ const givers = (app, liquidPledging) => {
 
         const mutation = { commitTime: giver.commitTime, name: giver.name, url: giver.url };
         if (giver.url && giver.url !== user.url) {
-          const [err, profile] = await to(app.ipfsFetcher(giver.url));
-
-          if (err) {
-            logger.warn(`error fetching giver profile from ${giver.url}`, err);
-          } else if (profile && typeof profile === 'object') {
-            app.ipfsPinner(giver.url);
-            if (profile.avatar && isIPFS.ipfsPath(profile.avatar)) {
-              app.ipfsPinner(profile.avatar);
-            }
-            Object.assign(mutation, profile);
-          }
+          const profile = fetchProfile(giver.url);
+          if (profile) Object.assign(mutation, profile);
         }
 
         await users.patch(user.address, mutation);
