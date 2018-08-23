@@ -32,7 +32,8 @@
     "serve": "pm2 startOrRestart ecosystem.config.js --env production",
     "mocha": "mocha test/ --recursive",
     "prettify": "prettier --write 'src/**/*.js*'",
-    "reset-db": "node scripts/resetDataBase.js"
+    "reset-db": "node scripts/resetDataBase.js",
+    "mongo": "mongod --fork --syslog"
   },
   "dependencies": {
     "@feathersjs/authentication": "2.1.7",
@@ -56,8 +57,8 @@
     "giveth-bridge": "1.0.5",
     "giveth-liquidpledging": "1.0.1",
     "helmet": "^3.8.1",
-    "is-ipfs": "^0.4.2",
     "ipfs-api": "^24.0.0",
+    "is-ipfs": "^0.4.2",
     "lerna": "^2.5.1",
     "lodash.merge": "^4.6.1",
     "lodash.omit": "^4.5.0",
@@ -81,7 +82,7 @@
     "web3-eth-contract": "1.0.0-beta.34",
     "web3-utils": "^1.0.0-beta.26",
     "winston": "^3.0.0",
-    "winston-daily-rotate-file": "^3.3.0"
+    "winston-daily-rotate-file": "^3.3.2"
   },
   "devDependencies": {
     "babel-polyfill": "^6.26.0",
