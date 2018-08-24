@@ -106,7 +106,7 @@ const getApprovedKeys = (milestone, data, user) => {
         }
         logger.info(`Marking milestone as complete. Milestone id: ${milestone._id}`);
 
-        return ['status', 'mined', 'message', 'proofItems'];
+        return ['txHash', 'status', 'mined', 'message', 'proofItems'];
       }
 
       // Cancel milestone by Campaign or Milestone Reviewer

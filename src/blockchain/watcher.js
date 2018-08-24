@@ -111,6 +111,7 @@ const watcher = (app, eventHandler) => {
   async function processNewEvent(event, isReprocess = false) {
     const { logIndex, transactionHash } = event;
 
+    logger.info('processNewEvent called', event.id);
     const data = await eventService.find({ paginate: false, query: { logIndex, transactionHash } });
 
     if (!isReprocess && data.some(e => e.status !== EventStatus.WAITING)) {
@@ -128,6 +129,7 @@ const watcher = (app, eventHandler) => {
     }
 
     await eventService.create(Object.assign({}, event, { confirmations: 0 }));
+    logger.info('processNewEvent finished', event.id);
     queue.purge();
   }
 
@@ -155,6 +157,7 @@ const watcher = (app, eventHandler) => {
   function newEvent(event, isReprocess = false) {
     if (!isReprocess) setLastBlock(event.blockNumber);
 
+    logger.info('newEvent called', event);
     // during a reorg, the same event can occur in quick succession, so we add everything to a
     // queue so they are processed synchronously
     queue.add(() => processNewEvent(event, isReprocess));
@@ -171,6 +174,7 @@ const watcher = (app, eventHandler) => {
   async function processRemoveEvent(event) {
     const { id, transactionHash } = event;
 
+    logger.info('processRemoveEvent called', id);
     await eventService.remove(null, {
       query: { id, transactionHash, status: EventStatus.WAITING },
     });
@@ -186,6 +190,7 @@ const watcher = (app, eventHandler) => {
         data,
       );
     }
+    logger.info('processRemoveEvent finished', id);
     queue.purge();
   }
 
@@ -193,6 +198,7 @@ const watcher = (app, eventHandler) => {
    * remove this event if it has yet to start processing
    */
   function removeEvent(event) {
+    logger.info('removeEvent called', event);
     // during a reorg, the same event can occur in quick succession, so we add everything to a
     // queue so they are processed synchronously
     queue.add(() => processRemoveEvent(event));
