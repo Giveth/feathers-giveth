@@ -54,9 +54,9 @@ module.exports = {
         <p>
           Thank you very much for your donation of ${data.amount}Ξ to the ${
         data.donationType
-      } <em>${data.donatedToTitle}</em>. 
-          With your donation we can really make this happen, and you play a vital part in making the world a better place!  
-        </p>        
+      } <em>${data.donatedToTitle}</em>.
+          With your donation we can really make this happen, and you play a vital part in making the world a better place!
+        </p>
       `,
       cta: 'Manage your Donations',
       ctaRelativeUrl: '/my-donations',
@@ -81,10 +81,10 @@ module.exports = {
       text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
-          You have received a donation of 
+          You have received a donation of
           <span>${data.amount}Ξ</span>
-          for your ${data.donationType} <em>${data.donatedToTitle}</em>. 
-        </p>        
+          for your ${data.donationType} <em>${data.donatedToTitle}</em>.
+        </p>
       `,
       cta: `Manage your ${data.donationType}`,
       ctaRelativeUrl: `/my-${data.donationType}s`,
@@ -109,14 +109,14 @@ module.exports = {
       text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
-          You have received a donation of 
+          You have received a donation of
           <span style="display: block; color: rgb(53, 184, 209); line-height: 72px; font-size: 48px;">${
             data.amount
           }Ξ</span>
-          for your ${data.donationType} <em>${data.donatedToTitle}</em>. 
+          for your ${data.donationType} <em>${data.donatedToTitle}</em>.
         </p>
         <p>
-          You need to delegate this money to a campaign or a milestone. 
+          You need to delegate this money to a campaign or a milestone.
           <strong>Please do so within the next 3 days.</strong>
         </p>
       `,
@@ -143,12 +143,12 @@ module.exports = {
         <p>
           A milestone <em>${data.milestoneTitle}</em> of ${
         data.amount
-      }Ξ has been proposed for your campaign of the campaign <em>${data.campaignTitle}</em>. 
-          If you think this is a great idea, then <strong>please approve this milestone within 3 days</strong> to add it to your campaign. 
+      }Ξ has been proposed for your campaign of the campaign <em>${data.campaignTitle}</em>.
+          If you think this is a great idea, then <strong>please approve this milestone within 3 days</strong> to add it to your campaign.
           If not, then please reject it.
         </p>
       `,
-      cta: `Approve Milestone`,
+      cta: `See the Milestone`,
       ctaRelativeUrl: `/my-milestones`,
       unsubscribeType: 'milestone-proposed',
       unsubscribeReason: `You receive this email because you run a campaign`,
@@ -235,7 +235,7 @@ module.exports = {
       }</em> has been marked as completed by the milestone owner.
           <br/><br/>
         </p>
-          Now is your moment to shine! 
+          Now is your moment to shine!
         </p>
         <p>
           Please contact the milestone owner and <strong>review the completion of this milestone within 3 days.</strong>
@@ -268,7 +268,7 @@ module.exports = {
       }</em> has been marked complete by the reviewer!.
           <br/><br/>
         </p>
-          The recipient can now transfer the funds out of this milestone! 
+          The recipient can now transfer the funds out of this milestone!
         </p>
       `,
       cta: `Manage Milestone`,
@@ -296,7 +296,7 @@ module.exports = {
         <p>
           The milestone completion <em>${data.milestoneTitle}</em> of the campaign <em>${
         data.campaignTitle
-      }</em> has been rejected by the reviewer. 
+      }</em> has been rejected by the reviewer.
         </p>
       `,
       cta: `Manage Milestone`,
@@ -322,7 +322,7 @@ module.exports = {
         <p>
           The milestone <em>${data.milestoneTitle}</em> of the campaign <em>${
         data.campaignTitle
-      }</em> has been canceled. 
+      }</em> has been canceled.
         </p>
       `,
       cta: `Manage Milestones`,

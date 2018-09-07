@@ -34,14 +34,15 @@ const cappedMilestones = app => {
         // bug in contract will allow state to be "reverted"
         // we want to ignore that
         if (
-          [PAYING, PAID, CANCELED, COMPLETED].includes(data.status) &&
-          [NEEDS_REVIEW, REJECTED, IN_PROGRESS, CANCELED, COMPLETED].includes(status)
+          ([PAYING, PAID, CANCELED].includes(m.status) &&
+            [NEEDS_REVIEW, REJECTED, IN_PROGRESS, CANCELED, COMPLETED].includes(status)) ||
+          (m.status === COMPLETED && [REJECTED, IN_PROGRESS, CANCELED].includes(status))
         ) {
           logger.info(
             'Ignoring milestone state reversion -> projectId:',
             projectId,
             '-> currentStatus:',
-            data.status,
+            m.status,
             '-> status:',
             status,
           );
