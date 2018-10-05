@@ -23,6 +23,7 @@ const getWhitelist = () => context => {
   const reviewers = app.get('useReviewerWhitelist') ? app.get('reviewerWhitelist') : [];
   const delegates = app.get('useDelegateWhitelist') ? app.get('delegateWhitelist') : [];
   const projectOwners = app.get('useProjectOwnerWhitelist') ? app.get('projectOwnerWhitelist') : [];
+  const tokenWhitelist = app.get('tokenWhitelist')
 
   // find all the users
   return Promise.all([
@@ -34,6 +35,7 @@ const getWhitelist = () => context => {
       reviewerWhitelist: reviewerUsers,
       delegateWhitelist: delegateUsers,
       projectOwnerWhitelist: projectOwnerUsers,
+      tokenWhitelist: tokenWhitelist
     };
 
     return context;

@@ -1,3 +1,5 @@
+const Token = require('./token.model');
+
 const DacStatus = {
   ACTIVE: 'Active',
   PENDING: 'Pending',
@@ -39,6 +41,7 @@ function createModel(app) {
       commitTime: { type: Number },
       mined: { type: Boolean },
       url: { type: String },
+      token: { type: Token }      
     },
     {
       timestamps: true,

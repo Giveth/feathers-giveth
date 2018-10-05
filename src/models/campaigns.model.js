@@ -1,3 +1,5 @@
+const Token = require('./token.model');
+
 const CampaignStatus = {
   ACTIVE: 'Active',
   PENDING: 'Pending',
@@ -37,6 +39,7 @@ function createModel(app) {
       url: { type: String },
       commitTime: { type: Number },
       communityUrl: { type: String },
+      token: { type: Token }
     },
     {
       timestamps: true,
