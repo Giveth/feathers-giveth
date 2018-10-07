@@ -43,6 +43,7 @@ const delegates = (app, liquidPledging) => {
           url: delegate.url,
           txHash,
           totalDonated: '0',
+          currentBalance: '0',
           donationCount: 0,
           description: 'Missing Description... Added outside of UI',
         });
