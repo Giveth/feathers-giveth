@@ -19,7 +19,8 @@ function createModel(app) {
       projectId: { type: Schema.Types.Long, index: true, unique: true }, // we can use Long here b/c lp only stores adminId in pledges as uint64
       image: { type: String, required: true },
       txHash: { type: String },
-      totalDonated: { type: Schema.Types.BN },
+      totalDonated: { type: Schema.Types.BN, min: 0 },
+      currentBalance: { type: Schema.Types.BN, min: 0 },
       donationCount: { type: Number },
       peopleCount: { type: Number },
       dacs: { type: [String] },
