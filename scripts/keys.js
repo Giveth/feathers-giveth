@@ -4,4 +4,5 @@ module.exports = {
   mainnet: '',
   ropsten: '',
   rinkeby: '',
+  bridge: '',
 };

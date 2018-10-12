@@ -1,9 +1,5 @@
 build
-scripts/keys.js
 scripts/deployGiveth.js
-scripts/deployBridge.js
-scripts/upgradeForeignBridge.js
-scripts/upgradeHomeBridge.js
 config
 !config/default.json
 ecosystem.config.js
