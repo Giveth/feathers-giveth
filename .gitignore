@@ -1,4 +1,5 @@
 build
+scripts/keys.js
 scripts/deployGiveth.js
 scripts/deployBridge.js
 scripts/upgradeForeignBridge.js
