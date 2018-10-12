@@ -12,17 +12,22 @@ const Dacs = db.collection('dacs')
 
 db.on('error', err => console.error('Could not connect to Mongo', err));
 
+
+const ETH = config.tokenWhitelist.find(t => t.symbol === 'ETH')
+const { name, address, symbol } = ETH
+
 /*
   Doing a raw db migration to make sure we don't change any timestamps!
 */
 
 const migrateMilestonesToTokens = () => {
-  return new Promise((resolve, reject) => 
+  return new Promise((resolve, reject) => {
     Milestones.updateMany({}, { 
       $set: { 
         token : {
-          name: Object.keys(config.tokenWhitelist[0])[0],
-          address: Object.values(config.tokenWhitelist[0])[0]
+          name: name,
+          address: address,
+          symbol: symbol
         }
       }
     })
@@ -34,7 +39,7 @@ const migrateMilestonesToTokens = () => {
         console.log("error migrating milestones ", err)
         reject()
       })
-    )
+    })
 }
 
 const migrateCampaignsToTokens = () => {
@@ -42,8 +47,9 @@ const migrateCampaignsToTokens = () => {
     Campaigns.updateMany({}, { 
       $set: { 
         token : {
-          name: Object.keys(config.tokenWhitelist[0])[0],
-          address: Object.values(config.tokenWhitelist[0])[0]
+          name: name,
+          address: address,
+          symbol: symbol
         }
       }
     })
@@ -63,8 +69,9 @@ const migrateDacsToTokens = () => {
     Dacs.updateMany({}, { 
       $set: { 
         token : {
-          name: Object.keys(config.tokenWhitelist[0])[0],
-          address: Object.values(config.tokenWhitelist[0])[0]
+          name: name,
+          address: address,
+          symbol: symbol
         }
       }
     })

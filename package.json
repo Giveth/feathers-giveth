@@ -26,7 +26,7 @@
     "eslint": "eslint src/. test/.",
     "eslint:fix": "eslint src/. test/. --fix",
     "deploy-local": "npm run reset-db && node scripts/deploy.js",
-    "start": "nodemon --inspect src",
+    "start": "nodemon",
     "start:networks": "node scripts/startBridge.js",
     "start:networks:debug": "LOG_LEVEL=debug node scripts/startBridge.js",
     "serve": "pm2 startOrRestart ecosystem.config.js --env production",

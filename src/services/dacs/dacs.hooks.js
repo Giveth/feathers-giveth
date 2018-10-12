@@ -85,13 +85,13 @@ const isDacAllowed = () => context => {
   return context;
 };
 
-const checkToken = context => {
+const checkToken = () => context => {
   const tokenWhitelist = context.app.get('tokenWhitelist');
 
   const items = commons.getItems(context);
 
   const inWhitelist = project => {
-    if (Object.values(tokenWhitelist).includes(project.token)) return;
+    if (tokenWhitelist.find(t => t.address === project.token)) return;
 
     throw new errors.BadRequest(
       `token ${project.token} is not in the whitelist`,

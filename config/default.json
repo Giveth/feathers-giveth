@@ -79,7 +79,8 @@
     "0xd03ea8624c8c5987235048901fb614fdca89b117"
   ],
   "tokenWhitelist": [ 
-    { "Home Ganache ETH": "0x5a42ca500aB159c51312B764bb25C135026e7a31" }
+    { "name": "Home Ganache ETH", "address": "0x5a42ca500aB159c51312B764bb25C135026e7a31", "symbol": "ETH"},
+    { "name": "CRW", "address": "0x5a42ca500aB159c51312B764bb25C135026e8a7d", "symbol": "CRW"}    
   ],
   "dappMailerUrl": "http://127.0.0.1:3050",
   "dappMailerSecret":
