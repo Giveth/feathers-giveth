@@ -79,8 +79,17 @@
     "0xd03ea8624c8c5987235048901fb614fdca89b117"
   ],
   "tokenWhitelist": [ 
-    { "name": "Home Ganache ETH", "address": "0x5a42ca500aB159c51312B764bb25C135026e7a31", "symbol": "ETH", "decimals": 18 },
-    { "name": "ANT", "address": "0x960b236A07cf122663c4303350609A66A7B288C0", "symbol": "ANT", "decimals": 18 }    
+    { 
+      "name": "Home Ganache ETH", 
+      "address": "0x5a42ca500aB159c51312B764bb25C135026e7a31", 
+      "symbol": "ETH", 
+      "decimals": 18, 
+    },
+    { "name": "ANT", 
+      "address": "0x960b236A07cf122663c4303350609A66A7B288C0", 
+      "symbol": "ANT", 
+      "decimals": 18, 
+    }    
   ],
   "dappMailerUrl": "http://127.0.0.1:3050",
   "dappMailerSecret":
