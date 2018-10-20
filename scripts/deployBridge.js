@@ -22,8 +22,8 @@ homeWeb3.eth.accounts.wallet.add(homeAccount);
 foreignWeb3.eth.accounts.wallet.add(foreignAccount);
 foreignWeb3.eth.accounts.wallet.add(bridgeAccount);
 
-const homeGasPrice = homeWeb3.utils.toWei('0.1', 'gwei');
-const foreignGasPrice = homeWeb3.utils.toWei('5.5', 'gwei');
+const homeGasPrice = homeWeb3.utils.toWei('6', 'gwei');
+const foreignGasPrice = foreignWeb3.utils.toWei('10', 'gwei');
 
 function getBlockAndBalance(w3, address) {
   return new Promise(async (resolve, reject) => {
@@ -131,16 +131,10 @@ function deploy() {
       .on('transactionHash', txHash => console.log('recoveryVault tx =>', txHash));
 
     const vaultAddress = r.events.DeployVault.returnValues.vault;
-    const vault = new LPVault(foreignWeb3, vaultAddress).catch(e => {
-      console.error('Error deploying vault');
-      reject(e);
-    });
+    const vault = new LPVault(foreignWeb3, vaultAddress);
 
     const lpAddress = r.events.DeployLiquidPledging.returnValues.liquidPledging;
-    const liquidPledging = new LiquidPledging(foreignWeb3, lpAddress).catch(e => {
-      console.error('Error deploying liquidPledging');
-      reject(e);
-    });
+    const liquidPledging = new LiquidPledging(foreignWeb3, lpAddress);
 
     nonce = await foreignWeb3.eth.getTransactionCount(foreignFrom);
 
@@ -157,10 +151,7 @@ function deploy() {
       });
     nonce += 1;
 
-    const kernel = new Kernel(foreignWeb3, await liquidPledging.kernel()).catch(e => {
-      console.error('Error deploying Kernel');
-      reject(e);
-    });
+    const kernel = new Kernel(foreignWeb3, await liquidPledging.kernel());
     const acl = new ACL(foreignWeb3, await kernel.acl());
     acl
       .createPermission(
@@ -327,6 +318,7 @@ function deploy() {
       .on('transactionHash', txHash => console.log('foreignBridge.addToken tx =>', txHash));
     const foreignEthAddress = await foreignBridge.tokenMapping(0);
 
+    console.log('-----------------------');
     console.log({
       homeBridge: homeBridge.$address,
       // homeToken: homeToken.$address,
@@ -381,14 +373,16 @@ async function runDeploy() {
     );
     console.log('-----------------------');
     console.log(
-      `Cost home: ${homeWeb3.utils
-        .toBN(homeBefore.balance)
-        .sub(homeWeb3.utils.toBN(homeAfter.balance))}`,
+      `Cost home: ${homeWeb3.utils.fromWei(
+        homeWeb3.utils.toBN(homeBefore.balance).sub(homeWeb3.utils.toBN(homeAfter.balance)),
+      )}`,
     );
     console.log(
-      `Cost foreigh: ${foreignWeb3.utils
-        .toBN(foreignBefore.balance)
-        .sub(homeWeb3.utils.toBN(foreignAfter.balance))}`,
+      `Cost foreigh: ${foreignWeb3.utils.fromWei(
+        foreignWeb3.utils
+          .toBN(foreignBefore.balance)
+          .sub(homeWeb3.utils.toBN(foreignAfter.balance)),
+      )}`,
     );
   } catch (e) {
     console.error(e);
