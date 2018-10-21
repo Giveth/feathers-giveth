@@ -62,18 +62,19 @@ function createFailedDonationSingleParentMutation(parentDonation, donation) {
   if (!pendingAmountRemaining) return {};
 
   pendingAmountRemaining = toBN(pendingAmountRemaining);
+  const amountPending = toBN(parentDonation.amountRemaining).sub(pendingAmountRemaining);
 
-  if (pendingAmountRemaining.eq(amount)) {
+  if (amountPending.eq(amount)) {
     mutation.$unset = { pendingAmountRemaining: true };
-  } else if (pendingAmountRemaining.lt(amount)) {
+  } else if (amountPending.lt(amount)) {
     logger.error(
-      'Failed donation w/ single parentDonation has amount > parentDonation.pendingAmountRemaining',
+      'Failed donation w/ single parentDonation has amount > (parentDonation.amountRemaining - parentDonation.pendingAmountRemaining)',
       donation,
       pendingAmountRemaining.toString(),
     );
     mutation.$unset = { pendingAmountRemaining: true };
   } else {
-    mutation.pendingAmountRemaining = pendingAmountRemaining.sub(amount).toString();
+    mutation.pendingAmountRemaining = pendingAmountRemaining.add(amount).toString();
   }
 
   return mutation;
@@ -139,19 +140,19 @@ const failedTxMonitor = (app, eventWatcher) => {
 
       // calculate remaining total & donation amountRemaining
       let pendingAmountRemaining = toBN(d.pendingAmountRemaining);
-      let amountPending = toBN(d.amount).sub(pendingAmountRemaining);
+      let amountPending = toBN(d.amountRemaining).sub(pendingAmountRemaining);
       if (remaining.gte(amountPending)) {
         remaining = remaining.sub(amountPending);
         amountPending = toBN(0);
       } else {
         pendingAmountRemaining = pendingAmountRemaining.add(remaining);
         remaining = toBN(0);
-      }
 
-      if (pendingAmountRemaining.gt(toBN(d.amount))) {
-        throw new Error(
-          `donation.pendingAmountRemaining is < donation.amount: ${JSON.stringify(d)}`,
-        );
+        if (pendingAmountRemaining.gt(toBN(d.amount))) {
+          throw new Error(
+            `donation.pendingAmountRemaining is < donation.amount: ${JSON.stringify(d)}`,
+          );
+        }
       }
 
       const mutation = amountPending.eqn(0)
@@ -162,13 +163,7 @@ const failedTxMonitor = (app, eventWatcher) => {
     });
   }
 
-  async function handlePendingDonation(
-    currentBlock,
-    donation,
-    receipt,
-    topics,
-    failedDonationMutation = {},
-  ) {
+  async function handlePendingDonation(currentBlock, donation, receipt, topics) {
     // reset the donation status if the tx has been pending for more then 2 hrs, otherwise ignore
     if (!receipt && donation.updatedAt <= Date.now() - TWO_HOURS) return;
     // ignore if there isn't enough confirmations
@@ -180,7 +175,10 @@ const failedTxMonitor = (app, eventWatcher) => {
       }
       app
         .service('donations')
-        .patch(donation._id, failedDonationMutation)
+        .patch(donation._id, {
+          status: DonationStatus.FAILED,
+          mined: true,
+        })
         .catch(logger.error);
       return;
     }
@@ -221,9 +219,7 @@ const failedTxMonitor = (app, eventWatcher) => {
     // event w/ homeTx === donation.homeTxHash and reprocess the event if necessary. This would require
     // re-deploying the ForeignGivethBridge w/ homeTx as an indexed event param
     if (!receipt) {
-      handlePendingDonation(currentBlock, donation, receipt, topics, {
-        status: DonationStatus.FAILED,
-      });
+      handlePendingDonation(currentBlock, donation, receipt, topics);
     } else {
       logger.error(
         'donation has status === `Pending` but home transaction was successful. Was the donation correctly bridged?',
