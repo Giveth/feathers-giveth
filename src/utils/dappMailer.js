@@ -22,7 +22,7 @@ const sendEmail = (app, data) => {
 
   // add host to subject for development
   if (!app.get('host').includes('beta')) {
-    data.subject = `[${app.get('host')}] - ` + data.subject
+    data.subject = `[${app.get('host')}] - ${data.subject}`;
   }
 
   rp({

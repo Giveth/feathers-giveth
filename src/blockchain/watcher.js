@@ -8,6 +8,7 @@ const processingQueue = require('../utils/processingQueue');
 const to = require('../utils/to');
 const { removeHexPrefix, getBlockTimestamp } = require('./lib/web3Helpers');
 const { EventStatus } = require('../models/events.model');
+const { DonationStatus } = require('../models/donations.model');
 
 /**
  * get the last block that we have gotten logs from
@@ -340,19 +341,22 @@ const watcher = (app, eventHandler) => {
   async function checkDonations() {
     const lastEvent = await eventService.find({
       paginate: false,
-      query: { $limit: 1, $sort: { createdAt: -1 } },
+      query: { $limit: 1, $sort: { blockNumber: -1 } },
     });
 
     const lastDonation = await app.service('donations').find({
       paginate: false,
-      query: { $limit: 1, $sort: { createdAt: -1 } },
+      query: {
+        $limit: 1,
+        mined: true,
+        status: { $nin: [DonationStatus.PENDING, DonationStatus.FAILED] },
+        $sort: { createdAt: -1 },
+      },
     });
 
-    console.log(lastDonation);
     if (lastDonation.length > 0) {
       const lastEventTs =
         lastEvent.length > 0 ? await getBlockTimestamp(web3, lastEvent[0].blockNumber) : 0;
-      console.log(lastEventTs);
       if (lastDonation[0].createdAt > lastEventTs) {
         logger.error(
           `It appears that you are attempting to reprocess events, or the events table has 
