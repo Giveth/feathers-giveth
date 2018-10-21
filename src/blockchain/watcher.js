@@ -347,11 +347,9 @@ const watcher = (app, eventHandler) => {
       query: { $limit: 1, $sort: { createdAt: -1 } },
     });
 
-    console.log(lastDonation);
     if (lastDonation.length > 0) {
       const lastEventTs =
         lastEvent.length > 0 ? await getBlockTimestamp(web3, lastEvent[0].blockNumber) : 0;
-      console.log(lastEventTs);
       if (lastDonation[0].createdAt > lastEventTs) {
         logger.error(
           `It appears that you are attempting to reprocess events, or the events table has 
