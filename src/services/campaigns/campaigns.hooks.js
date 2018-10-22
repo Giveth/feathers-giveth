@@ -5,7 +5,7 @@ const sanitizeAddress = require('../../hooks/sanitizeAddress');
 const setAddress = require('../../hooks/setAddress');
 const sanitizeHtml = require('../../hooks/sanitizeHtml');
 const resolveFiles = require('../../hooks/resolveFiles');
-const isProjectAllowed = require('../../hooks/isProjectAllowed');
+const { checkReviewer, checkOwner } = require('../../hooks/isProjectAllowed');
 const addConfirmations = require('../../hooks/addConfirmations');
 const { CampaignStatus } = require('../../models/campaigns.model');
 
@@ -113,7 +113,8 @@ module.exports = {
         required: true,
         validate: true,
       }),
-      isProjectAllowed(),
+      checkReviewer(),
+      checkOwner(),
       sanitizeHtml('description'),
     ],
     update: [commons.disallow()],

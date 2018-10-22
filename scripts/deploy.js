@@ -169,7 +169,7 @@ async function deploy() {
       0,
       'MiniMe Test Token',
       18,
-      'MMT',
+      'ANT',
       true
     );  
     
@@ -178,7 +178,7 @@ async function deploy() {
 
     const miniMeTokenState = new MiniMeTokenState(miniMeToken);    
     const st = await miniMeTokenState.getState()
-    homeAccounts.map(a => console.log('MMT balance of address ', a, ' > ', st.balances[a]));
+    homeAccounts.map(a => console.log('ANT balance of address ', a, ' > ', st.balances[a]));
 
     console.log('\n\n', {
       vault: vault.$address,
@@ -191,7 +191,7 @@ async function deploy() {
       miniMeToken: {
         "name": "MiniMe Token", 
         "address": miniMeToken.$address,
-        "symbol": "MMT", 
+        "symbol": "ANT", 
         "decimals": 18        
       }
     });

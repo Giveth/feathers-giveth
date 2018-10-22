@@ -87,8 +87,12 @@ const checkToken = context => {
 };
 
 
-module.exports = () => context => {
-  checkOwner(context);
-  checkReviewer(context);
-  checkToken(context);
+module.exports = {
+  isProjectAllowed: () => context => {
+    checkOwner(context);
+    checkReviewer(context);
+    checkToken(context);
+  },
+  checkOwner: () => context => checkOwner(context),
+  checkReviewer: () => context => checkReviewer(context)
 };
