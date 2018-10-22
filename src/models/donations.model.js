@@ -38,6 +38,7 @@ function Donation(app) {
       delegateId: { type: Schema.Types.Long }, // we can use Long here b/c lp only stores adminId in pledges as uint64
       delegateTypeId: { type: String },
       delegateType: { type: String },
+      campaignId: { type: String },
       status: {
         type: String,
         require: true,
