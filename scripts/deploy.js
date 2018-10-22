@@ -3,7 +3,7 @@ const Web3 = require('web3');
 const { Kernel, ACL, LPVault, LiquidPledging, LPFactory, test } = require('giveth-liquidpledging');
 const { LPPCampaign, LPPCampaignFactory } = require('lpp-campaign');
 const { LPPCappedMilestone, LPPCappedMilestoneFactory } = require('lpp-capped-milestone');
-const { MiniMeTokenFactory } = require('minimetoken');
+const { MiniMeTokenFactory, MiniMeToken, MiniMeTokenState } = require('minimetoken');
 const { GivethBridge, ForeignGivethBridge } = require('giveth-bridge');
 const startNetworks = require('./startNetworks');
 
@@ -23,6 +23,8 @@ async function deploy() {
     const foreignWeb3 = new Web3('http://localhost:8546');
 
     const accounts = await foreignWeb3.eth.getAccounts();
+    const homeAccounts = await homeWeb3.eth.getAccounts();
+
     const from = accounts[0];
 
     const baseVault = await LPVault.new(foreignWeb3);
@@ -160,6 +162,24 @@ async function deploy() {
     await foreignBridge.addToken(0, 'Foreign ETH', 18, 'FETH', { from: accounts[10] });
     const foreignEthAddress = await foreignBridge.tokenMapping(0);
 
+    // deploy ERC20 test token
+    const miniMeToken = await MiniMeToken.new(homeWeb3,
+      tokenFactory.$address,
+      0,
+      0,
+      'MiniMe Test Token',
+      18,
+      'MMT',
+      true
+    );  
+    
+    // generate tokens for all home accounts
+    await Promise.all(homeAccounts.map(async a => await miniMeToken.generateTokens(a, 10000)));
+
+    const miniMeTokenState = new MiniMeTokenState(miniMeToken);    
+    const st = await miniMeTokenState.getState()
+    homeAccounts.map(a => console.log('MMT balance of address ', a, ' > ', st.balances[a]));
+
     console.log('\n\n', {
       vault: vault.$address,
       liquidPledging: liquidPledging.$address,
@@ -168,6 +188,12 @@ async function deploy() {
       givethBridge: homeBridge.$address,
       foreignGivethBridge: foreignBridge.$address,
       homeEthToken: foreignEthAddress,
+      miniMeToken: {
+        "name": "MiniMe Token", 
+        "address": miniMeToken.$address,
+        "symbol": "MMT", 
+        "decimals": 18        
+      }
     });
     process.exit(); // some reason, this script won't exit. I think it has to do with web3 subscribing to tx confirmations?
   } catch (e) {

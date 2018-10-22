@@ -58,6 +58,8 @@ The configuration param `blockchain.nodeUrl` is used to establish a connection. 
    yarn deploy-local
    ```
 
+   After deploying local, make sure to copy-paste the MiniMeToken address in default.json
+
 2. We provide an easy way to start the bridge & 2 ganache-cli instances.
   
     ``` 

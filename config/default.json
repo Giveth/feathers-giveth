@@ -85,11 +85,11 @@
       "symbol": "ETH", 
       "decimals": 18
     },
-    { "name": "ANT", 
-      "address": "0x960b236A07cf122663c4303350609A66A7B288C0", 
-      "symbol": "ANT", 
+    { "name": "MiniMe Test Token", 
+      "address": "0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab", 
+      "symbol": "MMT", 
       "decimals": 18 
-    }    
+    }            
   ],
   "dappMailerUrl": "http://127.0.0.1:3050",
   "dappMailerSecret":
