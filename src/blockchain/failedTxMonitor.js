@@ -1,4 +1,5 @@
 const LiquidPledgingArtifact = require('giveth-liquidpledging/build/LiquidPledging.json');
+const { toBN } = require('web3-utils');
 const logger = require('winston');
 const LPVaultArtifact = require('giveth-liquidpledging/build/LPVault.json');
 const LPPCappedMilestoneArtifact = require('lpp-capped-milestone/build/LPPCappedMilestone.json');
@@ -30,11 +31,7 @@ function getPending(app, service, query) {
 
 function getPendingDonations(app) {
   const query = {
-    $or: [
-      { status: DonationStatus.PENDING },
-      { pendingAmountRemaining: { $exists: true } },
-      { mined: false },
-    ],
+    $or: [{ status: DonationStatus.PENDING }, { mined: false }],
   };
   return getPending(app, 'donations', query);
 }
@@ -58,6 +55,31 @@ function getPendingMilestones(app) {
   return getPending(app, 'milestones', query);
 }
 
+function createFailedDonationSingleParentMutation(parentDonation, donation) {
+  const amount = toBN(donation.amount);
+  const mutation = {};
+  let { pendingAmountRemaining } = parentDonation;
+  if (!pendingAmountRemaining) return {};
+
+  pendingAmountRemaining = toBN(pendingAmountRemaining);
+  const amountPending = toBN(parentDonation.amountRemaining).sub(pendingAmountRemaining);
+
+  if (amountPending.eq(amount)) {
+    mutation.$unset = { pendingAmountRemaining: true };
+  } else if (amountPending.lt(amount)) {
+    logger.error(
+      'Failed donation w/ single parentDonation has amount > (parentDonation.amountRemaining - parentDonation.pendingAmountRemaining)',
+      donation,
+      pendingAmountRemaining.toString(),
+    );
+    mutation.$unset = { pendingAmountRemaining: true };
+  } else {
+    mutation.pendingAmountRemaining = pendingAmountRemaining.add(amount).toString();
+  }
+
+  return mutation;
+}
+
 /**
  * factory function for generating a failedTxMonitor.
  */
@@ -67,22 +89,96 @@ const failedTxMonitor = (app, eventWatcher) => {
   const decoders = eventDecoders();
   const { requiredConfirmations } = app.get('blockchain');
 
-  async function handlePendingDonation(
-    currentBlock,
-    donation,
-    receipt,
-    topics,
-    failedDonationMutation,
-  ) {
+  async function updateFailedDonationParents(donation) {
+    const donationService = app.service('donations');
+    const parentIds = donation.parentDonations;
+
+    const parentDonations = await donationService.find({
+      paginate: false,
+      query: { _id: { $in: parentIds } },
+    });
+
+    let remaining = toBN(donation.amount);
+
+    if (parentIds.length === 1) {
+      const mutation = createFailedDonationSingleParentMutation(parentDonations[0], donation);
+      donationService.patch(parentDonations[0]._id, mutation);
+      return;
+    }
+
+    // if sum of all parentDonations.amountRemaining w/ pendingAmountRemaining == donation.amount
+    // we can just unset add pendingAmountRemaining on the parents
+    const totalAmountRemaining = parentDonations
+      .filter(d => !!d.pendingAmountRemaining)
+      .reduce((amounts, d) => amounts.add(toBN(d.amountRemaining)), toBN(0));
+
+    if (totalAmountRemaining.eq(remaining)) {
+      donationService.patch(
+        null,
+        { $unset: { pendingAmountRemaining: true } },
+        { query: { _id: { $in: parentIds } } },
+      );
+      return;
+    }
+
+    // TODO: there may be edge cases where this doesn't update correctly and should be further analyzed.
+    // sort any donations w/ pendingAmountRemaining > 0 first
+    parentDonations.sort((a, b) => {
+      const aPending = toBN(a.pendingAmountRemaining);
+      const bPending = toBN(b.pendingAmountRemaining);
+
+      if (aPending.eqn(0) && bPending.eqn(0)) return 0;
+      if (aPending.eqn(0)) return 1;
+      return -1;
+    });
+
+    parentDonations.forEach(async d => {
+      if (remaining.eqn(0)) {
+        logger.warn('too many parent Donations fetched. total is already 0', donation, parentIds);
+        return;
+      }
+
+      // calculate remaining total & donation amountRemaining
+      let pendingAmountRemaining = toBN(d.pendingAmountRemaining);
+      let amountPending = toBN(d.amountRemaining).sub(pendingAmountRemaining);
+      if (remaining.gte(amountPending)) {
+        remaining = remaining.sub(amountPending);
+        amountPending = toBN(0);
+      } else {
+        pendingAmountRemaining = pendingAmountRemaining.add(remaining);
+        remaining = toBN(0);
+
+        if (pendingAmountRemaining.gt(toBN(d.amount))) {
+          throw new Error(
+            `donation.pendingAmountRemaining is < donation.amount: ${JSON.stringify(d)}`,
+          );
+        }
+      }
+
+      const mutation = amountPending.eqn(0)
+        ? { $unset: { pendingAmountRemaining: true } }
+        : { pendingAmountRemaining };
+
+      await donationService.patch(d._id, mutation);
+    });
+  }
+
+  async function handlePendingDonation(currentBlock, donation, receipt, topics) {
     // reset the donation status if the tx has been pending for more then 2 hrs, otherwise ignore
     if (!receipt && donation.updatedAt <= Date.now() - TWO_HOURS) return;
     // ignore if there isn't enough confirmations
     if (receipt && currentBlock - receipt.blockNumber < requiredConfirmations) return;
 
     if (!receipt || !receipt.status) {
+      if (donation.parentDonations.length > 0) {
+        updateFailedDonationParents(donation);
+      }
       app
         .service('donations')
-        .patch(donation._id, failedDonationMutation)
+        .patch(donation._id, {
+          status: DonationStatus.FAILED,
+          mined: true,
+        })
         .catch(logger.error);
       return;
     }
@@ -123,9 +219,7 @@ const failedTxMonitor = (app, eventWatcher) => {
     // event w/ homeTx === donation.homeTxHash and reprocess the event if necessary. This would require
     // re-deploying the ForeignGivethBridge w/ homeTx as an indexed event param
     if (!receipt) {
-      handlePendingDonation(currentBlock, donation, receipt, topics, {
-        status: DonationStatus.FAILED,
-      });
+      handlePendingDonation(currentBlock, donation, receipt, topics);
     } else {
       logger.error(
         'donation has status === `Pending` but home transaction was successful. Was the donation correctly bridged?',
@@ -141,9 +235,7 @@ const failedTxMonitor = (app, eventWatcher) => {
 
     const topics = topicsFromArtifacts([LiquidPledgingArtifact], ['Transfer']);
 
-    handlePendingDonation(currentBlock, donation, receipt, topics, {
-      $unset: { pendingAmountRemaining: true },
-    });
+    handlePendingDonation(currentBlock, donation, receipt, topics);
   }
 
   async function updateDACIfFailed(currentBlock, dac) {

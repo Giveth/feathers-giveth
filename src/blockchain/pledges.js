@@ -266,7 +266,7 @@ const pledges = (app, liquidPledging) => {
     return donationService.patch(donations[0]._id, mutation);
   }
 
-  async function newDonation(pledgeId, amount, txHash) {
+  async function newDonation(pledgeId, amount, ts, txHash) {
     const pledge = await liquidPledging.getPledge(pledgeId);
     const giver = await getPledgeAdmin(pledge.owner);
 
@@ -280,10 +280,11 @@ const pledges = (app, liquidPledging) => {
       ownerType: giver.type,
       status: DonationStatus.WAITING, // waiting for delegation by owner
       mined: true,
+      createdAt: ts,
       txHash,
     };
 
-    return createDonation(mutation, txHash);
+    return createDonation(mutation, !!txHash);
   }
 
   /**
@@ -464,7 +465,7 @@ const pledges = (app, liquidPledging) => {
       const txHash = event.transactionHash;
       const ts = await getBlockTimestamp(web3, event.blockNumber);
       if (Number(from) === 0) {
-        const [err] = await toWrapper(newDonation(to, amount, txHash));
+        const [err] = await toWrapper(newDonation(to, amount, ts, txHash));
 
         if (err) {
           logger.error('newDonation error ->', err);
