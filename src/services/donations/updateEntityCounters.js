@@ -71,26 +71,32 @@ const updateEntity = async (context, donation) => {
       .service('donations')
       .find({ paginate: false, query: donationQuery });
 
-    const totalDonated = donations
-      .reduce(
-        (accumulator, d) =>
-          accumulator.add(
-            // use amountRemaining for milestones b/c excess will be sent back in case of over donation
-            toBN(donation.ownerType === AdminTypes.MILESTONE ? d.amountRemaining : d.amount),
-          ),
-        toBN(0),
-      )
-      .toString();
+    const { totalDonated, currentBalance } = donations.reduce(
+      (accumulator, d) => ({
+        totalDonated: accumulator.totalDonated.add(toBN(d.amount)),
+        currentBalance: accumulator.currentBalance.add(toBN(d.amountRemaining)),
+      }),
+      {
+        totalDonated: toBN(0),
+        currentBalance: toBN(0),
+      },
+    );
 
     // NOTE: Using === to compare as both of these are strings and amounts in wei
     const fullyFunded =
-      donation.ownerType === AdminTypes.MILESTONE && entity.maxAmount === totalDonated;
+      donation.ownerType === AdminTypes.MILESTONE && entity.maxAmount === currentBalance.toString();
     const peopleCount = new Set(donations.map(d => d.giverAddress)).size;
     const donationCount = donations.filter(
       d => ![DonationStatus.PAYING, DonationStatus.PAID].includes(d.status),
     ).length;
 
-    await service.patch(entity._id, { donationCount, totalDonated, peopleCount, fullyFunded });
+    await service.patch(entity._id, {
+      donationCount,
+      totalDonated,
+      currentBalance,
+      peopleCount,
+      fullyFunded,
+    });
   } catch (error) {
     logger.error(error);
   }
