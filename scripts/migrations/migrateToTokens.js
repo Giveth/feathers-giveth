@@ -9,9 +9,10 @@ const db = mongoose.connection;
 const Milestones = db.collection('milestones')
 const Campaigns = db.collection('campaigns')
 const Dacs = db.collection('dacs')
+const Donations = db.collection('donations')
 const ETHConversion = db.collection('ethconversions')
 
-db.on('error', err => console.error('Could not connect to Mongo', err));
+db.on('error', err => console.error('migrateToTokens > Could not connect to Mongo', err));
 
 
 const ETH = config.tokenWhitelist.find(t => t.symbol === 'ETH')
@@ -33,11 +34,11 @@ const migrateMilestonesToTokens = () => {
       }
     })
       .then( res => {
-        console.log(`migrated ${res.result.nModified} of total ${res.result.n} milestones`)
+        console.log(`migrateMilestonesToTokens > migrated ${res.result.nModified} of total ${res.result.n} milestones`)
         resolve()
       })
       .catch( err => {
-        console.log("error migrating milestones ", err)
+        console.log("migrateMilestonesToTokens > error migrating milestones ", err)
         reject()
       })
     })
@@ -55,11 +56,11 @@ const migrateCampaignsToTokens = () => {
       }
     })
       .then( res => {
-        console.log(`migrated ${res.result.nModified} of total ${res.result.n} campaigns`)
+        console.log(`migrateCampaignsToTokens > migrated ${res.result.nModified} of total ${res.result.n} campaigns`)
         resolve()
       })
       .catch( err => {
-        console.log("error migrating campaigns ", err)
+        console.log("migrateCampaignsToTokens > error migrating campaigns ", err)
         reject()
       })
     )
@@ -77,11 +78,34 @@ const migrateDacsToTokens = () => {
       }
     })
       .then( res => {
-        console.log(`migrated ${res.result.nModified} of total ${res.result.n} dacs`)
+        console.log(`migrateDacsToTokens > migrated ${res.result.nModified} of total ${res.result.n} dacs`)
         resolve()
       })
       .catch( err => {
-        console.log("error migrating dacs ", err)
+        console.log("migrateDacsToTokens > error migrating dacs ", err)
+        reject()
+      })
+    )
+}
+
+
+const migrateDonationsToTokens = () => {
+  return new Promise((resolve, reject) => 
+    Donations.updateMany({}, { 
+      $set: { 
+        token : {
+          name: name,
+          address: address,
+          symbol: symbol
+        }
+      }
+    })
+      .then( res => {
+        console.log(`migrateDonationsToTokens > migrated ${res.result.nModified} of total ${res.result.n} donations`)
+        resolve()
+      })
+      .catch( err => {
+        console.log("migrateDonationsToTokens > error migrating donations ", err)
         reject()
       })
     )
@@ -97,26 +121,26 @@ const migrateEthConversions = () => {
       .then(indexes => {
         if(Object.keys(indexes).includes('timestamp_1')) {
           ETHConversion.dropIndex('timestamp_1')
-            .then( res => console.log('dropped timestamp index on ethconversions'))
-            .catch( err => console.log('could not drop timestamp index on ethconversions'))
+            .then( res => console.log('migrateEthConversions > dropped timestamp index on ethconversions'))
+            .catch( err => console.log('migrateEthConversions > could not drop timestamp index on ethconversions'))
         } else {
-          console.log('index timestamp already dropped')
+          console.log('migrateEthConversions > index timestamp already dropped')
         }
       })
-      .catch(err => console.log('could not get indexes'))
+      .catch(err => console.log('migrateEthConversions > could not get indexes'))
 
     ETHConversion
       .getIndexes()
       .then(indexes => {
         if(!Object.keys(indexes).includes('timestamp_1_symbol_1')) {
           ETHConversion.createIndex({ timestamp: 1, symbol: 1}, { unique: true })
-            .then( res => console.log('created symbol/timestamp index on ethconversions'))
-            .catch( err => console.log('could not create symbol/timestamp index on ethconversions'))            
+            .then( res => console.log('migrateEthConversions > created symbol/timestamp index on ethconversions'))
+            .catch( err => console.log('migrateEthConversions > could not create symbol/timestamp index on ethconversions'))            
         } else {
-          console.log('index timestamp/symbol already created')
+          console.log('migrateEthConversions > index timestamp/symbol already created')
         }
       })
-      .catch(err => console.log('could not get indexes'))
+      .catch(err => console.log('migrateEthConversions > could not get indexes'))
 
     ETHConversion
       .updateMany({}, {
@@ -125,11 +149,11 @@ const migrateEthConversions = () => {
         }
       })
       .then(res => {
-        console.log(`migrated ${res.result.nModified} of total ${res.result.n} ethconversions`)
+        console.log(`EthConversions > migrated ${res.result.nModified} of total ${res.result.n} ethconversions`)
         resolve()
       })
       .catch( err => {
-        console.log("error migrating ethconversions ", err)
+        console.log("EthConversions > error migrating ethconversions ", err)
         reject()
       })
   })
@@ -146,6 +170,7 @@ db.once('open', () => {
     migrateMilestonesToTokens(), 
     migrateCampaignsToTokens(), 
     migrateDacsToTokens(),
+    migrateDonationsToTokens(),
     migrateEthConversions(),
   ])
     .then( res => process.exit())
