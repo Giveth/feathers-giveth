@@ -6,7 +6,6 @@ const { LPPCappedMilestone, LPPCappedMilestoneFactory } = require('lpp-capped-mi
 const { MiniMeTokenFactory, MiniMeToken, MiniMeTokenState } = require('minimetoken');
 const { GivethBridge, ForeignGivethBridge } = require('giveth-bridge');
 const startNetworks = require('./startNetworks');
-
 const { RecoveryVault } = test;
 
 // NOTE: do not use the bridge account (account[10]) for any txs outside of the bridge
@@ -169,16 +168,23 @@ async function deploy() {
       0,
       'MiniMe Test Token',
       18,
-      'ANT',
+      'MMT',
       true
     );  
     
     // generate tokens for all home accounts
-    await Promise.all(homeAccounts.map(async a => await miniMeToken.generateTokens(a, 10000)));
+    // we first generate all tokens, then transfer, otherwise MetaMask will not show token balances
+    await miniMeToken.generateTokens(homeAccounts[10], Web3.utils.toWei("100000"))
+
+    // transfer tokens to all other home accounts, so that Meta mask will detect these tokens
+    res = await Promise.all(homeAccounts.map(async a => await miniMeToken.transfer(a, Web3.utils.toWei("10000"), { from: homeAccounts[10] })));
 
     const miniMeTokenState = new MiniMeTokenState(miniMeToken);    
     const st = await miniMeTokenState.getState()
-    homeAccounts.map(a => console.log('ANT balance of address ', a, ' > ', st.balances[a]));
+    homeAccounts.map(a => console.log('MMT balance of address ', a, ' > ', Web3.utils.fromWei(st.balances[a])));
+
+    // whitelist MMT token
+    await homeBridge.whitelistToken(miniMeToken.$address, true, { from: accounts[10] })
 
     console.log('\n\n', {
       vault: vault.$address,
@@ -191,7 +197,7 @@ async function deploy() {
       miniMeToken: {
         "name": "MiniMe Token", 
         "address": miniMeToken.$address,
-        "symbol": "ANT", 
+        "symbol": "MMT", 
         "decimals": 18        
       }
     });

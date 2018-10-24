@@ -7,8 +7,6 @@ const mongoUrl = 'mongodb://localhost:27017/giveth'
 mongoose.connect(mongoUrl);
 const db = mongoose.connection;
 const Milestones = db.collection('milestones')
-const Campaigns = db.collection('campaigns')
-const Dacs = db.collection('dacs')
 const Donations = db.collection('donations')
 const ETHConversion = db.collection('ethconversions')
 
@@ -43,51 +41,6 @@ const migrateMilestonesToTokens = () => {
       })
     })
 }
-
-const migrateCampaignsToTokens = () => {
-  return new Promise((resolve, reject) => 
-    Campaigns.updateMany({}, { 
-      $set: { 
-        token : {
-          name: name,
-          address: address,
-          symbol: symbol
-        }
-      }
-    })
-      .then( res => {
-        console.log(`migrateCampaignsToTokens > migrated ${res.result.nModified} of total ${res.result.n} campaigns`)
-        resolve()
-      })
-      .catch( err => {
-        console.log("migrateCampaignsToTokens > error migrating campaigns ", err)
-        reject()
-      })
-    )
-}
-
-const migrateDacsToTokens = () => {
-  return new Promise((resolve, reject) => 
-    Dacs.updateMany({}, { 
-      $set: { 
-        token : {
-          name: name,
-          address: address,
-          symbol: symbol
-        }
-      }
-    })
-      .then( res => {
-        console.log(`migrateDacsToTokens > migrated ${res.result.nModified} of total ${res.result.n} dacs`)
-        resolve()
-      })
-      .catch( err => {
-        console.log("migrateDacsToTokens > error migrating dacs ", err)
-        reject()
-      })
-    )
-}
-
 
 const migrateDonationsToTokens = () => {
   return new Promise((resolve, reject) => 
@@ -164,12 +117,10 @@ const migrateEthConversions = () => {
 // once mongo connected, start migration
 db.once('open', () => {
   console.log('Connected to Mongo');
-  console.log('Migration: adding token properties to milestones, campaigns, dacs')
+  console.log('Migration: adding token properties to milestones, donations and ethconversions')
 
   Promise.all([ 
     migrateMilestonesToTokens(), 
-    migrateCampaignsToTokens(), 
-    migrateDacsToTokens(),
     migrateDonationsToTokens(),
     migrateEthConversions(),
   ])
