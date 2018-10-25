@@ -186,6 +186,9 @@ async function deploy() {
     // whitelist MMT token
     await homeBridge.whitelistToken(miniMeToken.$address, true, { from: accounts[10] })
 
+    // add token on foreign
+    await foreignBridge.addToken(miniMeToken.$address, 'MiniMe Test Token', 18, 'MMT', { from: accounts[10] })
+
     console.log('\n\n', {
       vault: vault.$address,
       liquidPledging: liquidPledging.$address,
