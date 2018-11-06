@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const config = require("../../config/default.json");
+const DonationCounter = require('../../src/models/donationCounter.model')
 
 const Schema = mongoose.Schema;
 const mongoUrl = 'mongodb://localhost:27017/giveth'
@@ -7,6 +8,8 @@ const mongoUrl = 'mongodb://localhost:27017/giveth'
 mongoose.connect(mongoUrl);
 const db = mongoose.connection;
 const Milestones = db.collection('milestones')
+const DACs = db.collection('dacs')
+const Campaigns = db.collection('campaigns')
 const Donations = db.collection('donations')
 const ETHConversion = db.collection('ethconversions')
 
@@ -41,6 +44,82 @@ const migrateMilestonesToTokens = () => {
       })
     })
 }
+
+
+const migrateDACsToTokens = () => {
+  return new Promise((resolve, reject) =>
+    DACs.find({}).toArray((err, dacs) =>
+      dacs.map(dac => {
+        DACs.updateOne({ _id: dac._id }, {
+          $set: {
+            donationCounters: [ {
+              name: "Ether",
+              address: "0x0",
+              symbol: 'ETH', 
+              decimals: 18,
+              totalDonated: dac.totalDonated,
+              currentBalance: dac.currentBalance,
+              donationCount: dac.donationCount,                  
+            }]
+          },
+          // $unset: {
+          //   totalDonated: "",
+          //   currentBalance: "",
+          //   donationCount: "",
+          // }
+        })
+        .then( res => {
+          console.log(`migrateDACsToTokens > migrated ${dac._id}`)
+          resolve()
+        })
+        .catch( err => {
+          console.log(`migrateDACsToTokens > error migrating dac ${dac._id}`, err)
+          reject()
+        })       
+      })
+    )
+  )       
+}
+
+
+
+const migrateCampaignsToTokens = () => {
+  return new Promise((resolve, reject) =>
+    Campaigns.find({}).toArray((err, campaigns) =>
+      campaigns.map(campaign => {
+        Campaigns.updateOne({ _id: campaign._id }, {
+          $set: {
+            donationCounters: [ {
+              name: "Ether",
+              address: "0x0",
+              symbol: 'ETH', 
+              decimals: 18,
+              totalDonated: campaign.totalDonated,
+              currentBalance: campaign.currentBalance,
+              donationCount: campaign.donationCount,                  
+            }]
+          },
+          // $unset: {
+          //   totalDonated: "",
+          //   currentBalance: "",
+          //   donationCount: "",
+          // }
+        })
+        .then( res => {
+          console.log(`migrateCampaignsToTokens > migrated ${campaign._id}`)
+          resolve()
+        })
+        .catch( err => {
+          console.log(`migrateCampaignsToTokens > error migrating campaign ${campaign._id}`, err)
+          reject()
+        })       
+      })
+    )
+  )       
+}
+
+
+
 
 const migrateDonationsToTokens = () => {
   return new Promise((resolve, reject) => 
@@ -117,13 +196,15 @@ const migrateEthConversions = () => {
 // once mongo connected, start migration
 db.once('open', () => {
   console.log('Connected to Mongo');
-  console.log('Migration: adding token properties to milestones, donations and ethconversions')
+  console.log('Migration: adding token properties to dacs, campaigns, milestones, donations and ethconversions')
 
   Promise.all([ 
-    migrateMilestonesToTokens(), 
-    migrateDonationsToTokens(),
-    migrateEthConversions(),
+    migrateDACsToTokens(),
+    migrateCampaignsToTokens(),
+    // migrateMilestonesToTokens(), 
+    // migrateDonationsToTokens(),
+    // migrateEthConversions(),
   ])
     .then( res => process.exit())
-    .catch( err => process.exit())
+    .catch( err => { console.log(err); process.exit()})
 });

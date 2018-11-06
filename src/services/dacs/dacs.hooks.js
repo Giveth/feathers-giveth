@@ -85,27 +85,6 @@ const isDacAllowed = () => context => {
   return context;
 };
 
-const checkToken = () => context => {
-  const tokenWhitelist = context.app.get('tokenWhitelist');
-
-  const items = commons.getItems(context);
-
-  const inWhitelist = project => {
-    if (tokenWhitelist.find(t => t.address === project.token.address)) return;
-
-    throw new errors.BadRequest(
-      `token ${project.token} is not in the whitelist`,
-    );
-  };
-
-  if (Array.isArray(items)) {
-    items.forEach(inWhitelist);
-  } else {
-    inWhitelist(items);
-  }
-  return context;
-};
-
 
 module.exports = {
   before: {
@@ -115,7 +94,6 @@ module.exports = {
     create: [
       setAddress('ownerAddress'),
       isDacAllowed(),
-      checkToken(),
       sanitizeAddress('ownerAddress', { required: true, validate: true }),
       sanitizeHtml('description'),
     ],
