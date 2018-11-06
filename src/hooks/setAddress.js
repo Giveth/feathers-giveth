@@ -5,7 +5,7 @@ module.exports = field => context => {
   if (context.params.provider === undefined) {
     if (context.method !== 'patch' && !context.data[field]) {
       throw new errors.GeneralError(
-        `must provide ${field} when calling creating or updating a internally`,
+        `must provide ${field} when calling create or update internally`,
       );
     }
 
