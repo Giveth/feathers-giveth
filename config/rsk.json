@@ -5,44 +5,6 @@
     "homeNodeUrl": "ws://localhost:8445",
     "vaultAddress": "0x61b279350c827BC4128FD720F61787bfB30b7b30",
     "liquidPledgingAddress": "0x12A9de49704A576f53e2F651eB648563B3fc0a20",
-    "ethFunderPK": "",
-    "walletFundingBlacklist": [
-      "0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826",
-      "0x7986b3DF570230288501EEa3D890bd66948C9B79",
-      "0x0a3aA774752ec2042c46548456c094A76C7F3a79",
-      "0xCF7CDBbB5F7BA79d3ffe74A0bBA13FC0295F6036",
-      "0x39B12C05E8503356E3a7DF0B7B33efA4c054C409"
-    ]
-  },
-  "useReviewerWhitelist": true,
-  "reviewerWhitelist": [
-    "0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826",
-    "0x7986b3DF570230288501EEa3D890bd66948C9B79",
-    "0x0a3aA774752ec2042c46548456c094A76C7F3a79",
-    "0xCF7CDBbB5F7BA79d3ffe74A0bBA13FC0295F6036",
-    "0x39B12C05E8503356E3a7DF0B7B33efA4c054C409"
-  ],
-  "useDelegateWhitelist": true,
-  "delegateWhitelist": [
-    "0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826",
-    "0x7986b3DF570230288501EEa3D890bd66948C9B79",
-    "0x0a3aA774752ec2042c46548456c094A76C7F3a79",
-    "0xCF7CDBbB5F7BA79d3ffe74A0bBA13FC0295F6036",
-    "0x39B12C05E8503356E3a7DF0B7B33efA4c054C409"
-  ],
-  "useProjectOwnerWhitelist": true,
-  "projectOwnerWhitelist": [
-    "0xCD2a3d9F938E13CD947Ec05AbC7FE734Df8DD826",
-    "0x7986b3DF570230288501EEa3D890bd66948C9B79",
-    "0x0a3aA774752ec2042c46548456c094A76C7F3a79",
-    "0xCF7CDBbB5F7BA79d3ffe74A0bBA13FC0295F6036",
-    "0x39B12C05E8503356E3a7DF0B7B33efA4c054C409"
-  ],
-  "tokenWhitelist": [ 
-    { "name": "MiniMe Test Token", 
-      "address": "0x14f6504A7ca4e574868cf8b49e85187d3Da9FA70", 
-      "symbol": "ANT", 
-      "decimals": 18 
-    }            
-  ]
+    "ethFunderPK": ""
+  }
 }

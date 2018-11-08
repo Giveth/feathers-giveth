@@ -17,6 +17,9 @@ if (processStartNetwork) {
 const START_NETWORK = processStartNetwork === undefined ? true : processStartNetwork;
 const PROVIDER = process.env.PROVIDER || 'http://localhost:8546';
 
+// TODO: this was a quick hack to deploy rsk locally. Could definetly use some cleanup
+// especially regarding the accounts, etc. Probably best to include a custom genesis.json
+// file for rsk so we can use the same accounts as ganache
 async function deploy() {
   try {
     if (START_NETWORK) {
@@ -30,6 +33,40 @@ async function deploy() {
     const web3 = new Web3(PROVIDER);
 
     const accounts = await web3.eth.getAccounts();
+
+    if (!START_NETWORK) {
+      // most likely rsk, so fund the ganache accounts so we can use those
+      await web3.eth.sendTransaction({
+        to: '0x90f8bf6a479f320ead074411a4b0e7944ea8c9c1',
+        from: accounts[8],
+        gas: 30000,
+        value: web3.utils.toWei('10'),
+      });
+      await web3.eth.sendTransaction({
+        to: '0xffcf8fdee72ac11b5c542428b35eef5769c409f0',
+        from: accounts[8],
+        gas: 30000,
+        value: web3.utils.toWei('10'),
+      });
+      await web3.eth.sendTransaction({
+        to: '0x22d491bde2303f2f43325b2108d26f1eaba1e32b',
+        from: accounts[8],
+        gas: 30000,
+        value: web3.utils.toWei('10'),
+      });
+      await web3.eth.sendTransaction({
+        to: '0xe11ba2b4d45eaed5996cd0823791e0c93114882d',
+        from: accounts[8],
+        gas: 30000,
+        value: web3.utils.toWei('10'),
+      });
+      await web3.eth.sendTransaction({
+        to: '0xd03ea8624c8c5987235048901fb614fdca89b117',
+        from: accounts[8],
+        gas: 30000,
+        value: web3.utils.toWei('10'),
+      });
+    }
 
     const from = accounts[0];
 
@@ -145,7 +182,7 @@ async function deploy() {
 
     // we first generate all tokens, then transfer, otherwise MetaMask will not show token balances
     // await miniMeToken.generateTokens(accounts[10], web3.utils.toWei('200000'), {
-      // from: accounts[0],
+    // from: accounts[0],
     // });
     await miniMeToken.generateTokens(accounts[0], web3.utils.toWei('10000'), {
       from: accounts[0],
@@ -162,9 +199,9 @@ async function deploy() {
     // await miniMeToken.transfer(a, web3.utils.toWei('10000'), { from: accounts[10] });
     // }
     // await Promise.all(
-      // accounts.map(async a =>
-        // miniMeToken.transfer(a, web3.utils.toWei('10000'), { from: accounts[10] }),
-      // ),
+    // accounts.map(async a =>
+    // miniMeToken.transfer(a, web3.utils.toWei('10000'), { from: accounts[10] }),
+    // ),
     // );
 
     const miniMeTokenState = new MiniMeTokenState(miniMeToken);
