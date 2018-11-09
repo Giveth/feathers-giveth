@@ -103,6 +103,7 @@ const updateEntity = async (context, donation) => {
       return {
         name: tokenDonation.token.name,
         address: tokenDonation.token.address,
+        foreignAddress: tokenDonation.token.foreignAddress,
         decimals: tokenDonation.token.decimals,
         symbol, 
         totalDonated, 
@@ -111,16 +112,8 @@ const updateEntity = async (context, donation) => {
       }
     })
 
-    console.log('donationCounters', donationCounters)
-
-    const balanceFullyFunded = 
+    const fullyFunded = 
       donation.ownerType === AdminTypes.MILESTONE && entity.maxAmount === donationCounters.find(dc => dc.symbol === entity.token.symbol).currentBalance.toString();
-
-    console.log('balanceFullyFunded', balanceFullyFunded)
-
-    // NOTE: Using === to compare as both of these are strings and amounts in wei
-    const fullyFunded =
-      donation.ownerType === AdminTypes.MILESTONE && entity.maxAmount === currentBalance.toString();
     const peopleCount = new Set(donations.map(d => d.giverAddress)).size;
 
     await service.patch(entity._id, {

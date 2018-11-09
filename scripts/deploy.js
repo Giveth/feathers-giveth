@@ -188,6 +188,8 @@ async function deploy() {
 
     // add token on foreign
     await foreignBridge.addToken(miniMeToken.$address, 'MiniMe Test Token', 18, 'MMT', { from: accounts[10] })
+    const foreigTokenAddress = await foreignBridge.tokenMapping(miniMeToken.$address);
+
 
     console.log('\n\n', {
       vault: vault.$address,
@@ -200,6 +202,7 @@ async function deploy() {
       miniMeToken: {
         "name": "MiniMe Token", 
         "address": miniMeToken.$address,
+        "foreignAddress": foreigTokenAddress,
         "symbol": "MMT", 
         "decimals": 18        
       }

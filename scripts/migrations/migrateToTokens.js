@@ -127,7 +127,8 @@ const migrateDonationsToTokens = () => {
       $set: { 
         token : {
           name: name,
-          address: address,
+          address: "0x0",
+          foreignAddress: "0x5a42ca500aB159c51312B764bb25C135026e7a31", // should be Home Ganache ETH by default
           symbol: symbol
         }
       }
