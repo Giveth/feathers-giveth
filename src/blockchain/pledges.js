@@ -114,6 +114,7 @@ function createToDonationMutation(transferInfo, isReturnTransfer) {
     parentDonations: donations.map(d => d._id),
     txHash,
     mined: true,
+    token: donations[0].token
   };
 
   // lp keeps the delegation chain, but we want to ignore it
