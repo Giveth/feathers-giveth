@@ -6,6 +6,7 @@ const setAddress = require('../../hooks/setAddress');
 const sanitizeHtml = require('../../hooks/sanitizeHtml');
 const resolveFiles = require('../../hooks/resolveFiles');
 const { isProjectAllowed } = require('../../hooks/isProjectAllowed');
+const { isTokenAllowed } = require('../../hooks/isTokenAllowed');
 const addConfirmations = require('../../hooks/addConfirmations');
 const { MilestoneStatus } = require('../../models/milestones.model');
 const getApprovedKeys = require('./getApprovedKeys');
@@ -185,6 +186,7 @@ module.exports = {
       setAddress('ownerAddress'),
       ...address,
       isProjectAllowed(),
+      isTokenAllowed(),
       sanitizeHtml('description'),
     ],
     update: [restrict(), checkMilestoneDates(), ...address, sanitizeHtml('description')],

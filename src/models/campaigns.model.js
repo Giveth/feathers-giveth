@@ -1,4 +1,3 @@
-const Token = require('./token.model');
 const DonationCounter = require('./donationCounter.model')
 
 const CampaignStatus = {

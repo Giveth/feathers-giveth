@@ -1,4 +1,3 @@
-const Token = require('./token.model');
 const DonationCounter = require('./donationCounter.model')
 
 const DacStatus = {
@@ -41,7 +40,6 @@ function createModel(app) {
       commitTime: { type: Number },
       mined: { type: Boolean },
       url: { type: String },
-      token: { type: Token }      
     },
     {
       timestamps: true,

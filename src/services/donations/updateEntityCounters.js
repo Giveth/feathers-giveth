@@ -75,8 +75,6 @@ const updateEntity = async (context, donation) => {
     // first group by token (symbol)
     const groupedDonations = _groupBy(donations, (d) => (d.token && d.token.symbol) || "ETH")
 
-    console.log(groupedDonations)
-
     // and calculate cumulative token balances for each donated token
     const donationCounters = Object.keys(groupedDonations).map(symbol => {
       const donations =  groupedDonations[symbol];

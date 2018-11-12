@@ -49,7 +49,7 @@ const checkEthConversion = () => context => {
     const promises = items.map(item =>
       app
         .service('ethconversion')
-        .find({ query: { date: item.date } })
+        .find({ query: { date: item.date, symbol: data.token.symbol } })
         .then(conversionRate => {
           calculateCorrectEther(conversionRate, item.fiatAmount, item.wei, item.selectedFiatType);
         }),
