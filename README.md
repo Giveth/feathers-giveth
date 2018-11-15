@@ -21,6 +21,7 @@ Welcome to the server code for Giveth's [dapp](https://github.com/Giveth/giveth-
 - [Debugging](#debugging)
 - [Usage](#usage)
 - [Production](#production)
+- [RSK](#rsk)
 - [Help](#help)
 
 ## Getting Started
@@ -160,6 +161,37 @@ module.exports = {
   ],
 };
 ```
+
+## RSK
+
+1. You will need to download the [rsk node](https://github.com/rsksmart/rskj/wiki/Install-RskJ-and-join-the-RSK-Orchid-Mainnet-Beta). After installing, you will run the node w/ the `regtest` network for local development.
+
+  ```
+  java -jar rskj-core-0.5.2-ORCHID-all.jar co.rsk.Start --regtest
+  ```
+  or 
+  ```
+  java -Drsk.conf.file=rsk.conf -jar rskj-core-0.5.2-ORCHID-all.jar co.rsk.Start
+  ```
+
+2. We need to deploy any contracts that we intend to call. *NOTE:* You will also need to ensure that your rsk node is in a clean state (reset) for the configured addresses to be correct.
+
+   ```
+   npm run deploy-local:rsk
+   ```
+
+3. Optionally open a new terminal window and start the ipfs daemon
+
+   ```
+   ipfs daemon
+   ```
+    
+4. Start your app
+
+    ```
+    yarn start:rsk
+    ```
+
 
 ## Help
 

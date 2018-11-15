@@ -33,6 +33,7 @@ const updateEntity = async (context, donation) => {
     $select: ['amount', 'giverAddress', 'amountRemaining', 'token'],
     isReturn: false,
     mined: true,
+    status: { $nin: [DonationStatus.FAILED] },
   };
 
   if (donation.delegateTypeId) {
