@@ -116,3 +116,5 @@ $RECYCLE.BIN/
 /lib/
 data/
 /uploads
+
+/scripts/keys.js
