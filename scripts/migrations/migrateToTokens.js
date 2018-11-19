@@ -1,10 +1,12 @@
 const mongoose = require('mongoose');
-const config = require("../../config/default.json");
-const DonationCounter = require('../../src/models/donationCounter.model')
 
-const Schema = mongoose.Schema;
-const mongoUrl = 'mongodb://localhost:27017/giveth'
+/**
+ * NOTE: Make sure to point this to the correct config!
+ **/
+const config = require("../../config/develop.json");
 
+
+const mongoUrl = config.mongodb
 mongoose.connect(mongoUrl);
 const db = mongoose.connection;
 const Milestones = db.collection('milestones')
@@ -17,7 +19,12 @@ db.on('error', err => console.error('migrateToTokens > Could not connect to Mong
 
 
 const ETH = config.tokenWhitelist.find(t => t.symbol === 'ETH')
-const { name, address, symbol } = ETH
+if(!ETH) {
+  throw('ETH token not found! Add ETH token first ')
+  process.exit()
+}
+
+const { name, address, foreignAddress, symbol } = ETH
 
 /*
   Doing a raw db migration to make sure we don't change any timestamps!
@@ -30,6 +37,7 @@ const migrateMilestonesToTokens = () => {
         token : {
           name: name,
           address: address,
+          foreignAddress: foreignAddress,
           symbol: symbol
         }
       }
@@ -128,7 +136,7 @@ const migrateDonationsToTokens = () => {
         token : {
           name: name,
           address: "0x0",
-          foreignAddress: "0x5a42ca500aB159c51312B764bb25C135026e7a31", // should be Home Ganache ETH by default
+          foreignAddress: foreignAddress,
           symbol: symbol
         }
       }
@@ -202,9 +210,9 @@ db.once('open', () => {
   Promise.all([ 
     migrateDACsToTokens(),
     migrateCampaignsToTokens(),
-    // migrateMilestonesToTokens(), 
-    // migrateDonationsToTokens(),
-    // migrateEthConversions(),
+    migrateMilestonesToTokens(), 
+    migrateDonationsToTokens(),
+    migrateEthConversions(),
   ])
     .then( res => process.exit())
     .catch( err => { console.log(err); process.exit()})
