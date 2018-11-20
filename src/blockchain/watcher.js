@@ -355,9 +355,8 @@ const watcher = (app, eventHandler) => {
     });
 
     if (lastDonation.length > 0) {
-      const lastEventTs =
-        lastEvent.length > 0 ? await getBlockTimestamp(web3, lastEvent[0].blockNumber) : 0;
-      if (lastDonation[0].createdAt > lastEventTs) {
+      const receipt = await web3.eth.getTransactionReceipt(lastDonation[0].txHash);
+      if (receipt.blockNumber > lastEvent.blockNumber) {
         logger.error(
           `It appears that you are attempting to reprocess events, or the events table has 
           been altered and there are donations. In order to correctly sync/re-sync, the 
