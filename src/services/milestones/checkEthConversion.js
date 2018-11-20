@@ -19,7 +19,7 @@ const checkEthConversion = () => context => {
   // FIXME: Even single expense should be stored in data.items. Unnecessary duplicity in code on both frontend and feathers.
   if (!items && !data.fiatAmount && !data.maxAmount && !data.selectedFiatType) return context;
 
-  const calculateCorrectEther = (conversionRate, fiatAmount, etherToCheck, selectedFiatType,) => {
+  const calculateCorrectEther = (conversionRate, fiatAmount, etherToCheck, selectedFiatType) => {
     logger.debug(
       'calculating correct ether conversion',
       conversionRate.rates[selectedFiatType],

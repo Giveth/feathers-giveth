@@ -6,7 +6,7 @@ const logger = require('winston');
 
 const processingQueue = require('../utils/processingQueue');
 const to = require('../utils/to');
-const { removeHexPrefix, getBlockTimestamp } = require('./lib/web3Helpers');
+const { removeHexPrefix } = require('./lib/web3Helpers');
 const { EventStatus } = require('../models/events.model');
 const { DonationStatus } = require('../models/donations.model');
 

@@ -102,7 +102,7 @@ function createToDonationMutation(app, transferInfo, isReturnTransfer) {
   } = transferInfo;
 
   // find token
-  const token = app.get('tokenWhitelist').find(t => t.foreignAddress === fromPledge.token)
+  const token = app.get('tokenWhitelist').find(t => t.foreignAddress === fromPledge.token);
 
   const mutation = {
     amount,
@@ -118,7 +118,7 @@ function createToDonationMutation(app, transferInfo, isReturnTransfer) {
     parentDonations: donations.map(d => d._id),
     txHash,
     mined: true,
-    token: token
+    token,
   };
 
   // lp keeps the delegation chain, but we want to ignore it
@@ -323,10 +323,14 @@ const pledges = (app, liquidPledging) => {
    *
    * @param {object} transferInfo
    */
-  async function createToDonation(app, transferInfo) {
+  async function createToDonation(transferInfo) {
     const { txHash, donations } = transferInfo;
     const isInitialTransfer = donations.length === 1 && donations[0].parentDonations.length === 0;
-    const mutation = createToDonationMutation(app, transferInfo, await isReturnTransfer(transferInfo));
+    const mutation = createToDonationMutation(
+      app,
+      transferInfo,
+      await isReturnTransfer(transferInfo),
+    );
 
     if (isInitialTransfer) {
       // always set homeTx on mutation b/c ui checks if homeTxHash exists to check for initial donations
@@ -451,7 +455,7 @@ const pledges = (app, liquidPledging) => {
       }
 
       await spendAndUpdateExistingDonations(transferInfo);
-      await createToDonation(app, transferInfo);
+      await createToDonation(transferInfo);
     } catch (err) {
       logger.error(err);
     }
@@ -470,7 +474,6 @@ const pledges = (app, liquidPledging) => {
       const txHash = event.transactionHash;
       const ts = await getBlockTimestamp(web3, event.blockNumber);
       if (Number(from) === 0) {
-
         const [err] = await toWrapper(newDonation(to, amount, ts, txHash));
 
         if (err) {

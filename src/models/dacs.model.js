@@ -1,4 +1,4 @@
-const DonationCounter = require('./donationCounter.model')
+const DonationCounter = require('./donationCounter.model');
 
 const DacStatus = {
   ACTIVE: 'Active',
@@ -32,7 +32,7 @@ function createModel(app) {
       },
       image: { type: String },
       txHash: { type: String, required: true },
-      donationCounters: [ DonationCounter ],
+      donationCounters: [DonationCounter],
       peopleCount: { type: Number },
       ownerAddress: { type: String, required: true, index: true },
       pluginAddress: { type: String },

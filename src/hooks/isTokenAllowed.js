@@ -9,9 +9,7 @@ const checkToken = context => {
   const inWhitelist = project => {
     if (tokenWhitelist.find(t => t.address === project.token.address)) return;
 
-    throw new errors.BadRequest(
-      `token ${project.token.symbol} is not in the whitelist`,
-    );
+    throw new errors.BadRequest(`token ${project.token.symbol} is not in the whitelist`);
   };
 
   if (Array.isArray(items)) {
@@ -24,4 +22,4 @@ const checkToken = context => {
 
 module.exports = {
   isTokenAllowed: () => context => checkToken(context),
-}
+};

@@ -14,8 +14,10 @@ const MINUTE = 1000 * 60;
  *
  * @return {Object} Object in format { _id, timestamp, rates: { EUR: 100, USD: 90 } }
  */
-const _getRatesDb = async (app, timestamp, symbol = "ETH") => {
-  const resp = await app.service('ethconversion').find({ query: { timestamp, symbol }, internal: true });
+const _getRatesDb = async (app, timestamp, symbol = 'ETH') => {
+  const resp = await app
+    .service('ethconversion')
+    .find({ query: { timestamp, symbol }, internal: true });
 
   if (resp.data.length > 0)
     return { _id: resp.data[0]._id, timestamp: resp.data[0].timestamp, rates: resp.data[0].rates };
@@ -86,7 +88,7 @@ const _saveToDB = (app, timestamp, rates, symbol, _id = undefined) => {
  *
  * @return {Promise} Promise that resolves to object {timestamp, rates: { EUR: 100, USD: 90 } }
  */
-const getEthConversion = (app, requestedDate, requestedSymbol = "ETH") => {
+const getEthConversion = (app, requestedDate, requestedSymbol = 'ETH') => {
   // Get yesterday date from today respecting UTC
   const yesterday = new Date(new Date().setUTCDate(new Date().getUTCDate() - 1));
   const yesterdayUTC = yesterday.setUTCHours(0, 0, 0, 0);
@@ -117,7 +119,7 @@ const getEthConversion = (app, requestedDate, requestedSymbol = "ETH") => {
         rates = Object.assign({}, dbRates.rates, newRates);
 
         // Save the newly retrieved rates
-        await _saveToDB(app, dbRates.timestamp, rates, requestedSymbol, dbRates._id,);
+        await _saveToDB(app, dbRates.timestamp, rates, requestedSymbol, dbRates._id);
       }
 
       resolve({ timestamp: dbRates.timestamp, rates });

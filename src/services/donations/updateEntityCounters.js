@@ -74,13 +74,13 @@ const updateEntity = async (context, donation) => {
       .find({ paginate: false, query: donationQuery });
 
     // first group by token (symbol)
-    const groupedDonations = _groupBy(donations, (d) => (d.token && d.token.symbol) || "ETH")
+    const groupedDonations = _groupBy(donations, d => (d.token && d.token.symbol) || 'ETH');
 
     // and calculate cumulative token balances for each donated token
     const donationCounters = Object.keys(groupedDonations).map(symbol => {
-      const donations =  groupedDonations[symbol];
+      const tokenDonations = groupedDonations[symbol];
 
-      const { totalDonated, currentBalance } = donations.reduce(
+      const { totalDonated, currentBalance } = tokenDonations.reduce(
         (accumulator, d) => ({
           totalDonated: accumulator.totalDonated.add(toBN(d.amount)),
           currentBalance: accumulator.currentBalance.add(toBN(d.amountRemaining)),
@@ -89,30 +89,32 @@ const updateEntity = async (context, donation) => {
           totalDonated: toBN(0),
           currentBalance: toBN(0),
         },
-      )
+      );
 
-      const donationCount = donations.filter(
+      const donationCount = tokenDonations.filter(
         d => ![DonationStatus.PAYING, DonationStatus.PAID].includes(d.status),
       ).length;
 
       // find the first donation in the group that has a token object
       // b/c there are other donation objects coming through as well
-      const tokenDonation = donations.find(d => typeof d.token === 'object')
+      const tokenDonation = tokenDonations.find(d => typeof d.token === 'object');
 
       return {
         name: tokenDonation.token.name,
         address: tokenDonation.token.address,
         foreignAddress: tokenDonation.token.foreignAddress,
         decimals: tokenDonation.token.decimals,
-        symbol, 
-        totalDonated, 
-        currentBalance, 
-        donationCount
-      }
-    })
+        symbol,
+        totalDonated,
+        currentBalance,
+        donationCount,
+      };
+    });
 
-    const fullyFunded = 
-      donation.ownerType === AdminTypes.MILESTONE && entity.maxAmount === donationCounters.find(dc => dc.symbol === entity.token.symbol).currentBalance.toString();
+    const fullyFunded =
+      donation.ownerType === AdminTypes.MILESTONE &&
+      entity.maxAmount ===
+        donationCounters.find(dc => dc.symbol === entity.token.symbol).currentBalance.toString();
     const peopleCount = new Set(donations.map(d => d.giverAddress)).size;
 
     await service.patch(entity._id, {

@@ -1,6 +1,6 @@
 const Item = require('./item.model');
 const Token = require('./token.model');
-const DonationCounter = require('./donationCounter.model')
+const DonationCounter = require('./donationCounter.model');
 
 // milestones-model.js - A mongoose model
 //
@@ -49,7 +49,7 @@ function Milestone(app) {
       txHash: { type: String },
       pluginAddress: { type: String },
       fullyFunded: { type: Boolean, default: false },
-      donationCounters: [ DonationCounter ],            
+      donationCounters: [DonationCounter],
       peopleCount: { type: Number },
       mined: { type: Boolean },
       prevStatus: { type: String },
@@ -61,7 +61,7 @@ function Milestone(app) {
       message: { type: String },
       proofItems: [Item],
       messageContext: { type: String },
-      token: { type: Token }      
+      token: { type: Token },
     },
     {
       timestamps: true,

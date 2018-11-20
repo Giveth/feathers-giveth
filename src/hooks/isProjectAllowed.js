@@ -71,5 +71,5 @@ module.exports = {
     checkReviewer(context);
   },
   checkOwner: () => context => checkOwner(context),
-  checkReviewer: () => context => checkReviewer(context)
+  checkReviewer: () => context => checkReviewer(context),
 };

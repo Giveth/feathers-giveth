@@ -9,14 +9,14 @@ module.exports = function ETHConversion(app) {
     {
       timestamp: { type: Date, required: true },
       rates: { type: Object },
-      symbol: { type: String, required: true }
+      symbol: { type: String, required: true },
     },
     {
       timestamps: true,
     },
   );
 
-  ethconversion.index({ timestamp: 1, symbol: 1}, { unique: true });
+  ethconversion.index({ timestamp: 1, symbol: 1 }, { unique: true });
 
   return mongooseClient.model('ethconversion', ethconversion);
 };
