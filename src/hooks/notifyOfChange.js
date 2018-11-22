@@ -52,7 +52,7 @@ module.exports = (...notify) => context => {
 
   if (!context.params.before) {
     throw new Error(
-      'The remove-uploads hook expects context.before to have the entity before mutation. Use the ' +
+      'The notifyOfChange hook expects context.before to have the entity before mutation. Use the ' +
         'stashBefore hook to populate context.before with the entity being mutated',
     );
   }

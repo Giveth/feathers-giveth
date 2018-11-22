@@ -14,8 +14,10 @@ const MINUTE = 1000 * 60;
  *
  * @return {Object} Object in format { _id, timestamp, rates: { EUR: 100, USD: 90 } }
  */
-const _getRatesDb = async (app, timestamp) => {
-  const resp = await app.service('ethconversion').find({ query: { timestamp }, internal: true });
+const _getRatesDb = async (app, timestamp, symbol = 'ETH') => {
+  const resp = await app
+    .service('ethconversion')
+    .find({ query: { timestamp, symbol }, internal: true });
 
   if (resp.data.length > 0)
     return { _id: resp.data[0]._id, timestamp: resp.data[0].timestamp, rates: resp.data[0].rates };
@@ -34,14 +36,13 @@ const _getRatesDb = async (app, timestamp) => {
  *
  * @return {Object} Rates object in format { EUR: 241, USD: 123 }
  */
-const _getRatesCryptocompare = async (timestamp, ratesToGet) => {
+const _getRatesCryptocompare = async (timestamp, ratesToGet, symbol) => {
   logger.debug(`Fetching eth coversion from crypto compare for: ${ratesToGet}`);
-
   const timestampMS = Math.round(timestamp / 1000);
 
   const promises = ratesToGet.map(f =>
     rp(
-      `https://min-api.cryptocompare.com/data/dayAvg?fsym=ETH&tsym=${f}&toTs=${timestampMS}&extraParams=giveth`,
+      `https://min-api.cryptocompare.com/data/dayAvg?fsym=${symbol}&tsym=${f}&toTs=${timestampMS}&extraParams=giveth`,
     ),
   );
 
@@ -56,6 +57,7 @@ const _getRatesCryptocompare = async (timestamp, ratesToGet) => {
     });
   });
 
+  rates.symbol = symbol;
   return rates;
 };
 
@@ -69,12 +71,12 @@ const _getRatesCryptocompare = async (timestamp, ratesToGet) => {
  *
  * @return {Promise} Resolves if the rates were saved correctly
  */
-const _saveToDB = (app, timestamp, rates, _id = undefined) => {
+const _saveToDB = (app, timestamp, rates, symbol, _id = undefined) => {
   // There already are some rates for this timestamp, update the record
   if (_id) return app.service('ethconversion').patch(_id, { rates });
 
   // Create new record
-  return app.service('ethconversion').create({ timestamp, rates });
+  return app.service('ethconversion').create({ timestamp, rates, symbol });
 };
 
 /**
@@ -86,7 +88,7 @@ const _saveToDB = (app, timestamp, rates, _id = undefined) => {
  *
  * @return {Promise} Promise that resolves to object {timestamp, rates: { EUR: 100, USD: 90 } }
  */
-const getEthConversion = (app, requestedDate) => {
+const getEthConversion = (app, requestedDate, requestedSymbol = 'ETH') => {
   // Get yesterday date from today respecting UTC
   const yesterday = new Date(new Date().setUTCDate(new Date().getUTCDate() - 1));
   const yesterdayUTC = yesterday.setUTCHours(0, 0, 0, 0);
@@ -104,8 +106,7 @@ const getEthConversion = (app, requestedDate) => {
   // Check if we already have this exchange rate for this timestamp, if not we save it
   return new Promise(async (resolve, reject) => {
     try {
-      const dbRates = await _getRatesDb(app, timestamp);
-
+      const dbRates = await _getRatesDb(app, timestamp, requestedSymbol);
       const retrievedRates = new Set(Object.keys(dbRates.rates || {}));
       const unknownRates = fiat.filter(cur => !retrievedRates.has(cur));
 
@@ -114,11 +115,11 @@ const getEthConversion = (app, requestedDate) => {
       if (unknownRates.length !== 0) {
         logger.debug('fetching eth coversion from crypto compare');
         // Some rates have not been obtained yet, get them from cryptocompare
-        const newRates = await _getRatesCryptocompare(timestamp, unknownRates);
+        const newRates = await _getRatesCryptocompare(timestamp, unknownRates, requestedSymbol);
         rates = Object.assign({}, dbRates.rates, newRates);
 
         // Save the newly retrieved rates
-        await _saveToDB(app, dbRates.timestamp, rates, dbRates._id);
+        await _saveToDB(app, dbRates.timestamp, rates, requestedSymbol, dbRates._id);
       }
 
       resolve({ timestamp: dbRates.timestamp, rates });

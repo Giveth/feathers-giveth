@@ -7,11 +7,13 @@
     "default": 25,
     "max": 100
   },
-  "mongodb": "mongodb://localhost:27017/giveth",  
+  "mongodb": "mongodb://localhost:27017/giveth",
   "nedb": "../data",
   "uploads": "../uploads",
   "uploadsBaseUrl": "http://localhost:3030/uploads/",
   "logDir": "",
+  "ipfsGateway": "http://localhost:8080/ipfs/",
+  "ipfsApi": "/ip4/127.0.0.1/tcp/5001",
   "blockchain": {
     "nodeUrl": "ws://localhost:8546",
     "homeNodeUrl": "ws://localhost:8545",
@@ -75,6 +77,21 @@
     "0x22d491bde2303f2f43325b2108d26f1eaba1e32b",
     "0xe11ba2b4d45eaed5996cd0823791e0c93114882d",
     "0xd03ea8624c8c5987235048901fb614fdca89b117"
+  ],
+  "tokenWhitelist": [ 
+    { 
+      "name": "Home Ganache ETH", 
+      "address": "0x0", 
+      "foreignAddress": "0x5a42ca500aB159c51312B764bb25C135026e7a31",
+      "symbol": "ETH", 
+      "decimals": 18
+    },
+    { "name": "MiniMe Test Token", 
+      "address": "0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab",
+      "foreignAddress": "0x8F086f895deBc23473dfe507dd4BF35D6184552c", 
+      "symbol": "ANT", 
+      "decimals": 18 
+    }            
   ],
   "dappMailerUrl": "http://127.0.0.1:3050",
   "dappMailerSecret":

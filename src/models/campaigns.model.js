@@ -1,3 +1,5 @@
+const DonationCounter = require('./donationCounter.model');
+
 const CampaignStatus = {
   ACTIVE: 'Active',
   PENDING: 'Pending',
@@ -19,10 +21,8 @@ function createModel(app) {
       projectId: { type: Schema.Types.Long, index: true, unique: true }, // we can use Long here b/c lp only stores adminId in pledges as uint64
       image: { type: String, required: true },
       txHash: { type: String },
-      totalDonated: { type: Schema.Types.BN, min: 0 },
-      currentBalance: { type: Schema.Types.BN, min: 0 },
-      donationCount: { type: Number },
       peopleCount: { type: Number },
+      donationCounters: [DonationCounter],
       dacs: { type: [String] },
       reviewerAddress: { type: String, required: true, index: true },
       ownerAddress: { type: String, required: true, index: true },
@@ -35,6 +35,9 @@ function createModel(app) {
         enum: Object.values(CampaignStatus),
         default: CampaignStatus.PENDING,
       },
+      url: { type: String },
+      commitTime: { type: Number },
+      communityUrl: { type: String },
     },
     {
       timestamps: true,

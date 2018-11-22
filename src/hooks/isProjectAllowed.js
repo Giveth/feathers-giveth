@@ -65,7 +65,11 @@ const checkOwner = context => {
   return context;
 };
 
-module.exports = () => context => {
-  checkOwner(context);
-  checkReviewer(context);
+module.exports = {
+  isProjectAllowed: () => context => {
+    checkOwner(context);
+    checkReviewer(context);
+  },
+  checkOwner: () => context => checkOwner(context),
+  checkReviewer: () => context => checkReviewer(context),
 };

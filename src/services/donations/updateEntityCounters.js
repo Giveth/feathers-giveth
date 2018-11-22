@@ -4,6 +4,7 @@ const logger = require('winston');
 
 const { AdminTypes } = require('../../models/pledgeAdmins.model');
 const { DonationStatus } = require('../../models/donations.model');
+const _groupBy = require('lodash.groupby');
 
 const updateEntity = async (context, donation) => {
   if (!donation.mined) return;
@@ -29,9 +30,10 @@ const updateEntity = async (context, donation) => {
   let serviceName;
   let id;
   const donationQuery = {
-    $select: ['amount', 'giverAddress', 'amountRemaining'],
+    $select: ['amount', 'giverAddress', 'amountRemaining', 'token'],
     isReturn: false,
     mined: true,
+    status: { $nin: [DonationStatus.FAILED] },
   };
 
   if (donation.delegateTypeId) {
@@ -71,29 +73,52 @@ const updateEntity = async (context, donation) => {
       .service('donations')
       .find({ paginate: false, query: donationQuery });
 
-    const { totalDonated, currentBalance } = donations.reduce(
-      (accumulator, d) => ({
-        totalDonated: accumulator.totalDonated.add(toBN(d.amount)),
-        currentBalance: accumulator.currentBalance.add(toBN(d.amountRemaining)),
-      }),
-      {
-        totalDonated: toBN(0),
-        currentBalance: toBN(0),
-      },
-    );
+    // first group by token (symbol)
+    const groupedDonations = _groupBy(donations, d => (d.token && d.token.symbol) || 'ETH');
 
-    // NOTE: Using === to compare as both of these are strings and amounts in wei
+    // and calculate cumulative token balances for each donated token
+    const donationCounters = Object.keys(groupedDonations).map(symbol => {
+      const tokenDonations = groupedDonations[symbol];
+
+      const { totalDonated, currentBalance } = tokenDonations.reduce(
+        (accumulator, d) => ({
+          totalDonated: accumulator.totalDonated.add(toBN(d.amount)),
+          currentBalance: accumulator.currentBalance.add(toBN(d.amountRemaining)),
+        }),
+        {
+          totalDonated: toBN(0),
+          currentBalance: toBN(0),
+        },
+      );
+
+      const donationCount = tokenDonations.filter(
+        d => ![DonationStatus.PAYING, DonationStatus.PAID].includes(d.status),
+      ).length;
+
+      // find the first donation in the group that has a token object
+      // b/c there are other donation objects coming through as well
+      const tokenDonation = tokenDonations.find(d => typeof d.token === 'object');
+
+      return {
+        name: tokenDonation.token.name,
+        address: tokenDonation.token.address,
+        foreignAddress: tokenDonation.token.foreignAddress,
+        decimals: tokenDonation.token.decimals,
+        symbol,
+        totalDonated,
+        currentBalance,
+        donationCount,
+      };
+    });
+
     const fullyFunded =
-      donation.ownerType === AdminTypes.MILESTONE && entity.maxAmount === currentBalance.toString();
+      donation.ownerType === AdminTypes.MILESTONE &&
+      entity.maxAmount ===
+        donationCounters.find(dc => dc.symbol === entity.token.symbol).currentBalance.toString();
     const peopleCount = new Set(donations.map(d => d.giverAddress)).size;
-    const donationCount = donations.filter(
-      d => ![DonationStatus.PAYING, DonationStatus.PAID].includes(d.status),
-    ).length;
 
     await service.patch(entity._id, {
-      donationCount,
-      totalDonated,
-      currentBalance,
+      donationCounters,
       peopleCount,
       fullyFunded,
     });

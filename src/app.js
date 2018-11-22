@@ -7,6 +7,9 @@ const services = require('./services');
 const appHooks = require('./app.hooks');
 const authentication = require('./authentication');
 const blockchain = require('./blockchain');
+const mongoose = require('./mongoose');
+const ipfsFetcher = require('./utils/ipfsFetcher');
+const ipfsPinner = require('./utils/ipfsPinner');
 
 const channels = require('./channels');
 
@@ -19,10 +22,7 @@ const helmet = require('helmet');
 const feathers = require('@feathersjs/feathers');
 const express = require('@feathersjs/express');
 const configuration = require('@feathersjs/configuration');
-
 const notFound = require('@feathersjs/errors/not-found');
-
-const mongoose = require('./mongoose');
 
 const app = express(feathers());
 
@@ -59,6 +59,8 @@ app.configure(services);
 app.configure(channels);
 // blockchain must be initialized after services
 app.configure(blockchain);
+app.configure(ipfsFetcher);
+app.configure(ipfsPinner);
 // Configure a middleware for 404s and the error handler
 app.use(notFound());
 app.use(

@@ -6,7 +6,7 @@ const logger = require('winston');
 
 const processingQueue = require('../utils/processingQueue');
 const to = require('../utils/to');
-const { removeHexPrefix, getBlockTimestamp } = require('./lib/web3Helpers');
+const { removeHexPrefix } = require('./lib/web3Helpers');
 const { EventStatus } = require('../models/events.model');
 const { DonationStatus } = require('../models/donations.model');
 
@@ -147,6 +147,7 @@ const watcher = (app, eventHandler) => {
     } else {
       await eventService.create(Object.assign({}, event, { confirmations: 0 }));
     }
+    logger.info('processNewEvent finished', event.id);
     queue.purge();
   }
 
@@ -354,9 +355,8 @@ const watcher = (app, eventHandler) => {
     });
 
     if (lastDonation.length > 0) {
-      const lastEventTs =
-        lastEvent.length > 0 ? await getBlockTimestamp(web3, lastEvent[0].blockNumber) : 0;
-      if (lastDonation[0].createdAt > lastEventTs) {
+      const receipt = await web3.eth.getTransactionReceipt(lastDonation[0].txHash);
+      if (receipt.blockNumber > lastEvent.blockNumber) {
         logger.error(
           `It appears that you are attempting to reprocess events, or the events table has 
           been altered and there are donations. In order to correctly sync/re-sync, the 

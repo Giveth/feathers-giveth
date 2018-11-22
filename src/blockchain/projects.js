@@ -1,6 +1,7 @@
 /* eslint-disable consistent-return */
 
 const { Kernel, AppProxyUpgradeable } = require('giveth-liquidpledging/build/contracts');
+const isIPFS = require('is-ipfs');
 const { LPPCappedMilestone } = require('lpp-capped-milestone');
 const { LPPCampaign } = require('lpp-campaign');
 const { keccak256 } = require('web3-utils');
@@ -12,6 +13,7 @@ const { DonationStatus } = require('../models/donations.model');
 const { MilestoneStatus } = require('../models/milestones.model');
 const { AdminTypes } = require('../models/pledgeAdmins.model');
 const reprocess = require('../utils/reprocess');
+const to = require('../utils/to');
 
 const milestoneStatus = (completed, canceled) => {
   if (canceled) return MilestoneStatus.CANCELED;
@@ -28,6 +30,20 @@ const projects = (app, liquidPledging) => {
 
   let campaignBase;
   let milestoneBase;
+
+  async function fetchProfile(url) {
+    const [err, profile] = await to(app.ipfsFetcher(url));
+
+    if (err) {
+      logger.warn(`error fetching project profile from ${url}`, err);
+    } else if (profile && typeof profile === 'object') {
+      app.ipfsPinner(url);
+      if (profile.image && isIPFS.ipfsPath(profile.image)) {
+        app.ipfsPinner(profile.image);
+      }
+    }
+    return profile;
+  }
 
   async function getKernel() {
     const kernelAddress = await liquidPledging.kernel();
@@ -124,6 +140,8 @@ const projects = (app, liquidPledging) => {
           conversionRate: 1,
           txHash: tx.transactionHash,
           pluginAddress: project.plugin,
+          url: project.url,
+          ownerAddress: milestone.ownerAddress,
           totalDonated: '0',
           currentBalance: '0',
           donationCount: 0,
@@ -182,6 +200,8 @@ const projects = (app, liquidPledging) => {
         currentBalance: '0',
         donationCount: 0,
         status: canceled ? CampaignStatus.CANCELED : CampaignStatus.ACTIVE,
+        commitTime: project.commitTime,
+        url: project.url,
         mined: true,
       });
     } catch (err) {
@@ -243,25 +263,24 @@ const projects = (app, liquidPledging) => {
         return;
       }
 
-      return milestones.patch(
-        milestone._id,
-        {
-          projectId,
-          maxAmount,
-          reviewerAddress: reviewer,
-          campaignReviewerAddress: campaignReviewer,
-          ownerAddress: manager,
-          recipientAddress: recipient,
-          title: project.name,
-          pluginAddress: project.plugin,
-          status: milestoneStatus(completed, canceled),
-          mined: true,
-        },
-        {
-          eventTxHash: txHash,
-          performedByAddress: tx.from,
-        },
-      );
+      const profile = fetchProfile(project.url);
+      const mutation = Object.assign({ title: project.name }, profile, {
+        projectId,
+        maxAmount,
+        reviewerAddress: reviewer,
+        campaignReviewerAddress: campaignReviewer,
+        ownerAddress: manager,
+        recipientAddress: recipient,
+        pluginAddress: project.plugin,
+        status: milestoneStatus(completed, canceled),
+        url: project.url,
+        mined: true,
+      });
+
+      return milestones.patch(milestone._id, mutation, {
+        eventTxHash: txHash,
+        performedByAddress: tx.from,
+      });
     } catch (error) {
       logger.error('addMilestone error: ', error);
     }
@@ -284,10 +303,19 @@ const projects = (app, liquidPledging) => {
       if (!milestone) {
         milestone = await addMilestone(project, projectId);
       }
-      return milestones.patch(milestone._id, {
+
+      const mutation = { title: project.name };
+      if (project.url && project.url !== milestone.url) {
+        const profile = fetchProfile(project.url);
+        Object.assign(mutation, profile);
+      }
+      Object.assign(mutation, {
         // ownerAddress: project.addr, // TODO project.addr is the milestone contract, need to fix
-        title: project.name,
+        commitTime: project.commitTime,
+        url: project.url,
       });
+
+      return milestones.patch(milestone._id, mutation);
     } catch (err) {
       logger.error('updateMilestone error ->', err);
     }
@@ -312,14 +340,18 @@ const projects = (app, liquidPledging) => {
         return;
       }
 
-      return campaigns.patch(campaign._id, {
+      const profile = fetchProfile(project.url);
+      const mutation = Object.assign({ title: project.name }, profile, {
         projectId,
-        title: project.name,
         reviewerAddress: reviewer,
         pluginAddress: project.plugin,
+        commitTime: project.commitTime,
         status: canceled ? CampaignStatus.CANCELED : CampaignStatus.ACTIVE,
+        url: project.url,
         mined: true,
       });
+
+      return campaigns.patch(campaign._id, mutation);
     } catch (err) {
       logger.error('addCampaign error ->', err);
     }
@@ -338,10 +370,18 @@ const projects = (app, liquidPledging) => {
         }
       }
 
-      return campaigns.patch(campaign._id, {
+      const mutation = { title: project.name };
+      if (project.url && project.url !== campaign.url) {
+        const profile = fetchProfile(project.url);
+        Object.assign(mutation, profile);
+      }
+      Object.assign(mutation, {
         // ownerAddress: project.addr, // TODO project.addr is the campaign contract, need to fix
-        title: project.name,
+        commitTime: project.commitTime,
+        url: project.url,
       });
+
+      return campaigns.patch(campaign._id, mutation);
     } catch (err) {
       logger.error('updateCampaign error ->', err);
     }

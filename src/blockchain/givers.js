@@ -1,7 +1,23 @@
+const isIPFS = require('is-ipfs');
 const logger = require('winston');
+const to = require('../utils/to');
 
 const givers = (app, liquidPledging) => {
   const users = app.service('/users');
+
+  async function fetchProfile(url) {
+    const [err, profile] = await to(app.ipfsFetcher(url));
+
+    if (err) {
+      logger.warn(`error fetching giver profile from ${url}`, err);
+    } else if (profile && typeof profile === 'object') {
+      app.ipfsPinner(url);
+      if (profile.avatar && isIPFS.ipfsPath(profile.avatar)) {
+        app.ipfsPinner(profile.avatar);
+      }
+    }
+    return profile;
+  }
 
   async function getOrCreateUser(address) {
     try {
@@ -18,9 +34,9 @@ const givers = (app, liquidPledging) => {
   }
 
   async function addGiver(giver, giverId) {
-    const { commitTime, addr, name } = giver;
+    const { commitTime, addr, name, url } = giver;
 
-    let user = await getOrCreateUser(addr);
+    const user = await getOrCreateUser(addr);
 
     if (user.giverId > 0 && user.giverId !== Number(giverId)) {
       logger.error(
@@ -30,13 +46,14 @@ const givers = (app, liquidPledging) => {
       );
     }
 
-    const mutation = { commitTime, giverId };
-    if (!user.name) {
-      mutation.name = name;
-    }
+    const profile = fetchProfile(giver.url);
+    const mutation = Object.assign({ name }, profile, {
+      commitTime,
+      giverId,
+      url,
+    });
 
-    user = await users.patch(user.address, mutation);
-    return user;
+    return users.patch(user.address, mutation);
   }
 
   async function getUserById(giverId) {
@@ -106,10 +123,15 @@ const givers = (app, liquidPledging) => {
           return addGiver(giver, giverId);
         }
 
-        const mutation = { commitTime: giver.commitTime };
-        if (giver.name && giver.name !== user.name) {
-          mutation.name = giver.name;
+        const mutation = { name: giver.name };
+        if (giver.url && giver.url !== user.url) {
+          const profile = fetchProfile(giver.url);
+          Object.assign(mutation, profile);
         }
+        Object.assign(mutation, {
+          commitTime: giver.commitTime,
+          url: giver.url,
+        });
 
         await users.patch(user.address, mutation);
       } catch (err) {
