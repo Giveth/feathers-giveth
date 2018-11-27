@@ -87,11 +87,12 @@ const getCommitTime = (commitTime, ts) =>
  *
  * @param {object} transferInfo object containing information regarding the Transfer event
  */
-function createToDonationMutation(transferInfo, isReturnTransfer) {
+function createToDonationMutation(app, transferInfo, isReturnTransfer) {
   const {
     toPledgeAdmin,
     toPledge,
     toPledgeId,
+    fromPledge,
     delegate,
     intendedProject,
     donations,
@@ -99,6 +100,9 @@ function createToDonationMutation(transferInfo, isReturnTransfer) {
     ts,
     txHash,
   } = transferInfo;
+
+  // find token
+  const token = app.get('tokenWhitelist').find(t => t.foreignAddress === fromPledge.token);
 
   const mutation = {
     amount,
@@ -114,6 +118,7 @@ function createToDonationMutation(transferInfo, isReturnTransfer) {
     parentDonations: donations.map(d => d._id),
     txHash,
     mined: true,
+    token,
   };
 
   // lp keeps the delegation chain, but we want to ignore it
@@ -321,7 +326,11 @@ const pledges = (app, liquidPledging) => {
   async function createToDonation(transferInfo) {
     const { txHash, donations } = transferInfo;
     const isInitialTransfer = donations.length === 1 && donations[0].parentDonations.length === 0;
-    const mutation = createToDonationMutation(transferInfo, await isReturnTransfer(transferInfo));
+    const mutation = createToDonationMutation(
+      app,
+      transferInfo,
+      await isReturnTransfer(transferInfo),
+    );
 
     if (isInitialTransfer) {
       // always set homeTx on mutation b/c ui checks if homeTxHash exists to check for initial donations

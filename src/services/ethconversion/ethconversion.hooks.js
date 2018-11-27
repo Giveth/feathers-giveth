@@ -10,7 +10,7 @@ const getConversionRates = () => context => {
   // getEthConversion also calls this hook
   if (params.internal) return context;
 
-  return getEthConversion(app, params.query.date).then(res => {
+  return getEthConversion(app, params.query.date, params.query.symbol).then(res => {
     const context2 = Object.assign({}, context);
     const res2 = Object.assign({}, res);
     res2.rates.ETH = 1;

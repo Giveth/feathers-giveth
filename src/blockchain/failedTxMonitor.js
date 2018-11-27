@@ -165,7 +165,7 @@ const failedTxMonitor = (app, eventWatcher) => {
 
   async function handlePendingDonation(currentBlock, donation, receipt, topics) {
     // reset the donation status if the tx has been pending for more then 2 hrs, otherwise ignore
-    if (!receipt && donation.updatedAt <= Date.now() - TWO_HOURS) return;
+    if (!receipt && Date(donation.updatedAt).getTime() <= Date.now() - TWO_HOURS) return;
     // ignore if there isn't enough confirmations
     if (receipt && currentBlock - receipt.blockNumber < requiredConfirmations) return;
 
@@ -243,7 +243,7 @@ const failedTxMonitor = (app, eventWatcher) => {
 
     const receipt = await web3.eth.getTransactionReceipt(dac.txHash);
     // reset the dac status if the tx has been pending for more then 2 hrs, otherwise ignore
-    if (!receipt && dac.updatedAt <= Date.now() - TWO_HOURS) return;
+    if (!receipt && Date(dac.updatedAt).getTime() <= Date.now() - TWO_HOURS) return;
     // ignore if there isn't enough confirmations
     if (receipt && currentBlock - receipt.blockNumber < requiredConfirmations) return;
 
@@ -290,7 +290,7 @@ const failedTxMonitor = (app, eventWatcher) => {
 
     const receipt = await web3.eth.getTransactionReceipt(campaign.txHash);
     // reset the campaign status if the tx has been pending for more then 2 hrs, otherwise ignore
-    if (!receipt && campaign.updatedAt <= Date.now() - TWO_HOURS) return;
+    if (!receipt && Date(campaign.updatedAt).getTime() <= Date.now() - TWO_HOURS) return;
     // ignore if there isn't enough confirmations
     if (receipt && currentBlock - receipt.blockNumber < requiredConfirmations) return;
 
@@ -340,7 +340,7 @@ const failedTxMonitor = (app, eventWatcher) => {
 
     const receipt = await web3.eth.getTransactionReceipt(milestone.txHash);
     // reset the milestone status if the tx has been pending for more then 2 hrs, otherwise ignore
-    if (!receipt && milestone.updatedAt <= Date.now() - TWO_HOURS) return;
+    if (!receipt && Date(milestone.updatedAt).getTime() <= Date.now() - TWO_HOURS) return;
     // ignore if there isn't enough confirmations
     if (receipt && currentBlock - receipt.blockNumber < requiredConfirmations) return;
 

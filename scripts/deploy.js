@@ -3,10 +3,9 @@ const Web3 = require('web3');
 const { Kernel, ACL, LPVault, LiquidPledging, LPFactory, test } = require('giveth-liquidpledging');
 const { LPPCampaign, LPPCampaignFactory } = require('lpp-campaign');
 const { LPPCappedMilestone, LPPCappedMilestoneFactory } = require('lpp-capped-milestone');
-const { MiniMeTokenFactory } = require('minimetoken');
+const { MiniMeTokenFactory, MiniMeToken, MiniMeTokenState } = require('minimetoken');
 const { GivethBridge, ForeignGivethBridge } = require('giveth-bridge');
 const startNetworks = require('./startNetworks');
-
 const { RecoveryVault } = test;
 
 // NOTE: do not use the bridge account (account[10]) for any txs outside of the bridge
@@ -23,6 +22,8 @@ async function deploy() {
     const foreignWeb3 = new Web3('http://localhost:8546');
 
     const accounts = await foreignWeb3.eth.getAccounts();
+    const homeAccounts = await homeWeb3.eth.getAccounts();
+
     const from = accounts[0];
 
     const baseVault = await LPVault.new(foreignWeb3);
@@ -160,6 +161,36 @@ async function deploy() {
     await foreignBridge.addToken(0, 'Foreign ETH', 18, 'FETH', { from: accounts[10] });
     const foreignEthAddress = await foreignBridge.tokenMapping(0);
 
+    // deploy ERC20 test token
+    const miniMeToken = await MiniMeToken.new(homeWeb3,
+      tokenFactory.$address,
+      0,
+      0,
+      'MiniMe Test Token',
+      18,
+      'MMT',
+      true
+    );  
+    
+    // generate tokens for all home accounts
+    // we first generate all tokens, then transfer, otherwise MetaMask will not show token balances
+    await miniMeToken.generateTokens(homeAccounts[10], Web3.utils.toWei("100000"))
+
+    // transfer tokens to all other home accounts, so that Meta mask will detect these tokens
+    res = await Promise.all(homeAccounts.map(async a => await miniMeToken.transfer(a, Web3.utils.toWei("10000"), { from: homeAccounts[10] })));
+
+    const miniMeTokenState = new MiniMeTokenState(miniMeToken);    
+    const st = await miniMeTokenState.getState()
+    homeAccounts.map(a => console.log('MMT balance of address ', a, ' > ', Web3.utils.fromWei(st.balances[a])));
+
+    // whitelist MMT token
+    await homeBridge.whitelistToken(miniMeToken.$address, true, { from: accounts[10] })
+
+    // add token on foreign
+    await foreignBridge.addToken(miniMeToken.$address, 'MiniMe Test Token', 18, 'MMT', { from: accounts[10] })
+    const foreigTokenAddress = await foreignBridge.tokenMapping(miniMeToken.$address);
+
+
     console.log('\n\n', {
       vault: vault.$address,
       liquidPledging: liquidPledging.$address,
@@ -168,6 +199,13 @@ async function deploy() {
       givethBridge: homeBridge.$address,
       foreignGivethBridge: foreignBridge.$address,
       homeEthToken: foreignEthAddress,
+      miniMeToken: {
+        "name": "MiniMe Token", 
+        "address": miniMeToken.$address,
+        "foreignAddress": foreigTokenAddress,
+        "symbol": "MMT", 
+        "decimals": 18        
+      }
     });
     process.exit(); // some reason, this script won't exit. I think it has to do with web3 subscribing to tx confirmations?
   } catch (e) {

@@ -20,6 +20,11 @@ const sendEmail = (app, data) => {
 
   logger.info(`sending email notification to ${data.recipient} > ${data.unsubscribeType}`);
 
+  // add host to subject for development
+  if (!app.get('host').includes('beta')) {
+    data.subject = `[${app.get('host')}] - ${data.subject}`;
+  }
+
   rp({
     method: 'POST',
     url: `${dappMailerUrl}/send`,
