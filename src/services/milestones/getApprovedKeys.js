@@ -110,11 +110,11 @@ const getApprovedKeys = (milestone, data, user) => {
         return ['txHash', 'status', 'mined', 'message', 'proofItems'];
       }
 
-      // Cancel milestone by Campaign or Milestone Reviewer
+      // Cancel milestone by Milestone Manager or Milestone Reviewer
       if (data.status === MilestoneStatus.CANCELED && data.mined === false) {
-        if (!reviewers.includes(user.address)) {
+        if (![milestone.reviewerAddress, milestone.ownerAddress].includes(user.address)) {
           throw new errors.Forbidden(
-            'Only the Milestone or Campaign Reviewer can cancel a milestone',
+            'Only the Milestone Manager or Milestone Reviewer can cancel a milestone',
           );
         }
 
@@ -154,11 +154,11 @@ const getApprovedKeys = (milestone, data, user) => {
         return ['status', 'mined', 'message', 'proofItems'];
       }
 
-      // Cancel milestone by Campaign or Milestone Reviewer
+      // Cancel milestone by Milestone Manager or Milestone Reviewer
       if (data.status === MilestoneStatus.CANCELED && data.mined === false) {
-        if (!reviewers.includes(user.address)) {
+        if (![milestone.reviewerAddress, milestone.ownerAddress].includes(user.address)) {
           throw new errors.Forbidden(
-            'Only the Milestone or Campaign Reviewer can cancel a milestone',
+            'Only the Milestone Manager or Milestone Reviewer can cancel a milestone',
           );
         }
         logger.info(

@@ -274,8 +274,21 @@ const pledges = (app, liquidPledging) => {
   async function newDonation(app, pledgeId, amount, ts, txHash) {
     const pledge = await liquidPledging.getPledge(pledgeId);
     const giver = await getPledgeAdmin(pledge.owner);
+    const tokenWhitelist = app.get('tokenWhitelist');
+    let token;
+    if (Array.isArray(tokenWhitelist))
+      token = tokenWhitelist.find(
+        t =>
+          typeof t.foreignAddress === 'string' &&
+          typeof pledge.token === 'string' &&
+          t.foreignAddress.toLowerCase() === pledge.token.toLowerCase(),
+      );
+    else logger.error('Could not get tokenWhitelist  or it is not defined');
 
-    const token = app.get('tokenWhitelist').find(t => t.foreignAddress === pledge.token)
+    if (!token)
+      logger.error(
+        `Token address ${pledge.token} was not found in whitelist for pledge ${pledgeId}`,
+      );
 
     const mutation = {
       giverAddress: giver.admin.address, // giver is a user type
@@ -288,7 +301,7 @@ const pledges = (app, liquidPledging) => {
       status: DonationStatus.WAITING, // waiting for delegation by owner
       mined: true,
       createdAt: ts,
-      token: token,
+      token,
       intendedProjectId: pledge.intendedProject,
       txHash,
     };
