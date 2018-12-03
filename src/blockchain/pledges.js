@@ -274,6 +274,7 @@ const pledges = (app, liquidPledging) => {
   async function newDonation(app, pledgeId, amount, ts, txHash) {
     const pledge = await liquidPledging.getPledge(pledgeId);
     const giver = await getPledgeAdmin(pledge.owner);
+
     const tokenWhitelist = app.get('tokenWhitelist');
     let token;
     if (Array.isArray(tokenWhitelist))
