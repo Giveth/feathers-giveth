@@ -27,6 +27,27 @@ function logTransferInfo(transferInfo) {
   logger.error('missing from donation ->', JSON.stringify(info, null, 2));
 }
 
+function _retreiveTokenFromPledge(app, pledge) {
+    const tokenWhitelist = app.get('tokenWhitelist');
+    let token;
+    
+    if (Array.isArray(tokenWhitelist))
+      token = tokenWhitelist.find(
+        t =>
+          typeof t.foreignAddress === 'string' &&
+          typeof pledge.token === 'string' &&
+          t.foreignAddress.toLowerCase() === pledge.token.toLowerCase(),
+      );
+    else {
+      throw new Error('Could not get tokenWhitelist or it is not defined');
+    }
+
+    if (!token)
+      throw new Error(`Token address ${pledge.token} was not found in whitelist for pledge ${pledgeId}`);
+
+    return token
+}
+
 // sort donations by pendingAmountRemaining (asc with undefined coming last)
 function donationSort(a, b) {
   const { pendingAmountRemaining: aVal } = a;
@@ -102,7 +123,7 @@ function createToDonationMutation(app, transferInfo, isReturnTransfer) {
   } = transferInfo;
 
   // find token
-  const token = app.get('tokenWhitelist').find(t => t.foreignAddress === fromPledge.token);
+  const token = _retreiveTokenFromPledge(app, fromPledge);
 
   const mutation = {
     amount,
@@ -274,22 +295,7 @@ const pledges = (app, liquidPledging) => {
   async function newDonation(app, pledgeId, amount, ts, txHash) {
     const pledge = await liquidPledging.getPledge(pledgeId);
     const giver = await getPledgeAdmin(pledge.owner);
-
-    const tokenWhitelist = app.get('tokenWhitelist');
-    let token;
-    if (Array.isArray(tokenWhitelist))
-      token = tokenWhitelist.find(
-        t =>
-          typeof t.foreignAddress === 'string' &&
-          typeof pledge.token === 'string' &&
-          t.foreignAddress.toLowerCase() === pledge.token.toLowerCase(),
-      );
-    else logger.error('Could not get tokenWhitelist  or it is not defined');
-
-    if (!token)
-      logger.error(
-        `Token address ${pledge.token} was not found in whitelist for pledge ${pledgeId}`,
-      );
+    const token = _retreiveTokenFromPledge(app, pledge);
 
     const mutation = {
       giverAddress: giver.admin.address, // giver is a user type
