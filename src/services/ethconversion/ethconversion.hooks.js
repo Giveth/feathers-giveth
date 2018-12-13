@@ -11,11 +11,8 @@ const getConversionRates = () => context => {
   if (params.internal) return context;
 
   return getEthConversion(app, params.query.date, params.query.symbol).then(res => {
-    const context2 = Object.assign({}, context);
-    const res2 = Object.assign({}, res);
-    res2.rates.ETH = 1;
-    context2.result = res2;
-    return context2;
+    context.result = res;
+    return context;
   });
 };
 
