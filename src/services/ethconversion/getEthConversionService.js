@@ -1,7 +1,6 @@
 const rp = require('request-promise');
 const logger = require('winston');
 
-const fiat = ['AUD', 'BRL', 'CAD', 'CHF', 'CZK', 'EUR', 'GBP', 'MXN', 'THB', 'USD'];
 const MINUTE = 1000 * 60;
 
 /**
@@ -40,22 +39,30 @@ const _getRatesCryptocompare = async (timestamp, ratesToGet, symbol) => {
   logger.debug(`Fetching eth coversion from crypto compare for: ${ratesToGet}`);
   const timestampMS = Math.round(timestamp / 1000);
 
-  const promises = ratesToGet.map(f =>
-    rp(
-      `https://min-api.cryptocompare.com/data/dayAvg?fsym=${symbol}&tsym=${f}&toTs=${timestampMS}&extraParams=giveth`,
-    ),
-  );
-
-  const responses = await Promise.all(promises);
-
   const rates = {};
-  responses.forEach(resp => {
-    const response = JSON.parse(resp);
 
-    Object.keys(response).forEach(key => {
-      if (fiat.includes(key)) rates[key] = response[key];
-    });
-  });
+  // if requested symbol is same as one of the ratesToGet, the conversion is set to 1 (example ETH-ETH)
+  // else, we fetch the conversion rate
+  const promises = ratesToGet.map(r => 
+    new Promise(async (resolve, reject) => {
+      if(r !== symbol) {
+        const resp = JSON.parse(await rp(
+          `https://min-api.cryptocompare.com/data/dayAvg?fsym=${symbol}&tsym=${r}&toTs=${timestampMS}&extraParams=giveth`,
+        ))
+        
+        Object.keys(resp).forEach(key => {
+          if (key === r ) {
+            rates[r] = resp[key]
+          }
+        });
+      } else {
+        rates[r] = 1;
+      } 
+      resolve()
+    })
+  )
+
+  await Promise.all(promises);
 
   rates.symbol = symbol;
   return rates;
@@ -101,6 +108,8 @@ const getEthConversion = (app, requestedDate, requestedSymbol = 'ETH') => {
   // Only the rates for yesterday or older dates are final
   const timestamp = reqDateUTC < yesterdayUTC ? reqDateUTC : yesterdayUTC;
 
+  const fiat = app.get('fiatWhitelist');
+
   logger.debug(`request eth conversion for timestamp ${timestamp}`);
 
   // Check if we already have this exchange rate for this timestamp, if not we save it
@@ -111,6 +120,9 @@ const getEthConversion = (app, requestedDate, requestedSymbol = 'ETH') => {
       const unknownRates = fiat.filter(cur => !retrievedRates.has(cur));
 
       let { rates } = dbRates;
+
+      console.log('dbRates', dbRates) 
+      console.log('unknownRates', unknownRates)
 
       if (unknownRates.length !== 0) {
         logger.debug('fetching eth coversion from crypto compare');
