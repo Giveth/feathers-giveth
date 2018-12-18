@@ -121,9 +121,6 @@ const getEthConversion = (app, requestedDate, requestedSymbol = 'ETH') => {
 
       let { rates } = dbRates;
 
-      console.log('dbRates', dbRates) 
-      console.log('unknownRates', unknownRates)
-
       if (unknownRates.length !== 0) {
         logger.debug('fetching eth coversion from crypto compare');
         // Some rates have not been obtained yet, get them from cryptocompare
