@@ -32,6 +32,7 @@ const projects = (app, liquidPledging) => {
   let milestoneBase;
 
   async function fetchProfile(url) {
+    if (!url || url === '') return {};
     const [err, profile] = await to(app.ipfsFetcher(url));
 
     if (err) {
@@ -43,6 +44,18 @@ const projects = (app, liquidPledging) => {
       }
     }
     return profile;
+  }
+
+  function findToken(foreignAddress) {
+    const tokenWhitelist = app.get('tokenWhitelist');
+
+    const token = tokenWhitelist.find(
+      t => t.foreignAddress.toLowerCase() === foreignAddress.toLowerCase(),
+    );
+
+    if (!token) throw new Error(`Un-whitelisted token: ${foreignAddress}`);
+
+    return token;
   }
 
   async function getKernel() {
@@ -142,6 +155,7 @@ const projects = (app, liquidPledging) => {
           pluginAddress: project.plugin,
           url: project.url,
           ownerAddress: milestone.ownerAddress,
+          token: milestone.token,
           totalDonated: '0',
           currentBalance: '0',
           donationCount: 0,
@@ -223,6 +237,7 @@ const projects = (app, liquidPledging) => {
         cappedMilestone.recipient(),
         cappedMilestone.milestoneManager(),
         cappedMilestone.completed(),
+        cappedMilestone.acceptedToken(),
         liquidPledging.isProjectCanceled(projectId),
         web3.eth.getTransaction(txHash),
       ]);
@@ -234,9 +249,12 @@ const projects = (app, liquidPledging) => {
         recipient,
         manager,
         completed,
+        acceptedToken,
         canceled,
         tx,
       ] = responses;
+
+      const token = findToken(acceptedToken);
 
       if (!milestone) {
         milestone = await createMilestone(
@@ -250,6 +268,7 @@ const projects = (app, liquidPledging) => {
             ownerAddress: manager,
             completed,
             canceled,
+            token,
           },
           tx,
         );
@@ -274,6 +293,7 @@ const projects = (app, liquidPledging) => {
         pluginAddress: project.plugin,
         status: milestoneStatus(completed, canceled),
         url: project.url,
+        token,
         mined: true,
       });
 
