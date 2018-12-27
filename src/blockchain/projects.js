@@ -7,7 +7,7 @@ const { LPPCampaign } = require('lpp-campaign');
 const { keccak256 } = require('web3-utils');
 const logger = require('winston');
 
-const { removeHexPrefix, getBlockTimestamp } = require('./lib/web3Helpers');
+const { removeHexPrefix, getBlockTimestamp, executeRequestsAsBatch } = require('./lib/web3Helpers');
 const { CampaignStatus } = require('../models/campaigns.model');
 const { DonationStatus } = require('../models/donations.model');
 const { MilestoneStatus } = require('../models/milestones.model');
@@ -231,15 +231,17 @@ const projects = (app, liquidPledging) => {
     try {
       const responses = await Promise.all([
         getMilestone(project, txHash),
-        cappedMilestone.maxAmount(),
-        cappedMilestone.reviewer(),
-        cappedMilestone.campaignReviewer(),
-        cappedMilestone.recipient(),
-        cappedMilestone.milestoneManager(),
-        cappedMilestone.completed(),
-        cappedMilestone.acceptedToken(),
-        liquidPledging.isProjectCanceled(projectId),
-        web3.eth.getTransaction(txHash),
+        ...(await executeRequestsAsBatch(web3, [
+          cappedMilestone.$contract.methods.maxAmount().call.request,
+          cappedMilestone.$contract.methods.reviewer().call.request,
+          cappedMilestone.$contract.methods.campaignReviewer().call.request,
+          cappedMilestone.$contract.methods.recipient().call.request,
+          cappedMilestone.$contract.methods.milestoneManager().call.request,
+          cappedMilestone.$contract.methods.completed().call.request,
+          cappedMilestone.$contract.methods.acceptedToken().call.request,
+          liquidPledging.$contract.methods.isProjectCanceled(projectId).call.request,
+          web3.eth.getTransaction.request.bind(null, txHash),
+        ])),
       ]);
       let milestone = responses.splice(0, 1)[0];
       const [
@@ -347,8 +349,10 @@ const projects = (app, liquidPledging) => {
     try {
       const [campaign, canceled, reviewer] = await Promise.all([
         getCampaign(project, txHash),
-        lppCampaign.isCanceled(),
-        lppCampaign.reviewer(),
+        ...(await executeRequestsAsBatch(web3, [
+          lppCampaign.$contract.methods.isCanceled().call.request,
+          lppCampaign.$contract.methods.reviewer().call.request,
+        ])),
       ]);
 
       if (!campaign) {
