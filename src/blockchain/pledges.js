@@ -28,24 +28,26 @@ function logTransferInfo(transferInfo) {
 }
 
 function _retreiveTokenFromPledge(app, pledge) {
-    const tokenWhitelist = app.get('tokenWhitelist');
-    let token;
-    
-    if (Array.isArray(tokenWhitelist))
-      token = tokenWhitelist.find(
-        t =>
-          typeof t.foreignAddress === 'string' &&
-          typeof pledge.token === 'string' &&
-          t.foreignAddress.toLowerCase() === pledge.token.toLowerCase(),
-      );
-    else {
-      throw new Error('Could not get tokenWhitelist or it is not defined');
-    }
+  const tokenWhitelist = app.get('tokenWhitelist');
+  let token;
 
-    if (!token)
-      throw new Error(`Token address ${pledge.token} was not found in whitelist for pledge ${pledgeId}`);
+  if (Array.isArray(tokenWhitelist))
+    token = tokenWhitelist.find(
+      t =>
+        typeof t.foreignAddress === 'string' &&
+        typeof pledge.token === 'string' &&
+        t.foreignAddress.toLowerCase() === pledge.token.toLowerCase(),
+    );
+  else {
+    throw new Error('Could not get tokenWhitelist or it is not defined');
+  }
 
-    return token
+  if (!token)
+    throw new Error(
+      `Token address ${pledge.token} was not found in whitelist for pledge ${pledge}`,
+    );
+
+  return token;
 }
 
 // sort donations by pendingAmountRemaining (asc with undefined coming last)

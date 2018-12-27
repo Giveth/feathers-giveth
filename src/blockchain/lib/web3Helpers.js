@@ -133,7 +133,16 @@ const reconnectOnEnd = (web3, nodeUrl) => {
 };
 
 function instantiateWeb3(nodeUrl) {
-  const w3 = Object.assign(new Web3(nodeUrl), EventEmitter.prototype);
+  const provider =
+    nodeUrl && nodeUrl.startsWith('ws')
+      ? new Web3.providers.WebsocketProvider(nodeUrl, {
+          clientConfig: {
+            maxReceivedFrameSize: 100000000,
+            maxReceivedMessageSize: 100000000,
+          },
+        })
+      : nodeUrl;
+  const w3 = Object.assign(new Web3(provider), EventEmitter.prototype);
 
   if (w3.currentProvider.on) {
     w3.currentProvider.on('connect', () => {
