@@ -32,6 +32,48 @@ function batchAndExecuteRequests(web3, requests) {
 }
 
 /**
+ * Executes all provided web3 requests in a single batch call
+ *
+ * Each request should be a bound object with all args excluding the callback:
+ *
+ * ex.
+ *
+ * web3.eth.getBalance.request.bind(null, '0x0000000000000000000000000000000000000000', 'latest')
+ *
+ * where as the request would typically be called like:
+ *
+ * web3.eth.getBalance.request('0x0000000000000000000000000000000000000000', 'latest', callback);
+ *
+ * The response is a Promise that will resolve to an array of request responses
+ * in the same order as the provided requests array
+ *
+ * @param {object} web3 Web3 instance
+ * @param {array} requests array of Web3 request objects
+ * @returns Promise
+ */
+function executeRequestsAsBatch(web3, requests) {
+  const batch = new web3.BatchRequest();
+
+  const promise = Promise.all(
+    requests.map(
+      r =>
+        new Promise((resolve, reject) => {
+          batch.add(
+            r((err, value) => {
+              if (err) return reject(err);
+              return resolve(value);
+            }),
+          );
+        }),
+    ),
+  );
+
+  batch.execute();
+
+  return promise;
+}
+
+/**
  * Adds an account to the wallet of the provided web3 instance
  * if it has not be previously added
  *
@@ -202,6 +244,7 @@ module.exports = {
   getWeb3,
   getHomeWeb3,
   batchAndExecuteRequests,
+  executeRequestsAsBatch,
   removeHexPrefix,
   addAccountToWallet,
   getBlockTimestamp,

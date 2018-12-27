@@ -3,7 +3,7 @@ const logger = require('winston');
 const { toBN } = require('web3-utils');
 const eventDecodersFromArtifact = require('./lib/eventDecodersFromArtifact');
 const topicsFromArtifacts = require('./lib/topicsFromArtifacts');
-const { getBlockTimestamp } = require('./lib/web3Helpers');
+const { getBlockTimestamp, executeRequestsAsBatch } = require('./lib/web3Helpers');
 const { CampaignStatus } = require('../models/campaigns.model');
 const { DonationStatus } = require('../models/donations.model');
 const { MilestoneStatus } = require('../models/milestones.model');
@@ -416,9 +416,9 @@ const pledges = (app, liquidPledging) => {
   // fetches all necessary data to determine what happened for this Transfer event
   async function transfer(from, to, amount, ts, txHash) {
     try {
-      const [fromPledge, toPledge] = await Promise.all([
-        liquidPledging.getPledge(from),
-        liquidPledging.getPledge(to),
+      const [fromPledge, toPledge] = await executeRequestsAsBatch(web3, [
+        liquidPledging.$contract.methods.getPledge(from).call.request,
+        liquidPledging.$contract.methods.getPledge(to).call.request,
       ]);
 
       const fromPledgeAdmin = await getPledgeAdmin(fromPledge.owner);
