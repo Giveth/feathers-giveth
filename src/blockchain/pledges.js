@@ -1,4 +1,5 @@
 const ForeignGivethBridgeArtifact = require('giveth-bridge/build/ForeignGivethBridge.json');
+const LiquidPledgingArtifact = require('giveth-liquidpledging/build/LiquidPledging.json');
 const logger = require('winston');
 const { toBN } = require('web3-utils');
 const eventDecodersFromArtifact = require('./lib/eventDecodersFromArtifact');
@@ -25,6 +26,47 @@ function logTransferInfo(transferInfo) {
   delete info.fromPledgeAdmin.admin;
   delete info.toPledgeAdmin.admin;
   logger.error('missing from donation ->', JSON.stringify(info, null, 2));
+}
+
+const lpDecoders = eventDecodersFromArtifact(LiquidPledgingArtifact);
+const transferTopics = topicsFromArtifacts([LiquidPledgingArtifact], ['Transfer']);
+/**
+ * Check if a 'Transfer' is an initial transfer. That is, is this
+ * 'Transfer' originate from the original donation call?
+ *
+ * Liquidpledging only emits transfer events. When a donation happens,
+ * first a Transfer event will be emitted from the 0 pledge to the givers
+ * pledge. Then a subsequent Transfer event will be emitted from the givers
+ * pledge to the receivers pledge.
+ *
+ * @param {number|string} from 'Transfer' event "from" param
+ * @param {number|string} amount amount of the transfer
+ * @param {object} receipt the transactionReceipt to check
+ */
+function isInitialTransfer(from, amount, receipt) {
+  if (!receipt) {
+    logger.error('isInitialTransfer called w/o receipt: ', receipt);
+    return false;
+  }
+
+  // get logs we're interested in.
+  const logs = receipt.logs.filter(log => transferTopics.some(t => t.hash === log.topics[0]));
+
+  if (logs.length === 0) return false;
+
+  const events = logs.map(l => {
+    const topic = transferTopics.find(t => t.hash === l.topics[0]);
+    return lpDecoders[topic.name](l);
+  });
+
+  // check if we have a transfer from pledge 0 to "from" w/ matching amount
+  // this indicates that this was a new donation
+  const hasZeroPledgeTransfer = events.some(
+    ({ returnValues }) =>
+      returnValues.from === '0' && returnValues.to === from && returnValues.amount === amount,
+  );
+
+  return hasZeroPledgeTransfer;
 }
 
 function _retreiveTokenFromPledge(app, pledge) {
@@ -106,69 +148,6 @@ const getCommitTime = (commitTime, ts) =>
   Number(commitTime) > 0 ? new Date(commitTime * 1000) : ts;
 
 /**
- * generate a mutation object used to create/update the `to` donation
- *
- * @param {object} transferInfo object containing information regarding the Transfer event
- */
-function createToDonationMutation(app, transferInfo, isReturnTransfer) {
-  const {
-    toPledgeAdmin,
-    toPledge,
-    toPledgeId,
-    fromPledge,
-    delegate,
-    intendedProject,
-    donations,
-    amount,
-    ts,
-    txHash,
-  } = transferInfo;
-
-  // find token
-  const token = _retreiveTokenFromPledge(app, fromPledge);
-
-  const mutation = {
-    amount,
-    amountRemaining: amount,
-    giverAddress: donations[0].giverAddress, // all donations should have same giverAddress
-    ownerId: toPledge.owner,
-    ownerTypeId: toPledgeAdmin.typeId,
-    ownerType: toPledgeAdmin.type,
-    pledgeId: toPledgeId,
-    commitTime: getCommitTime(toPledge.commitTime, ts),
-    status: getDonationStatus(transferInfo),
-    createdAt: ts,
-    parentDonations: donations.map(d => d._id),
-    txHash,
-    mined: true,
-    token,
-  };
-
-  // lp keeps the delegation chain, but we want to ignore it
-  if (![DonationStatus.PAYING, DonationStatus.PAID].includes(mutation.status) && delegate) {
-    Object.assign(mutation, {
-      delegateId: delegate.id,
-      delegateTypeId: delegate.typeId,
-      delegateType: delegate.type,
-    });
-  }
-
-  if (intendedProject) {
-    Object.assign(mutation, {
-      intendedProjectId: intendedProject.id,
-      intendedProjectTypeId: intendedProject.typeId,
-      intendedProjectType: intendedProject.type,
-    });
-  }
-
-  if (isReturnTransfer || isRejectedDelegation(transferInfo)) {
-    mutation.isReturn = true;
-  }
-
-  return mutation;
-}
-
-/**
  *
  * @param {object} app feathers app instance
  * @param {object} liquidPledging liquidPledging contract instance
@@ -213,6 +192,76 @@ const pledges = (app, liquidPledging) => {
   }
 
   /**
+   * generate a mutation object used to create/update the `to` donation
+   *
+   * @param {object} transferInfo object containing information regarding the Transfer event
+   */
+  async function createToDonationMutation(transferInfo, returnTransfer) {
+    const {
+      toPledgeAdmin,
+      toPledge,
+      toPledgeId,
+      fromPledge,
+      delegate,
+      intendedProject,
+      donations,
+      amount,
+      ts,
+      txHash,
+      initialTransfer,
+    } = transferInfo;
+
+    // find token
+    const token = _retreiveTokenFromPledge(app, fromPledge);
+
+    const mutation = {
+      amount,
+      amountRemaining: amount,
+      giverAddress: donations[0].giverAddress, // all donations should have same giverAddress
+      ownerId: toPledge.owner,
+      ownerTypeId: toPledgeAdmin.typeId,
+      ownerType: toPledgeAdmin.type,
+      pledgeId: toPledgeId,
+      commitTime: getCommitTime(toPledge.commitTime, ts),
+      status: getDonationStatus(transferInfo),
+      createdAt: ts,
+      parentDonations: donations.map(d => d._id),
+      txHash,
+      mined: true,
+      token,
+    };
+
+    if (initialTransfer) {
+      // always set homeTx on mutation b/c ui checks if homeTxHash exists to check for initial donations
+      const homeTxHash = (await getHomeTxHash(txHash)) || 'unknown';
+      mutation.homeTxHash = homeTxHash;
+    }
+
+    // lp keeps the delegation chain, but we want to ignore it
+    if (![DonationStatus.PAYING, DonationStatus.PAID].includes(mutation.status) && delegate) {
+      Object.assign(mutation, {
+        delegateId: delegate.id,
+        delegateTypeId: delegate.typeId,
+        delegateType: delegate.type,
+      });
+    }
+
+    if (intendedProject) {
+      Object.assign(mutation, {
+        intendedProjectId: intendedProject.id,
+        intendedProjectTypeId: intendedProject.typeId,
+        intendedProjectType: intendedProject.type,
+      });
+    }
+
+    if (returnTransfer || isRejectedDelegation(transferInfo)) {
+      mutation.isReturn = true;
+    }
+
+    return mutation;
+  }
+
+  /**
    * fetch donations for a pledge needed to fulfill the transfer amount
    *
    * lp will aggregate multiple donations by the same person to another entity
@@ -222,17 +271,37 @@ const pledges = (app, liquidPledging) => {
    *
    * @param {number|string} pledgeId lp pledgeId
    * @param {number|string} amount amount that is being transferred
+   * @param {boolean} initialTransfer should be true if this is the 2nd 'Transfer' event
+   *    that occurs in a donation. 1st 'Transfer' event is pledge 0 -> pledge x. 2nd 'Transfer'
+   *    event is pledge x -> donation_recipient_pledge
+   * @param {number|string} txHash (should be provided when initialTransfer = true). the transactionHash
+   *    the donations occurred in. Used as a tie breaker in edge cases where multiple unspent donations exist
+   *    w/ the exact same pledgeId & amount
    */
-  async function getDonations(pledgeId, amount) {
+  async function getDonations(pledgeId, amount, initialTransfer = false, txHash = undefined) {
+    const query = {
+      $sort: { createdAt: 1 },
+      pledgeId,
+      amountRemaining: { $ne: 0 },
+    };
+    if (initialTransfer) {
+      query.amount = amount;
+      query.amount = amount;
+    }
+
     const donations = await donationService.find({
       paginate: false,
       schema: 'includeTypeAndGiverDetails',
-      query: {
-        $sort: { createdAt: 1 },
-        pledgeId,
-        amountRemaining: { $ne: 0 },
-      },
+      query,
     });
+
+    if (initialTransfer) {
+      if (donations.length <= 1) return donations;
+      // return most recent donation
+      const filteredDonations = donations.filter(d => d.txHash === txHash);
+      return filteredDonations.slice(filteredDonations.length - 1);
+    }
+
     donations.sort(donationSort);
     let remaining = toBN(amount);
 
@@ -249,7 +318,7 @@ const pledges = (app, liquidPledging) => {
     return pledgeAdmins.find({ paginate: false, query: { id } }).then(data => data[0]);
   }
 
-  async function createDonation(mutation, isInitialTransfer = false, retry = false) {
+  async function createDonation(mutation, initialTransfer = false, retry = false) {
     const query = {
       $limit: 1,
       giverAddress: mutation.giverAddress,
@@ -257,7 +326,7 @@ const pledges = (app, liquidPledging) => {
       mined: false,
       $or: [{ pledgeId: '0' }, { pledgeId: mutation.pledgeId }],
     };
-    if (isInitialTransfer) {
+    if (initialTransfer) {
       // b/c new donations occur on a different network, we can't use the txHash here
       // so attempt to find the 1st donation where all other params are the same
       Object.assign(query, {
@@ -288,13 +357,13 @@ const pledges = (app, liquidPledging) => {
       // Other then that, the donation should always be created before the tx was mined.
       return retry
         ? donationService.create(mutation)
-        : reprocess(createDonation.bind(this, mutation, isInitialTransfer, true), 5000);
+        : reprocess(createDonation.bind(this, mutation, initialTransfer, true), 5000);
     }
 
     return donationService.patch(donations[0]._id, mutation);
   }
 
-  async function newDonation(app, pledgeId, amount, ts, txHash) {
+  async function newDonation(pledgeId, amount, ts, txHash) {
     const pledge = await liquidPledging.getPledge(pledgeId);
     const giver = await getPledgeAdmin(pledge.owner);
     const token = _retreiveTokenFromPledge(app, pledge);
@@ -350,20 +419,12 @@ const pledges = (app, liquidPledging) => {
    * @param {object} transferInfo
    */
   async function createToDonation(transferInfo) {
-    const { txHash, donations } = transferInfo;
-    const isInitialTransfer = donations.length === 1 && donations[0].parentDonations.length === 0;
-    const mutation = createToDonationMutation(
-      app,
+    const mutation = await createToDonationMutation(
       transferInfo,
       await isReturnTransfer(transferInfo),
     );
 
-    if (isInitialTransfer) {
-      // always set homeTx on mutation b/c ui checks if homeTxHash exists to check for initial donations
-      const homeTxHash = (await getHomeTxHash(txHash)) || 'unknown';
-      mutation.homeTxHash = homeTxHash;
-    }
-    return createDonation(mutation, isInitialTransfer);
+    return createDonation(mutation, transferInfo.initialTransfer);
   }
 
   /**
@@ -416,9 +477,10 @@ const pledges = (app, liquidPledging) => {
   // fetches all necessary data to determine what happened for this Transfer event
   async function transfer(from, to, amount, ts, txHash) {
     try {
-      const [fromPledge, toPledge] = await executeRequestsAsBatch(web3, [
+      const [fromPledge, toPledge, receipt] = await executeRequestsAsBatch(web3, [
         liquidPledging.$contract.methods.getPledge(from).call.request,
         liquidPledging.$contract.methods.getPledge(to).call.request,
+        web3.eth.getTransactionReceipt.request.bind(null, txHash),
       ]);
 
       const fromPledgeAdmin = await getPledgeAdmin(fromPledge.owner);
@@ -437,7 +499,12 @@ const pledges = (app, liquidPledging) => {
         return;
       }
 
-      const promises = [getPledgeAdmin(toPledge.owner), getDonations(from, amount)];
+      const initialTransfer = isInitialTransfer(from, amount, receipt);
+
+      const promises = [
+        getPledgeAdmin(toPledge.owner),
+        getDonations(from, amount, initialTransfer, txHash),
+      ];
 
       // In lp any delegate in the chain can delegate, but currently we only allow last delegate
       // to have that ability
@@ -466,6 +533,7 @@ const pledges = (app, liquidPledging) => {
         fromPledge,
         toPledge,
         toPledgeId: to,
+        initialTransfer,
         delegate,
         intendedProject,
         donations,
@@ -500,7 +568,7 @@ const pledges = (app, liquidPledging) => {
       const txHash = event.transactionHash;
       const ts = await getBlockTimestamp(web3, event.blockNumber);
       if (Number(from) === 0) {
-        const [err] = await toWrapper(newDonation(app, to, amount, ts, txHash));
+        const [err] = await toWrapper(newDonation(to, amount, ts, txHash));
 
         if (err) {
           logger.error('newDonation error ->', err);
