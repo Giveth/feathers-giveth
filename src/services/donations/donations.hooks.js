@@ -9,7 +9,7 @@ const { DonationStatus } = require('../../models/donations.model');
 const { AdminTypes } = require('../../models/pledgeAdmins.model');
 const { MilestoneStatus } = require('../../models/milestones.model');
 
-const updateEntityCounters = require('./updateEntityCounters');
+const { updateDonationEntityCountersHook } = require('./updateEntityCounters');
 
 const poSchemas = {
   'po-giver': {
@@ -237,9 +237,9 @@ module.exports = {
     all: [populateSchema()],
     find: [addConfirmations()],
     get: [addConfirmations()],
-    create: [updateEntityCounters()],
+    create: [updateDonationEntityCountersHook()],
     update: [],
-    patch: [updateEntityCounters()],
+    patch: [updateDonationEntityCountersHook()],
     remove: [],
   },
 

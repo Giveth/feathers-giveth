@@ -382,6 +382,8 @@ const pledges = (app, liquidPledging) => {
       token,
       intendedProjectId: pledge.intendedProject,
       txHash,
+      // always set homeTx on mutation b/c ui checks if homeTxHash exists to check for initial donations
+      // homeTxHash: (await getHomeTxHash(txHash)) || 'unknown',
     };
 
     return createDonation(mutation, !!txHash);
