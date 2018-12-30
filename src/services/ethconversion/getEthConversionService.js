@@ -43,29 +43,44 @@ const _getRatesCryptocompare = async (timestamp, ratesToGet, symbol) => {
 
   // if requested symbol is same as one of the ratesToGet, the conversion is set to 1 (example ETH-ETH)
   // else, we fetch the conversion rate
-  const promises = ratesToGet.map(r => 
-    new Promise(async (resolve, reject) => {
-      if(r !== symbol) {
-        const resp = JSON.parse(await rp(
+  const promises = ratesToGet.map(async r => {
+    if (r !== symbol) {
+      const resp = JSON.parse(
+        await rp(
           `https://min-api.cryptocompare.com/data/dayAvg?fsym=${symbol}&tsym=${r}&toTs=${timestampMS}&extraParams=giveth`,
-        ))
-        
-        Object.keys(resp).forEach(key => {
-          if (key === r ) {
-            rates[r] = resp[key]
-          }
-        });
-      } else {
-        rates[r] = 1;
-      } 
-      resolve()
-    })
-  )
+        ),
+      );
+
+      Object.keys(resp).forEach(key => {
+        if (key === r) {
+          rates[r] = resp[key];
+        }
+      });
+    } else {
+      rates[r] = 1;
+    }
+  });
 
   await Promise.all(promises);
 
   rates.symbol = symbol;
   return rates;
+};
+
+const getHourlyUSDRateCryptocompare = async (timestamp, tokenSymbol) => {
+  const timestampMS = Math.round(timestamp / 1000);
+
+  const resp = JSON.parse(
+    await rp(
+      `https://min-api.cryptocompare.com/data/histohour?fsym=${tokenSymbol}&tsym=USD&toTs=${timestampMS}&limit=1`,
+    ),
+  );
+
+  const tsData = resp.Data.find(d => d.time === timestampMS);
+
+  if (!tsData) throw new Error(`Failed to retrieve cryptocompare rate for ts: ${timestampMS}`);
+
+  return ((tsData.high + tsData.low) / 2).toFixed(2);
 };
 
 /**
@@ -95,7 +110,7 @@ const _saveToDB = (app, timestamp, rates, symbol, _id = undefined) => {
  *
  * @return {Promise} Promise that resolves to object {timestamp, rates: { EUR: 100, USD: 90 } }
  */
-const getEthConversion = (app, requestedDate, requestedSymbol = 'ETH') => {
+const getEthConversion = async (app, requestedDate, requestedSymbol = 'ETH') => {
   // Get yesterday date from today respecting UTC
   const yesterday = new Date(new Date().setUTCDate(new Date().getUTCDate() - 1));
   const yesterdayUTC = yesterday.setUTCHours(0, 0, 0, 0);
@@ -113,32 +128,53 @@ const getEthConversion = (app, requestedDate, requestedSymbol = 'ETH') => {
   logger.debug(`request eth conversion for timestamp ${timestamp}`);
 
   // Check if we already have this exchange rate for this timestamp, if not we save it
-  return new Promise(async (resolve, reject) => {
-    try {
-      const dbRates = await _getRatesDb(app, timestamp, requestedSymbol);
-      const retrievedRates = new Set(Object.keys(dbRates.rates || {}));
-      const unknownRates = fiat.filter(cur => !retrievedRates.has(cur));
+  const dbRates = await _getRatesDb(app, timestamp, requestedSymbol);
+  const retrievedRates = new Set(Object.keys(dbRates.rates || {}));
+  const unknownRates = fiat.filter(cur => !retrievedRates.has(cur));
 
-      let { rates } = dbRates;
+  let { rates } = dbRates;
 
-      console.log('dbRates', dbRates) 
-      console.log('unknownRates', unknownRates)
+  console.log('dbRates', dbRates);
+  console.log('unknownRates', unknownRates);
 
-      if (unknownRates.length !== 0) {
-        logger.debug('fetching eth coversion from crypto compare');
-        // Some rates have not been obtained yet, get them from cryptocompare
-        const newRates = await _getRatesCryptocompare(timestamp, unknownRates, requestedSymbol);
-        rates = Object.assign({}, dbRates.rates, newRates);
+  if (unknownRates.length !== 0) {
+    logger.debug('fetching eth coversion from crypto compare');
+    // Some rates have not been obtained yet, get them from cryptocompare
+    const newRates = await _getRatesCryptocompare(timestamp, unknownRates, requestedSymbol);
+    rates = Object.assign({}, dbRates.rates, newRates);
 
-        // Save the newly retrieved rates
-        await _saveToDB(app, dbRates.timestamp, rates, requestedSymbol, dbRates._id);
-      }
+    // Save the newly retrieved rates
+    await _saveToDB(app, dbRates.timestamp, rates, requestedSymbol, dbRates._id);
+  }
 
-      resolve({ timestamp: dbRates.timestamp, rates });
-    } catch (e) {
-      reject(e);
-    }
-  });
+  return { timestamp: dbRates.timestamp, rates };
+};
+
+const getHourlyUSDCryptoConversion = async (app, ts, tokenSymbol = 'ETH') => {
+  if (ts > Date.now()) throw new Error('Can not fetch crypto rate for future ts');
+
+  // set the date to the top of the hour
+  const requestTs = new Date(ts).setUTCMinutes(0, 0, 0);
+
+  // Check if we already have this exchange rate for this timestamp, if not we save it
+  const dbRates = await _getRatesDb(app, requestTs, tokenSymbol);
+  const retrievedRates = new Set(Object.keys(dbRates.rates || {}));
+
+  if (retrievedRates.has('USD')) {
+    return { timestamp: dbRates.timestamp, rate: dbRates.rates.USD };
+  }
+
+  console.log(`fetching hourly rate for ${tokenSymbol} as ${requestTs}`);
+
+  const rate = await getHourlyUSDRateCryptocompare(requestTs, tokenSymbol);
+  try {
+    await _saveToDB(app, requestTs, { USD: rate }, tokenSymbol);
+  } catch (e) {
+    // conflicts can happen when async fetching the same rate
+    if (e.type !== 'FeathersError' && e.name !== 'Conflict') throw e;
+  }
+
+  return { timestamp: requestTs, rate };
 };
 
 // Query the conversion rate every minute
@@ -154,4 +190,5 @@ const queryEthConversion = app => {
 module.exports = {
   getEthConversion,
   queryEthConversion,
+  getHourlyUSDCryptoConversion,
 };

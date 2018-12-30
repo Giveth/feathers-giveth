@@ -148,10 +148,11 @@ const updateDonationEntity = async (context, donation) => {
 
 const updateDonationEntityCountersHook = () => async context => {
   checkContext(context, 'after', ['create', 'patch']);
-  if (Array.isArray(context.data)) {
-    context.data.map(updateDonationEntity.bind(null, context));
+  if (context.params.skipEntityCounterUpdate) return context;
+  if (Array.isArray(context.result)) {
+    context.result.map(updateDonationEntity.bind(null, context));
   } else {
-    updateDonationEntity(context, context.data);
+    updateDonationEntity(context, context.result);
   }
   return context;
 };

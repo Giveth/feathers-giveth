@@ -52,6 +52,7 @@ function Donation(app) {
       parentDonations: { type: [String], default: [], required: true },
       isReturn: { type: Boolean, default: false },
       token: { type: Token },
+      usdValue: { type: Number, default: 0 },
     },
     {
       timestamps: true,

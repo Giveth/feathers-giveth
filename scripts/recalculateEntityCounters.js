@@ -1,4 +1,7 @@
 /**
+ * NOTE: make sure to chage the dappmailer url in config/*.json to an invalid url
+ * to prevent sending duplicate email notifications
+ * 
  * to run:
  *
  * NODE_ENV=production node scripts/recalculateEntityCounters.js

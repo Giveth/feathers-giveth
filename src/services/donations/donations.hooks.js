@@ -1,6 +1,8 @@
 /* eslint-disable no-unused-vars */
+const BigNumber = require('bignumber.js');
 const errors = require('@feathersjs/errors');
 const commons = require('feathers-hooks-common');
+const logger = require('winston');
 
 const sanitizeAddress = require('../../hooks/sanitizeAddress');
 const setAddress = require('../../hooks/setAddress');
@@ -8,6 +10,9 @@ const addConfirmations = require('../../hooks/addConfirmations');
 const { DonationStatus } = require('../../models/donations.model');
 const { AdminTypes } = require('../../models/pledgeAdmins.model');
 const { MilestoneStatus } = require('../../models/milestones.model');
+const {
+  getHourlyUSDCryptoConversion,
+} = require('../../services/ethconversion/getEthConversionService');
 
 const { updateDonationEntityCountersHook } = require('./updateEntityCounters');
 
@@ -87,6 +92,73 @@ const poSchemas = {
       },
     ],
   },
+};
+
+const setUSDValue = async (context, donation) => {
+  if (donation.status === DonationStatus.PENDING) return donation;
+
+  if ([DonationStatus.PAYING, DonationStatus.PAID].includes(donation.status)) {
+    const parentDonations = await context.app
+      .service('donations')
+      .find({ paginate: false, query: { _id: { $in: donation.parentDonations } } });
+
+    return context.app.service('donations').patch(
+      donation._id,
+      {
+        usdValue: parentDonations.reduce((val, d) => val + (d.usdValue || 0), 0),
+      },
+      {
+        skipUSDValueUpdate: true,
+        skipEntityCounterUpdate: true,
+      },
+    );
+  }
+
+  const { createdAt } = donation;
+  try {
+    const { rate } = await getHourlyUSDCryptoConversion(
+      context.app,
+      createdAt,
+      donation.token.symbol,
+    );
+
+    if (rate) {
+      return context.app.service('donations').patch(
+        donation._id,
+        {
+          usdValue: Number(
+            new BigNumber(donation.amount)
+              .div(10 ** Number(donation.token.decimals))
+              .times(rate)
+              .toFixed(2),
+          ),
+        },
+        {
+          skipUSDValueUpdate: true,
+          skipEntityCounterUpdate: true,
+        },
+      );
+    }
+
+    return donation;
+  } catch (e) {
+    logger.error(`Error setting usdValue for donation: ${donation._id}`, e);
+    return donation;
+  }
+};
+
+const setUSDValueHook = () => async context => {
+  commons.checkContext(context, 'after', ['create', 'patch']);
+
+  // prevent recursive calls
+  if (context.params.skipUSDValueUpdate) return context;
+
+  if (Array.isArray(context.result)) {
+    context.result = await Promise.all(context.result.map(setUSDValue.bind(null, context)));
+  } else {
+    context.result = await setUSDValue(context, context.result);
+  }
+  return context;
 };
 
 const restrict = () => async context => {
@@ -237,9 +309,9 @@ module.exports = {
     all: [populateSchema()],
     find: [addConfirmations()],
     get: [addConfirmations()],
-    create: [updateDonationEntityCountersHook()],
+    create: [setUSDValueHook(), updateDonationEntityCountersHook()],
     update: [],
-    patch: [updateDonationEntityCountersHook()],
+    patch: [setUSDValueHook(), updateDonationEntityCountersHook()],
     remove: [],
   },
 
