@@ -43,6 +43,7 @@ const sendNotification = () => async context => {
           milestoneTitle: data.title,
           campaignTitle: campaign.title,
           amount: data.maxAmount,
+          token: data.token,
         });
       } catch (e) {
         logger.error('error sending proposed milestone notification', e);
