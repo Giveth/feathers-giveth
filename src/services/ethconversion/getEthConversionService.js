@@ -134,9 +134,6 @@ const getEthConversion = async (app, requestedDate, requestedSymbol = 'ETH') => 
 
   let { rates } = dbRates;
 
-  console.log('dbRates', dbRates);
-  console.log('unknownRates', unknownRates);
-
   if (unknownRates.length !== 0) {
     logger.debug('fetching eth coversion from crypto compare');
     // Some rates have not been obtained yet, get them from cryptocompare
@@ -163,8 +160,6 @@ const getHourlyUSDCryptoConversion = async (app, ts, tokenSymbol = 'ETH') => {
   if (retrievedRates.has('USD')) {
     return { timestamp: dbRates.timestamp, rate: dbRates.rates.USD };
   }
-
-  console.log(`fetching hourly rate for ${tokenSymbol} as ${requestTs}`);
 
   const rate = await getHourlyUSDRateCryptocompare(requestTs, tokenSymbol);
   try {
