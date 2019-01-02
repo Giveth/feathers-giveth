@@ -286,7 +286,6 @@ const pledges = (app, liquidPledging) => {
     };
     if (initialTransfer) {
       query.amount = amount;
-      query.amount = amount;
     }
 
     const donations = await donationService.find({
@@ -327,19 +326,21 @@ const pledges = (app, liquidPledging) => {
       $or: [{ pledgeId: '0' }, { pledgeId: mutation.pledgeId }],
     };
     if (initialTransfer) {
-      // b/c new donations occur on a different network, we can't use the txHash here
-      // so attempt to find the 1st donation where all other params are the same
-      Object.assign(query, {
-        status: DonationStatus.PENDING,
-        ownerId: { $in: [0, mutation.ownerId] }, // w/ donateAndCreateGiver, ownerId === 0
-        delegateId: mutation.delegateId,
-        intendedProjectId: mutation.intendedProjectId,
-        txHash: undefined,
-        homeTxHash: { $exists: true },
-        $sort: {
-          createdAt: 1,
-        },
-      });
+      if (mutation.homeTxHash !== 'unknown') query.homeTxHash = mutation.homeTxHash;
+      else {
+        // if we don't have a homeTxHash, attempt to find the 1st donation where all other params are the same
+        Object.assign(query, {
+          status: DonationStatus.PENDING,
+          ownerId: { $in: [0, mutation.ownerId] }, // w/ donateAndCreateGiver, ownerId === 0
+          delegateId: mutation.delegateId,
+          intendedProjectId: mutation.intendedProjectId,
+          txHash: undefined,
+          homeTxHash: { $exists: true },
+          $sort: {
+            createdAt: 1,
+          },
+        });
+      }
     } else {
       query.txHash = mutation.txHash;
     }
