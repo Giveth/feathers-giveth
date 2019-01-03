@@ -13,7 +13,7 @@ const toWrapper = require('../utils/to');
 const reprocess = require('../utils/reprocess');
 
 function isOlderThenAMin(ts) {
-  return Date.now - ts > 1000 * 60;
+  return Date.now() - ts > 1000 * 60;
 }
 
 // only log necessary transferInfo
