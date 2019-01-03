@@ -12,6 +12,10 @@ const { AdminTypes } = require('../models/pledgeAdmins.model');
 const toWrapper = require('../utils/to');
 const reprocess = require('../utils/reprocess');
 
+function isOlderThenAMin(ts) {
+  return Date.now - ts > 1000 * 60;
+}
+
 // only log necessary transferInfo
 function logTransferInfo(transferInfo) {
   const info = Object.assign({}, transferInfo, {
@@ -233,8 +237,7 @@ const pledges = (app, liquidPledging) => {
 
     if (initialTransfer) {
       // always set homeTx on mutation b/c ui checks if homeTxHash exists to check for initial donations
-      const homeTxHash = (await getHomeTxHash(txHash)) || 'unknown';
-      mutation.homeTxHash = homeTxHash;
+      mutation.homeTxHash = (await getHomeTxHash(txHash)) || 'unknown';
     }
 
     // lp keeps the delegation chain, but we want to ignore it
@@ -323,6 +326,7 @@ const pledges = (app, liquidPledging) => {
       giverAddress: mutation.giverAddress,
       amount: mutation.amount,
       mined: false,
+      'token.symbol': mutation.token.symbol,
       $or: [{ pledgeId: '0' }, { pledgeId: mutation.pledgeId }],
     };
     if (initialTransfer) {
@@ -383,11 +387,13 @@ const pledges = (app, liquidPledging) => {
       token,
       intendedProjectId: pledge.intendedProject,
       txHash,
-      // always set homeTx on mutation b/c ui checks if homeTxHash exists to check for initial donations
-      // homeTxHash: (await getHomeTxHash(txHash)) || 'unknown',
+      homeTxHash: (await getHomeTxHash(txHash)) || 'unknown',
     };
 
-    return createDonation(mutation, !!txHash);
+    // we pass true to retry b/c we never create a donation that needs to be updated
+    // for the new donation Transfer event. The created donation that needs to be updated
+    // is for the 2nd Transfer event that occurs
+    return createDonation(mutation, true, true);
   }
 
   /**
@@ -427,7 +433,8 @@ const pledges = (app, liquidPledging) => {
       await isReturnTransfer(transferInfo),
     );
 
-    return createDonation(mutation, transferInfo.initialTransfer);
+    // if tx is older then 1 min, set retry = true to instantly create the donation if necessary
+    return createDonation(mutation, transferInfo.initialTransfer, isOlderThenAMin(transferInfo.ts));
   }
 
   /**
