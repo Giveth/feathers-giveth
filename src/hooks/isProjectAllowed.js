@@ -27,8 +27,8 @@ const checkReviewer = async context => {
             } is not in the whitelist`,
           );
         }
-        return;
       }
+      return;
     }
 
     throw new errors.BadRequest(
