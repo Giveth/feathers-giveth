@@ -218,7 +218,7 @@ const failedTxMonitor = (app, eventWatcher) => {
     // TODO low priority as it isn't likely, but would be good to check foreignBridge for a Deposit
     // event w/ homeTx === donation.homeTxHash and reprocess the event if necessary. This would require
     // re-deploying the ForeignGivethBridge w/ homeTx as an indexed event param
-    if (!receipt) {
+    if (!receipt || !receipt.status) {
       handlePendingDonation(currentBlock, donation, receipt, topics);
     } else {
       logger.error(
