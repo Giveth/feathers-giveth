@@ -1,5 +1,5 @@
 const queryGasPrice = require('./blockchain/gasPriceService');
-const { queryEthConversion } = require('./services/ethconversion/getEthConversionService');
+const { queryConversionRates } = require('./services/conversionRates/getConversionRatesService');
 
 const logger = require('winston');
 const app = require('./app');
@@ -13,4 +13,4 @@ server.on('listening', () => {
 });
 
 queryGasPrice();
-queryEthConversion(app);
+queryConversionRates(app);

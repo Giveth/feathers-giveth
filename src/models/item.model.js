@@ -11,7 +11,7 @@ const Item = new Schema({
   fiatAmount: { type: Number, required: true }, // FIXME: This should be string as well, but I don't dare to change it now
   wei: { type: Schema.Types.BN, min: 0, required: true },
   conversionRate: { type: Number, required: true },
-  ethConversionRateTimestamp: { type: Date, required: true },
+  conversionRateTimestamp: { type: Date, required: true },
 });
 
 module.exports = Item;

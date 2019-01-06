@@ -15,7 +15,7 @@ const MINUTE = 1000 * 60;
  */
 const _getRatesDb = async (app, timestamp, symbol = 'ETH') => {
   const resp = await app
-    .service('ethconversion')
+    .service('conversionRates')
     .find({ query: { timestamp, symbol }, internal: true });
 
   if (resp.data.length > 0)
@@ -36,13 +36,13 @@ const _getRatesDb = async (app, timestamp, symbol = 'ETH') => {
  * @return {Object} Rates object in format { EUR: 241, USD: 123 }
  */
 const _getRatesCryptocompare = async (timestamp, ratesToGet, symbol) => {
-  logger.debug(`Fetching eth coversion from crypto compare for: ${ratesToGet}`);
+  logger.debug(`Fetching coversion rates from crypto compare for: ${ratesToGet}`);
   const timestampMS = Math.round(timestamp / 1000);
 
   const rates = {};
+  rates[symbol] = 1;
 
-  // if requested symbol is same as one of the ratesToGet, the conversion is set to 1 (example ETH-ETH)
-  // else, we fetch the conversion rate
+  // Fetch the conversion rate
   const promises = ratesToGet.map(async r => {
     if (r !== symbol) {
       const resp = JSON.parse(
@@ -51,19 +51,17 @@ const _getRatesCryptocompare = async (timestamp, ratesToGet, symbol) => {
         ),
       );
 
-      Object.keys(resp).forEach(key => {
-        if (key === r) {
-          rates[r] = resp[key];
-        }
-      });
-    } else {
-      rates[r] = 1;
+      if (resp && resp[r]) rates[r] = resp[r];
     }
   });
 
-  await Promise.all(promises);
+  // FIXME: This may throw some exceptions, this should probably be checked
+  try {
+    await Promise.all(promises);
+  } catch (e) {
+    logger.error(e);
+  }
 
-  rates.symbol = symbol;
   return rates;
 };
 
@@ -95,10 +93,10 @@ const getHourlyUSDRateCryptocompare = async (timestamp, tokenSymbol) => {
  */
 const _saveToDB = (app, timestamp, rates, symbol, _id = undefined) => {
   // There already are some rates for this timestamp, update the record
-  if (_id) return app.service('ethconversion').patch(_id, { rates });
+  if (_id) return app.service('conversionRates').patch(_id, { rates });
 
   // Create new record
-  return app.service('ethconversion').create({ timestamp, rates, symbol });
+  return app.service('conversionRates').create({ timestamp, rates, symbol });
 };
 
 /**
@@ -110,7 +108,7 @@ const _saveToDB = (app, timestamp, rates, symbol, _id = undefined) => {
  *
  * @return {Promise} Promise that resolves to object {timestamp, rates: { EUR: 100, USD: 90 } }
  */
-const getEthConversion = async (app, requestedDate, requestedSymbol = 'ETH') => {
+const getConversionRates = async (app, requestedDate, requestedSymbol = 'ETH') => {
   // Get yesterday date from today respecting UTC
   const yesterday = new Date(new Date().setUTCDate(new Date().getUTCDate() - 1));
   const yesterdayUTC = yesterday.setUTCHours(0, 0, 0, 0);
@@ -173,17 +171,17 @@ const getHourlyUSDCryptoConversion = async (app, ts, tokenSymbol = 'ETH') => {
 };
 
 // Query the conversion rate every minute
-const queryEthConversion = app => {
-  getEthConversion(app);
+const queryConversionRates = app => {
+  getConversionRates(app);
 
   // TODO: Do we actually need to do this in interval? Can't we just let it update when users request exchange rate?
   setInterval(() => {
-    getEthConversion(app);
+    getConversionRates(app);
   }, MINUTE);
 };
 
 module.exports = {
-  getEthConversion,
-  queryEthConversion,
+  getConversionRates,
+  queryConversionRates,
   getHourlyUSDCryptoConversion,
 };

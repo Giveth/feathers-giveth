@@ -10,7 +10,7 @@ const { isTokenAllowed } = require('../../hooks/isTokenAllowed');
 const addConfirmations = require('../../hooks/addConfirmations');
 const { MilestoneStatus } = require('../../models/milestones.model');
 const getApprovedKeys = require('./getApprovedKeys');
-const checkEthConversion = require('./checkEthConversion');
+const checkConversionRates = require('./checkConversionRates');
 const sendNotification = require('./sendNotification');
 const checkMilestoneDates = require('./checkMilestoneDates');
 
@@ -76,7 +76,7 @@ const restrict = () => context => {
 
     // Milestone is not yet on chain, check the ETH conversion
     if ([MilestoneStatus.PROPOSED, MilestoneStatus.REJECTED].includes(milestone.status)) {
-      return checkEthConversion()(context);
+      return checkConversionRates()(context);
     }
     // Milestone is on chain, remove data stored on-chain that can't be updated
     const keysToRemove = [
@@ -84,7 +84,7 @@ const restrict = () => context => {
       'reviewerAddress',
       'recipientAddress',
       'campaignReviewerAddress',
-      'ethConversionRateTimestamp',
+      'conversionRateTimestamp',
       'fiatAmount',
       'conversionRate',
       'selectedFiatType',
@@ -106,7 +106,7 @@ const restrict = () => context => {
       );
     }
 
-    // needed b/c we need to call checkEthConversion for proposed milestones
+    // needed b/c we need to call checkConversionRates for proposed milestones
     // which is async
     return Promise.resolve();
   };
@@ -181,7 +181,7 @@ module.exports = {
     ],
     get: [],
     create: [
-      checkEthConversion(),
+      checkConversionRates(),
       checkMilestoneDates(),
       setAddress('ownerAddress'),
       ...address,

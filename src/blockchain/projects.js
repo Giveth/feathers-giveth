@@ -146,7 +146,7 @@ const projects = (app, liquidPledging) => {
           campaignId: campaign._id,
           projectId,
           status: milestoneStatus(milestone.completed, milestone.canceled),
-          ethConversionRateTimestamp: new Date(),
+          conversionRateTimestamp: new Date(),
           selectedFiatType: milestone.token.symbol,
           date,
           fiatAmount: milestone.maxAmount,

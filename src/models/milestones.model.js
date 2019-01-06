@@ -41,7 +41,7 @@ function Milestone(app) {
         enum: Object.values(MilestoneStatus),
       },
       items: [Item],
-      ethConversionRateTimestamp: { type: Date, required: true },
+      conversionRateTimestamp: { type: Date, required: true },
       selectedFiatType: { type: String, required: true },
       date: { type: Date, required: true },
       fiatAmount: { type: Number, required: true },

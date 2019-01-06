@@ -5,14 +5,13 @@ const commons = require('feathers-hooks-common');
 const logger = require('winston');
 
 const sanitizeAddress = require('../../hooks/sanitizeAddress');
-const setAddress = require('../../hooks/setAddress');
 const addConfirmations = require('../../hooks/addConfirmations');
 const { DonationStatus } = require('../../models/donations.model');
 const { AdminTypes } = require('../../models/pledgeAdmins.model');
 const { MilestoneStatus } = require('../../models/milestones.model');
 const {
   getHourlyUSDCryptoConversion,
-} = require('../../services/ethconversion/getEthConversionService');
+} = require('../../services/conversionRates/getConversionRatesService');
 
 const { updateDonationEntityCountersHook } = require('./updateEntityCounters');
 

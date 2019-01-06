@@ -19,7 +19,7 @@ const getApprovedKeys = (milestone, data, user) => {
     'maxAmount',
     'reviewerAddress',
     'recipientAddress',
-    'ethConversionRateTimestamp',
+    'conversionRateTimestamp',
     'selectedFiatType',
     'date',
     'fiatAmount',
