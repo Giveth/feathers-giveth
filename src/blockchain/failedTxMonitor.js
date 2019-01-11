@@ -165,7 +165,7 @@ const failedTxMonitor = (app, eventWatcher) => {
 
   async function handlePendingDonation(currentBlock, donation, receipt, topics) {
     // reset the donation status if the tx has been pending for more then 2 hrs, otherwise ignore
-    if (!receipt && new Date(donation.updatedAt).getTime() <= Date.now() - TWO_HOURS) return;
+    if (!receipt && donation.updatedAt.getTime() >= Date.now() - TWO_HOURS) return;
     // ignore if there isn't enough confirmations
     if (receipt && currentBlock - receipt.blockNumber < requiredConfirmations) return;
 
@@ -218,7 +218,7 @@ const failedTxMonitor = (app, eventWatcher) => {
     // TODO low priority as it isn't likely, but would be good to check foreignBridge for a Deposit
     // event w/ homeTx === donation.homeTxHash and reprocess the event if necessary. This would require
     // re-deploying the ForeignGivethBridge w/ homeTx as an indexed event param
-    if (!receipt) {
+    if (!receipt || !receipt.status) {
       handlePendingDonation(currentBlock, donation, receipt, topics);
     } else {
       logger.error(
@@ -243,7 +243,7 @@ const failedTxMonitor = (app, eventWatcher) => {
 
     const receipt = await web3.eth.getTransactionReceipt(dac.txHash);
     // reset the dac status if the tx has been pending for more then 2 hrs, otherwise ignore
-    if (!receipt && new Date(dac.updatedAt).getTime() <= Date.now() - TWO_HOURS) return;
+    if (!receipt && dac.updatedAt.getTime() >= Date.now() - TWO_HOURS) return;
     // ignore if there isn't enough confirmations
     if (receipt && currentBlock - receipt.blockNumber < requiredConfirmations) return;
 
@@ -290,7 +290,7 @@ const failedTxMonitor = (app, eventWatcher) => {
 
     const receipt = await web3.eth.getTransactionReceipt(campaign.txHash);
     // reset the campaign status if the tx has been pending for more then 2 hrs, otherwise ignore
-    if (!receipt && new Date(campaign.updatedAt).getTime() <= Date.now() - TWO_HOURS) return;
+    if (!receipt && campaign.updatedAt.getTime() >= Date.now() - TWO_HOURS) return;
     // ignore if there isn't enough confirmations
     if (receipt && currentBlock - receipt.blockNumber < requiredConfirmations) return;
 
@@ -340,7 +340,7 @@ const failedTxMonitor = (app, eventWatcher) => {
 
     const receipt = await web3.eth.getTransactionReceipt(milestone.txHash);
     // reset the milestone status if the tx has been pending for more then 2 hrs, otherwise ignore
-    if (!receipt && new Date(milestone.updatedAt).getTime() <= Date.now() - TWO_HOURS) return;
+    if (!receipt && milestone.updatedAt.getTime() >= Date.now() - TWO_HOURS) return;
     // ignore if there isn't enough confirmations
     if (receipt && currentBlock - receipt.blockNumber < requiredConfirmations) return;
 

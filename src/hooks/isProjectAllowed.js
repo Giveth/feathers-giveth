@@ -3,7 +3,7 @@ const errors = require('@feathersjs/errors');
 const { CampaignStatus } = require('../models/campaigns.model');
 const { MilestoneStatus } = require('../models/milestones.model');
 
-const checkReviewer = context => {
+const checkReviewer = async context => {
   if (!context.app.get('useReviewerWhitelist')) {
     return context;
   }
@@ -12,14 +12,23 @@ const checkReviewer = context => {
 
   const items = commons.getItems(context);
 
-  const inWhitelist = project => {
+  const inWhitelist = async project => {
     if (reviewerWhitelist.includes(project.reviewerAddress.toLowerCase())) {
       // milestones have a campaignReviewerAddress
-      if (!Object.keys(project).includes('campaignReviewerAddress')) {
-        return;
-      } else if (reviewerWhitelist.includes(project.campaignReviewerAddress.toLowerCase())) {
-        return;
+      if (Object.keys(project).includes('campaignReviewerAddress')) {
+        const campaign = await context.app.service('campaigns').get(project.campaignId);
+        if (
+          !campaign ||
+          campaign.reviewerAddress.toLowerCase() !== project.campaignReviewerAddress.toLowerCase()
+        ) {
+          throw new errors.BadRequest(
+            `project campaignReviewerAddress address ${
+              project.campaignReviewerAddress
+            } is not in the whitelist`,
+          );
+        }
       }
+      return;
     }
 
     throw new errors.BadRequest(
@@ -28,9 +37,9 @@ const checkReviewer = context => {
   };
 
   if (Array.isArray(items)) {
-    items.forEach(inWhitelist);
+    await Promise.all(items.map(inWhitelist));
   } else {
-    inWhitelist(items);
+    await inWhitelist(items);
   }
   return context;
 };

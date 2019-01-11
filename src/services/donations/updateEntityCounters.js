@@ -6,29 +6,14 @@ const { AdminTypes } = require('../../models/pledgeAdmins.model');
 const { DonationStatus } = require('../../models/donations.model');
 const _groupBy = require('lodash.groupby');
 
-const updateEntity = async (context, donation) => {
-  if (!donation.mined) return;
+const ENTITY_SERVICES = {
+  [AdminTypes.DAC]: 'dacs',
+  [AdminTypes.CAMPAIGN]: 'campaigns',
+  [AdminTypes.MILESTONE]: 'milestones',
+};
 
-  if (donation.isReturn) {
-    // update parentDonation entities to account for the return
-    context.app
-      .service('donations')
-      .find({
-        paginate: false,
-        query: {
-          _id: { $in: donation.parentDonations },
-        },
-      })
-      .then(donations =>
-        donations
-          // set isReturn = false b/c so we don't recursively update parent donations
-          .map(d => Object.assign({}, d, { isReturn: false }))
-          .forEach(d => updateEntity(context, d)),
-      );
-  }
-
-  let serviceName;
-  let id;
+const updateEntity = async (app, id, type) => {
+  const serviceName = ENTITY_SERVICES[type];
   const donationQuery = {
     $select: ['amount', 'giverAddress', 'amountRemaining', 'token'],
     isReturn: false,
@@ -36,9 +21,7 @@ const updateEntity = async (context, donation) => {
     status: { $nin: [DonationStatus.FAILED] },
   };
 
-  if (donation.delegateTypeId) {
-    serviceName = 'dacs';
-    id = donation.delegateTypeId;
+  if (type === AdminTypes.DAC) {
     // TODO I think this can be gamed if the donor refunds their donation from the dac
     Object.assign(donationQuery, {
       delegateTypeId: id,
@@ -46,17 +29,13 @@ const updateEntity = async (context, donation) => {
       $or: [{ intendedProjectId: 0 }, { intendedProjectId: undefined }],
       isReturn: false,
     });
-  } else if (donation.ownerType === AdminTypes.CAMPAIGN) {
-    serviceName = 'campaigns';
-    id = donation.ownerTypeId;
+  } else if (type === AdminTypes.CAMPAIGN) {
     Object.assign(donationQuery, {
       ownerTypeId: id,
       ownerType: AdminTypes.CAMPAIGN,
       isReturn: false,
     });
-  } else if (donation.ownerType === AdminTypes.MILESTONE) {
-    serviceName = 'milestones';
-    id = donation.ownerTypeId;
+  } else if (type === AdminTypes.MILESTONE) {
     Object.assign(donationQuery, {
       ownerTypeId: id,
       ownerType: AdminTypes.MILESTONE,
@@ -65,11 +44,11 @@ const updateEntity = async (context, donation) => {
     return;
   }
 
-  const service = context.app.service(serviceName);
+  const service = app.service(serviceName);
   try {
     const entity = await service.get(id);
 
-    const donations = await context.app
+    const donations = await app
       .service('donations')
       .find({ paginate: false, query: donationQuery });
 
@@ -112,7 +91,8 @@ const updateEntity = async (context, donation) => {
     });
 
     const fullyFunded =
-      donation.ownerType === AdminTypes.MILESTONE &&
+      type === AdminTypes.MILESTONE &&
+      donationCounters.length > 0 &&
       entity.maxAmount ===
         donationCounters.find(dc => dc.symbol === entity.token.symbol).currentBalance.toString();
     const peopleCount = new Set(donations.map(d => d.giverAddress)).size;
@@ -123,18 +103,61 @@ const updateEntity = async (context, donation) => {
       fullyFunded,
     });
   } catch (error) {
-    logger.error(error);
+    logger.error(`error updating counters for ${type} - ${id}: `, error);
   }
 };
 
-const updateEntityCounters = () => async context => {
-  checkContext(context, 'after', ['create', 'patch']);
-  if (Array.isArray(context.data)) {
-    context.data.map(updateEntity.bind(null, context));
+const updateDonationEntity = async (context, donation) => {
+  if (!donation.mined) return;
+
+  if (donation.isReturn) {
+    // update parentDonation entities to account for the return
+    context.app
+      .service('donations')
+      .find({
+        paginate: false,
+        query: {
+          _id: { $in: donation.parentDonations },
+        },
+      })
+      .then(donations =>
+        donations
+          // set isReturn = false b/c so we don't recursively update parent donations
+          .map(d => Object.assign({}, d, { isReturn: false }))
+          .forEach(d => updateDonationEntity(context, d)),
+      );
+  }
+
+  let id;
+  let type;
+  if (donation.delegateTypeId) {
+    type = AdminTypes.DAC;
+    id = donation.delegateTypeId;
+  } else if (donation.ownerType === AdminTypes.CAMPAIGN) {
+    type = AdminTypes.CAMPAIGN;
+    id = donation.ownerTypeId;
+  } else if (donation.ownerType === AdminTypes.MILESTONE) {
+    type = AdminTypes.MILESTONE;
+    id = donation.ownerTypeId;
   } else {
-    updateEntity(context, context.data);
+    return;
+  }
+
+  updateEntity(context.app, id, type);
+};
+
+const updateDonationEntityCountersHook = () => async context => {
+  checkContext(context, 'after', ['create', 'patch']);
+  if (context.params.skipEntityCounterUpdate) return context;
+  if (Array.isArray(context.result)) {
+    context.result.map(updateDonationEntity.bind(null, context));
+  } else {
+    updateDonationEntity(context, context.result);
   }
   return context;
 };
 
-module.exports = updateEntityCounters;
+module.exports = {
+  updateEntity,
+  updateDonationEntityCountersHook,
+};

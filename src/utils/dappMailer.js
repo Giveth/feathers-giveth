@@ -1,8 +1,8 @@
 /* eslint-disable no-param-reassign */
 
-const { utils } = require('web3');
 const logger = require('winston');
 const rp = require('request-promise');
+const { AdminTypes } = require('../models/pledgeAdmins.model');
 
 const sendEmail = (app, data) => {
   // add the dapp url that this feathers serves for
@@ -44,20 +44,20 @@ const sendEmail = (app, data) => {
 
 module.exports = {
   donation: (app, data) => {
-    data.amount = utils.fromWei(data.amount);
+    data.amount = Number(data.amount) / 10 ** Number(data.token.decimals);
 
     Object.assign(data, {
       template: 'notification',
       subject: 'Giveth - Thank you for your donation!',
-      secretIntro: `Thank you for your donation of ${data.amount}Ξ to the ${data.donationType} "${
-        data.donatedToTitle
-      }"!`,
+      secretIntro: `Thank you for your donation of ${data.amount} ${data.token.symbol} to the ${
+        data.donationType
+      } "${data.donatedToTitle}"!`,
       title: 'You are so awesome!',
       image: 'Giveth-donation-banner-email.png',
       text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
-          Thank you very much for your donation of ${data.amount}Ξ to the ${
+          Thank you very much for your donation of ${data.amount} ${data.token.symbol} to the ${
         data.donationType
       } <em>${data.donatedToTitle}</em>.
           With your donation we can really make this happen, and you play a vital part in making the world a better place!
@@ -73,21 +73,21 @@ module.exports = {
   },
 
   donationReceived: (app, data) => {
-    data.amount = utils.fromWei(data.amount);
+    data.amount = Number(data.amount) / 10 ** Number(data.token.decimals);
 
     Object.assign(data, {
       template: 'notification',
       subject: "Giveth - You've received a donation!",
-      secretIntro: `You have received a donation of ${data.amount}Ξ for the ${data.donationType} "${
-        data.donatedToTitle
-      }"!`,
+      secretIntro: `You have received a donation of ${data.amount} ${data.token.symbol} for the ${
+        data.donationType
+      } "${data.donatedToTitle}"!`,
       title: 'You are so awesome!',
       image: 'Giveth-donation-banner-email.png',
       text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
           You have received a donation of
-          <span>${data.amount}Ξ</span>
+          <span>${data.amount} ${data.token.symbol}</span>
           for your ${data.donationType} <em>${data.donatedToTitle}</em>.
         </p>
       `,
@@ -101,15 +101,15 @@ module.exports = {
   },
 
   delegationRequired: (app, data) => {
-    data.amount = utils.fromWei(data.amount);
+    data.amount = Number(data.amount) / 10 ** Number(data.token.decimals);
 
     Object.assign(data, {
       template: 'notification',
       subject: 'Giveth - Delegation required for new donation!',
-      secretIntro: `Take action! Please delegate a new donation of ${data.amount}Ξ for the ${
-        data.donationType
-      } "${data.donatedToTitle}"!`,
-      title: "Take action! You've received a donation, please delegate!",
+      secretIntro: `Take action! Please delegate a new donation of ${data.amount} ${
+        data.token.symbol
+      } for the ${data.donationType} "${data.donatedToTitle}"!`,
+      title: "Take action! You've received a donation, delegate now!",
       image: 'Giveth-donation-banner-email.png',
       text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
@@ -117,16 +117,17 @@ module.exports = {
           You have received a donation of
           <span style="display: block; color: rgb(53, 184, 209); line-height: 72px; font-size: 48px;">${
             data.amount
-          }Ξ</span>
+          } ${data.token.symbol}</span>
           for your ${data.donationType} <em>${data.donatedToTitle}</em>.
         </p>
         <p>
-          You need to delegate this money to a campaign or a milestone.
-          <strong>Please do so within the next 3 days.</strong>
+          You can now delegate this money to a ${
+            data.donationType === AdminTypes.DAC ? 'campaign or a milestone' : 'milestone'
+          }.
         </p>
       `,
       cta: `Delegate Donation`,
-      ctaRelativeUrl: `/my-donations`,
+      ctaRelativeUrl: `/my-delegations`,
       unsubscribeType: 'request-delegation',
       unsubscribeReason: `You receive this email because you run a ${data.donationType}`,
     });
@@ -134,8 +135,41 @@ module.exports = {
     sendEmail(app, data);
   },
 
+  donationDelegated: (app, data) => {
+    data.amount = Number(data.amount) / 10 ** Number(data.token.decimals);
+
+    Object.assign(data, {
+      template: 'notification',
+      subject: 'Giveth - Your donation has been delegated!',
+      secretIntro: `Take action! Please approve or reject the delegation of ${data.amount} ${
+        data.token.symbol
+      } to the ${data.delegationType} "${data.delegatedToTitle}"!`,
+      title: "Take action! You're donation has been delegated!",
+      image: 'Giveth-donation-banner-email.png',
+      text: `
+        <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
+        <p>
+          The ${data.delegateType} <em>${data.delegateTitle}</em> has proposed a delegation of 
+          <span style="display: block; color: rgb(53, 184, 209); line-height: 72px; font-size: 48px;">
+          ${data.amount} ${data.token.symbol}</span> from your donation to 
+          ${data.delegateType} <em>${data.delegateTitle}</em>.
+        </p>
+        <p>
+          You have until ${data.commitTime.toUTCString()} to approve or reject this delegation. If you fail to
+          act before this date, this delegation will be auto-approved.
+        </p>
+      `,
+      cta: `View Donations`,
+      ctaRelativeUrl: `/my-donations`,
+      unsubscribeType: 'donation-delegated',
+      unsubscribeReason: `You receive this email because your donation was delegated`,
+    });
+
+    sendEmail(app, data);
+  },
+
   milestoneProposed: (app, data) => {
-    data.amount = utils.fromWei(data.amount);
+    data.amount = Number(data.amount) / 10 ** Number(data.token.decimals);
 
     Object.assign(data, {
       template: 'notification',
@@ -146,9 +180,9 @@ module.exports = {
       text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
-          A milestone <em>${data.milestoneTitle}</em> of ${
-        data.amount
-      }Ξ has been proposed for your campaign of the campaign <em>${data.campaignTitle}</em>.
+          A milestone <em>${data.milestoneTitle}</em> for ${data.amount} ${
+        data.token.symbol
+      } has been proposed for your campaign to the campaign <em>${data.campaignTitle}</em>.
           If you think this is a great idea, then <strong>please approve this milestone within 3 days</strong> to add it to your campaign.
           If not, then please reject it.
         </p>
@@ -175,7 +209,7 @@ module.exports = {
       text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
-          Your proposed milestone <em>${data.milestoneTitle}</em> of the campaign <em>${
+          Your proposed milestone <em>${data.milestoneTitle}</em> to the campaign <em>${
         data.campaignTitle
       }</em> has been accepted by the campaign owner!
           <br/><br/>
@@ -206,7 +240,7 @@ module.exports = {
         <p>
           Unfortunately your proposed milestone <em>${
             data.milestoneTitle
-          }</em> of the campaign <em>${
+          }</em> to the campaign <em>${
         data.campaignTitle
       }</em> has been rejected by the campaign owner.
           <br/><br/>
@@ -235,7 +269,7 @@ module.exports = {
       text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
-          The milestone <em>${data.milestoneTitle}</em> of the campaign <em>${
+          The milestone <em>${data.milestoneTitle}</em> to the campaign <em>${
         data.campaignTitle
       }</em> has been marked as completed by the milestone owner.
           <br/><br/>
@@ -268,7 +302,7 @@ module.exports = {
       text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
-          The milestone <em>${data.milestoneTitle}</em> of the campaign <em>${
+          The milestone <em>${data.milestoneTitle}</em> in the campaign <em>${
         data.campaignTitle
       }</em> has been marked complete by the reviewer!.
           <br/><br/>
@@ -299,7 +333,7 @@ module.exports = {
       text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
-          The milestone completion <em>${data.milestoneTitle}</em> of the campaign <em>${
+          The milestone completion <em>${data.milestoneTitle}</em> in the campaign <em>${
         data.campaignTitle
       }</em> has been rejected by the reviewer.
         </p>
@@ -325,7 +359,7 @@ module.exports = {
       text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
-          The milestone <em>${data.milestoneTitle}</em> of the campaign <em>${
+          The milestone <em>${data.milestoneTitle}</em> in the campaign <em>${
         data.campaignTitle
       }</em> has been canceled.
         </p>
@@ -335,6 +369,65 @@ module.exports = {
       unsubscribeType: 'milestone-canceled',
       unsubscribeReason: `You receive this email because you run a milestone`,
       message: data.message,
+    });
+
+    sendEmail(app, data);
+  },
+
+  milestoneCreated: (app, data) => {
+    data.amount = Number(data.amount) / 10 ** Number(data.token.decimals);
+
+    Object.assign(data, {
+      template: 'notification',
+      subject: 'Giveth - Milestone created with you as a recipient',
+      type: 'milestone-created',
+      secretIntro: `A milestone ${data.milestoneTitle} has been created with you as the recipient.`,
+      title: 'Milestone created.',
+      image: 'Giveth-milestone-review-approved-banner-email.png',
+      text: `
+        <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
+        <p>
+          A milestone <em>${data.milestoneTitle}</em> for ${data.amount} ${
+        data.token.symbol
+      } has been created with you as the recipient.
+        </p>
+      `,
+      cta: `See your Milestones`,
+      ctaRelativeUrl: `/my-milestones`,
+      unsubscribeType: 'milestone-created',
+      unsubscribeReason: `You receive this email because you are the recipient of a milestone`,
+      message: data.message,
+    });
+
+    sendEmail(app, data);
+  },
+
+  milestonePaid: (app, data) => {
+    Object.assign(data, {
+      template: 'notification',
+      subject: 'Giveth - Milestone paid',
+      type: 'milestone-paid',
+      secretIntro: `Your milestone ${data.milestoneTitle} has been paid.`,
+      title: 'Milestone paid.',
+      image: 'Giveth-milestone-review-approved-banner-email.png',
+      text: `
+        <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
+        <p>The following payments have been initiated for your milestone <em>${
+          data.milestoneTitle
+        }</em>:</p>
+        <p></p>
+        ${data.donationCounters.map(
+          c => `<p>${c.currentBalance / 10 ** Number(c.decimals)} ${c.symbol}</p>`,
+        )}
+        <p></p>
+        <p>You can expect to see these payment(s) to arrive in your wallet <em>${
+          data.address
+        }</em> within 48 - 72 hrs.</p>
+      `,
+      cta: `See your Milestones`,
+      ctaRelativeUrl: `/my-milestones`,
+      unsubscribeType: 'milestone-paid',
+      unsubscribeReason: `You receive this email because you are the recipient of a milestone`,
     });
 
     sendEmail(app, data);

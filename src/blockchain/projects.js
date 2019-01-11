@@ -7,7 +7,7 @@ const { LPPCampaign } = require('lpp-campaign');
 const { keccak256 } = require('web3-utils');
 const logger = require('winston');
 
-const { removeHexPrefix, getBlockTimestamp } = require('./lib/web3Helpers');
+const { removeHexPrefix, getBlockTimestamp, executeRequestsAsBatch } = require('./lib/web3Helpers');
 const { CampaignStatus } = require('../models/campaigns.model');
 const { DonationStatus } = require('../models/donations.model');
 const { MilestoneStatus } = require('../models/milestones.model');
@@ -32,6 +32,7 @@ const projects = (app, liquidPledging) => {
   let milestoneBase;
 
   async function fetchProfile(url) {
+    if (!url || url === '') return {};
     const [err, profile] = await to(app.ipfsFetcher(url));
 
     if (err) {
@@ -43,6 +44,18 @@ const projects = (app, liquidPledging) => {
       }
     }
     return profile;
+  }
+
+  function findToken(foreignAddress) {
+    const tokenWhitelist = app.get('tokenWhitelist');
+
+    const token = tokenWhitelist.find(
+      t => t.foreignAddress.toLowerCase() === foreignAddress.toLowerCase(),
+    );
+
+    if (!token) throw new Error(`Un-whitelisted token: ${foreignAddress}`);
+
+    return token;
   }
 
   async function getKernel() {
@@ -142,6 +155,7 @@ const projects = (app, liquidPledging) => {
           pluginAddress: project.plugin,
           url: project.url,
           ownerAddress: milestone.ownerAddress,
+          token: milestone.token,
           totalDonated: '0',
           currentBalance: '0',
           donationCount: 0,
@@ -217,14 +231,17 @@ const projects = (app, liquidPledging) => {
     try {
       const responses = await Promise.all([
         getMilestone(project, txHash),
-        cappedMilestone.maxAmount(),
-        cappedMilestone.reviewer(),
-        cappedMilestone.campaignReviewer(),
-        cappedMilestone.recipient(),
-        cappedMilestone.milestoneManager(),
-        cappedMilestone.completed(),
-        liquidPledging.isProjectCanceled(projectId),
-        web3.eth.getTransaction(txHash),
+        ...(await executeRequestsAsBatch(web3, [
+          cappedMilestone.$contract.methods.maxAmount().call.request,
+          cappedMilestone.$contract.methods.reviewer().call.request,
+          cappedMilestone.$contract.methods.campaignReviewer().call.request,
+          cappedMilestone.$contract.methods.recipient().call.request,
+          cappedMilestone.$contract.methods.milestoneManager().call.request,
+          cappedMilestone.$contract.methods.completed().call.request,
+          cappedMilestone.$contract.methods.acceptedToken().call.request,
+          liquidPledging.$contract.methods.isProjectCanceled(projectId).call.request,
+          web3.eth.getTransaction.request.bind(null, txHash),
+        ])),
       ]);
       let milestone = responses.splice(0, 1)[0];
       const [
@@ -234,9 +251,12 @@ const projects = (app, liquidPledging) => {
         recipient,
         manager,
         completed,
+        acceptedToken,
         canceled,
         tx,
       ] = responses;
+
+      const token = findToken(acceptedToken);
 
       if (!milestone) {
         milestone = await createMilestone(
@@ -250,6 +270,7 @@ const projects = (app, liquidPledging) => {
             ownerAddress: manager,
             completed,
             canceled,
+            token,
           },
           tx,
         );
@@ -274,6 +295,7 @@ const projects = (app, liquidPledging) => {
         pluginAddress: project.plugin,
         status: milestoneStatus(completed, canceled),
         url: project.url,
+        token,
         mined: true,
       });
 
@@ -327,8 +349,10 @@ const projects = (app, liquidPledging) => {
     try {
       const [campaign, canceled, reviewer] = await Promise.all([
         getCampaign(project, txHash),
-        lppCampaign.isCanceled(),
-        lppCampaign.reviewer(),
+        ...(await executeRequestsAsBatch(web3, [
+          lppCampaign.$contract.methods.isCanceled().call.request,
+          lppCampaign.$contract.methods.reviewer().call.request,
+        ])),
       ]);
 
       if (!campaign) {

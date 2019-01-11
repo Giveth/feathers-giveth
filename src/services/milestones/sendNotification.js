@@ -43,6 +43,7 @@ const sendNotification = () => async context => {
           milestoneTitle: data.title,
           campaignTitle: campaign.title,
           amount: data.maxAmount,
+          token: data.token,
         });
       } catch (e) {
         logger.error('error sending proposed milestone notification', e);
@@ -67,10 +68,46 @@ const sendNotification = () => async context => {
         recipient: result.owner.email,
         user: result.owner.name,
         milestoneTitle: result.title,
+        campaignTitle: result.campaign.title,
         amount: result.maxAmount,
         txHash: result.txHash,
         message: result.message,
       });
+
+      // milestone may have been created on the recipient's behalf
+      // lets notify them if they are registered
+      if (result.ownerAddress !== result.recipientAddress) {
+        const recipient = await app.service('users').get(result.recipientAddress);
+
+        if (recipient) {
+          Notifications.milestoneCreated(app, {
+            recipient: recipient.email,
+            user: recipient.name,
+            milestoneTitle: data.title,
+            amount: data.maxAmount,
+            token: data.token,
+          });
+        }
+      }
+    }
+
+    if (
+      result.status === MilestoneStatus.IN_PROGRESS &&
+      result.ownerAddress !== result.recipientAddress
+    ) {
+      // milestone may have been created on the recipient's behalf
+      // lets notify them if they are registered
+      const user = await app.service('users').get(result.recipientAddress);
+
+      if (user) {
+        Notifications.milestoneCreated(app, {
+          recipient: user.email,
+          user: user.name,
+          milestoneTitle: data.title,
+          amount: data.maxAmount,
+          token: data.token,
+        });
+      }
     }
 
     if (result.status === MilestoneStatus.NEEDS_REVIEW) {
@@ -128,6 +165,20 @@ const sendNotification = () => async context => {
         milestoneTitle: result.title,
         campaignTitle: result.campaign.title,
         message: result.message,
+      });
+    }
+
+    if (
+      result.status === MilestoneStatus.PAID &&
+      result.mined &&
+      result.prevStatus === MilestoneStatus.PAYING
+    ) {
+      Notifications.milestonePaid(app, {
+        recipient: result.recipient.email,
+        user: result.recipient.name,
+        milestoneTitle: result.title,
+        donationCounters: result.donationCounters,
+        address: result.recipientAddress,
       });
     }
   }
