@@ -18,7 +18,7 @@ function createModel(app) {
     {
       title: { type: String, required: true },
       description: { type: String, required: true },
-      projectId: { type: Schema.Types.Long, index: true, unique: true }, // we can use Long here b/c lp only stores adminId in pledges as uint64
+      projectId: { type: Schema.Types.Long, index: true }, // we can use Long here b/c lp only stores adminId in pledges as uint64
       image: { type: String, required: true },
       txHash: { type: String },
       peopleCount: { type: Number },
