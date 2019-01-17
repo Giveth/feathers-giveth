@@ -30,41 +30,50 @@ const sendNotification = async (app, pledge) => {
 
   // this is an initial donation
   if (pledge.homeTxHash) {
-    const giver = await app.service('users').get(pledge.giverAddress);
+    try {
+      const giver = await app.service('users').get(pledge.giverAddress);
 
-    // thank giver if they are registered
-    if (giver && giver.email) {
-      Notifications.donation(app, {
-        recipient: giver.email,
-        user: giver.name,
-        amount: pledge.amount,
-        token: pledge.token,
-        donationType: pledge.delegateType || pledge.ownerType,
-        donatedToTitle: pledgeAdmin.title || pledgeAdmin.name,
-      });
+      // thank giver if they are registered
+      if (giver.email) {
+        Notifications.donation(app, {
+          recipient: giver.email,
+          user: giver.name,
+          amount: pledge.amount,
+          token: pledge.token,
+          donationType: pledge.delegateType || pledge.ownerType,
+          donatedToTitle: pledgeAdmin.title || pledgeAdmin.name,
+        });
+      }
+    } catch (e) {
+      // ignore missing giver
     }
   }
 
   // pledge has been delegated, notify the giver
   if (pledge.status === DonationStatus.TO_APPROVE) {
-    const giver = await app.service('users').get(pledge.giverAddress);
-    if (giver && giver.email) {
-      const intendedAdmin = await getAdmin(
-        pledge.intendedProjectType,
-        pledge.intendedProjectTypeId,
-      );
+    try {
+      const giver = await app.service('users').get(pledge.giverAddress);
 
-      Notifications.donationDelegated(app, {
-        recipient: giver.email,
-        user: giver.name,
-        delegationType: pledge.intendedProjectType,
-        delegatedToTitle: intendedAdmin.title,
-        delegateType: pledge.delegateType,
-        delegateTitle: pledgeAdmin.title || pledgeAdmin.name,
-        commitTime: pledge.commitTime,
-        amount: pledge.amount,
-        token: pledge.token,
-      });
+      if (giver.email) {
+        const intendedAdmin = await getAdmin(
+          pledge.intendedProjectType,
+          pledge.intendedProjectTypeId,
+        );
+
+        Notifications.donationDelegated(app, {
+          recipient: giver.email,
+          user: giver.name,
+          delegationType: pledge.intendedProjectType,
+          delegatedToTitle: intendedAdmin.title,
+          delegateType: pledge.delegateType,
+          delegateTitle: pledgeAdmin.title || pledgeAdmin.name,
+          commitTime: pledge.commitTime,
+          amount: pledge.amount,
+          token: pledge.token,
+        });
+      }
+    } catch (e) {
+      // ignore missing giver
     }
   } else if (pledge.delegateType || pledge.ownerType === AdminTypes.CAMPAIGN) {
     // notify the pledge admin
