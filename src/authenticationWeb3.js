@@ -158,7 +158,7 @@ function web3(options = {}) {
       // debug('Registering web3 authentication strategy with options:', strategyOptions);
       debug('Registering web3 authentication strategy');
       // app.passport.use(web3Settings.name, new Web3Strategy(strategyOptions, verifier.verify.bind(verifier)));
-      app.passport.use(web3Settings.name, new Web3Strategy(challenger));
+      app.passport.use(web3Settings.name, new Web3Strategy(challenger,app));
       app.passport.options(web3Settings.name, web3Settings);
 
       return result;

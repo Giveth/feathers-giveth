@@ -1,10 +1,10 @@
-const Debug = require('debug');
 const Strategy = require('passport-strategy');
 
 const Accounts = require('web3-eth-accounts');
 const { isAddress, toChecksumAddress } = require('web3-utils');
-
-const debug = Debug('passportjs:Web3Strategy');
+const logger = require('winston');
+const actor = require('./Actor')
+const ethUtil = require('ethereumjs-util')
 
 // TODO clean this up and split to separate package
 
@@ -34,9 +34,10 @@ function recoverAddress(message, signature) {
  *
  */
 class Web3Strategy extends Strategy {
-  constructor(challenger) {
+  constructor(challenger,app) {
     super();
     this.challenger = challenger;
+    this.app = app;
 
     if (!this.challenger || !this.challenger.getMessage || !this.challenger.generateMessage) {
       throw new Error(
@@ -52,7 +53,7 @@ class Web3Strategy extends Strategy {
     if (!address) return this.fail(400);
 
     if (!isAddress(address)) {
-      debug(`${address} is an invalid address`);
+      logger.debug(`${address} is an invalid address`);
       return this.fail('invalid address', 400);
     }
 
@@ -60,6 +61,8 @@ class Web3Strategy extends Strategy {
     if (!signature) return this.issueChallenge(address);
 
     return this.challenger.getMessage(address, (err, message) => {
+      logger.info("Message : " + JSON.stringify(message))
+      logger.info("Req : " + JSON.stringify(req))
       if (err) {
         if (err.name === 'NotFound') return this.issueChallenge(address);
 
@@ -68,18 +71,41 @@ class Web3Strategy extends Strategy {
 
       // issue a challenge if there is not a valid message
       if (!message) return this.issueChallenge(address);
+      if(signature == "Pre-Sign"){
+        logger.info("Pre-Sign")
+        var web3 = this.app.getWeb3()
+        var contract = new web3.eth.Contract(actor.abi,address)
+        const msgHash = "0x" + ethUtil.keccak(message).toString('hex')	
+		logger.info("msgHash")
+		logger.info(msgHash)
+        contract.methods.isValidSignature(msgHash,"0x").call({from: '0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAe'}).then(function(error, result){
+		logger.info("success")
+		logger.info(JSON.stringify(error))
+		logger.info(JSON.stringify(result))
+          if(result){
+            return this.success(user, info)
+          } else {
+            return this.fail('Message has not been pre-signed')
+          }
+        }).catch(function(error){
+		logger.info("error")
+		logger.info(error)
+	});
 
-      const recoveredAddress = recoverAddress(message, signature);
-      const cAddress = toChecksumAddress(address);
+      } else {
 
-      if (recoveredAddress !== cAddress)
-        return this.fail('Recovered address does not match provided address');
+        const recoveredAddress = recoverAddress(message, signature);
+        const cAddress = toChecksumAddress(address);
 
-      return this.challenger.verify(cAddress, (e, user, info) => {
-        if (!user) return this.fail('Recovered address rejected');
+        if (recoveredAddress !== cAddress)
+          return this.fail('Recovered address does not match provided address');
 
-        return this.success(user, info);
-      });
+        return this.challenger.verify(cAddress, (e, user, info) => {
+          if (!user) return this.fail('Recovered address rejected');
+
+          return this.success(user, info);
+        });
+      }
     });
   }
 
