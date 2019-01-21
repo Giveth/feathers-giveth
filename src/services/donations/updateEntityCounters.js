@@ -15,7 +15,7 @@ const ENTITY_SERVICES = {
 const updateEntity = async (app, id, type) => {
   const serviceName = ENTITY_SERVICES[type];
   const donationQuery = {
-    $select: ['amount', 'giverAddress', 'amountRemaining', 'token'],
+    $select: ['amount', 'giverAddress', 'amountRemaining', 'token', 'status'],
     isReturn: false,
     mined: true,
     status: { $nin: [DonationStatus.FAILED] },
