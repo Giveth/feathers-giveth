@@ -77,9 +77,9 @@ const sendNotification = () => async context => {
       // milestone may have been created on the recipient's behalf
       // lets notify them if they are registered
       if (result.ownerAddress !== result.recipientAddress) {
-        const recipient = await app.service('users').get(result.recipientAddress);
+        try {
+          const recipient = await app.service('users').get(result.recipientAddress);
 
-        if (recipient) {
           Notifications.milestoneCreated(app, {
             recipient: recipient.email,
             user: recipient.name,
@@ -87,6 +87,8 @@ const sendNotification = () => async context => {
             amount: data.maxAmount,
             token: data.token,
           });
+        } catch (e) {
+          // ignore missing recipient
         }
       }
     }
@@ -97,16 +99,20 @@ const sendNotification = () => async context => {
     ) {
       // milestone may have been created on the recipient's behalf
       // lets notify them if they are registered
-      const user = await app.service('users').get(result.recipientAddress);
+      try {
+        const user = await app.service('users').get(result.recipientAddress);
 
-      if (user) {
-        Notifications.milestoneCreated(app, {
-          recipient: user.email,
-          user: user.name,
-          milestoneTitle: data.title,
-          amount: data.maxAmount,
-          token: data.token,
-        });
+        if (user) {
+          Notifications.milestoneCreated(app, {
+            recipient: user.email,
+            user: user.name,
+            milestoneTitle: data.title,
+            amount: data.maxAmount,
+            token: data.token,
+          });
+        }
+      } catch (e) {
+        // ignore missing user
       }
     }
 
