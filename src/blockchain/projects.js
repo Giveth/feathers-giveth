@@ -147,11 +147,11 @@ const projects = (app, liquidPledging) => {
           projectId,
           status: milestoneStatus(milestone.completed, milestone.canceled),
           ethConversionRateTimestamp: new Date(),
-          selectedFiatType: 'ETH',
+          selectedFiatType: milestone.token.symbol,
           date,
           fiatAmount: milestone.maxAmount,
           conversionRate: 1,
-          txHash: tx.transactionHash,
+          txHash: tx.hash,
           pluginAddress: project.plugin,
           url: project.url,
           ownerAddress: milestone.ownerAddress,
@@ -162,7 +162,7 @@ const projects = (app, liquidPledging) => {
           mined: true,
         },
         {
-          eventTxHash: tx.transactionHash,
+          eventTxHash: tx.hash,
           performedByAddress: tx.from,
         },
       );
