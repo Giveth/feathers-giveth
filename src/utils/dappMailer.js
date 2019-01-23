@@ -64,7 +64,7 @@ module.exports = {
         </p>
       `,
       cta: 'Manage your Donations',
-      ctaRelativeUrl: '/my-donations',
+      ctaRelativeUrl: '/donations',
       unsubscribeType: 'donation-receipt',
       unsubscribeReason: 'You receive this email from Giveth because you have made a donation',
     });
@@ -127,7 +127,7 @@ module.exports = {
         </p>
       `,
       cta: `Delegate Donation`,
-      ctaRelativeUrl: `/my-delegations`,
+      ctaRelativeUrl: `/delegations`,
       unsubscribeType: 'request-delegation',
       unsubscribeReason: `You receive this email because you run a ${data.donationType}`,
     });
@@ -160,7 +160,7 @@ module.exports = {
         </p>
       `,
       cta: `View Donations`,
-      ctaRelativeUrl: `/my-donations`,
+      ctaRelativeUrl: `/donations`,
       unsubscribeType: 'donation-delegated',
       unsubscribeReason: `You receive this email because your donation was delegated`,
     });
