@@ -15,8 +15,7 @@ const ENTITY_SERVICES = {
 const updateEntity = async (app, id, type) => {
   const serviceName = ENTITY_SERVICES[type];
   const donationQuery = {
-    $select: ['amount', 'giverAddress', 'amountRemaining', 'token', 'status'],
-    isReturn: false,
+    $select: ['amount', 'giverAddress', 'amountRemaining', 'token', 'status', 'isReturn'],
     mined: true,
     status: { $nin: [DonationStatus.FAILED] },
   };
@@ -27,13 +26,11 @@ const updateEntity = async (app, id, type) => {
       delegateTypeId: id,
       delegateType: AdminTypes.DAC,
       $or: [{ intendedProjectId: 0 }, { intendedProjectId: undefined }],
-      isReturn: false,
     });
   } else if (type === AdminTypes.CAMPAIGN) {
     Object.assign(donationQuery, {
       ownerTypeId: id,
       ownerType: AdminTypes.CAMPAIGN,
-      isReturn: false,
     });
   } else if (type === AdminTypes.MILESTONE) {
     Object.assign(donationQuery, {
@@ -61,7 +58,9 @@ const updateEntity = async (app, id, type) => {
 
       const { totalDonated, currentBalance } = tokenDonations.reduce(
         (accumulator, d) => ({
-          totalDonated: accumulator.totalDonated.add(toBN(d.amount)),
+          totalDonated: d.isReturn
+            ? accumulator.totalDonated
+            : accumulator.totalDonated.add(toBN(d.amount)),
           currentBalance: accumulator.currentBalance.add(toBN(d.amountRemaining)),
         }),
         {
@@ -71,7 +70,7 @@ const updateEntity = async (app, id, type) => {
       );
 
       const donationCount = tokenDonations.filter(
-        d => ![DonationStatus.PAYING, DonationStatus.PAID].includes(d.status),
+        d => !d.isReturn && ![DonationStatus.PAYING, DonationStatus.PAID].includes(d.status),
       ).length;
 
       // find the first donation in the group that has a token object
