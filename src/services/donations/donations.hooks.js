@@ -233,7 +233,7 @@ const joinDonationRecipient = (item, context) => {
     .then(c => (item.delegateId ? commons.populate({ schema: poSchemas['po-dac'] })(c) : c))
     .then(
       c =>
-        item.intendedProjectId > 0
+        item.intendedProjectId > 0 && item.intendedProjectType
           ? commons.populate({
               schema: poSchemas[`po-${item.intendedProjectType.toLowerCase()}-intended`],
             })(c)
