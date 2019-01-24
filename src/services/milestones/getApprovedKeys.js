@@ -32,7 +32,7 @@ const getApprovedKeys = (milestone, data, user) => {
   ];
 
   // Fields that can be edited once milestone stored on the blockchain
-  const editMilestoneKeysOnChain = ['title', 'description', 'message', 'proofItems', 'mined'];
+  const editMilestoneKeysOnChain = ['title', 'description', 'image', 'message', 'proofItems', 'mined'];
 
   switch (milestone.status) {
     case MilestoneStatus.PROPOSED:

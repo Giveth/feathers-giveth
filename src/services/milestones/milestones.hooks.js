@@ -205,11 +205,11 @@ module.exports = {
 
   after: {
     all: [commons.populate({ schema })],
-    find: [addConfirmations(), resolveFiles('image')],
-    get: [addConfirmations(), resolveFiles('image')],
-    create: [sendNotification(), resolveFiles('image')],
+    find: [addConfirmations(), resolveFiles(['image', 'items'])],
+    get: [addConfirmations(), resolveFiles(['image', 'items'])],
+    create: [sendNotification(), resolveFiles(['image', 'items'])],
     update: [resolveFiles('image')],
-    patch: [sendNotification(), resolveFiles('image')],
+    patch: [sendNotification(), resolveFiles(['image', 'items'])],
     remove: [],
   },
 
