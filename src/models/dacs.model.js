@@ -32,7 +32,7 @@ function createModel(app) {
         default: DacStatus.PENDING,
       },
       image: { type: String },
-      txHash: { type: String, required: true },
+      txHash: { type: String, index: true, required: true },
       donationCounters: [DonationCounter],
       peopleCount: { type: Number },
       ownerAddress: { type: String, required: true, index: true },

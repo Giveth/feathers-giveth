@@ -20,7 +20,7 @@ function createModel(app) {
       description: { type: String, required: true },
       projectId: { type: Schema.Types.Long, index: true }, // we can use Long here b/c lp only stores adminId in pledges as uint64
       image: { type: String, required: true },
-      txHash: { type: String },
+      txHash: { type: String, index: true, required: true },
       peopleCount: { type: Number },
       donationCounters: [DonationCounter],
       dacs: { type: [String] },

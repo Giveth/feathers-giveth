@@ -46,12 +46,12 @@ function Milestone(app) {
       date: { type: Date, required: true },
       fiatAmount: { type: Number, required: true },
       conversionRate: { type: Number, required: true },
-      txHash: { type: String },
+      txHash: { type: String, index: true, required: true },
       pluginAddress: { type: String },
       fullyFunded: { type: Boolean, default: false },
       donationCounters: [DonationCounter],
       peopleCount: { type: Number },
-      mined: { type: Boolean },
+      mined: { type: Boolean, required: true, default: false },
       prevStatus: { type: String },
       url: { type: String },
 
@@ -61,7 +61,7 @@ function Milestone(app) {
       message: { type: String },
       proofItems: [Item],
       messageContext: { type: String },
-      token: { type: Token },
+      token: { type: Token, required: true },
     },
     {
       timestamps: true,
