@@ -4,6 +4,7 @@ const { disallow } = require('feathers-hooks-common');
 const sanitizeAddress = require('../../hooks/sanitizeAddress');
 const errors = require('@feathersjs/errors');
 const sanitizeHtml = require('../../hooks/sanitizeHtml');
+const resolveFiles = require('../../hooks/resolveFiles');
 
 /**
   API for creating conversations
@@ -139,8 +140,8 @@ module.exports = {
 
   after: {
     all: [],
-    find: [commons.populate({ schema })],
-    get: [commons.populate({ schema })],
+    find: [commons.populate({ schema }), resolveFiles(['items'])],
+    get: [commons.populate({ schema }), resolveFiles(['items'])],
     create: [],
     update: [],
     patch: [],

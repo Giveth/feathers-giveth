@@ -24,7 +24,7 @@ module.exports = (props, resolveInternal = false) => context => {
   const resolveFields = item => {
     props.forEach(fieldName => {
 
-      // milestone 'items' field
+      // milestone and conversations 'items' field
       if (fieldName === 'items') {
         item[fieldName].forEach(i => {
           if (i.image && isIPFS.ipfsPath(i.image)) {
