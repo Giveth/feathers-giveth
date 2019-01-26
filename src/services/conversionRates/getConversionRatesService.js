@@ -18,8 +18,7 @@ const _getRatesDb = async (app, timestamp, symbol = 'ETH') => {
     .service('conversionRates')
     .find({ query: { timestamp, symbol }, internal: true });
 
-  if (resp.data.length > 0)
-    return { _id: resp.data[0]._id, timestamp: resp.data[0].timestamp, rates: resp.data[0].rates };
+  if (resp.data.length > 0) return { _id: resp.data[0]._id, timestamp, rates: resp.data[0].rates };
 
   // There is no rate in cache
   return { timestamp, rates: {} };
