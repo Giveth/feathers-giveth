@@ -1,5 +1,6 @@
 const commons = require('feathers-hooks-common');
 const errors = require('@feathersjs/errors');
+const logger = require('winston');
 
 const sanitizeAddress = require('../../hooks/sanitizeAddress');
 const setAddress = require('../../hooks/setAddress');
@@ -13,6 +14,7 @@ const getApprovedKeys = require('./getApprovedKeys');
 const checkConversionRates = require('./checkConversionRates');
 const sendNotification = require('./sendNotification');
 const checkMilestoneDates = require('./checkMilestoneDates');
+const { getBlockTimestamp } = require('../../blockchain/lib/web3Helpers');
 
 const schema = {
   include: [
@@ -167,6 +169,49 @@ const performedBy = () => context => {
   return context;
 };
 
+/**
+ * If a on-chain event has occured, update the parent campaign's
+ * updatedAt prop to the tx ts. This is done so that campaigns can be
+ * sorted by recent updates, allowing stale campaigns to fall off
+ */
+const updateCampaign = () => context => {
+  commons.checkContext(context, 'after', ['create', 'patch', 'update']);
+
+  // update the parent campaign updatedAt time when a contract event
+  // is triggered
+  if (context.params.eventTxHash) {
+    // update parent campaign asynchrounsly
+
+    // query event db to get the blockNumber
+    context.app
+      .service('events')
+      .find({
+        query: {
+          transactionHash: context.params.eventTxHash,
+          $limit: 1,
+        },
+        paginate: false,
+      })
+      // event should always exist b/c params.eventTxHash is only
+      // added to context when processing events
+      .then(events => getBlockTimestamp(context.app.getWeb3(), events[0].blockNumber))
+      .then(ts =>
+        context.app.service('campaigns').patch(
+          null,
+          { updatedAt: ts },
+          {
+            query: {
+              _id: context.result.campaignId,
+              updatedAt: { $lt: ts },
+            },
+          },
+        ),
+      )
+      .catch(err => logger.warn(err));
+  }
+  return context;
+};
+
 module.exports = {
   before: {
     all: [],
@@ -207,9 +252,9 @@ module.exports = {
     all: [commons.populate({ schema })],
     find: [addConfirmations(), resolveFiles(['image', 'items'])],
     get: [addConfirmations(), resolveFiles(['image', 'items'])],
-    create: [sendNotification(), resolveFiles(['image', 'items'])],
-    update: [resolveFiles('image')],
-    patch: [sendNotification(), resolveFiles(['image', 'items'])],
+    create: [sendNotification(), resolveFiles(['image', 'items']), updateCampaign()],
+    update: [resolveFiles('image'), updateCampaign()],
+    patch: [sendNotification(), resolveFiles(['image', 'items']), updateCampaign()],
     remove: [],
   },
 

@@ -160,6 +160,47 @@ const setUSDValueHook = () => async context => {
   return context;
 };
 
+/**
+ * Set the updatedAt of the campaign when a donation to the campaign or a campaign's milestone occurs
+ */
+const setEntityUpdated = () => async context => {
+  commons.checkContext(context, 'after', ['create', 'patch']);
+
+  const update = async donation => {
+    if (donation.ownerType === AdminTypes.CAMPAIGN) {
+      context.app.service('campaigns').patch(
+        null,
+        { updatedAt: donation.createdAt },
+        {
+          query: {
+            _id: donation.ownerTypeId,
+            updatedAt: { $lt: donation.createdAt },
+          },
+        },
+      );
+    } else if (donation.ownerType === AdminTypes.MILESTONE) {
+      const milestone = await context.app.service('milestones').get(donation.ownerTypeId);
+      context.app.service('campaigns').patch(
+        null,
+        { updatedAt: donation.createdAt },
+        {
+          query: {
+            _id: milestone.campaignId,
+            updatedAt: { $lt: donation.createdAt },
+          },
+        },
+      );
+    }
+  };
+
+  if (Array.isArray(context.result)) {
+    context.result.forEach(update);
+  } else {
+    update(context.result);
+  }
+  return context;
+};
+
 const restrict = () => async context => {
   // internal call are fine
   if (!context.params.provider) return context;
@@ -314,7 +355,7 @@ module.exports = {
       }),
       updateMilestoneIfNotPledged(),
     ],
-    update: [commons.disallow(), sanitizeAddress('giverAddress', { validate: true })],
+    update: [commons.disallow()],
     patch: [restrict(), sanitizeAddress('giverAddress', { validate: true })],
     remove: [commons.disallow()],
   },
@@ -323,9 +364,9 @@ module.exports = {
     all: [populateSchema()],
     find: [addConfirmations()],
     get: [addConfirmations()],
-    create: [setUSDValueHook(), updateDonationEntityCountersHook()],
+    create: [setUSDValueHook(), updateDonationEntityCountersHook(), setEntityUpdated()],
     update: [],
-    patch: [setUSDValueHook(), updateDonationEntityCountersHook()],
+    patch: [setUSDValueHook(), updateDonationEntityCountersHook(), setEntityUpdated()],
     remove: [],
   },
 
