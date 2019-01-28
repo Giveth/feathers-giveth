@@ -63,7 +63,7 @@ const getApprovedKeys = (milestone, data, user) => {
         return ['status', 'message', 'proofItems'];
       }
 
-      // Editing milestone can be done by Milestone or Campaing Manager
+      // Editing milestone can be done by Milestone or Campaign Manager
       if (data.status === MilestoneStatus.PROPOSED) {
         if (![milestone.ownerAddress, milestone.campaign.ownerAddress].includes(user.address)) {
           throw new errors.Forbidden(
@@ -100,7 +100,7 @@ const getApprovedKeys = (milestone, data, user) => {
           throw new errors.Forbidden('Only the Milestone Manager can repropose rejected milestone');
         }
         logger.info(`Reproposing rejected milestone with id: ${milestone._id} by: ${user.address}`);
-        return ['status', 'message', 'proofItems'];
+        return editMilestoneKeys.concat(['status']);
       }
       break;
 

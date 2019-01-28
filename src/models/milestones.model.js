@@ -46,7 +46,7 @@ function Milestone(app) {
       date: { type: Date, required: true },
       fiatAmount: { type: Number, required: true },
       conversionRate: { type: Number, required: true },
-      txHash: { type: String, index: true, required: true },
+      txHash: { type: String, index: true },
       pluginAddress: { type: String },
       fullyFunded: { type: Boolean, default: false },
       donationCounters: [DonationCounter],
