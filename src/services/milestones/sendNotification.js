@@ -94,6 +94,26 @@ const sendNotification = () => async context => {
     }
 
     if (
+      result.prevStatus === MilestoneStatus.REJECTED &&
+      result.status === MilestoneStatus.PROPOSED
+    ) {
+      try {
+        const campaign = await app.service('campaigns').get(data.campaignId);
+
+        Notifications.milestoneProposed(app, {
+          recipient: campaign.owner.email,
+          user: campaign.owner.name,
+          milestoneTitle: data.title,
+          campaignTitle: campaign.title,
+          amount: data.maxAmount,
+          token: data.token,
+        });
+      } catch (e) {
+        logger.error('error sending proposed milestone notification', e);
+      }
+    }
+
+    if (
       result.status === MilestoneStatus.IN_PROGRESS &&
       result.ownerAddress !== result.recipientAddress
     ) {
