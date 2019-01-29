@@ -1,11 +1,11 @@
-// ethconversion-model.js - A mongoose model
+// conversionRates-model.js - A mongoose model
 //
 // See http://mongoosejs.com/docs/models.html
 // for more of what you can do here.
-module.exports = function ETHConversion(app) {
+module.exports = function conversion(app) {
   const mongooseClient = app.get('mongooseClient');
   const { Schema } = mongooseClient;
-  const ethconversion = new Schema(
+  const conversionRates = new Schema(
     {
       timestamp: { type: Date, required: true },
       rates: { type: Object },
@@ -16,7 +16,7 @@ module.exports = function ETHConversion(app) {
     },
   );
 
-  ethconversion.index({ timestamp: 1, symbol: 1 }, { unique: true });
+  conversionRates.index({ timestamp: 1, symbol: 1 }, { unique: true });
 
-  return mongooseClient.model('ethconversion', ethconversion);
+  return mongooseClient.model('conversionRates', conversionRates);
 };

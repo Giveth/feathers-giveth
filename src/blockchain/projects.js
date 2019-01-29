@@ -42,6 +42,11 @@ const projects = (app, liquidPledging) => {
       if (profile.image && isIPFS.ipfsPath(profile.image)) {
         app.ipfsPinner(profile.image);
       }
+      if (profile.items) {
+        profile.items
+          .filter(i => i.image && isIPFS.ipfsPath(i.image))
+          .forEach(i => app.ipfsPinner(i.image));
+      }
     }
     return profile;
   }
@@ -146,7 +151,7 @@ const projects = (app, liquidPledging) => {
           campaignId: campaign._id,
           projectId,
           status: milestoneStatus(milestone.completed, milestone.canceled),
-          ethConversionRateTimestamp: new Date(),
+          conversionRateTimestamp: new Date(),
           selectedFiatType: milestone.token.symbol,
           date,
           fiatAmount: milestone.maxAmount,
@@ -284,7 +289,7 @@ const projects = (app, liquidPledging) => {
         return;
       }
 
-      const profile = fetchProfile(project.url);
+      const profile = await fetchProfile(project.url);
       const mutation = Object.assign({ title: project.name }, profile, {
         projectId,
         maxAmount,

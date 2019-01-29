@@ -1,16 +1,16 @@
 const { disallow } = require('feathers-hooks-common');
 
 const onlyInternal = require('../../hooks/onlyInternal');
-const { getEthConversion } = require('./getEthConversionService');
+const { getConversionRates } = require('./getConversionRatesService');
 
-const getConversionRates = () => context => {
+const findConversionRates = () => context => {
   const { app, params } = context;
 
   // return context to avoid recursion
-  // getEthConversion also calls this hook
+  // getConversionRates also calls this hook
   if (params.internal) return context;
 
-  return getEthConversion(app, params.query.date, params.query.symbol).then(res => {
+  return getConversionRates(app, params.query.date, params.query.symbol).then(res => {
     context.result = res;
     return context;
   });
@@ -29,7 +29,7 @@ module.exports = {
 
   after: {
     all: [],
-    find: [getConversionRates()],
+    find: [findConversionRates()],
     get: [],
     create: [],
     update: [],

@@ -22,7 +22,7 @@ const checkMilestoneDates = () => context => {
     }
   };
 
-  if ((items && items.length) > 0) {
+  if ((Array.isArray(items) && items.length) > 0) {
     items.forEach(item => checkFutureTimestamp(item.date));
   } else {
     checkFutureTimestamp(data.date);
