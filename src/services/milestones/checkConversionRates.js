@@ -8,7 +8,7 @@ BigNumber.config({ DECIMAL_PLACES: 18 });
 /** *
  * This function checks that the maxAmount in the milestone is based on the correct conversion rate of the milestone date
  * */
-const checkEthConversion = () => context => {
+const checkConversionRates = () => context => {
   // abort check for internal calls
   if (!context.params.provider) return context;
 
@@ -48,7 +48,7 @@ const checkEthConversion = () => context => {
     // now check that the conversion rate for each milestone is correct
     const promises = items.map(item =>
       app
-        .service('ethconversion')
+        .service('conversionRates')
         .find({ query: { date: item.date, symbol: data.token.symbol } })
         .then(conversionRate => {
           calculateCorrectEther(conversionRate, item.fiatAmount, item.wei, item.selectedFiatType);
@@ -59,7 +59,7 @@ const checkEthConversion = () => context => {
   }
   // check that the conversion rate for the milestone is correct
   return app
-    .service('ethconversion')
+    .service('conversionRates')
     .find({ query: { date: data.date, symbol: data.token.symbol } })
     .then(conversionRate => {
       calculateCorrectEther(conversionRate, data.fiatAmount, data.maxAmount, data.selectedFiatType);
@@ -67,4 +67,4 @@ const checkEthConversion = () => context => {
     });
 };
 
-module.exports = checkEthConversion;
+module.exports = checkConversionRates;
