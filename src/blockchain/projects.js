@@ -3,22 +3,30 @@
 const { Kernel, AppProxyUpgradeable } = require('giveth-liquidpledging/build/contracts');
 const isIPFS = require('is-ipfs');
 const { LPPCappedMilestone } = require('lpp-capped-milestone');
+const { LPMilestone, BridgedMilestone } = require('lpp-milestones');
 const { LPPCampaign } = require('lpp-campaign');
-const { keccak256 } = require('web3-utils');
+const { keccak256, isAddress } = require('web3-utils');
 const logger = require('winston');
 
 const { removeHexPrefix, getBlockTimestamp, executeRequestsAsBatch } = require('./lib/web3Helpers');
 const { CampaignStatus } = require('../models/campaigns.model');
 const { DonationStatus } = require('../models/donations.model');
-const { MilestoneStatus } = require('../models/milestones.model');
+const { MilestoneStatus, MilestoneTypes } = require('../models/milestones.model');
 const { AdminTypes } = require('../models/pledgeAdmins.model');
 const reprocess = require('../utils/reprocess');
 const to = require('../utils/to');
 
-const milestoneStatus = (completed, canceled) => {
+const milestoneStatus = (status, completed, canceled) => {
   if (canceled) return MilestoneStatus.CANCELED;
-  if (completed) return MilestoneStatus.COMPLETED;
-  return MilestoneStatus.IN_PROGRESS;
+  // new milestones have a status, old milestone don't
+  if (status === undefined) {
+    if (completed) return MilestoneStatus.COMPLETED;
+    return MilestoneStatus.IN_PROGRESS;
+  }
+
+  if (status === '0') return MilestoneStatus.IN_PROGRESS;
+  if (status === '1') return MilestoneStatus.NEEDS_REVIEW;
+  if (status === '2') return MilestoneStatus.COMPLETED;
 };
 
 const projects = (app, liquidPledging) => {
@@ -29,7 +37,9 @@ const projects = (app, liquidPledging) => {
   let initialized = false;
 
   let campaignBase;
-  let milestoneBase;
+  let lppCappedMilestoneBase;
+  let lpMilestoneBase;
+  let bridgedMilestoneBase;
 
   async function fetchProfile(url) {
     if (!url || url === '') return {};
@@ -74,6 +84,18 @@ const projects = (app, liquidPledging) => {
       ),
     );
   }
+  async function getLPMilestoneBase() {
+    return getKernel().then(kernel =>
+      kernel.getApp(keccak256(keccak256('base') + removeHexPrefix(keccak256('lpp-lp-milestone')))),
+    );
+  }
+  async function getBridgedMilestoneBase() {
+    return getKernel().then(kernel =>
+      kernel.getApp(
+        keccak256(keccak256('base') + removeHexPrefix(keccak256('lpp-bridged-milestone'))),
+      ),
+    );
+  }
   async function getLppCampaignBase() {
     return getKernel().then(kernel =>
       kernel.getApp(keccak256(keccak256('base') + removeHexPrefix(keccak256('lpp-campaign')))),
@@ -81,10 +103,21 @@ const projects = (app, liquidPledging) => {
   }
 
   async function init() {
-    if (initialized || (campaignBase && milestoneBase)) return;
-    [campaignBase, milestoneBase] = await Promise.all([
+    if (
+      initialized ||
+      (campaignBase && lppCappedMilestoneBase && lpMilestoneBase && bridgedMilestoneBase)
+    )
+      return;
+    [
+      campaignBase,
+      lppCappedMilestoneBase,
+      lpMilestoneBase,
+      bridgedMilestoneBase,
+    ] = await Promise.all([
       getLppCampaignBase(),
       getLppCappedMilestoneBase(),
+      getLPMilestoneBase(),
+      getBridgedMilestoneBase(),
     ]);
     initialized = true;
   }
@@ -146,11 +179,12 @@ const projects = (app, liquidPledging) => {
           description: 'Missing Description... Added outside of UI',
           maxAmount: milestone.maxAmount,
           reviewerAddress: milestone.reviewer,
-          recipientAddress: milestone.recipient,
+          recipientAddress: isAddress(milestone.recipient) ? milestone.recipient : undefined,
+          recipientId: !isAddress(milestone.recipient) ? milestone.recipient : undefined,
           campaignReviewerAddress: milestone.campaignReviewer,
           campaignId: campaign._id,
           projectId,
-          status: milestoneStatus(milestone.completed, milestone.canceled),
+          status: milestone.status,
           conversionRateTimestamp: new Date(),
           selectedFiatType: milestone.token.symbol,
           date,
@@ -230,32 +264,51 @@ const projects = (app, liquidPledging) => {
     }
   }
 
-  async function addMilestone(project, projectId, txHash) {
-    const cappedMilestone = new LPPCappedMilestone(web3, project.plugin);
+  async function addMilestone(project, projectId, txHash, type) {
+    let milestoneContract;
+    if (type === MilestoneTypes.LPPCappedMilestone) {
+      milestoneContract = new LPPCappedMilestone(web3, project.plugin);
+    } else if (type === milestoneContract.LPMilestone) {
+      milestoneContract = new LPMilestone(web3, project.plugin);
+    } else if (type === milestoneContract.BridgedMilestone) {
+      milestoneContract = new BridgedMilestone(web3, project.plugin);
+    }
+
+    const managerMethod = () =>
+      type === MilestoneTypes.LPPCappedMilestone ? 'milestoneManager' : 'manager';
+    const getCampaignReviewer = () =>
+      type === MilestoneTypes.LPPCappedMilestone ? milestoneContract.campaignReviewer() : undefined;
+    const getMilestoneCompleted = () =>
+      type === MilestoneTypes.LPPCappedMilestone ? milestoneContract.completed() : undefined;
+    const getMilestoneStatus = () =>
+      type !== MilestoneTypes.LPPCappedMilestone ? milestoneContract.status() : undefined;
 
     try {
       const responses = await Promise.all([
         getMilestone(project, txHash),
+        getCampaignReviewer(),
+        milestoneContract.recipient(),
+        getMilestoneCompleted(),
+        getMilestoneStatus(),
+        // batch what we can
         ...(await executeRequestsAsBatch(web3, [
-          cappedMilestone.$contract.methods.maxAmount().call.request,
-          cappedMilestone.$contract.methods.reviewer().call.request,
-          cappedMilestone.$contract.methods.campaignReviewer().call.request,
-          cappedMilestone.$contract.methods.recipient().call.request,
-          cappedMilestone.$contract.methods.milestoneManager().call.request,
-          cappedMilestone.$contract.methods.completed().call.request,
-          cappedMilestone.$contract.methods.acceptedToken().call.request,
+          milestoneContract.$contract.methods.maxAmount().call.request,
+          milestoneContract.$contract.methods.reviewer().call.request,
+          milestoneContract.$contract.methods[managerMethod()]().call.request,
+          milestoneContract.$contract.methods.acceptedToken().call.request,
           liquidPledging.$contract.methods.isProjectCanceled(projectId).call.request,
           web3.eth.getTransaction.request.bind(null, txHash),
         ])),
       ]);
       let milestone = responses.splice(0, 1)[0];
       const [
-        maxAmount,
-        reviewer,
         campaignReviewer,
         recipient,
-        manager,
         completed,
+        status,
+        maxAmount,
+        reviewer,
+        manager,
         acceptedToken,
         canceled,
         tx,
@@ -273,8 +326,7 @@ const projects = (app, liquidPledging) => {
             reviewer,
             campaignReviewer,
             ownerAddress: manager,
-            completed,
-            canceled,
+            status: milestoneStatus(status, completed, canceled),
             token,
           },
           tx,
@@ -296,9 +348,10 @@ const projects = (app, liquidPledging) => {
         reviewerAddress: reviewer,
         campaignReviewerAddress: campaignReviewer,
         ownerAddress: manager,
-        recipientAddress: recipient,
+        recipientAddress: isAddress(recipient) ? recipient : undefined,
+        recipientId: !isAddress(recipient) ? recipient : undefined,
         pluginAddress: project.plugin,
-        status: milestoneStatus(completed, canceled),
+        status: milestoneStatus(status, completed, canceled),
         url: project.url,
         token,
         mined: true,
@@ -525,10 +578,24 @@ const projects = (app, liquidPledging) => {
       const project = await liquidPledging.getPledgeAdmin(projectId);
       const baseCode = await new AppProxyUpgradeable(web3, project.plugin).implementation();
 
-      if (!milestoneBase || !campaignBase) {
-        logger.error('missing milestone or campaign base', milestoneBase, campaignBase);
+      if (!lppCappedMilestoneBase || !lpMilestoneBase || !bridgedMilestoneBase || !campaignBase) {
+        logger.error(
+          'missing milestone or campaign base',
+          lppCappedMilestoneBase,
+          lpMilestoneBase,
+          bridgedMilestoneBase,
+          campaignBase,
+        );
       }
-      if (baseCode === milestoneBase) return addMilestone(project, projectId, txHash);
+      if (baseCode === lppCappedMilestoneBase) {
+        return addMilestone(project, projectId, txHash, MilestoneTypes.LPPCappedMilestone);
+      }
+      if (baseCode === lpMilestoneBase) {
+        return addMilestone(project, projectId, txHash, MilestoneTypes.LPMilestone);
+      }
+      if (baseCode === bridgedMilestoneBase) {
+        return addMilestone(project, projectId, txHash, MilestoneTypes.BridgedMilestone);
+      }
       if (baseCode === campaignBase) return addCampaign(project, projectId, txHash);
 
       logger.error('AddProject event with unknown plugin baseCode ->', event, baseCode);
@@ -570,7 +637,11 @@ const projects = (app, liquidPledging) => {
       // when we get a SetApp event, ignore the event app, and re-fetch the current baseCode
       // since we synchronously process events,
       if (name === keccak256('lpp-capped-milestone')) {
-        milestoneBase = await getLppCappedMilestoneBase();
+        lppCappedMilestoneBase = await getLppCappedMilestoneBase();
+      } else if (name === keccak256('lpp-lp-milestone')) {
+        lpMilestoneBase = await getLPMilestoneBase();
+      } else if (name === keccak256('lpp-bridged-milestone')) {
+        bridgedMilestoneBase = await getBridgedMilestoneBase();
       } else if (name === keccak256('lpp-campaign')) {
         campaignBase = await getLppCampaignBase();
       } else {

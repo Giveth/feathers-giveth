@@ -19,6 +19,12 @@ const MilestoneStatus = {
   FAILED: 'Failed',
 };
 
+const MilestoneTypes = {
+  LPPCappedMilestone: 'LPPCappedMilestone',
+  BridgedMilestone: 'BridgedMilestone',
+  LPMilestone: 'LPMilestone',
+};
+
 function Milestone(app) {
   const mongooseClient = app.get('mongooseClient');
   const { Schema } = mongooseClient;
@@ -30,9 +36,10 @@ function Milestone(app) {
       image: { type: String },
       maxAmount: { type: Schema.Types.BN, required: true },
       ownerAddress: { type: String, required: true, index: true },
-      reviewerAddress: { type: String, required: true, index: true },
-      recipientAddress: { type: String, required: true, index: true },
-      campaignReviewerAddress: { type: String, required: true, index: true },
+      reviewerAddress: { type: String, index: true },
+      recipientAddress: { type: String, index: true }, // we can use Long here b/c lp only stores adminId in pledges as uint64
+      recipientId: { type: Schema.Types.Long, index: true },
+      campaignReviewerAddress: { type: String, index: true },
       campaignId: { type: String, required: true, index: true },
       projectId: { type: Schema.Types.Long, index: true }, // we can use Long here b/c lp only stores adminId in pledges as uint64
       status: {
@@ -54,6 +61,11 @@ function Milestone(app) {
       mined: { type: Boolean, required: true, default: false },
       prevStatus: { type: String },
       url: { type: String },
+      type: {
+        type: String,
+        require: true,
+        enum: Object.values(MilestoneTypes),
+      },
 
       // these 2 fields should not be stored in mongo
       // but we need them for temporary storage
@@ -73,5 +85,6 @@ function Milestone(app) {
 
 module.exports = {
   MilestoneStatus,
+  MilestoneType: MilestoneTypes,
   createModel: Milestone,
 };

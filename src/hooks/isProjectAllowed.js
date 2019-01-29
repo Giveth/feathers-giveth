@@ -13,6 +13,8 @@ const checkReviewer = async context => {
   const items = commons.getItems(context);
 
   const inWhitelist = async project => {
+    // new milestones have optional reviewer
+    if (!project.reviewerAddress) return;
     if (reviewerWhitelist.includes(project.reviewerAddress.toLowerCase())) {
       // milestones have a campaignReviewerAddress
       if (Object.keys(project).includes('campaignReviewerAddress')) {

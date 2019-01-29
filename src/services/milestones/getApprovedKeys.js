@@ -29,6 +29,7 @@ const getApprovedKeys = (milestone, data, user) => {
     'proofItems',
     'image',
     'token',
+    'type',
   ];
 
   // Fields that can be edited once milestone stored on the blockchain

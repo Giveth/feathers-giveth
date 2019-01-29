@@ -92,6 +92,7 @@ const restrict = () => context => {
       'selectedFiatType',
       'date',
       'token',
+      'type',
     ];
     keysToRemove.forEach(key => delete data[key]);
 
