@@ -17,7 +17,7 @@ const checkReviewer = async context => {
     if (!project.reviewerAddress) return;
     if (reviewerWhitelist.includes(project.reviewerAddress.toLowerCase())) {
       // milestones have a campaignReviewerAddress
-      if (Object.keys(project).includes('campaignReviewerAddress')) {
+      if (project.campaignReviewerAddress) {
         const campaign = await context.app.service('campaigns').get(project.campaignId);
         if (
           !campaign ||

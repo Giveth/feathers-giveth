@@ -8,7 +8,12 @@ const { LPPCampaign } = require('lpp-campaign');
 const { keccak256, isAddress } = require('web3-utils');
 const logger = require('winston');
 
-const { removeHexPrefix, getBlockTimestamp, executeRequestsAsBatch } = require('./lib/web3Helpers');
+const {
+  removeHexPrefix,
+  getBlockTimestamp,
+  executeRequestsAsBatch,
+  ANY_TOKEN,
+} = require('./lib/web3Helpers');
 const { CampaignStatus } = require('../models/campaigns.model');
 const { DonationStatus } = require('../models/donations.model');
 const { MilestoneStatus, MilestoneTypes } = require('../models/milestones.model');
@@ -16,17 +21,17 @@ const { AdminTypes } = require('../models/pledgeAdmins.model');
 const reprocess = require('../utils/reprocess');
 const to = require('../utils/to');
 
-const milestoneStatus = (status, completed, canceled) => {
+const milestoneStatus = (state, completed, canceled) => {
   if (canceled) return MilestoneStatus.CANCELED;
-  // new milestones have a status, old milestone don't
-  if (status === undefined) {
+  // new milestones have a state, old milestone don't
+  if (state === undefined) {
     if (completed) return MilestoneStatus.COMPLETED;
     return MilestoneStatus.IN_PROGRESS;
   }
 
-  if (status === '0') return MilestoneStatus.IN_PROGRESS;
-  if (status === '1') return MilestoneStatus.NEEDS_REVIEW;
-  if (status === '2') return MilestoneStatus.COMPLETED;
+  if (state === '0') return MilestoneStatus.IN_PROGRESS;
+  if (state === '1') return MilestoneStatus.NEEDS_REVIEW;
+  if (state === '2') return MilestoneStatus.COMPLETED;
 };
 
 const projects = (app, liquidPledging) => {
@@ -62,6 +67,8 @@ const projects = (app, liquidPledging) => {
   }
 
   function findToken(foreignAddress) {
+    if (foreignAddress === ANY_TOKEN.foreignAddress) return ANY_TOKEN;
+
     const tokenWhitelist = app.get('tokenWhitelist');
 
     const token = tokenWhitelist.find(
@@ -173,33 +180,39 @@ const projects = (app, liquidPledging) => {
 
     try {
       const date = await getBlockTimestamp(web3, tx.blockNumber);
+      const profile = await fetchProfile(project.url);
       return milestones.create(
-        {
-          title: project.name,
-          description: 'Missing Description... Added outside of UI',
-          maxAmount: milestone.maxAmount,
-          reviewerAddress: milestone.reviewer,
-          recipientAddress: isAddress(milestone.recipient) ? milestone.recipient : undefined,
-          recipientId: !isAddress(milestone.recipient) ? milestone.recipient : undefined,
-          campaignReviewerAddress: milestone.campaignReviewer,
-          campaignId: campaign._id,
-          projectId,
-          status: milestone.status,
-          conversionRateTimestamp: new Date(),
-          selectedFiatType: milestone.token.symbol,
-          date,
-          fiatAmount: milestone.maxAmount,
-          conversionRate: 1,
-          txHash: tx.hash,
-          pluginAddress: project.plugin,
-          url: project.url,
-          ownerAddress: milestone.ownerAddress,
-          token: milestone.token,
-          totalDonated: '0',
-          currentBalance: '0',
-          donationCount: 0,
-          mined: true,
-        },
+        Object.assign(
+          {
+            title: project.name,
+            description: 'Missing Description... Added outside of UI',
+            fiatAmount: milestone.maxAmount === '0' ? undefined : milestone.maxAmount,
+            selectedFiatType: milestone.token === ANY_TOKEN ? undefined : milestone.token.symbol,
+            date,
+            conversionRateTimestamp: milestone.maxAmount === '0' ? undefined : new Date(),
+            conversionRate: milestone.maxAmount === '0' ? undefined : 1,
+          },
+          profile,
+          {
+            projectId,
+            maxAmount: milestone.maxAmount === '0' ? undefined : milestone.maxAmount,
+            reviewerAddress: milestone.reviewer,
+            recipientAddress: isAddress(milestone.recipient) ? milestone.recipient : undefined,
+            recipientId: !isAddress(milestone.recipient) ? milestone.recipient : undefined,
+            campaignReviewerAddress: milestone.campaignReviewer,
+            campaignId: campaign._id,
+            txHash: tx.hash,
+            pluginAddress: project.plugin,
+            url: project.url,
+            ownerAddress: milestone.ownerAddress,
+            token: milestone.token,
+            status: milestone.status,
+            totalDonated: '0',
+            currentBalance: '0',
+            donationCount: 0,
+            mined: true,
+          },
+        ),
         {
           eventTxHash: tx.hash,
           performedByAddress: tx.from,
@@ -268,10 +281,12 @@ const projects = (app, liquidPledging) => {
     let milestoneContract;
     if (type === MilestoneTypes.LPPCappedMilestone) {
       milestoneContract = new LPPCappedMilestone(web3, project.plugin);
-    } else if (type === milestoneContract.LPMilestone) {
+    } else if (type === MilestoneTypes.LPMilestone) {
       milestoneContract = new LPMilestone(web3, project.plugin);
-    } else if (type === milestoneContract.BridgedMilestone) {
+    } else if (type === MilestoneTypes.BridgedMilestone) {
       milestoneContract = new BridgedMilestone(web3, project.plugin);
+    } else {
+      throw new Error('Unknown Milestone type ->', type);
     }
 
     const managerMethod = () =>
@@ -280,8 +295,8 @@ const projects = (app, liquidPledging) => {
       type === MilestoneTypes.LPPCappedMilestone ? milestoneContract.campaignReviewer() : undefined;
     const getMilestoneCompleted = () =>
       type === MilestoneTypes.LPPCappedMilestone ? milestoneContract.completed() : undefined;
-    const getMilestoneStatus = () =>
-      type !== MilestoneTypes.LPPCappedMilestone ? milestoneContract.status() : undefined;
+    const getMilestoneState = () =>
+      type !== MilestoneTypes.LPPCappedMilestone ? milestoneContract.state() : undefined;
 
     try {
       const responses = await Promise.all([
@@ -289,7 +304,7 @@ const projects = (app, liquidPledging) => {
         getCampaignReviewer(),
         milestoneContract.recipient(),
         getMilestoneCompleted(),
-        getMilestoneStatus(),
+        getMilestoneState(),
         // batch what we can
         ...(await executeRequestsAsBatch(web3, [
           milestoneContract.$contract.methods.maxAmount().call.request,
@@ -305,7 +320,7 @@ const projects = (app, liquidPledging) => {
         campaignReviewer,
         recipient,
         completed,
-        status,
+        state,
         maxAmount,
         reviewer,
         manager,
@@ -326,7 +341,7 @@ const projects = (app, liquidPledging) => {
             reviewer,
             campaignReviewer,
             ownerAddress: manager,
-            status: milestoneStatus(status, completed, canceled),
+            status: milestoneStatus(state, completed, canceled),
             token,
           },
           tx,
@@ -344,14 +359,14 @@ const projects = (app, liquidPledging) => {
       const profile = await fetchProfile(project.url);
       const mutation = Object.assign({ title: project.name }, profile, {
         projectId,
-        maxAmount,
+        maxAmount: maxAmount === '0' ? undefined : maxAmount,
         reviewerAddress: reviewer,
         campaignReviewerAddress: campaignReviewer,
         ownerAddress: manager,
         recipientAddress: isAddress(recipient) ? recipient : undefined,
         recipientId: !isAddress(recipient) ? recipient : undefined,
         pluginAddress: project.plugin,
-        status: milestoneStatus(status, completed, canceled),
+        status: milestoneStatus(state, completed, canceled),
         url: project.url,
         token,
         mined: true,

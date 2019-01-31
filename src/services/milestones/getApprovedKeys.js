@@ -42,6 +42,19 @@ const getApprovedKeys = (milestone, data, user) => {
     'mined',
   ];
 
+  // changing the recipient
+  if (data.pendingRecipientAddress) {
+    // Owner can set the recipient
+    if (!milestone.recipientAddress) {
+      if (user.address !== milestone.ownerAddress) {
+        throw new errors.Forbidden('Only the Milestone Manager can set the recipient');
+      }
+    } else if (user.address !== milestone.recipientAddress) {
+      throw new errors.Forbidden('Only the Milestone recipient can change the recipient');
+    }
+    return ['pendingRecipientAddress'];
+  }
+
   switch (milestone.status) {
     case MilestoneStatus.PROPOSED:
       // Accept proposed milestone by Campaign Manager

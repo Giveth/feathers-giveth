@@ -4,6 +4,7 @@ const logger = require('winston');
 
 const { AdminTypes } = require('../../models/pledgeAdmins.model');
 const { DonationStatus } = require('../../models/donations.model');
+const { ANY_TOKEN } = require('../../blockchain/lib/web3Helpers');
 const _groupBy = require('lodash.groupby');
 
 const ENTITY_SERVICES = {
@@ -92,6 +93,7 @@ const updateEntity = async (app, id, type) => {
     const fullyFunded =
       type === AdminTypes.MILESTONE &&
       donationCounters.length > 0 &&
+      entity.token.foreignAddress !== ANY_TOKEN.foreignAddress &&
       entity.maxAmount ===
         donationCounters.find(dc => dc.symbol === entity.token.symbol).currentBalance.toString();
     const peopleCount = new Set(donations.map(d => d.giverAddress)).size;

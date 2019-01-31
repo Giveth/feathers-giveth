@@ -43,6 +43,12 @@ const schema = {
       childField: 'address',
     },
     {
+      service: 'users',
+      nameAs: 'pendingRecipient',
+      parentField: 'pendingRecipientAddress',
+      childField: 'address',
+    },
+    {
       service: 'campaigns',
       nameAs: 'campaign',
       parentField: 'campaignId',

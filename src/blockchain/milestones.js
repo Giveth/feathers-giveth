@@ -85,6 +85,7 @@ const milestonesFactory = app => {
           m._id,
           {
             recipientAddress: recipient,
+            $unset: { pendingRecipientAddress: true },
             mined: true,
           },
           {

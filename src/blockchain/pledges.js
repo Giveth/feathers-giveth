@@ -4,7 +4,7 @@ const logger = require('winston');
 const { toBN } = require('web3-utils');
 const eventDecodersFromArtifact = require('./lib/eventDecodersFromArtifact');
 const topicsFromArtifacts = require('./lib/topicsFromArtifacts');
-const { getBlockTimestamp, executeRequestsAsBatch } = require('./lib/web3Helpers');
+const { getBlockTimestamp, executeRequestsAsBatch, ANY_TOKEN } = require('./lib/web3Helpers');
 const { CampaignStatus } = require('../models/campaigns.model');
 const { DonationStatus } = require('../models/donations.model');
 const { MilestoneStatus } = require('../models/milestones.model');
@@ -78,14 +78,11 @@ function _retreiveTokenFromPledge(app, pledge) {
   const tokenWhitelist = app.get('tokenWhitelist');
   let token;
 
-  if (Array.isArray(tokenWhitelist))
-    token = tokenWhitelist.find(
-      t =>
-        typeof t.foreignAddress === 'string' &&
-        typeof pledge.token === 'string' &&
-        t.foreignAddress.toLowerCase() === pledge.token.toLowerCase(),
-    );
-  else {
+  if (pledge.token === ANY_TOKEN.address) {
+    token = ANY_TOKEN;
+  } else if (Array.isArray(tokenWhitelist)) {
+    token = tokenWhitelist.find(t => t.foreignAddress.toLowerCase() === pledge.token.toLowerCase());
+  } else {
     throw new Error('Could not get tokenWhitelist or it is not defined');
   }
 
