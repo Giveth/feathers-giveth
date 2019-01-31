@@ -57,18 +57,20 @@ const updateEntity = async (app, id, type) => {
     const donationCounters = Object.keys(groupedDonations).map(symbol => {
       const tokenDonations = groupedDonations[symbol];
 
-      const { totalDonated, currentBalance } = tokenDonations.reduce(
-        (accumulator, d) => ({
-          totalDonated: d.isReturn
-            ? accumulator.totalDonated
-            : accumulator.totalDonated.add(toBN(d.amount)),
-          currentBalance: accumulator.currentBalance.add(toBN(d.amountRemaining)),
-        }),
-        {
-          totalDonated: toBN(0),
-          currentBalance: toBN(0),
-        },
-      );
+      const { totalDonated, currentBalance } = tokenDonations
+        .filter(d => ![DonationStatus.PAYING, DonationStatus.PAID].includes(d.status))
+        .reduce(
+          (accumulator, d) => ({
+            totalDonated: d.isReturn
+              ? accumulator.totalDonated
+              : accumulator.totalDonated.add(toBN(d.amount)),
+            currentBalance: accumulator.currentBalance.add(toBN(d.amountRemaining)),
+          }),
+          {
+            totalDonated: toBN(0),
+            currentBalance: toBN(0),
+          },
+        );
 
       const donationCount = tokenDonations.filter(
         d => !d.isReturn && ![DonationStatus.PAYING, DonationStatus.PAID].includes(d.status),
