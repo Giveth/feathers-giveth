@@ -240,6 +240,14 @@ function getHomeWeb3(app) {
   return homeWeb3;
 }
 
+const ANY_TOKEN = {
+  name: 'ANY_TOKEN',
+  address: '0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF',
+  foreignAddress: '0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF',
+  symbol: 'ANY_TOKEN',
+  decimals: 18,
+};
+
 module.exports = {
   getWeb3,
   getHomeWeb3,
@@ -248,4 +256,5 @@ module.exports = {
   removeHexPrefix,
   addAccountToWallet,
   getBlockTimestamp,
+  ANY_TOKEN,
 };

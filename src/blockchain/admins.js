@@ -2,6 +2,7 @@ const logger = require('winston');
 const giversFactory = require('./givers');
 const delegatesFactory = require('./delegates');
 const projectsFactory = require('./projects');
+const { AdminTypes } = require('../models/pledgeAdmins.model');
 const to = require('../utils/to');
 
 /**
@@ -108,8 +109,8 @@ const adminFactory = (app, liquidPledging) => {
       const project = await projects.addProject(event);
 
       if (project) {
-        // only milestones have a maxAmount
-        const type = project.maxAmount ? 'milestone' : 'campaign';
+        // only milestones have a campaignId
+        const type = project.campaignId ? AdminTypes.MILESTONE : AdminTypes.CAMPAIGN;
         await createPledgeAdmin(project.projectId, type, project._id);
       }
     },
@@ -125,8 +126,8 @@ const adminFactory = (app, liquidPledging) => {
       // a new project is created if the createdAt & updatedAt are significantly different
       const fifteenSeconds = 15 * 1000;
       if (project.updatedAt - project.createdAt > fifteenSeconds) {
-        // only milestones have a maxAmount
-        const type = project.maxAmount ? 'milestone' : 'campaign';
+        // only milestones have a campaignId
+        const type = project.campaignId ? AdminTypes.MILESTONE : AdminTypes.CAMPAIGN;
         await createPledgeAdmin(project.projectId, type, project._id);
       }
     },

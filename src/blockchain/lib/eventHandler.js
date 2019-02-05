@@ -3,7 +3,7 @@ const logger = require('winston');
 const paymentsFactory = require('../payments');
 const adminsFactory = require('../admins');
 const pledgesFactory = require('../pledges');
-const cappedMilestonesFactory = require('../cappedMilestones');
+const milestonesFactory = require('../milestones');
 const processingQueue = require('../../utils/processingQueue');
 
 const eventHandler = app => {
@@ -21,7 +21,7 @@ const eventHandler = app => {
   const payments = paymentsFactory(app);
   const admins = adminsFactory(app, liquidPledging);
   const pledges = pledgesFactory(app, liquidPledging);
-  const cappedMilestones = cappedMilestonesFactory(app);
+  const milestones = milestonesFactory(app);
 
   return {
     /**
@@ -50,14 +50,21 @@ const eventHandler = app => {
         CancelPayment: undefined,
 
         // lpp-capped-milestone events
-        MilestoneCompleteRequested: cappedMilestones.reviewRequested,
-        MilestoneCompleteRequestRejected: cappedMilestones.rejected,
-        MilestoneCompleteRequestApproved: cappedMilestones.accepted,
+        MilestoneCompleteRequested: milestones.reviewRequested,
+        MilestoneCompleteRequestRejected: milestones.rejected,
+        MilestoneCompleteRequestApproved: milestones.accepted,
         MilestoneChangeReviewerRequested: undefined,
-        MilestoneReviewerChanged: undefined,
+        MilestoneReviewerChanged: milestones.reviewerChanged,
         MilestoneChangeRecipientRequested: undefined,
-        MilestoneRecipientChanged: undefined,
-        PaymentCollected: cappedMilestones.paymentCollected,
+        MilestoneRecipientChanged: milestones.recipientChanged,
+
+        // shared milestone events
+        RequestReview: milestones.requestReview,
+        RejectCompleted: milestones.rejected,
+        ApproveCompleted: milestones.accepted,
+        ReviewerChanged: milestones.reviewerChanged,
+        RecipientChanged: milestones.recipientChanged,
+        PaymentCollected: milestones.paymentCollected,
       };
 
       const handler = handlers[event.event];

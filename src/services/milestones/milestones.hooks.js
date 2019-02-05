@@ -43,6 +43,12 @@ const schema = {
       childField: 'address',
     },
     {
+      service: 'users',
+      nameAs: 'pendingRecipient',
+      parentField: 'pendingRecipientAddress',
+      childField: 'address',
+    },
+    {
       service: 'campaigns',
       nameAs: 'campaign',
       parentField: 'campaignId',
@@ -92,6 +98,7 @@ const restrict = () => context => {
       'selectedFiatType',
       'date',
       'token',
+      'type',
     ];
     keysToRemove.forEach(key => delete data[key]);
 
