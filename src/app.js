@@ -52,9 +52,6 @@ app.configure(mongoose);
 app.configure(express.rest());
 app.configure(socketsConfig);
 
-// Configure other middleware (see `middleware/index.js`)
-app.configure(middleware);
-app.configure(authentication);
 // Set up our services (see `services/index.js`)
 app.configure(services);
 app.configure(channels);
@@ -62,6 +59,9 @@ app.configure(channels);
 app.configure(blockchain);
 app.configure(ipfsFetcher);
 app.configure(ipfsPinner);
+// Configure other middleware (see `middleware/index.js`)
+app.configure(middleware);
+app.configure(authentication);
 // Configure a middleware for 404s and the error handler
 app.use(notFound());
 app.use(

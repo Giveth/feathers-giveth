@@ -3,7 +3,7 @@ const Strategy = require('passport-strategy');
 const Accounts = require('web3-eth-accounts');
 const { isAddress, toChecksumAddress } = require('web3-utils');
 const logger = require('winston');
-const actor = require('./Actor')
+const EIP712 = require('./EIP712')
 const ethUtil = require('ethereumjs-util')
 
 // TODO clean this up and split to separate package
@@ -34,10 +34,10 @@ function recoverAddress(message, signature) {
  *
  */
 class Web3Strategy extends Strategy {
-  constructor(challenger,app) {
+  constructor(challenger,web3) {
     super();
     this.challenger = challenger;
-    this.app = app;
+    this.web3= web3;
 
     if (!this.challenger || !this.challenger.getMessage || !this.challenger.generateMessage) {
       throw new Error(
@@ -57,10 +57,14 @@ class Web3Strategy extends Strategy {
       return this.fail('invalid address', 400);
     }
 
+
     // no signature, then they need a challenge msg to sign
     if (!signature) return this.issueChallenge(address);
+    var strategy = this;
 
+    var contract = new this.web3.eth.Contract(EIP712.abi,address)
     return this.challenger.getMessage(address, (err, message) => {
+
       logger.info("Message : " + JSON.stringify(message))
       logger.info("Req : " + JSON.stringify(req))
       if (err) {
@@ -72,25 +76,20 @@ class Web3Strategy extends Strategy {
       // issue a challenge if there is not a valid message
       if (!message) return this.issueChallenge(address);
       if(signature == "Pre-Sign"){
-        logger.info("Pre-Sign")
-        var web3 = this.app.getWeb3()
-        var contract = new web3.eth.Contract(actor.abi,address)
-        const msgHash = "0x" + ethUtil.keccak(message).toString('hex')	
-		logger.info("msgHash")
-		logger.info(msgHash)
-        contract.methods.isValidSignature(msgHash,"0x").call({from: '0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAe'}).then(function(error, result){
-		logger.info("success")
-		logger.info(JSON.stringify(error))
-		logger.info(JSON.stringify(result))
-          if(result){
-            return this.success(user, info)
-          } else {
-            return this.fail('Message has not been pre-signed')
-          }
+        const msgHash = "0x" + ethUtil.keccak(message).toString('hex')
+        return contract.methods.isValidSignature(msgHash,"0x").call({from: '0xde0B295669a9FD93d5F28D9Ec85E40f4cb697BAe'}).then(function(result){
+        logger.info("Result : " + JSON.stringify(result))
+        const cAddress = toChecksumAddress(address);
+          return strategy.challenger.verify(cAddress, (e, user, info) => {
+            if(result){
+              return strategy.success(user, info)
+            } else {
+              return strategy.fail('Message has not been pre-signed')
+            }
+          });
         }).catch(function(error){
-		logger.info("error")
-		logger.info(error)
-	});
+    });
+		logger.info("exit")
 
       } else {
 

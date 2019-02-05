@@ -150,15 +150,17 @@ function web3(options = {}) {
       Challenger = options.Challenger;
     }
 
-    app.setup = function newSetup(...args) {
+    app.setup = async function newSetup(...args) {
       const result = _super.apply(this, args);
       const challenger = new Challenger(app, web3Settings);
+     
+      var web3 = await app.getWeb3()
 
       // Register 'web3' strategy with passport
       // debug('Registering web3 authentication strategy with options:', strategyOptions);
       debug('Registering web3 authentication strategy');
       // app.passport.use(web3Settings.name, new Web3Strategy(strategyOptions, verifier.verify.bind(verifier)));
-      app.passport.use(web3Settings.name, new Web3Strategy(challenger,app));
+      app.passport.use(web3Settings.name, new Web3Strategy(challenger,web3));
       app.passport.options(web3Settings.name, web3Settings);
 
       return result;
