@@ -248,6 +248,8 @@ const ANY_TOKEN = {
   decimals: 18,
 };
 
+const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
+
 module.exports = {
   getWeb3,
   getHomeWeb3,
@@ -257,4 +259,5 @@ module.exports = {
   addAccountToWallet,
   getBlockTimestamp,
   ANY_TOKEN,
+  ZERO_ADDRESS,
 };

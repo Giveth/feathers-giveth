@@ -38,6 +38,7 @@
     "mongo": "mongod --fork --syslog"
   },
   "dependencies": {
+    "@feathers-plus/batch-loader": "^0.3.6",
     "@feathersjs/authentication": "2.1.7",
     "@feathersjs/authentication-jwt": "2.0.1",
     "@feathersjs/configuration": "1.0.2",

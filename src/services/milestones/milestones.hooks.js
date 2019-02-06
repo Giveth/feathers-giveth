@@ -1,6 +1,9 @@
 const commons = require('feathers-hooks-common');
+const BatchLoader = require('@feathers-plus/batch-loader');
 const errors = require('@feathersjs/errors');
 const logger = require('winston');
+
+const { getResultsByKey, getUniqueKeys } = BatchLoader;
 
 const sanitizeAddress = require('../../hooks/sanitizeAddress');
 const setAddress = require('../../hooks/setAddress');
@@ -14,47 +17,111 @@ const getApprovedKeys = require('./getApprovedKeys');
 const checkConversionRates = require('./checkConversionRates');
 const sendNotification = require('./sendNotification');
 const checkMilestoneDates = require('./checkMilestoneDates');
-const { getBlockTimestamp } = require('../../blockchain/lib/web3Helpers');
+const { getBlockTimestamp, ZERO_ADDRESS } = require('../../blockchain/lib/web3Helpers');
 
-const schema = {
-  include: [
-    {
-      service: 'users',
-      nameAs: 'owner',
-      parentField: 'ownerAddress',
-      childField: 'address',
+const milestoneResolvers = {
+  before: context => {
+    context._loaders = {
+      user: {
+        address: new BatchLoader(
+          async (keys, context) => {
+            const result = await context.app.service('users').find(
+              commons.makeCallingParams(
+                context,
+                { address: { $in: getUniqueKeys(keys) } },
+                undefined,
+                {
+                  paginate: false,
+                },
+              ),
+            );
+            return getResultsByKey(keys, result, user => user.address, '');
+          },
+          { context },
+        ),
+      },
+
+      campaign: {
+        id: new BatchLoader(
+          async (keys, context) => {
+            const result = await context.app.service('campaigns').find(
+              commons.makeCallingParams(context, { _id: { $in: getUniqueKeys(keys) } }, undefined, {
+                paginate: false,
+              }),
+            );
+            return getResultsByKey(keys, result, campaign => campaign._id, '!');
+          },
+          { context },
+        ),
+        projectId: new BatchLoader(
+          async (keys, context) => {
+            const result = await context.app.service('campaigns').find(
+              commons.makeCallingParams(
+                context,
+                { projectId: { $in: getUniqueKeys(keys) } },
+                undefined,
+                {
+                  paginate: false,
+                },
+              ),
+            );
+            return getResultsByKey(keys, result, campaign => campaign.projectId, '!');
+          },
+          { context },
+        ),
+      },
+    };
+  },
+  joins: {
+    owner: () => async (milestone, context) => {
+      milestone.owner = await context._loaders.user.address.load(milestone.ownerAddress);
     },
-    {
-      service: 'users',
-      nameAs: 'reviewer',
-      parentField: 'reviewerAddress',
-      childField: 'address',
+
+    reviewer: () => async (milestone, context) => {
+      if (!milestone.reviewerAddress || milestone.reviewerAddress === ZERO_ADDRESS) {
+        return;
+      }
+
+      milestone.reviewer = await context._loaders.user.address.load(milestone.reviewerAddress);
     },
-    {
-      service: 'users',
-      nameAs: 'campaignReviewer',
-      parentField: 'campaignReviewerAddress',
-      childField: 'address',
+
+    campaignReviewer: () => async (milestone, context) => {
+      if (
+        !milestone.campaignReviewerAddress ||
+        milestone.campaignReviewerAddress === ZERO_ADDRESS
+      ) {
+        return;
+      }
+
+      milestone.campaignReviewer = await context._loaders.user.address.load(
+        milestone.campaignReviewerAddress,
+      );
     },
-    {
-      service: 'users',
-      nameAs: 'recipient',
-      parentField: 'recipientAddress',
-      childField: 'address',
+
+    recipient: () => async (milestone, context) => {
+      if (milestone.recipientAddress) {
+        milestone.recipient = await context._loaders.user.address.load(milestone.recipientAddress);
+      } else {
+        // TODO: join recipientId
+        // currently the UI only supports the parent campaign. If we ever support more options,
+        // then we will need to query pledgeAdmins first to fetch the typeId & type, then query
+        // for the correct entity
+        milestone.recipient = await context._loaders.campaign.projectId.load(milestone.recipientId);
+      }
     },
-    {
-      service: 'users',
-      nameAs: 'pendingRecipient',
-      parentField: 'pendingRecipientAddress',
-      childField: 'address',
+
+    pendingRecipient: () => async (milestone, context) => {
+      if (milestone.pendingRecipientAddress && milestone.pendingRecipientAddress !== ZERO_ADDRESS) {
+        milestone.pendingRecipient = await context._loaders.user.address.load(
+          milestone.pendingRecipientAddress,
+        );
+      }
     },
-    {
-      service: 'campaigns',
-      nameAs: 'campaign',
-      parentField: 'campaignId',
-      childField: '_id',
+
+    campaign: () => async (milestone, context) => {
+      milestone.campaign = await context._loaders.campaign.id.load(milestone.campaignId);
     },
-  ],
+  },
 };
 
 const getMilestones = context => {
@@ -256,7 +323,7 @@ module.exports = {
   },
 
   after: {
-    all: [commons.populate({ schema })],
+    all: [commons.fastJoin(milestoneResolvers)],
     find: [addConfirmations(), resolveFiles(['image', 'items'])],
     get: [addConfirmations(), resolveFiles(['image', 'items'])],
     create: [sendNotification(), resolveFiles(['image', 'items']), updateCampaign()],

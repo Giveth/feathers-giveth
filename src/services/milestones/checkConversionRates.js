@@ -18,7 +18,14 @@ const checkConversionRates = () => context => {
 
   // skip check if the milestone has been already created
   // FIXME: Even single expense should be stored in data.items. Unnecessary duplicity in code on both frontend and feathers.
-  if (!items && !data.fiatAmount && !data.maxAmount && !data.selectedFiatType) return context;
+  if (
+    (!items || (Array.isArray(items) && items.length === 0)) &&
+    !data.fiatAmount &&
+    !data.maxAmount &&
+    !data.selectedFiatType
+  ) {
+    return context;
+  }
 
   // BridgedMilestone & LPMilestone may not have a maxAmount set
   if ([MilestoneTypes.BridgedMilestone, MilestoneTypes.LPMilestone].includes(data.type)) {
