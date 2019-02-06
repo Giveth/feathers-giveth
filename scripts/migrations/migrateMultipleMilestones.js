@@ -19,7 +19,7 @@ db.once('open', async () => {
     await db.collection('milestones').updateMany(
       {},
       {
-        $rename: {
+        $set: {
           type: 'LPPCappedMilestone',
         },
       },
