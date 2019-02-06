@@ -64,7 +64,7 @@ function Milestone(app) {
       url: { type: String },
       type: {
         type: String,
-        require: true,
+        required: true,
         enum: Object.values(MilestoneTypes),
       },
 

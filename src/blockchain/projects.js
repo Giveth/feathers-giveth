@@ -342,6 +342,7 @@ const projects = (app, liquidPledging) => {
             campaignReviewer,
             ownerAddress: manager,
             status: milestoneStatus(state, completed, canceled),
+            type,
             token,
           },
           tx,
@@ -369,6 +370,7 @@ const projects = (app, liquidPledging) => {
         status: milestoneStatus(state, completed, canceled),
         url: project.url,
         token,
+        type,
         mined: true,
       });
 
