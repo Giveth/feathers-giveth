@@ -4,6 +4,7 @@ const logger = require('winston');
 
 const { AdminTypes } = require('../../models/pledgeAdmins.model');
 const { DonationStatus } = require('../../models/donations.model');
+const { MilestoneTypes } = require('../../models/milestones.model');
 const { ANY_TOKEN } = require('../../blockchain/lib/web3Helpers');
 const _groupBy = require('lodash.groupby');
 
@@ -58,7 +59,11 @@ const updateEntity = async (app, id, type) => {
       const tokenDonations = groupedDonations[symbol];
 
       const { totalDonated, currentBalance } = tokenDonations
-        .filter(d => ![DonationStatus.PAYING, DonationStatus.PAID].includes(d.status))
+        .filter(
+          d =>
+            (type === AdminTypes.MILESTONE && entity.type === MilestoneTypes.LPMilestone) ||
+            ![DonationStatus.PAYING, DonationStatus.PAID].includes(d.status),
+        )
         .reduce(
           (accumulator, d) => ({
             totalDonated: d.isReturn

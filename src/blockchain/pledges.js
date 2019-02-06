@@ -7,7 +7,7 @@ const topicsFromArtifacts = require('./lib/topicsFromArtifacts');
 const { getBlockTimestamp, executeRequestsAsBatch, ANY_TOKEN } = require('./lib/web3Helpers');
 const { CampaignStatus } = require('../models/campaigns.model');
 const { DonationStatus } = require('../models/donations.model');
-const { MilestoneStatus } = require('../models/milestones.model');
+const { MilestoneStatus, MilestoneTypes } = require('../models/milestones.model');
 const { AdminTypes } = require('../models/pledgeAdmins.model');
 const toWrapper = require('../utils/to');
 const reprocess = require('../utils/reprocess');
@@ -125,6 +125,13 @@ const isCommittedDelegation = ({ fromPledge, toPledge }) =>
  */
 const isRejectedDelegation = ({ fromPledge, toPledge }) =>
   Number(fromPledge.intendedProject) > 0 && fromPledge.intendedProject !== toPledge.owner;
+
+/**
+ * @param {object} transferInfo
+ */
+const isLPMilestonePayout = ({ fromPledgeAdmin }) =>
+  fromPledgeAdmin.type === AdminTypes.MILESTONE &&
+  fromPledgeAdmin.admin.type === MilestoneTypes.LPMilestone;
 
 /**
  * @param {object} transferInfo
@@ -478,9 +485,10 @@ const pledges = (app, liquidPledging) => {
 
         if (isCommittedDelegation(transferInfo)) {
           mutation.status = DonationStatus.COMMITTED;
-        }
-        if (isRejectedDelegation(transferInfo)) {
+        } else if (isRejectedDelegation(transferInfo)) {
           mutation.status = DonationStatus.REJECTED;
+        } else if (isLPMilestonePayout(transferInfo)) {
+          mutation.status = DonationStatus.PAID;
         }
 
         await donationService.patch(d._id, mutation);
