@@ -211,6 +211,7 @@ const projects = (app, liquidPledging) => {
             currentBalance: '0',
             donationCount: 0,
             mined: true,
+            type: milestone.type,
           },
         ),
         {
