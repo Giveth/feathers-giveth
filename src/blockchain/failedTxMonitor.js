@@ -23,9 +23,11 @@ function eventDecoders() {
   return {
     lp: eventDecodersFromArtifact(LiquidPledgingArtifact),
     vault: eventDecodersFromArtifact(LPVaultArtifact),
-    milestone: eventDecodersFromArtifact(LPPCappedMilestoneArtifact)
-      .concat(eventDecodersFromArtifact(LPMilestoneArtifact))
-      .concat(eventDecodersFromArtifact(BridgedMilestoneArtifact)),
+    milestone: {
+      ...eventDecodersFromArtifact(LPPCappedMilestoneArtifact),
+      ...eventDecodersFromArtifact(LPMilestoneArtifact),
+      ...eventDecodersFromArtifact(BridgedMilestoneArtifact),
+    },
   };
 }
 
