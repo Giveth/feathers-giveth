@@ -24,10 +24,10 @@ const milestoneResolvers = {
     context._loaders = {
       user: {
         address: new BatchLoader(
-          async (keys, context) => {
+          async (keys, context2) => {
             const result = await context.app.service('users').find(
               commons.makeCallingParams(
-                context,
+                context2,
                 { address: { $in: getUniqueKeys(keys) } },
                 undefined,
                 {
@@ -43,21 +43,26 @@ const milestoneResolvers = {
 
       campaign: {
         id: new BatchLoader(
-          async (keys, context) => {
+          async (keys, context2) => {
             const result = await context.app.service('campaigns').find(
-              commons.makeCallingParams(context, { _id: { $in: getUniqueKeys(keys) } }, undefined, {
-                paginate: false,
-              }),
+              commons.makeCallingParams(
+                context2,
+                { _id: { $in: getUniqueKeys(keys) } },
+                undefined,
+                {
+                  paginate: false,
+                },
+              ),
             );
             return getResultsByKey(keys, result, campaign => campaign._id, '!');
           },
           { context },
         ),
         projectId: new BatchLoader(
-          async (keys, context) => {
+          async (keys, context2) => {
             const result = await context.app.service('campaigns').find(
               commons.makeCallingParams(
-                context,
+                context2,
                 { projectId: { $in: getUniqueKeys(keys) } },
                 undefined,
                 {
