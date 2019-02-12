@@ -4,10 +4,10 @@ const logger = require('winston');
 const { toBN } = require('web3-utils');
 const eventDecodersFromArtifact = require('./lib/eventDecodersFromArtifact');
 const topicsFromArtifacts = require('./lib/topicsFromArtifacts');
-const { getBlockTimestamp, executeRequestsAsBatch } = require('./lib/web3Helpers');
+const { getBlockTimestamp, executeRequestsAsBatch, ANY_TOKEN } = require('./lib/web3Helpers');
 const { CampaignStatus } = require('../models/campaigns.model');
 const { DonationStatus } = require('../models/donations.model');
-const { MilestoneStatus } = require('../models/milestones.model');
+const { MilestoneStatus, MilestoneTypes } = require('../models/milestones.model');
 const { AdminTypes } = require('../models/pledgeAdmins.model');
 const toWrapper = require('../utils/to');
 const reprocess = require('../utils/reprocess');
@@ -78,14 +78,11 @@ function _retreiveTokenFromPledge(app, pledge) {
   const tokenWhitelist = app.get('tokenWhitelist');
   let token;
 
-  if (Array.isArray(tokenWhitelist))
-    token = tokenWhitelist.find(
-      t =>
-        typeof t.foreignAddress === 'string' &&
-        typeof pledge.token === 'string' &&
-        t.foreignAddress.toLowerCase() === pledge.token.toLowerCase(),
-    );
-  else {
+  if (pledge.token === ANY_TOKEN.address) {
+    token = ANY_TOKEN;
+  } else if (Array.isArray(tokenWhitelist)) {
+    token = tokenWhitelist.find(t => t.foreignAddress.toLowerCase() === pledge.token.toLowerCase());
+  } else {
     throw new Error('Could not get tokenWhitelist or it is not defined');
   }
 
@@ -128,6 +125,13 @@ const isCommittedDelegation = ({ fromPledge, toPledge }) =>
  */
 const isRejectedDelegation = ({ fromPledge, toPledge }) =>
   Number(fromPledge.intendedProject) > 0 && fromPledge.intendedProject !== toPledge.owner;
+
+/**
+ * @param {object} transferInfo
+ */
+const isLPMilestonePayout = ({ fromPledgeAdmin }) =>
+  fromPledgeAdmin.type === AdminTypes.MILESTONE &&
+  fromPledgeAdmin.admin.type === MilestoneTypes.LPMilestone;
 
 /**
  * @param {object} transferInfo
@@ -481,9 +485,10 @@ const pledges = (app, liquidPledging) => {
 
         if (isCommittedDelegation(transferInfo)) {
           mutation.status = DonationStatus.COMMITTED;
-        }
-        if (isRejectedDelegation(transferInfo)) {
+        } else if (isRejectedDelegation(transferInfo)) {
           mutation.status = DonationStatus.REJECTED;
+        } else if (isLPMilestonePayout(transferInfo)) {
+          mutation.status = DonationStatus.PAID;
         }
 
         await donationService.patch(d._id, mutation);
