@@ -38,6 +38,7 @@ function createModel(app) {
       url: { type: String },
       commitTime: { type: Number },
       communityUrl: { type: String },
+      roomId: { type: String },
     },
     {
       timestamps: true,

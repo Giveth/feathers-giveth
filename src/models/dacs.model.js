@@ -41,6 +41,7 @@ function createModel(app) {
       commitTime: { type: Number },
       mined: { type: Boolean },
       url: { type: String },
+      roomId: { type: String },
     },
     {
       timestamps: true,
