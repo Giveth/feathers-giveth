@@ -20,7 +20,7 @@ const adminFactory = (app, liquidPledging) => {
     const pledgeAdmins = app.service('pledgeAdmins');
 
     try {
-      return await pledgeAdmins.update(
+      return await pledgeAdmins.patch(
         null,
         { id, type, typeId },
         {
