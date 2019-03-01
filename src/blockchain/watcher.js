@@ -279,7 +279,7 @@ const watcher = (app, eventHandler) => {
               await eventService.patch(
                 null,
                 { confirmations },
-                { query: { blockNumber: currentBlock - requiredConfirmations + confirmations } },
+                { query: { blockNumber: currentBlock - confirmations } },
               );
             }
           }),
