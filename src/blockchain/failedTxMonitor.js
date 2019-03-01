@@ -281,7 +281,7 @@ const failedTxMonitor = (app, eventWatcher) => {
     logs.forEach(log => {
       logger.info(
         'dac has no delegateId but transaction was successful. re-emitting AddDelegate event. dac:',
-        dac,
+        { ...dac, image: null },
         'receipt:',
         receipt,
       );
@@ -322,7 +322,7 @@ const failedTxMonitor = (app, eventWatcher) => {
     if (logs.length === 0) {
       logger.error(
         'campaign status === `Pending` or mined === false but transaction was successful campaign:',
-        campaign,
+        { ...campaign, image: null },
         'receipt:',
         receipt,
       );
@@ -331,7 +331,7 @@ const failedTxMonitor = (app, eventWatcher) => {
     logs.forEach(log => {
       logger.info(
         'campaign status === `Pending` or mined === false but transaction was successful. re-emitting event. campaign:',
-        campaign,
+        { ...campaign, image: null },
         'receipt:',
         receipt,
       );
@@ -405,7 +405,7 @@ const failedTxMonitor = (app, eventWatcher) => {
     logs.forEach(log => {
       logger.info(
         'milestone status === `Pending` or mined === false but transaction was successful. re-emitting event. milestone:',
-        milestone,
+        { ...milestone, image: null },
         'receipt:',
         receipt,
       );
