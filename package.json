@@ -27,7 +27,7 @@
     "eslint:fix": "eslint src/. test/. --fix",
     "deploy-local": "npm run reset-db && node scripts/deploy.js",
     "deploy-local:rsk": "npm run reset-db && START_NETWORK=false PROVIDER=http://localhost:4444 node scripts/deployNative.js",
-    "start": "babel-watch ./src/index.js",
+    "start": "babel-watch -p transform-object-rest-spread ./src/index.js",
     "start:rsk": "NODE_ENV=rsk nodemon --inspect src",
     "start:networks": "node scripts/startBridge.js",
     "start:networks:debug": "LOG_LEVEL=debug node scripts/startBridge.js",
