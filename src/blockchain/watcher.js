@@ -19,6 +19,7 @@ const getLastBlock = async app => {
   const opts = {
     paginate: false,
     query: {
+      status: { $ne: EventStatus.PENDING },
       $limit: 1,
       $sort: {
         blockNumber: -1,
@@ -38,28 +39,15 @@ const getLastBlock = async app => {
 };
 
 /**
- * fetch any events that have a status `Waiting`
+ * fetch any events that have a status `PENDING`
+ *
  * @param {object} eventsService feathersjs `events` service
  * @returns {array} events sorted by transactionHash & logIndex
  */
-async function getWaitingEvents(eventsService) {
-  // all unconfirmed events sorted by txHash & logIndex
+async function getPendingEvents(eventsService) {
+  // all pending events sorted by txHash & logIndex
   const query = {
-    status: EventStatus.WAITING,
-    $sort: { blockNumber: 1, transactionIndex: 1, transactionHash: 1, logIndex: 1 },
-  };
-  return eventsService.find({ paginate: false, query });
-}
-
-/**
- * fetch any events that have a status `Waiting` of `Processing
- * @param {object} eventsService feathersjs `events` service
- * @returns {array} events sorted by transactionHash & logIndex
- */
-async function getUnProcessedEvents(eventsService) {
-  // all unprocessed events sorted by txHash & logIndex
-  const query = {
-    status: { $in: [EventStatus.WAITING, EventStatus.PROCESSING] },
+    status: EventStatus.PENDING,
     $sort: { blockNumber: 1, transactionIndex: 1, transactionHash: 1, logIndex: 1 },
   };
   return eventsService.find({ paginate: false, query });
@@ -94,8 +82,7 @@ const watcher = (app, eventHandler) => {
   const lpVault = new LPVault(web3, vaultAddress);
   let kernel;
 
-  let initialized = false;
-  let fetchedPastEvents = false;
+  let isFetchingPastEvents = false; // To indicate if the fetching process of past events is in progress or not.
   let lastBlock = 0;
 
   function setLastBlock(blockNumber) {
@@ -107,21 +94,19 @@ const watcher = (app, eventHandler) => {
    * later after waiting for x number of confirmations (defined in config).
    *
    * @param {object} event the web3 log to process
-   * @param {boolean} isReprocess are we reprocessing the event?
    */
-  async function processNewEvent(event, isReprocess = false) {
+  async function processNewPendingEvent(event) {
     const { logIndex, transactionHash } = event;
 
-    logger.info('processNewEvent called', event.id);
     const data = await eventService.find({ paginate: false, query: { logIndex, transactionHash } });
 
-    if (!isReprocess && data.some(e => e.status !== EventStatus.WAITING)) {
+    if (data.some(e => [EventStatus.WAITING, EventStatus.PENDING].includes(e.status))) {
       logger.error(
         'RE-ORG ERROR: attempting to process newEvent, however the matching event has already started processing. Consider increasing the requiredConfirmations.',
         event,
         data,
       );
-    } else if (!isReprocess && data.length > 0) {
+    } else if (data.length > 0) {
       logger.error(
         'attempting to process new event but found existing event with matching logIndex and transactionHash.',
         event,
@@ -129,33 +114,18 @@ const watcher = (app, eventHandler) => {
       );
     }
 
-    if (isReprocess && data.length > 0) {
-      const e = data[0];
-      if ([EventStatus.WAITING, EventStatus.PROCESSING].includes(e.status)) {
-        // ignore this reprocess b/c we still need to process an existing event
-        logger.info(
-          `Ignoring reprocess event for event._id: ${
-            e._id
-          }. Existing event has not finished processing`,
-        );
-      } else {
-        await eventService.patch(
-          e._id,
-          Object.assign({}, e, event, { confirmations: 0, status: EventStatus.WAITING }),
-        );
-      }
-    } else {
-      await eventService.create(Object.assign({}, event, { confirmations: 0 }));
-    }
-    logger.info('processNewEvent finished', event.id);
+    await eventService.create(
+      Object.assign({}, event, { confirmations: 0, status: EventStatus.PENDING }),
+    );
+
     queue.purge();
   }
 
-  async function getUnconfirmedEventsByConfirmations(currentBlock) {
-    const unconfirmedEvents = await getWaitingEvents(eventService);
+  async function getPendingEventsByConfirmations(currentBlock) {
+    const pendingEvents = await getPendingEvents(eventService);
 
     // sort the events into buckets by # of confirmations
-    return unconfirmedEvents.reduce((val, event) => {
+    return pendingEvents.reduce((val, event) => {
       const diff = currentBlock - event.blockNumber;
       const c = diff >= requiredConfirmations ? requiredConfirmations : diff;
 
@@ -172,13 +142,15 @@ const watcher = (app, eventHandler) => {
    * Handle new events as they are emitted, and add them to a queue for sequential
    * processing of events with the same id.
    */
-  function newEvent(event, isReprocess = false) {
-    if (!isReprocess) setLastBlock(event.blockNumber);
-
-    logger.info('newEvent called', event);
+  function newPendingEvent(event) {
+    logger.info(
+      `newPendingEvent called. Block: ${event.blockNumber} log: ${
+        event.logIndex
+      } transactionHash: ${event.transactionHash}`,
+    );
     // during a reorg, the same event can occur in quick succession, so we add everything to a
     // queue so they are processed synchronously
-    queue.add(() => processNewEvent(event, isReprocess));
+    queue.add(() => processNewPendingEvent(event));
 
     // start processing the queued events if we haven't already
     if (!queue.isProcessing()) queue.purge();
@@ -192,14 +164,13 @@ const watcher = (app, eventHandler) => {
   async function processRemoveEvent(event) {
     const { id, transactionHash } = event;
 
-    logger.info('processRemoveEvent called', id);
     await eventService.remove(null, {
-      query: { id, transactionHash, status: EventStatus.WAITING },
+      query: { id, transactionHash, status: { $in: [EventStatus.PENDING, EventStatus.WAITING] } },
     });
 
     const data = await eventService.find({
       paginate: false,
-      query: { id, transactionHash, status: { $ne: EventStatus.WAITING } },
+      query: { id, transactionHash, status: { $nin: [EventStatus.PENDING, EventStatus.WAITING] } },
     });
     if (data.length > 0) {
       logger.error(
@@ -208,7 +179,6 @@ const watcher = (app, eventHandler) => {
         data,
       );
     }
-    logger.info('processRemoveEvent finished', id);
     queue.purge();
   }
 
@@ -216,7 +186,11 @@ const watcher = (app, eventHandler) => {
    * remove this event if it has yet to start processing
    */
   function removeEvent(event) {
-    logger.info('removeEvent called', event);
+    logger.info(
+      `removeEvent called. Block: ${event.blockNumber} log: ${event.logIndex} transactionHash: ${
+        event.transactionHash
+      }`,
+    );
     // during a reorg, the same event can occur in quick succession, so we add everything to a
     // queue so they are processed synchronously
     queue.add(() => processRemoveEvent(event));
@@ -226,59 +200,29 @@ const watcher = (app, eventHandler) => {
   }
 
   /**
-   * submit events to the eventsHandler for processing.
-   *
-   * Updates the status of the event depending on the processing result
-   *
-   * @param {array} events
-   */
-  async function processEvents(events) {
-    await eventService.patch(
-      null,
-      { status: EventStatus.PROCESSING, confirmations: requiredConfirmations },
-      { query: { _id: { $in: events.map(e => e._id) } } },
-    );
-
-    // now that the event is confirmed, handle the event
-    events.forEach(event => {
-      eventHandler
-        .handle(event)
-        .then(() => eventService.patch(event._id, { status: EventStatus.PROCESSED }))
-        .catch(error =>
-          eventService.patch(event._id, {
-            status: EventStatus.FAILED,
-            processingError: error.toString(),
-          }),
-        );
-    });
-  }
-  /**
-   * Finds all un-confirmed events, updates the # of confirmations and initiates
-   * processing of the event if the requiredConfirmations has been reached
+   * Finds all pending events, updates the # of confirmations.
    */
   async function updateEventConfirmations(currentBlock) {
     sem.take(async () => {
       try {
         const [err, eventsByConfirmations] = await to(
-          getUnconfirmedEventsByConfirmations(currentBlock),
+          getPendingEventsByConfirmations(currentBlock),
         );
 
         if (err) {
-          logger.error('Error fetching un-confirmed events', err);
+          logger.error('Error fetching pending events', err);
           sem.leave();
           return;
         }
 
-        // updated the # of confirmations for the events and process the event if confirmed
+        // updated the # of confirmations for the events
         await Promise.all(
           eventsByConfirmations.map(async (e, confirmations) => {
-            if (confirmations === requiredConfirmations) {
-              await processEvents(e);
-            } else {
+            if (confirmations <= requiredConfirmations && e && e.length) {
               await eventService.patch(
                 null,
                 { confirmations },
-                { query: { blockNumber: currentBlock - requiredConfirmations + confirmations } },
+                { query: { blockNumber: e[0].blockNumber } },
               );
             }
           }),
@@ -300,10 +244,9 @@ const watcher = (app, eventHandler) => {
       web3.eth
         .subscribe('newBlockHeaders')
         .on('data', block => {
-          if (!block.number || !fetchedPastEvents) return;
+          if (!block.number) return;
           updateEventConfirmations(block.number);
         })
-        .on('changed', e => e.removed && removeEvent(e))
         .on('error', err => logger.error('SUBSCRIPTION ERROR: ', err)),
     );
   }
@@ -330,6 +273,62 @@ const watcher = (app, eventHandler) => {
       ],
       padLeft(`0x${removeHexPrefix(liquidPledging.$address).toLowerCase()}`, 64),
     ];
+  }
+
+  /**
+   * subscribe to LP events
+   */
+  function subscribeLP() {
+    subscriptions.push(
+      liquidPledging.$contract.events
+        .allEvents({})
+        .on('data', newPendingEvent)
+        .on('changed', e => e.removed && removeEvent(e))
+        .on('error', err => logger.error('SUBSCRIPTION ERROR: ', err)),
+    );
+  }
+
+  /**
+   * subscribe to SetApp events for milestones & lpp-campaign
+   */
+  async function subscribeApps() {
+    subscriptions.push(
+      kernel.$contract.events
+        .SetApp({
+          filter: {
+            namespace: keccak256('base'),
+            name: [keccak256('lpp-capped-milestone'), keccak256('lpp-campaign')],
+          },
+        })
+        .on('data', newPendingEvent)
+        .on('changed', e => e.removed && removeEvent(e))
+        .on('error', err => logger.error('SUBSCRIPTION ERROR: ', err)),
+    );
+  }
+
+  /**
+   * subscribe to milestone events associated with the this lp contract
+   */
+  function subscribeCappedMilestones() {
+    subscriptions.push(
+      subscribeLogs(web3, getLppCappedMilestoneTopics())
+        .on('data', e => newPendingEvent(lppCappedMilestoneEventDecoder(e)))
+        .on('changed', e => e.removed && removeEvent(e)),
+    );
+  }
+
+  /**
+   * subscribe to the lp vault events
+   */
+  function subscribeVault() {
+    // starts a listener on the vault contract
+    subscriptions.push(
+      lpVault.$contract.events
+        .allEvents({})
+        .on('data', newPendingEvent)
+        .on('changed', e => e.removed && removeEvent(e))
+        .on('error', err => logger.error('SUBSCRIPTION ERROR: ', err)),
+    );
   }
 
   /**
@@ -369,115 +368,222 @@ const watcher = (app, eventHandler) => {
   }
 
   /**
-   * Fetch all past events we are interested in
+   * Fetch all events between now and the latest block
+   *
+   * @param  {Number} [fromBlockNum=lastBlock] The block from which onwards should the events be checked
+   * @param  {Number} [toBlockNum=lastBlock+1] No events after this block should be returned
+   *
+   * @return {Promise} Resolves to an array of events between speciefied block and latest known block.
    */
-  async function fetchPastEvents() {
-    const fromBlock = toHex(lastBlock + 1) || toHex(1); // convert to hex due to web3 bug https://github.com/ethereum/web3.js/issues/1097
+  async function fetchPastEvents(fromBlockNum = lastBlock, toBlockNum = lastBlock + 1) {
+    const fromBlock = toHex(fromBlockNum) || toHex(1); // convert to hex due to web3 bug https://github.com/ethereum/web3.js/issues/1097
+    const toBlock = toHex(toBlockNum) || toHex(1); // convert to hex due to web3 bug https://github.com/ethereum/web3.js/issues/1097
 
-    await liquidPledging.$contract
-      .getPastEvents({ fromBlock })
-      .then(events => events.forEach(newEvent));
-
-    await kernel.$contract
-      .getPastEvents({
+    // Get the events from contracts
+    const events = [].concat(
+      await liquidPledging.$contract.getPastEvents({ fromBlock, toBlock }),
+      await kernel.$contract.getPastEvents({
         fromBlock,
+        toBlock,
         filter: {
           namespace: keccak256('base'),
-          name: [keccak256('lpp-capped-milestone'), keccak256('lpp-campaign')],
+          name: [
+            keccak256('lpp-capped-milestone'),
+            keccak256('lpp-lp-milestone'),
+            keccak256('lpp-bridged-milestone'),
+            keccak256('lpp-campaign'),
+          ],
         },
-      })
-      .then(events => events.forEach(newEvent));
-
-    await web3.eth
-      .getPastLogs({
-        fromBlock,
-        topics: getLppCappedMilestoneTopics(),
-      })
-      .then(events => events.forEach(e => newEvent(lppCappedMilestoneEventDecoder(e))));
-
-    await lpVault.$contract.getPastEvents({ fromBlock }).then(events => events.forEach(newEvent));
-
-    // set a timeout here to give a chance for all fetched events to be added via newEvent
-    setTimeout(() => {
-      fetchedPastEvents = true;
-    }, 1000 * 30);
-  }
-  /**
-   * subscribe to LP events
-   */
-  function subscribeLP() {
-    subscriptions.push(
-      liquidPledging.$contract.events
-        .allEvents({})
-        .on('data', newEvent)
-        .on('changed', e => e.removed && removeEvent(e))
-        .on('error', err => logger.error('SUBSCRIPTION ERROR: ', err)),
-    );
-  }
-
-  /**
-   * subscribe to SetApp events for lpp-capped-milestone & lpp-campaign
-   */
-  async function subscribeApps() {
-    subscriptions.push(
-      kernel.$contract.events
-        .SetApp({
-          filter: {
-            namespace: keccak256('base'),
-            name: [keccak256('lpp-capped-milestone'), keccak256('lpp-campaign')],
-          },
+      }),
+      await web3.eth
+        .getPastLogs({
+          fromBlock,
+          toBlock,
+          topics: getLppCappedMilestoneTopics(),
         })
-        .on('data', newEvent)
-        .on('changed', e => e.removed && removeEvent(e))
-        .on('error', err => logger.error('SUBSCRIPTION ERROR: ', err)),
+        .then(evnts => evnts.map(e => lppCappedMilestoneEventDecoder(e))),
+      await lpVault.$contract.getPastEvents({ fromBlock, toBlock }),
     );
+
+    return events;
   }
 
   /**
-   * subscribe to lpp-capped-milestone events associated with the this lp contract
+   * Fetch any events that have a status `Waiting`
+   *
+   * @param {Object} eventsService feathersjs `events` service
+   *
+   * @returns {Promise} Resolves to events sorted by blockNumber, transactionIndex, transactionHash & logIndex
    */
-  function subscribeCappedMilestones() {
-    subscriptions.push(
-      subscribeLogs(web3, getLppCappedMilestoneTopics())
-        .on('data', e => newEvent(lppCappedMilestoneEventDecoder(e)))
-        .on('changed', e => e.removed && removeEvent(e)),
-    );
+  function getUnProcessedEvent() {
+    const query = {
+      status: EventStatus.WAITING,
+      $sort: { blockNumber: 1, transactionIndex: 1, transactionHash: 1, logIndex: 1 },
+      $limit: 1,
+    };
+    return eventService.find({ paginate: false, query });
+  }
+
+  let lock = false;
+  /**
+   * Retrieve and process a single event from the database that has not yet been processed and is next in line
+   *
+   * @return {Promise} Resolves to the event that was processed of false if there was no event to be processed
+   */
+  function processNextEvent() {
+    return new Promise(async (resolve, reject) => {
+      let event;
+      try {
+        if (lock) return;
+        lock = true;
+        [event] = await getUnProcessedEvent();
+
+        // There is no event to be processed, return false
+        if (!event || !event._id) {
+          lock = false;
+          resolve(false);
+        }
+
+        // Process the event
+        await eventService.patch(event._id, {
+          status: EventStatus.PROCESSING,
+          confirmations: requiredConfirmations,
+        });
+        await eventHandler.handle(event);
+        await eventService.patch(event._id, { status: EventStatus.PROCESSED });
+
+        event.status = EventStatus.PROCESSED;
+        lock = false;
+        resolve(event);
+      } catch (error) {
+        if (event)
+          eventService.patch(event._id, {
+            status: EventStatus.FAILED,
+            processingError: error.toString(),
+          });
+        lock = false;
+        reject(error);
+      }
+    });
   }
 
   /**
-   * subscribe to the lp vault events
+   * Add newEvent to the database if they don't already exist
+   *
+   * @param {Object} event Event to be added to the database for processing
+   * @param {boolean} isReprocess are we reprocessing the event?
    */
-  function subscribeVault() {
-    // starts a listener on the vault contract
-    subscriptions.push(
-      lpVault.$contract.events
-        .allEvents({})
-        .on('data', newEvent)
-        .on('changed', e => e.removed && removeEvent(e))
-        .on('error', err => logger.error('SUBSCRIPTION ERROR: ', err)),
+  async function newEvent(event, isReprocess = false) {
+    logger.info('newEvent called', event.id);
+
+    if (!event || !event.event || !event.signature || !event.returnValues || !event.raw) {
+      logger.error('Attempted to add undefined event or event with undefined values: ', event);
+      return;
+    }
+
+    logger.info(
+      `Adding new event. Block: ${event.blockNumber} log: ${event.logIndex} transactionHash: ${
+        event.transactionHash
+      }`,
     );
+
+    try {
+      // Check for existing event
+      const query = {
+        blockNumber: event.blockNumber,
+        logIndex: event.logIndex,
+        transactionHash: event.transactionHash,
+        $limit: 1,
+      };
+      const events = await eventService.find({ paginate: false, query });
+
+      if (!isReprocess && events.length > 0 && events[0].status !== EventStatus.PENDING) {
+        logger.error(
+          `Attempt to add an event that already exists. Blocknumber: ${
+            event.blockNumber
+          }, logIndex: ${event.logIndex}, transactionHash: ${event.transactionHash}, status: ${
+            events[0].status
+          }`,
+        );
+        return;
+      }
+
+      if (events.length > 0) {
+        // set status to WAITING so it will be processed
+        await eventService.patch(events[0]._id, { status: EventStatus.WAITING });
+      } else {
+        // Create the event in the DB
+        await eventService.create(
+          Object.assign({}, event, {
+            confirmations: requiredConfirmations,
+            status: EventStatus.WAITING,
+          }),
+        );
+      }
+    } catch (err) {
+      logger.error('Error adding event to the DB', err);
+    }
   }
+
+  /**
+   * Retrieve and process events from the blockchain between last known block and the latest block
+   *
+   * @return {Promise}
+   */
+  const retrieveAndProcessPastEvents = async () => {
+    try {
+      const fetchBlockNum = (await web3.eth.getBlockNumber()) - requiredConfirmations;
+
+      if (lastBlock < fetchBlockNum && !isFetchingPastEvents) {
+        // FIXME: This should likely use semaphore when setting the veriable or maybe even better extracted into different loop
+        isFetchingPastEvents = true;
+        lastBlock += 1;
+
+        try {
+          logger.info(`Checking new events between blocks ${lastBlock}-${fetchBlockNum}`);
+
+          const events = await fetchPastEvents(lastBlock, fetchBlockNum);
+
+          await Promise.all(events.map(newEvent));
+
+          setLastBlock(fetchBlockNum);
+        } catch (err) {
+          logger.error('Fetching past events failed: ', err);
+        }
+        isFetchingPastEvents = false;
+      }
+
+      // Process next event. This is purposely sunchronous with awaits to ensure events are processed in order
+      // eslint-disable-next-line no-await-in-loop
+      while (await processNextEvent()) {
+        /* empty */
+      }
+    } catch (e) {
+      logger.error('error in the processing looop', e);
+    }
+  };
 
   // exposed api
 
   return {
     /**
-     * subscribe to all events that we are interested in
+     * Start watching (polling) the blockchain for new transactions
+     * This runs interval that checks every x miliseconds (as set in config) for new block and if there are new events processes them
      */
     async start() {
-      if (!initialized) {
-        setLastBlock(await getLastBlock(app));
+      setLastBlock(await getLastBlock(app));
 
-        const kernelAddress = await liquidPledging.kernel();
-        kernel = new Kernel(web3, kernelAddress);
+      const kernelAddress = await liquidPledging.kernel();
+      kernel = new Kernel(web3, kernelAddress);
 
-        await checkDonations();
-        fetchPastEvents();
-        // start processing any events that have not been processed
-        processEvents(await getUnProcessedEvents(eventService));
-        initialized = true;
-      }
+      await checkDonations();
 
+      // start subscriptions
+      // ws subscription have proven to be unreliable with Geth. Sometimes
+      // events are removed and never re-emitted even though the tx was included
+      // after a re-org. Thus we have moved to polling as a more robust way to process
+      // events. We keep the subscriptions b/c this enables us to show confirmation #'s
+      // in the UI
       if (subscriptions.length) this.close();
 
       subscribeBlockHeaders();
@@ -485,6 +591,12 @@ const watcher = (app, eventHandler) => {
       subscribeApps();
       subscribeCappedMilestones();
       subscribeVault();
+
+      // Start polling
+      retrieveAndProcessPastEvents();
+
+      const { pollingInterval = 5000 } = app.get('blockchain');
+      setInterval(retrieveAndProcessPastEvents, pollingInterval);
     },
 
     /**
