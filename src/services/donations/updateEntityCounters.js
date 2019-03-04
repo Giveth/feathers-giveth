@@ -4,6 +4,8 @@ const logger = require('winston');
 
 const { AdminTypes } = require('../../models/pledgeAdmins.model');
 const { DonationStatus } = require('../../models/donations.model');
+const { MilestoneTypes } = require('../../models/milestones.model');
+const { ANY_TOKEN } = require('../../blockchain/lib/web3Helpers');
 const _groupBy = require('lodash.groupby');
 
 const ENTITY_SERVICES = {
@@ -56,18 +58,24 @@ const updateEntity = async (app, id, type) => {
     const donationCounters = Object.keys(groupedDonations).map(symbol => {
       const tokenDonations = groupedDonations[symbol];
 
-      const { totalDonated, currentBalance } = tokenDonations.reduce(
-        (accumulator, d) => ({
-          totalDonated: d.isReturn
-            ? accumulator.totalDonated
-            : accumulator.totalDonated.add(toBN(d.amount)),
-          currentBalance: accumulator.currentBalance.add(toBN(d.amountRemaining)),
-        }),
-        {
-          totalDonated: toBN(0),
-          currentBalance: toBN(0),
-        },
-      );
+      const { totalDonated, currentBalance } = tokenDonations
+        .filter(
+          d =>
+            (type === AdminTypes.MILESTONE && entity.type === MilestoneTypes.LPMilestone) ||
+            ![DonationStatus.PAYING, DonationStatus.PAID].includes(d.status),
+        )
+        .reduce(
+          (accumulator, d) => ({
+            totalDonated: d.isReturn
+              ? accumulator.totalDonated
+              : accumulator.totalDonated.add(toBN(d.amount)),
+            currentBalance: accumulator.currentBalance.add(toBN(d.amountRemaining)),
+          }),
+          {
+            totalDonated: toBN(0),
+            currentBalance: toBN(0),
+          },
+        );
 
       const donationCount = tokenDonations.filter(
         d => !d.isReturn && ![DonationStatus.PAYING, DonationStatus.PAID].includes(d.status),
@@ -92,6 +100,7 @@ const updateEntity = async (app, id, type) => {
     const fullyFunded =
       type === AdminTypes.MILESTONE &&
       donationCounters.length > 0 &&
+      entity.token.foreignAddress !== ANY_TOKEN.foreignAddress &&
       entity.maxAmount ===
         donationCounters.find(dc => dc.symbol === entity.token.symbol).currentBalance.toString();
     const peopleCount = new Set(donations.map(d => d.giverAddress)).size;

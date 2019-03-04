@@ -1,5 +1,6 @@
 build
 scripts/deployGiveth.js
+scripts/keys.js
 config
 !config/default.json
 ecosystem.config.js

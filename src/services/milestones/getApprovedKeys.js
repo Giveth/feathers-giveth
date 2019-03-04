@@ -1,6 +1,7 @@
 const errors = require('@feathersjs/errors');
 const logger = require('winston');
 const { MilestoneStatus } = require('../../models/milestones.model');
+const { ZERO_ADDRESS } = require('../../blockchain/lib/web3Helpers');
 
 /**
  * Get keys that can be updated based on the state of the milestone and the user's permission
@@ -19,6 +20,7 @@ const getApprovedKeys = (milestone, data, user) => {
     'maxAmount',
     'reviewerAddress',
     'recipientAddress',
+    'recipientId',
     'conversionRateTimestamp',
     'selectedFiatType',
     'date',
@@ -29,6 +31,7 @@ const getApprovedKeys = (milestone, data, user) => {
     'proofItems',
     'image',
     'token',
+    'type',
   ];
 
   // Fields that can be edited once milestone stored on the blockchain
@@ -40,6 +43,19 @@ const getApprovedKeys = (milestone, data, user) => {
     'proofItems',
     'mined',
   ];
+
+  // changing the recipient
+  if (data.pendingRecipientAddress) {
+    // Owner can set the recipient
+    if (!milestone.recipientAddress || milestone.recipientAddress === ZERO_ADDRESS) {
+      if (user.address !== milestone.ownerAddress) {
+        throw new errors.Forbidden('Only the Milestone Manager can set the recipient');
+      }
+    } else if (user.address !== milestone.recipientAddress) {
+      throw new errors.Forbidden('Only the Milestone recipient can change the recipient');
+    }
+    return ['pendingRecipientAddress'];
+  }
 
   switch (milestone.status) {
     case MilestoneStatus.PROPOSED:

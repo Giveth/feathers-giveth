@@ -2,10 +2,11 @@
 const Web3 = require('web3');
 const { Kernel, ACL, LPVault, LiquidPledging, LPFactory, test } = require('giveth-liquidpledging');
 const { LPPCampaign, LPPCampaignFactory } = require('lpp-campaign');
-const { LPPCappedMilestone, LPPCappedMilestoneFactory } = require('lpp-capped-milestone');
+const { BridgedMilestone, LPMilestone, MilestoneFactory } = require('lpp-milestones');
 const { MiniMeTokenFactory, MiniMeToken, MiniMeTokenState } = require('minimetoken');
 const { GivethBridge, ForeignGivethBridge } = require('giveth-bridge');
 const startNetworks = require('./startNetworks');
+
 const { RecoveryVault } = test;
 
 // NOTE: do not use the bridge account (account[10]) for any txs outside of the bridge
@@ -94,14 +95,13 @@ async function deploy() {
       { $extraGas: 100000 },
     );
 
-    // deploy milestone plugin
-    const lppCappedMilestoneFactory = await LPPCappedMilestoneFactory.new(
-      foreignWeb3,
-      kernel.$address,
-      { $extraGas: 100000 },
-    );
+    // deploy MilestoneFactory
+
+    const milestoneFactory = await MilestoneFactory.new(foreignWeb3, kernel.$address, {
+      $extraGas: 100000,
+    });
     await acl.grantPermission(
-      lppCappedMilestoneFactory.$address,
+      milestoneFactory.$address,
       acl.$address,
       await acl.CREATE_PERMISSIONS_ROLE(),
       {
@@ -109,17 +109,35 @@ async function deploy() {
       },
     );
     await acl.grantPermission(
-      lppCappedMilestoneFactory.$address,
+      milestoneFactory.$address,
+      kernel.$address,
+      await kernel.APP_MANAGER_ROLE(),
+      { $extraGas: 100000 },
+    );
+    await acl.grantPermission(
+      milestoneFactory.$address,
       liquidPledging.$address,
       await liquidPledging.PLUGIN_MANAGER_ROLE(),
       { $extraGas: 100000 },
     );
 
-    const milestoneApp = await LPPCappedMilestone.new(foreignWeb3);
+    // deploy LPMilestone plugin
+
+    const lpMilestoneApp = await LPMilestone.new(foreignWeb3);
     await kernel.setApp(
       await kernel.APP_BASES_NAMESPACE(),
-      await lppCappedMilestoneFactory.MILESTONE_APP_ID(),
-      milestoneApp.$address,
+      await milestoneFactory.LP_MILESTONE_APP_ID(),
+      lpMilestoneApp.$address,
+      { $extraGas: 100000 },
+    );
+
+    // deploy BridgedMilestone plugin
+
+    const bridgedMilestoneApp = await BridgedMilestone.new(foreignWeb3);
+    await kernel.setApp(
+      await kernel.APP_BASES_NAMESPACE(),
+      await milestoneFactory.BRIDGED_MILESTONE_APP_ID(),
+      bridgedMilestoneApp.$address,
       { $extraGas: 100000 },
     );
 
@@ -158,54 +176,71 @@ async function deploy() {
     await homeBridge.authorizeSpender(accounts[10], true, { from: accounts[10] });
 
     // deploy tokens
-    await foreignBridge.addToken("0x0000000000000000000000000000000000000000", 'Foreign ETH', 18, 'FETH', { from: accounts[10] });
-    const foreignEthAddress = await foreignBridge.tokenMapping('0x0000000000000000000000000000000000000000');
+    await foreignBridge.addToken(
+      '0x0000000000000000000000000000000000000000',
+      'Foreign ETH',
+      18,
+      'FETH',
+      { from: accounts[10] },
+    );
+    const foreignEthAddress = await foreignBridge.tokenMapping(
+      '0x0000000000000000000000000000000000000000',
+    );
 
     // deploy ERC20 test token
-    const miniMeToken = await MiniMeToken.new(homeWeb3,
+    const miniMeToken = await MiniMeToken.new(
+      homeWeb3,
       tokenFactory.$address,
-      "0x0000000000000000000000000000000000000000",
-      "0x0000000000000000000000000000000000000000",
+      '0x0000000000000000000000000000000000000000',
+      '0x0000000000000000000000000000000000000000',
       'MiniMe Test Token',
       18,
       'MMT',
-      true
-    );  
-    
+      true,
+    );
+
     // generate tokens for all home accounts
     // we first generate all tokens, then transfer, otherwise MetaMask will not show token balances
-    await miniMeToken.generateTokens(homeAccounts[10], Web3.utils.toWei("100000"))
+    await miniMeToken.generateTokens(homeAccounts[10], Web3.utils.toWei('100000'));
 
     // transfer tokens to all other home accounts, so that Meta mask will detect these tokens
-    res = await Promise.all(homeAccounts.map(async a => await miniMeToken.transfer(a, Web3.utils.toWei("10000"), { from: homeAccounts[10] })));
+    await Promise.all(
+      homeAccounts.map(
+        async a =>
+          await miniMeToken.transfer(a, Web3.utils.toWei('10000'), { from: homeAccounts[10] }),
+      ),
+    );
 
-    const miniMeTokenState = new MiniMeTokenState(miniMeToken);    
-    const st = await miniMeTokenState.getState()
-    homeAccounts.map(a => console.log('MMT balance of address ', a, ' > ', Web3.utils.fromWei(st.balances[a])));
+    const miniMeTokenState = new MiniMeTokenState(miniMeToken);
+    const st = await miniMeTokenState.getState();
+    homeAccounts.map(a =>
+      console.log('MMT balance of address ', a, ' > ', Web3.utils.fromWei(st.balances[a])),
+    );
 
     // whitelist MMT token
-    await homeBridge.whitelistToken(miniMeToken.$address, true, { from: accounts[10] })
+    await homeBridge.whitelistToken(miniMeToken.$address, true, { from: accounts[10] });
 
     // add token on foreign
-    await foreignBridge.addToken(miniMeToken.$address, 'MiniMe Test Token', 18, 'MMT', { from: accounts[10] })
+    await foreignBridge.addToken(miniMeToken.$address, 'MiniMe Test Token', 18, 'MMT', {
+      from: accounts[10],
+    });
     const foreigTokenAddress = await foreignBridge.tokenMapping(miniMeToken.$address);
-
 
     console.log('\n\n', {
       vault: vault.$address,
       liquidPledging: liquidPledging.$address,
       lppCampaignFactory: lppCampaignFactory.$address,
-      lppCappedMilestoneFactory: lppCappedMilestoneFactory.$address,
+      milestoneFactory: milestoneFactory.$address,
       givethBridge: homeBridge.$address,
       foreignGivethBridge: foreignBridge.$address,
       homeEthToken: foreignEthAddress,
       miniMeToken: {
-        "name": "MiniMe Token", 
-        "address": miniMeToken.$address,
-        "foreignAddress": foreigTokenAddress,
-        "symbol": "MMT", 
-        "decimals": 18        
-      }
+        name: 'MiniMe Token',
+        address: miniMeToken.$address,
+        foreignAddress: foreigTokenAddress,
+        symbol: 'MMT',
+        decimals: 18,
+      },
     });
     process.exit(); // some reason, this script won't exit. I think it has to do with web3 subscribing to tx confirmations?
   } catch (e) {
