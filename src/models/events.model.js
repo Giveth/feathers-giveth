@@ -1,6 +1,7 @@
 // events-model.js - A mongoose model
 const EventStatus = {
-  WAITING: 'Waiting',
+  PENDING: 'Pending', // PENDING events were p/u by the ws subscription, but have yet to contain >= requiredConfirmations
+  WAITING: 'Waiting', // WAITING events have been p/u by polling, have >= requiredConfirmations, & are ready to process
   PROCESSING: 'Processing',
   PROCESSED: 'Processed',
   FAILED: 'Failed',
