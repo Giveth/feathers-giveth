@@ -79,6 +79,7 @@ const milestoneResolvers = {
   },
   joins: {
     owner: () => async (milestone, context) => {
+      if (!milestone.ownerAddress) return;
       milestone.owner = await context._loaders.user.address.load(milestone.ownerAddress);
     },
 
@@ -104,6 +105,7 @@ const milestoneResolvers = {
     },
 
     recipient: () => async (milestone, context) => {
+      if (!milestone.recipientAddress) return;
       if (milestone.recipientAddress) {
         milestone.recipient = await context._loaders.user.address.load(milestone.recipientAddress);
       } else {
@@ -124,6 +126,7 @@ const milestoneResolvers = {
     },
 
     campaign: () => async (milestone, context) => {
+      if (!milestone.campaignId) return;
       milestone.campaign = await context._loaders.campaign.id.load(milestone.campaignId);
     },
   },
