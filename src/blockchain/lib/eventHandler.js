@@ -59,7 +59,7 @@ const eventHandler = app => {
         MilestoneRecipientChanged: milestones.recipientChanged,
 
         // shared milestone events
-        RequestReview: milestones.requestReview,
+        RequestReview: milestones.reviewRequested,
         RejectCompleted: milestones.rejected,
         ApproveCompleted: milestones.accepted,
         ReviewerChanged: milestones.reviewerChanged,
