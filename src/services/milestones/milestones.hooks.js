@@ -105,7 +105,7 @@ const milestoneResolvers = {
     },
 
     recipient: () => async (milestone, context) => {
-      if (!milestone.recipientAddress) return;
+      if (!milestone.recipientAddress || !milestone.recipientId) return;
       if (milestone.recipientAddress) {
         milestone.recipient = await context._loaders.user.address.load(milestone.recipientAddress);
       } else {
