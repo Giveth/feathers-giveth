@@ -129,8 +129,7 @@ const getApprovedKeys = (milestone, data, user) => {
           );
         }
         logger.info(`Marking milestone as complete. Milestone id: ${milestone._id}`);
-
-        return ['txHash', 'status', 'mined', 'message', 'proofItems'];
+        return ['description', 'txHash', 'status', 'mined', 'message', 'proofItems'];
       }
 
       // Cancel milestone by Milestone Manager or Milestone Reviewer
@@ -140,7 +139,6 @@ const getApprovedKeys = (milestone, data, user) => {
             'Only the Milestone Manager or Milestone Reviewer can cancel a milestone',
           );
         }
-
         return ['txHash', 'status', 'mined', 'prevStatus', 'message', 'proofItems'];
       }
 
@@ -152,6 +150,18 @@ const getApprovedKeys = (milestone, data, user) => {
         logger.info(`Editing milestone In Progress with id: ${milestone._id} by: ${user.address}`);
         return editMilestoneKeysOnChain;
       }
+
+      // Editing a proposed milestone can be done by either manager and all usual properties can be changed since it's not on chain
+      if (data.status === MilestoneStatus.PROPOSED) {
+        if (![milestone.ownerAddress, milestone.campaign.ownerAddress].includes(user.address)) {
+          throw new errors.Forbidden(
+            'Only the Milestone and Campaign Manager can edit proposed milestone',
+          );
+        }
+        logger.info(`Editing proposed milestone with id: ${milestone._id} by: ${user.address}`);
+        return editMilestoneKeys;
+      }
+
       break;
 
     case MilestoneStatus.NEEDS_REVIEW:
