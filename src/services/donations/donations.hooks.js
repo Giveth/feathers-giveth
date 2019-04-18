@@ -292,8 +292,8 @@ const updateMilestoneIfNotPledged = () => async context => {
     [DonationStatus.PAYING, DonationStatus.PAID].includes(donation.status)
   ) {
     const milestone = await context.app.service('milestones').get(donation.ownerTypeId);
-    // never set uncapped milestones as PAID
-    if (!milestone.maxAmount) return;
+    // never set uncapped or non-fullyFunded milestones as PAID
+    if (!milestone.maxAmount || !milestone.fullyFunded) return;
 
     const donations = await context.app.service('donations').find({
       paginate: false,
