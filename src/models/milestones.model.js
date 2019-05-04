@@ -17,6 +17,7 @@ const MilestoneStatus = {
   PAYING: 'Paying',
   PAID: 'Paid',
   FAILED: 'Failed',
+  ARCHIVED: 'Archived',
 };
 
 const MilestoneTypes = {
