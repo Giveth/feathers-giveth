@@ -46,7 +46,7 @@ const givers = (app, liquidPledging) => {
       );
     }
 
-    const profile = fetchProfile(giver.url);
+    const profile = await fetchProfile(giver.url);
     const mutation = Object.assign({ name }, profile, {
       commitTime,
       giverId,
@@ -125,7 +125,7 @@ const givers = (app, liquidPledging) => {
 
         const mutation = { name: giver.name };
         if (giver.url && giver.url !== user.url) {
-          const profile = fetchProfile(giver.url);
+          const profile = await fetchProfile(giver.url);
           Object.assign(mutation, profile);
         }
         Object.assign(mutation, {

@@ -249,8 +249,9 @@ const milestonesFactory = app => {
         return;
       }
 
-      // never set uncapped milestones as PAID
-      if (!matchingMilestones[0].maxAmount) return;
+      // if (!milestone.maxAmount || !milestone.fullyFunded) return;
+      // never set uncapped or non-fullyFunded milestones as PAID
+      if (!matchingMilestones[0].maxAmount || !matchingMilestones[0].fullyFunded) return;
 
       const donations = await app.service('donations').find({
         paginate: false,

@@ -102,7 +102,8 @@ const updateEntity = async (app, id, type) => {
       donationCounters.length > 0 &&
       entity.token.foreignAddress !== ANY_TOKEN.foreignAddress &&
       entity.maxAmount ===
-        donationCounters.find(dc => dc.symbol === entity.token.symbol).currentBalance.toString();
+        donationCounters.find(dc => dc.symbol === entity.token.symbol).totalDonated.toString();
+
     const peopleCount = new Set(donations.map(d => d.giverAddress)).size;
 
     await service.patch(entity._id, {

@@ -297,7 +297,7 @@ module.exports = {
       secretIntro: `Your milestone ${
         data.milestoneTitle
       } has been marked complete by the reviewer. The recipient can now collect the payment.`,
-      title: 'Milestone completed! Time to collect Ether.',
+      title: `Milestone completed! Time to collect ${data.token.symbol}.`,
       image: 'Giveth-milestone-review-approved-banner-email.png',
       text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
