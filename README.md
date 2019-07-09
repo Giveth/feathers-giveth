@@ -61,7 +61,7 @@ The configuration param `blockchain.nodeUrl` is used to establish a connection. 
 
    After deploying local, make sure to copy-paste the MiniMeToken address in default.json
 
-2. We provide an easy way to start the bridge & 2 ganache-cli instances.
+2. We provide an easy way to start the bridge & 2 ganache-cli instances. *VERY IMPORTANT:* this command enables Home Ganache and Foreign Ganache networks, if you are using MetaMask you will need to **add a Custom RPC** to your networks config,`http://localhost:8546` will be Foreign Ganache, and Home Ganache is normally added by default which is `http://localhost:8545` if needed.
   
     ``` 
     yarn start:networks
