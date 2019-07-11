@@ -64,7 +64,7 @@
     "is-ipfs": "^0.4.2",
     "lerna": "^2.5.1",
     "lodash.groupby": "^4.6.0",
-    "lodash.merge": "^4.6.1",
+    "lodash.merge": "^4.6.2",
     "lodash.omit": "^4.5.0",
     "lodash.pick": "^4.4.0",
     "lpp-campaign": "1.0.0",
