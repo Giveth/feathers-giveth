@@ -404,8 +404,12 @@ const projects = (app, liquidPledging) => {
 
       const mutation = { title: project.name };
       if (project.url && project.url !== milestone.url) {
-        const profile = fetchProfile(project.url);
+        const profile = await fetchProfile(project.url);
         Object.assign(mutation, profile);
+
+        if (profile.isArchived) {
+          mutation.status = MilestoneStatus.ARCHIVED;
+        }
       }
       Object.assign(mutation, {
         // ownerAddress: project.addr, // TODO project.addr is the milestone contract, need to fix
@@ -440,7 +444,7 @@ const projects = (app, liquidPledging) => {
         return;
       }
 
-      const profile = fetchProfile(project.url);
+      const profile = await fetchProfile(project.url);
       const mutation = Object.assign({ title: project.name }, profile, {
         projectId,
         reviewerAddress: reviewer,
@@ -472,7 +476,7 @@ const projects = (app, liquidPledging) => {
 
       const mutation = { title: project.name };
       if (project.url && project.url !== campaign.url) {
-        const profile = fetchProfile(project.url);
+        const profile = await fetchProfile(project.url);
         Object.assign(mutation, profile);
       }
       Object.assign(mutation, {
@@ -480,6 +484,23 @@ const projects = (app, liquidPledging) => {
         commitTime: project.commitTime,
         url: project.url,
       });
+
+      if (
+        mutation.archivedMilestones &&
+        (!project.archivedMilestones ||
+          mutation.archivedMilestones.some(p => !project.archivedMilestones.includes(p)))
+      ) {
+        milestones.patch(
+          null,
+          { status: MilestoneStatus.ARCHIVED },
+          {
+            query: {
+              projectId: { $in: mutation.archivedMilestones },
+              status: { $ne: MilestoneStatus.ARCHIVED },
+            },
+          },
+        );
+      }
 
       return campaigns.patch(campaign._id, mutation);
     } catch (err) {

@@ -70,7 +70,7 @@ const delegates = (app, liquidPledging) => {
       // most likely b/c the whitelist check failed
       if (!dac) return;
 
-      const profile = fetchProfile(delegate.url);
+      const profile = await fetchProfile(delegate.url);
       const mutation = Object.assign({ title: delegate.name }, profile, {
         delegateId,
         commitTime: delegate.commitTime,
@@ -134,7 +134,7 @@ const delegates = (app, liquidPledging) => {
 
         const mutation = { title: delegate.name };
         if (delegate.url && delegate.url !== dac.url) {
-          const profile = fetchProfile(delegate.url);
+          const profile = await fetchProfile(delegate.url);
           Object.assign(mutation, profile);
         }
         Object.assign(mutation, {

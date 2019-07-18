@@ -51,14 +51,30 @@ const updateEntity = async (app, id, type) => {
       .service('donations')
       .find({ paginate: false, query: donationQuery });
 
+    const returnedDonations = await app.service('donations').find({
+      paginate: false,
+      query: {
+        $select: ['amount', 'token', 'status'],
+        isReturn: true,
+        mined: true,
+        parentDonations: { $in: donations.map(d => d._id) },
+      },
+    });
+
     // first group by token (symbol)
     const groupedDonations = _groupBy(donations, d => (d.token && d.token.symbol) || 'ETH');
+    const groupedReturnedDonations = _groupBy(
+      returnedDonations,
+      d => (d.token && d.token.symbol) || 'ETH',
+    );
 
     // and calculate cumulative token balances for each donated token
     const donationCounters = Object.keys(groupedDonations).map(symbol => {
       const tokenDonations = groupedDonations[symbol];
+      const returnedTokenDonations = groupedReturnedDonations[symbol] || [];
 
-      const { totalDonated, currentBalance } = tokenDonations
+      // eslint-disable-next-line prefer-const
+      let { totalDonated, currentBalance } = tokenDonations
         .filter(
           d =>
             (type === AdminTypes.MILESTONE && entity.type === MilestoneTypes.LPMilestone) ||
@@ -76,6 +92,11 @@ const updateEntity = async (app, id, type) => {
             currentBalance: toBN(0),
           },
         );
+
+      totalDonated = returnedTokenDonations.reduce(
+        (acc, d) => acc.sub(toBN(d.amount)),
+        totalDonated,
+      );
 
       const donationCount = tokenDonations.filter(
         d => !d.isReturn && ![DonationStatus.PAYING, DonationStatus.PAID].includes(d.status),
@@ -102,7 +123,8 @@ const updateEntity = async (app, id, type) => {
       donationCounters.length > 0 &&
       entity.token.foreignAddress !== ANY_TOKEN.foreignAddress &&
       entity.maxAmount ===
-        donationCounters.find(dc => dc.symbol === entity.token.symbol).currentBalance.toString();
+        donationCounters.find(dc => dc.symbol === entity.token.symbol).totalDonated.toString();
+
     const peopleCount = new Set(donations.map(d => d.giverAddress)).size;
 
     await service.patch(entity._id, {
