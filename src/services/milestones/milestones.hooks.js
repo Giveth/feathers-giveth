@@ -165,6 +165,7 @@ const restrict = () => context => {
     const keysToRemove = [
       'maxAmount',
       'reviewerAddress',
+      'dacId',
       'recipientAddress',
       'campaignReviewerAddress',
       'conversionRateTimestamp',
