@@ -134,7 +134,7 @@ const getApprovedKeys = (milestone, data, user) => {
 
       // Archive milestone by Milestone Manager or Campaign Manager
       if (!milestone.maxAmount && data.status === MilestoneStatus.ARCHIVED) {
-        if (![milestone.campaign.ownerAddress, milestone.ownerAddress].includes(user.address)) {
+        if (![milestone.campaign.ownerAddress, milestone.campaign.coownerAddess, milestone.ownerAddress].includes(user.address)) {
           throw new errors.Forbidden(
             'Only the Milestone Manager or Campaign Manager can archive a milestone',
           );
