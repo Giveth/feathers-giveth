@@ -65,6 +65,9 @@ const restrictAndSetOwner = () => context => {
         case milestone.campaign.ownerAddress:
           context.data.performedByRole = 'Campaign Manager';
           break;
+        case milestone.campaign.coownerAddress:
+        context.data.performedByRole = 'Campaign Co-Manager';
+          break;
         case milestone.recipientAddress:
           context.data.performedByRole = 'Recipient';
           break;
