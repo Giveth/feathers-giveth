@@ -34,6 +34,10 @@ function balanceMonitor(app) {
 
     const usersToCheck = await app.service('users').find({ paginate: false, query });
 
+    if (address === undefined || !address) {
+      return;
+    }
+
     if (usersToCheck.length === 0) return;
 
     const handleBalanceResponse = address => (err, balance) => {
