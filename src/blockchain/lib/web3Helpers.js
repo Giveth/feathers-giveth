@@ -24,6 +24,15 @@ const removeHexPrefix = hex => {
  */
 function batchAndExecuteRequests(web3, requests) {
   if (requests.length === 0) return;
+  try {
+    const batch = new web3.BatchRequest();
+    requests.splice(0, 100).forEach(r => batch.add(r));
+    batch.execute();
+ 
+    batchAndExecuteRequests(web3, requests);
+  } catch (e) {
+    console.log(e);
+  }
   const batch = new web3.BatchRequest();
   requests.splice(0, 100).forEach(r => batch.add(r));
   batch.execute();
