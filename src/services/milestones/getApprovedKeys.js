@@ -238,7 +238,18 @@ const getApprovedKeys = (milestone, data, user) => {
         logger.info(`Disbursing milestone payment. Milestone id: ${milestone._id}`);
 
         return ['txHash', 'status', 'mined'];
+      } 
+      
+      if (data.status === MilestoneStatus.ARCHIVED) {
+        if (![milestone.campaign.ownerAddress, milestone.ownerAddress].includes(user.address)) {
+          throw new errors.Forbidden(
+            'Only the Milestone Manager or Campaign Manager can archive a milestone',
+          );
+        }
+        logger.info(`Archiving milestone. Milestone id: ${milestone._id}`);
+        return ['txHash', 'status', 'mined'];
       }
+
       break;
 
     // States that do not have any action
