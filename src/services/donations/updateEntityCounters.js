@@ -139,10 +139,10 @@ const updateEntity = async (app, id, type) => {
 
 const updateDonationEntity = async (context, donation) => {
   if (!donation.mined) return;
-
+  const { app } = context;
   if (donation.isReturn) {
     // update parentDonation entities to account for the return
-    context.app
+    app
       .service('donations')
       .find({
         paginate: false,
@@ -169,6 +169,33 @@ const updateDonationEntity = async (context, donation) => {
   } else if (donation.ownerType === AdminTypes.MILESTONE) {
     type = AdminTypes.MILESTONE;
     id = donation.ownerTypeId;
+
+    // Create payment conversation
+    if (context.method === 'create' && donation.status === DonationStatus.PAID) {
+      app
+        .service('milestones')
+        .get(id)
+        .then(milestone => {
+          const { recipient } = milestone;
+
+          app
+            .service('conversations')
+            .create(
+              {
+                milestoneId: id,
+                messageContext: 'payment',
+                txHash: donation.txHash,
+                paidAmount: donation.amount,
+                paidSymbol: donation.token.symbol,
+                recipientAddress: recipient.address,
+              },
+              { performedByAddress: context.params.from },
+            )
+            .then(res => logger.info('created conversation!', res._id))
+            .catch(e => logger.error('could not create conversation', e));
+        })
+        .catch(e => logger.error('Could not find milestone', e));
+    }
   } else {
     return;
   }
