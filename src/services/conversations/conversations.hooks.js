@@ -33,6 +33,7 @@ const MESSAGE_CONTEXT = [
   'proposedRejected',
   'proposedAccepted',
   'rePropose',
+  'archived',
   'payment',
 ];
 
