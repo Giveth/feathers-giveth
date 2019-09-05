@@ -46,7 +46,7 @@ const givers = (app, liquidPledging) => {
       );
     }
 
-    const profile = await fetchProfile(giver.url);
+    const profile = giver.url ? await fetchProfile(giver.url):undefined;
     const mutation = Object.assign({ name }, profile, {
       commitTime,
       giverId,
