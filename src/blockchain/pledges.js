@@ -365,9 +365,22 @@ const pledges = (app, liquidPledging) => {
       // the donation entity to be created via REST api first
       // this is really only useful when instant mining. and re-syncing feathers w/ past events.
       // Other then that, the donation should always be created before the tx was mined.
-      return retry
-        ? donationService.create(mutation)
-        : reprocess(createDonation.bind(this, mutation, initialTransfer, true), 5000);
+
+      if (retry) {
+        let parameters = {};
+        if (
+          mutation.status === DonationStatus.PAID &&
+          mutation.ownerType === AdminTypes.MILESTONE
+        ) {
+          const transaction = await web3.eth.getTransaction(mutation.txHash);
+
+          parameters = {
+            from: transaction.from,
+          };
+        }
+        return donationService.create(mutation, parameters);
+      }
+      return reprocess(createDonation.bind(this, mutation, initialTransfer, true), 5000);
     }
 
     return donationService.patch(donations[0]._id, mutation);
