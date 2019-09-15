@@ -5,6 +5,7 @@ const events = require('./events/events.service');
 const dacs = require('./dacs/dacs.service.js');
 const milestones = require('./milestones/milestones.service.js');
 const campaigns = require('./campaigns/campaigns.service.js');
+const campaigncsv = require('./csv/campaigncsv.service.js');
 const users = require('./users/users.service.js');
 const uploads = require('./uploads/uploads.service.js');
 const donations = require('./donations/donations.service.js');
@@ -29,4 +30,5 @@ module.exports = function configure() {
   app.configure(conversionRates);
   app.configure(events);
   app.configure(conversations);
+  app.configure(campaigncsv)
 };
