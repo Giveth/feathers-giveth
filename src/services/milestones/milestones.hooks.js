@@ -78,12 +78,14 @@ const milestoneResolvers = {
     };
   },
   joins: {
-    owner: () => async (milestone, context) => {
+    owner: () => async (milestoneCore, context) => {
+      const milestone = milestoneCore;
       if (!milestone.ownerAddress) return;
       milestone.owner = await context._loaders.user.address.load(milestone.ownerAddress);
     },
 
-    reviewer: () => async (milestone, context) => {
+    reviewer: () => async (milestoneCore, context) => {
+      const milestone = milestoneCore;
       if (!milestone.reviewerAddress || milestone.reviewerAddress === ZERO_ADDRESS) {
         return;
       }
@@ -91,7 +93,8 @@ const milestoneResolvers = {
       milestone.reviewer = await context._loaders.user.address.load(milestone.reviewerAddress);
     },
 
-    campaignReviewer: () => async (milestone, context) => {
+    campaignReviewer: () => async (milestoneCore, context) => {
+      const milestone = milestoneCore;
       if (
         !milestone.campaignReviewerAddress ||
         milestone.campaignReviewerAddress === ZERO_ADDRESS
@@ -104,7 +107,8 @@ const milestoneResolvers = {
       );
     },
 
-    recipient: () => async (milestone, context) => {
+    recipient: () => async (milestoneCore, context) => {
+      const milestone = milestoneCore;
       if (!milestone.recipientAddress && !milestone.recipientId) return;
       if (milestone.recipientAddress) {
         milestone.recipient = await context._loaders.user.address.load(milestone.recipientAddress);
@@ -117,7 +121,8 @@ const milestoneResolvers = {
       }
     },
 
-    pendingRecipient: () => async (milestone, context) => {
+    pendingRecipient: () => async (milestoneCore, context) => {
+      const milestone = milestoneCore;
       if (milestone.pendingRecipientAddress && milestone.pendingRecipientAddress !== ZERO_ADDRESS) {
         milestone.pendingRecipient = await context._loaders.user.address.load(
           milestone.pendingRecipientAddress,
@@ -125,7 +130,8 @@ const milestoneResolvers = {
       }
     },
 
-    campaign: () => async (milestone, context) => {
+    campaign: () => async (milestoneCore, context) => {
+      const milestone = milestoneCore;
       if (!milestone.campaignId) return;
       milestone.campaign = await context._loaders.campaign.id.load(milestone.campaignId);
     },

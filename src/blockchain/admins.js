@@ -3,7 +3,6 @@ const giversFactory = require('./givers');
 const delegatesFactory = require('./delegates');
 const projectsFactory = require('./projects');
 const { AdminTypes } = require('../models/pledgeAdmins.model');
-const to = require('../utils/to');
 
 /**
  *

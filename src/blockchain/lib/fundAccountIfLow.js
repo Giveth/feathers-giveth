@@ -15,7 +15,7 @@ module.exports = function fundAccountIfLow(app, address, currentBal) {
   const { walletMinBalance, walletSeedAmount } = app.get('blockchain');
 
   // fund wallet if the bal is < minBal
-  if (currentBal === undefined || walletMinBalance === undefined) return
+  if (currentBal === undefined || walletMinBalance === undefined) return;
   if (toBN(currentBal).lt(toBN(walletMinBalance))) {
     lockNonceAndSendTransaction(web3, web3.eth.sendTransaction, {
       from: web3.eth.accounts.wallet[0].address,

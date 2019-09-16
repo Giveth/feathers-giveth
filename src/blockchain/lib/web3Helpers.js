@@ -28,10 +28,9 @@ function batchAndExecuteRequests(web3, requests) {
     const batch = new web3.BatchRequest();
     requests.splice(0, 100).forEach(r => batch.add(r));
     batch.execute();
- 
     batchAndExecuteRequests(web3, requests);
   } catch (e) {
-    console.log(e);
+    //  console.log(e);
   }
   const batch = new web3.BatchRequest();
   requests.splice(0, 100).forEach(r => batch.add(r));
@@ -152,7 +151,8 @@ const getBlockTimestamp = async (web3, blockNumber) => {
 
 // if the websocket connection drops, attempt to re-connect
 // upon successful re-connection, we re-start all listeners
-const reconnectOnEnd = (web3, nodeUrl) => {
+const reconnectOnEnd = (web3Core, nodeUrl) => {
+  const web3 = web3Core;
   web3.currentProvider.on('end', e => {
     if (web3.reconnectInterval) return;
 

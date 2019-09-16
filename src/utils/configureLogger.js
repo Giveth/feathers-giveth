@@ -3,7 +3,8 @@ const winston = require('winston');
 require('winston-daily-rotate-file');
 const { SPLAT } = require('triple-beam');
 
-const customFormatter = winston.format((info, opts) => {
+const customFormatter = winston.format((infoCore, opts) => {
+  const info = infoCore;
   let { message } = info;
   // winston stores extra params passed to log functions
   // in the SPLAT Symbol
