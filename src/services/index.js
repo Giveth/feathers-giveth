@@ -30,5 +30,5 @@ module.exports = function configure() {
   app.configure(conversionRates);
   app.configure(events);
   app.configure(conversations);
-  app.configure(campaigncsv)
+  app.configure(campaigncsv);
 };

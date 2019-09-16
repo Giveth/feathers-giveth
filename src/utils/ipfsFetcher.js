@@ -14,7 +14,7 @@ module.exports = function init() {
 
   app.ipfsFetcher = path => {
     if (!isIPFS.path(path)) {
-      logger.info('Error: ${path} is not a valid ipfs path')
+      logger.info(`Error: ${path} is not a valid ipfs path`);
     }
     return rp({
       uri: url.resolve(ipfsGateway, path),

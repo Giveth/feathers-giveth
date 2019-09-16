@@ -61,7 +61,11 @@ const getApprovedKeys = (milestone, data, user) => {
     case MilestoneStatus.PROPOSED:
       // Accept proposed milestone by Campaign Manager
       if (data.status === MilestoneStatus.PENDING) {
-        if (![milestone.campaign.ownerAddress, milestone.campaign.coownerAddress].includes(user.address)) {
+        if (
+          ![milestone.campaign.ownerAddress, milestone.campaign.coownerAddress].includes(
+            user.address,
+          )
+        ) {
           throw new errors.Forbidden('Only the Campaign Manager can accept a milestone');
         }
         logger.info(`Accepting proposed milestone with id: ${milestone._id} by: ${user.address}`);
@@ -71,7 +75,11 @@ const getApprovedKeys = (milestone, data, user) => {
 
       // Reject proposed milestone by Campaign Manager
       if (data.status === MilestoneStatus.REJECTED) {
-        if (![milestone.campaign.ownerAddress, milestone.campaign.coownerAddress].includes(user.address)) {
+        if (
+          ![milestone.campaign.ownerAddress, milestone.campaign.coownerAddress].includes(
+            user.address,
+          )
+        ) {
           throw new errors.Forbidden('Only the Campaign Manager can reject a milestone');
         }
         logger.info(`Rejecting proposed milestone with id: ${milestone._id} by: ${user.address}`);
@@ -81,7 +89,13 @@ const getApprovedKeys = (milestone, data, user) => {
 
       // Editing milestone can be done by Milestone or Campaign Manager
       if (data.status === MilestoneStatus.PROPOSED) {
-        if (![milestone.ownerAddress, milestone.campaign.ownerAddress, milestone.campaign.coownerAddess].includes(user.address)) {
+        if (
+          ![
+            milestone.ownerAddress,
+            milestone.campaign.ownerAddress,
+            milestone.campaign.coownerAddess,
+          ].includes(user.address)
+        ) {
           throw new errors.Forbidden(
             'Only the Milestone or Campaign Manager can edit proposed milestone',
           );
@@ -134,7 +148,13 @@ const getApprovedKeys = (milestone, data, user) => {
 
       // Archive milestone by Milestone Manager or Campaign Manager
       if (!milestone.maxAmount && data.status === MilestoneStatus.ARCHIVED) {
-        if (![milestone.campaign.ownerAddress, milestone.campaign.coownerAddess, milestone.ownerAddress].includes(user.address)) {
+        if (
+          ![
+            milestone.campaign.ownerAddress,
+            milestone.campaign.coownerAddess,
+            milestone.ownerAddress,
+          ].includes(user.address)
+        ) {
           throw new errors.Forbidden(
             'Only the Milestone Manager or Campaign Manager can archive a milestone',
           );
@@ -155,7 +175,13 @@ const getApprovedKeys = (milestone, data, user) => {
 
       // Editing milestone can be done by Campaign or Milestone Manager
       if (data.status === MilestoneStatus.IN_PROGRESS) {
-        if (![milestone.ownerAddress, milestone.campaign.ownerAddress, milestone.campaign.coownerAddess].includes(user.address)) {
+        if (
+          ![
+            milestone.ownerAddress,
+            milestone.campaign.ownerAddress,
+            milestone.campaign.coownerAddess,
+          ].includes(user.address)
+        ) {
           throw new errors.Forbidden('Only the Milestone and Campaign Manager can edit milestone');
         }
         logger.info(`Editing milestone In Progress with id: ${milestone._id} by: ${user.address}`);
@@ -164,7 +190,13 @@ const getApprovedKeys = (milestone, data, user) => {
 
       // Editing a proposed milestone can be done by either manager and all usual properties can be changed since it's not on chain
       if (data.status === MilestoneStatus.PROPOSED) {
-        if (![milestone.ownerAddress, milestone.campaign.ownerAddress, milestone.campaign.coownerAddess].includes(user.address)) {
+        if (
+          ![
+            milestone.ownerAddress,
+            milestone.campaign.ownerAddress,
+            milestone.campaign.coownerAddess,
+          ].includes(user.address)
+        ) {
           throw new errors.Forbidden(
             'Only the Milestone and Campaign Manager can edit proposed milestone',
           );
@@ -215,7 +247,13 @@ const getApprovedKeys = (milestone, data, user) => {
 
       // Editing milestone can be done by Milestone or Campaign Manager
       if (data.status === MilestoneStatus.NEEDS_REVIEW) {
-        if (![milestone.ownerAddress, milestone.campaign.ownerAddress, milestone.campaign.coownerAddess].includes(user.address)) {
+        if (
+          ![
+            milestone.ownerAddress,
+            milestone.campaign.ownerAddress,
+            milestone.campaign.coownerAddess,
+          ].includes(user.address)
+        ) {
           throw new errors.Forbidden('Only the Milestone and Campaign Manager can edit milestone');
         }
         logger.info(
@@ -238,10 +276,16 @@ const getApprovedKeys = (milestone, data, user) => {
         logger.info(`Disbursing milestone payment. Milestone id: ${milestone._id}`);
 
         return ['txHash', 'status', 'mined'];
-      } 
-      
+      }
+
       if (data.status === MilestoneStatus.ARCHIVED) {
-        if (![milestone.campaign.ownerAddress, milestone.campaign.coownerAddess, milestone.ownerAddress].includes(user.address)) {
+        if (
+          ![
+            milestone.campaign.ownerAddress,
+            milestone.campaign.coownerAddess,
+            milestone.ownerAddress,
+          ].includes(user.address)
+        ) {
           throw new errors.Forbidden(
             'Only the Milestone Manager or Campaign Manager can archive a milestone',
           );

@@ -41,7 +41,7 @@ const checkConversionRates = () => context => {
     );
     // calculate the conversion of the item, make sure that fiat-eth is correct
     const rate = conversionRate.rates[selectedFiatType];
-    var ether = ''
+    let ether = '';
     if (fiatAmount) {
       ether = utils.toWei(new BigNumber(fiatAmount).div(rate).toFixed(18));
     }
