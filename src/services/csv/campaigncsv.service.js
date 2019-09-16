@@ -1,4 +1,4 @@
-
+var ObjectID = require('mongodb').ObjectID;
 
 module.exports = function registerService() {
     const app = this;
@@ -15,23 +15,26 @@ module.exports = function registerService() {
     //       },
     //       schema: 'includeTypeAndGiverDetails',
     // });
+ 
     const json2csv = require('json2csv');
     const fields = ['from','fromName','to','toName','txHash','amount','action','date','totalCampaignAmount'];
     
 
-    const campaignService = app.service('donations');
+    const donationService = app.service('donations');
+    const campaignService = app.service('campaigns');
+    const usersService = app.service('users')
     
     const csvService = {
         async get(id, params) {
-            const result = await campaignService.find({
+            const result = await donationService.find({
                 query: {
                     status: 'Committed',
                     ownerTypeId: id
                 }
             })
             let csvItems = []
-            csvItems = await toCSV(await itemsFromDonations(result.data))
-            console.log(csvItems)
+            csvItems = await toCSV(await itemsFromDonations(result.data, usersService, campaignService))
+            //console.log(csvItems)
             return csvItems
         }
     }
@@ -76,15 +79,64 @@ class CsvItem {
     
 }
 
-async function itemsFromDonations(donations) {
-    let csvItems = []
-    donations.forEach(element => {
+async function asyncForEach(array, callback) {
+    for (let index = 0; index < array.length; index++) {
+      await callback(array[index], index, array);
+    }
+}
+
+async function itemsFromDonations(donations, usersService, campaignService) {
+    let csvItems = [] 
+    let totalCampaignAmount = 0
+    await asyncForEach(donations, async (donation) => {
+        let donationData = await usersService.find({
+            query: {
+                address: donation.giverAddress,
+            }
+        })
+        var o_id = new ObjectID(donation.ownerTypeId);
+        let campaignData = await campaignService.find({
+            query: {
+                _id: o_id,
+            }
+        })
+        let campaignName = campaignData.data[0].title
+        //console.log(campaignName)
+        let donationUser = donationData.data[0]
+        let donatorName = ''
+        if (donationUser.name === '' || !donationUser.name) {
+            donatorName = 'Anonymous'
+        } else {
+            donatorName = donationUser.name
+        }
+        let action = ''
+        totalCampaignAmount += donation.usdValue  
+        //console.log(donation)
         let csvItem = new CsvItem(
-            element.giverAddress
+            donation.giverAddress,
+            donatorName,
+            donation.ownerTypeId,
+            campaignName,
+            donation.txHash,
+            donation.usdValue,
+            'Donated',
+            donation.commitTime,
+            totalCampaignAmount
         )
+        //console.log(csvItem)
         csvItems.push(csvItem.returnJSON())
-    }); 
+    })
     return csvItems
+   
+}
+
+
+function getUsersArray(donations, usersService) {
+    let usersArray = []
+    donations.forEach(donation => {
+        
+        usersArray.push(donationUser)
+    });
 }
 
 function toCSV(json) {
