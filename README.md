@@ -27,27 +27,33 @@ Welcome to the server code for Giveth's [dapp](https://github.com/Giveth/giveth-
 ## Getting Started
 
 ### Install
-1. Click **Star** on this repo near the top-right corner of this web page (if you want to).
-2. Join our [slack](http://slack.giveth.io) if you haven't already.
-3. Fork this repo by clicking **Fork** button in top-right corner of this web page. Continue to follow instruction steps from your own feathers-giveth repo.
-5. The rest of these steps must be done from your machine's command line. Clone your own "feathers-giveth" repo. Copy the link from the "Clone or download" button near the top right of this repo's home page.
-    ```
-    git clone {paste your own repo link here}
-    ```
-6. Change directories to feathers-giveth:
-    ```
-    cd feathers-giveth
-    ```
-5. Make sure you have [NodeJS](https://nodejs.org/) (v8.4.0 or higher), [yarn](https://www.yarnpkg.com/) (v0.27.5 or higher), and npm (5.4.1 or higher) installed.
-6. Install dependencies from within feathers-giveth directory:
-    ```
-    npm install
-    ```
-    * note: due to a bug in yarn, `yarn install` currently does not work
-7. Install Mongo (we recommend installing via [Brew](https://treehouse.github.io/installation-guides/mac/mongo-mac.html))
-8. Run Mongo in a terminal window `mongod` or in the background `mongod --fork --syslog`
-9. (optionally) Install [IPFS](https://ipfs.io/docs/install/) (we recommend installing via [Brew](https://brew.sh/))
-  - If you don't install ipfs, image uploading will be affected. You can update the config `ipfsGateway` value to use a public ipfs gateway ex. [https://ipfs.io/ipfs/](https://ipfs.io/ipfs/), however your uploads will be removed at some point
+
+- #### Linux
+  If your operative system is any distrubution of linux you can use an All in One installation scripts special thanks to Dapp contributor Jurik, available [here](https://github.com/Giveth/giveth-dapp/files/3674808/givethBuildStartScripts_2019-09-29.zip)
+
+
+- #### Any OS
+  1. Click **Star** on this repo near the top-right corner of this web page (if you want to).
+  2. Join our [slack](http://slack.giveth.io) if you haven't already.
+  3. Fork this repo by clicking **Fork** button in top-right corner of this web page. Continue to follow instruction steps from your own feathers-giveth repo.
+  5. The rest of these steps must be done from your machine's command line. Clone your own "feathers-giveth" repo. Copy the link from the "Clone or download" button near the top right of this repo's home page.
+      ```
+      git clone {paste your own repo link here}
+      ```
+  6. Change directories to feathers-giveth:
+      ```
+      cd feathers-giveth
+      ```
+  5. Make sure you have [NodeJS](https://nodejs.org/) (v8.4.0 or higher), [yarn](https://www.yarnpkg.com/) (v0.27.5 or higher), and npm (5.4.1 or higher) installed.
+  6. Install dependencies from within feathers-giveth directory:
+      ```
+      npm install
+      ```
+      * note: due to a bug in yarn, `yarn install` currently does not work
+  7. Install Mongo (we recommend installing via [Brew](https://treehouse.github.io/installation-guides/mac/mongo-mac.html))
+  8. Run Mongo in a terminal window `mongod` or in the background `mongod --fork --syslog`
+  9. (optionally) Install [IPFS](https://ipfs.io/docs/install/) (we recommend installing via [Brew](https://brew.sh/))
+    - If you don't install ipfs, image uploading will be affected. You can update the config `ipfsGateway` value to use a public ipfs gateway ex. [https://ipfs.io/ipfs/](https://ipfs.io/ipfs/), however your uploads will be removed at some point
 
 ### Run server
 The feathers server will need to connect to an ethereum node via websockets. Typically this will be a local TestRPC instance. 
