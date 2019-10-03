@@ -29,7 +29,7 @@ Welcome to the server code for Giveth's [dapp](https://github.com/Giveth/giveth-
 ### Install
 
 - #### Linux
-  If your operative system is any distrubution of linux you can use an All in One installation scripts special thanks to Dapp contributor Jurik, available [here](https://github.com/Giveth/giveth-dapp/files/3674808/givethBuildStartScripts_2019-09-29.zip)
+  If your operative system is any distrubution of linux you can use an All in One installation scripts special thanks to Dapp contributor Jurek Brisbane, available [here](https://github.com/Giveth/giveth-dapp/files/3674808/givethBuildStartScripts_2019-09-29.zip)
 
 
 - #### Any OS
