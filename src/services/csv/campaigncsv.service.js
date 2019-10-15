@@ -2,41 +2,75 @@ const { ObjectID } = require('mongodb');
 const json2csv = require('json2csv');
 
 const fields = [
-  'from',
-  'fromName',
-  'to',
-  'toName',
-  'txHash',
-  'amount',
-  'action',
-  'date',
-  'totalCampaignAmount',
+  'Action Date',
+  'Sender Name',
+  'Sender Address',
+  'Recipient',
+  'Recipient Address',
+  'Currency',
+  'Amount',
+  'Action',
+  'Link to Milestone',
+  'Link to Recipient',
+  'Link to Donor Profile Page',
+  'Accessible Campaign Balance in ETH',
+  'Accessible Campaign Balance in DAI',
+  'Link to Rinkeby ',
+  'Link to Mainnet',
 ];
 
 class CsvItem {
-  constructor(from, fromName, to, toName, txHash, amount, action, date, totalCampaignAmount) {
-    this.from = from;
+  constructor(
+    actionDate,
+    fromName,
+    from,
+    toName,
+    to,
+    currency,
+    amount,
+    action,
+    linkMilestone,
+    linkRecipient,
+    linkDonor,
+    ethCampBalance,
+    daiCampBalance,
+    linkRink,
+    linkMain,
+  ) {
+    this.actionDate = actionDate;
     this.fromName = fromName;
-    this.to = to;
+    this.from = from;
     this.toName = toName;
-    this.txHash = txHash;
+    this.to = to;
+    this.currency = currency;
     this.amount = amount;
     this.action = action;
-    this.date = date;
-    this.totalCampaignAmount = totalCampaignAmount;
+    this.linkMilestone = linkMilestone;
+    this.linkRecipient = linkRecipient;
+    this.linkDonor = linkDonor;
+    this.ethCampBalance = ethCampBalance;
+    this.daiCampBalance = daiCampBalance;
+    this.linkRink = linkRink;
+    this.linkMain = linkMain;
   }
 
   returnJSON() {
     return {
-      from: this.from,
+      actionDate: this.actionDate,
       fromName: this.fromName,
-      to: this.to,
+      from: this.from,
       toName: this.toName,
-      txHash: this.txHash,
+      to: this.to,
+      currency: this.currency,
       amount: this.amount,
       action: this.action,
-      date: this.date,
-      totalCampaignAmount: this.totalCampaignAmount,
+      linkMilestone: this.linkMilestone,
+      linkRecipient: this.linkRecipient,
+      linkDonor: this.linkDonor,
+      ethCampBalance: this.ethCampBalance,
+      daiCampBalance: this.daiCampBalance,
+      linkRink: this.linkRink,
+      linkMain: this.linkMain,
     };
   }
 }
@@ -48,9 +82,10 @@ async function asyncForEach(array, callback) {
   }
 }
 
-async function itemsFromDonations(donations, usersService, campaignService) {
+async function itemsFromDonations(donations, dappUrl, usersService, campaignService) {
   const csvItems = [];
-  let totalCampaignAmount = 0;
+  let totalEthDonated = 0;
+  let totalDaiDonated = 0;
   await asyncForEach(donations, async donation => {
     const donationData = await usersService.find({
       query: {
@@ -65,6 +100,7 @@ async function itemsFromDonations(donations, usersService, campaignService) {
     });
     const campaignName = campaignData.data[0].title;
     // console.log(campaignName)
+    const { symbol } = donation.token;
     const donationUser = donationData.data[0];
     let donatorName = '';
     if (donationUser.name === '' || !donationUser.name) {
@@ -73,18 +109,33 @@ async function itemsFromDonations(donations, usersService, campaignService) {
       donatorName = donationUser.name;
     }
     // let action = '';
-    totalCampaignAmount += donation.usdValue;
-    // console.log(donation)
+    // const linkMilestone = `${dappUrl}/campaigns/${donation.ownerTypeId}`;
+    const donorProfile = `https://${dappUrl}/profile/${donation.giverAddress}`;
+    const tokenAmount = donation.amount / donation.token.decimals;
+    const mainLink = `https://etherscan.io/tx/${donation.homeTxHash}`;
+    const rinkLink = `https://rinkeby.etherscan.io/tx/${donation.txHash}`;
+    if (symbol === 'ETH') {
+      totalEthDonated += tokenAmount;
+    } else {
+      totalDaiDonated += tokenAmount;
+    }
+    console.log(donation)
     const csvItem = new CsvItem(
-      donation.giverAddress,
+      donation.commitTime,
       donatorName,
-      donation.ownerTypeId,
+      donation.giverAddress,
       campaignName,
-      donation.txHash,
+      donation.ownerTypeId,
+      symbol,
       donation.usdValue,
       'Donated',
-      donation.commitTime,
-      totalCampaignAmount,
+      '-',
+      '-',
+      donorProfile,
+      totalEthDonated,
+      totalDaiDonated,
+      rinkLink,
+      mainLink,
     );
     // console.log(csvItem)
     csvItems.push(csvItem.returnJSON());
@@ -123,6 +174,7 @@ module.exports = function registerService() {
   const donationService = app.service('donations');
   const campaignService = app.service('campaigns');
   const usersService = app.service('users');
+  const dappUrl = app.get('dappUrl');
 
   const csvService = {
     async get(id) {
@@ -133,7 +185,7 @@ module.exports = function registerService() {
         },
       });
       let csvItems = [];
-      csvItems = await toCSV(await itemsFromDonations(result.data, usersService, campaignService));
+      csvItems = await toCSV(await itemsFromDonations(result.data, dappUrl, usersService, campaignService));
       // console.log(csvItems)
       return csvItems;
     },
