@@ -119,7 +119,6 @@ async function itemsFromDonations(donations, dappUrl, usersService, campaignServ
     } else {
       totalDaiDonated += tokenAmount;
     }
-    console.log(donation)
     const csvItem = new CsvItem(
       donation.commitTime,
       donatorName,
@@ -185,7 +184,9 @@ module.exports = function registerService() {
         },
       });
       let csvItems = [];
-      csvItems = await toCSV(await itemsFromDonations(result.data, dappUrl, usersService, campaignService));
+      csvItems = await toCSV(
+        await itemsFromDonations(result.data, dappUrl, usersService, campaignService),
+      );
       // console.log(csvItems)
       return csvItems;
     },
