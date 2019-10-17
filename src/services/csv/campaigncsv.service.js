@@ -111,7 +111,7 @@ async function itemsFromDonations(donations, dappUrl, usersService, campaignServ
     // let action = '';
     // const linkMilestone = `${dappUrl}/campaigns/${donation.ownerTypeId}`;
     const donorProfile = `https://${dappUrl}/profile/${donation.giverAddress}`;
-    const tokenAmount = donation.amount / donation.token.decimals;
+    const tokenAmount = donation.amount / 10 ** donation.token.decimals;
     const mainLink = `https://etherscan.io/tx/${donation.homeTxHash}`;
     const rinkLink = `https://rinkeby.etherscan.io/tx/${donation.txHash}`;
     if (symbol === 'ETH') {
