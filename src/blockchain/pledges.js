@@ -12,6 +12,7 @@ const { AdminTypes } = require('../models/pledgeAdmins.model');
 const toWrapper = require('../utils/to');
 const reprocess = require('../utils/reprocess');
 const notify = require('../utils/sendPledgeNotifications');
+const semaphore = require('semaphore');
 
 function isOlderThenAMin(ts) {
   return Date.now() - ts > 1000 * 60;
@@ -509,6 +510,47 @@ const pledges = (app, liquidPledging) => {
     );
   }
 
+  const transferSem = semaphore();
+
+  async function hasSimilarDonation(transferInfo) {
+    const {
+      toPledgeAdmin,
+      toPledge,
+      toPledgeId,
+      fromPledge,
+      donations,
+      amount,
+      txHash,
+    } = transferInfo;
+
+    // find token
+    const token = _retreiveTokenFromPledge(app, fromPledge);
+    const status = getDonationStatus(transferInfo);
+    let similarDonation;
+    try {
+      similarDonation = await donationService.find({
+        query: {
+          $limit: 1,
+          amount,
+          amountRemaining: amount,
+          giverAddress: donations[0].giverAddress,
+          ownerId: toPledge.owner,
+          ownerTypeId: toPledgeAdmin.typeId,
+          ownerType: toPledgeAdmin.type,
+          pledgeId: toPledgeId,
+          status,
+          txHash,
+          mined: true,
+          'token.symbol': token.symbol,
+        },
+      });
+    } catch (e) {
+      logger.error(e);
+    }
+
+    return similarDonation ? similarDonation.data.length > 0 : false;
+  }
+
   // fetches all necessary data to determine what happened for this Transfer event
   async function transfer(from, to, amount, ts, txHash) {
     try {
@@ -583,8 +625,22 @@ const pledges = (app, liquidPledging) => {
         return;
       }
 
-      await spendAndUpdateExistingDonations(transferInfo);
-      await createToDonation(transferInfo);
+      transferSem.take(async () => {
+        try {
+          // Search for similar donation
+          const hasSimilar = await hasSimilarDonation(transferInfo);
+          if (!hasSimilar) {
+            await spendAndUpdateExistingDonations(transferInfo);
+            await createToDonation(transferInfo);
+          } else {
+            logger.warn('Ignore repetitive transfer:', transferInfo);
+          }
+        } catch (e) {
+          logger.error(e);
+        } finally {
+          transferSem.leave();
+        }
+      });
     } catch (err) {
       logger.error(err);
     }
