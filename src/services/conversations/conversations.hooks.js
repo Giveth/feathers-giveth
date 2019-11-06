@@ -5,6 +5,7 @@ const sanitizeAddress = require('../../hooks/sanitizeAddress');
 const errors = require('@feathersjs/errors');
 const sanitizeHtml = require('../../hooks/sanitizeHtml');
 const resolveFiles = require('../../hooks/resolveFiles');
+const onlyInternal = require('../../hooks/onlyInternal');
 
 /**
   API for creating conversations
@@ -145,7 +146,7 @@ module.exports = {
     get: [],
     create: [restrictAndSetOwner(), checkMessageContext(), sanitizeHtml('message')],
     update: [disallow()],
-    patch: [disallow()],
+    patch: [onlyInternal()],
     remove: [disallow()],
   },
 

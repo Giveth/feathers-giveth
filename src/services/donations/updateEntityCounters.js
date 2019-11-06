@@ -1,6 +1,7 @@
 const { checkContext } = require('feathers-hooks-common');
 const { toBN } = require('web3-utils');
 const logger = require('winston');
+const semaphore = require('semaphore');
 
 const { AdminTypes } = require('../../models/pledgeAdmins.model');
 const { DonationStatus } = require('../../models/donations.model');
@@ -123,7 +124,7 @@ const updateEntity = async (app, id, type) => {
       donationCounters.length > 0 &&
       entity.token.foreignAddress !== ANY_TOKEN.foreignAddress &&
       entity.maxAmount ===
-        donationCounters.find(dc => dc.symbol === entity.token.symbol).totalDonated.toString();
+      donationCounters.find(dc => dc.symbol === entity.token.symbol).totalDonated.toString();
 
     const peopleCount = new Set(donations.map(d => d.giverAddress)).size;
 
@@ -134,6 +135,77 @@ const updateEntity = async (app, id, type) => {
     });
   } catch (error) {
     logger.error(`error updating counters for ${type} - ${id}: `, error);
+  }
+};
+
+const conversationSem = semaphore();
+
+const createConversation = async (context, donation, milestoneId) => {
+  const { app, method } = context;
+  // Create payment conversation
+  if (method === 'create' && donation.status === DonationStatus.PAID) {
+    app
+      .service('milestones')
+      .get(milestoneId)
+      .then(milestone => {
+        const { recipient } = milestone;
+        const { txHash, amount } = donation;
+        const symbol = donation.token.symbol;
+        const service = app.service('conversations');
+
+        conversationSem.take(async () => {
+
+          try {
+            const data = await service.find({
+              paginate: false,
+              query: {
+                milestoneId: milestoneId,
+                messageContext: 'payment',
+                txHash: txHash,
+                $limit: 1,
+              },
+            });
+
+            if (data.length > 0) {
+              const conversation = data[0];
+              const payments = conversation.payments || [];
+              const index = payments.findIndex(p => p.symbol === symbol);
+
+              if (index !== -1) {
+                payments[index].amount = toBN(amount).add(toBN(payments[index].amount)).toString();
+              } else {
+                payments.push({ symbol: symbol, amount: amount });
+              }
+
+              await service.patch(
+                conversation._id,
+                {
+                  payments: payments,
+                },
+              );
+            } else {
+              await service.create(
+                {
+                  milestoneId: milestoneId,
+                  messageContext: 'payment',
+                  txHash: txHash,
+                  payments: [{
+                    amount: amount,
+                    symbol: symbol,
+                  }],
+                  recipientAddress: recipient.address,
+                },
+                { performedByAddress: context.params.from },
+              );
+            }
+          } catch (e) {
+            logger.error('could not create conversation', e);
+          } finally {
+            conversationSem.leave();
+          }
+        });
+      })
+      .catch(e => logger.error('Could not find milestone', e));
   }
 };
 
@@ -152,55 +224,29 @@ const updateDonationEntity = async (context, donation) => {
       })
       .then(donations =>
         donations
-          // set isReturn = false b/c so we don't recursively update parent donations
+        // set isReturn = false b/c so we don't recursively update parent donations
           .map(d => Object.assign({}, d, { isReturn: false }))
           .forEach(d => updateDonationEntity(context, d)),
       );
   }
 
-  let id;
+  let entityId;
   let type;
   if (donation.delegateTypeId) {
     type = AdminTypes.DAC;
-    id = donation.delegateTypeId;
+    entityId = donation.delegateTypeId;
   } else if (donation.ownerType === AdminTypes.CAMPAIGN) {
     type = AdminTypes.CAMPAIGN;
-    id = donation.ownerTypeId;
+    entityId = donation.ownerTypeId;
   } else if (donation.ownerType === AdminTypes.MILESTONE) {
     type = AdminTypes.MILESTONE;
-    id = donation.ownerTypeId;
-
-    // Create payment conversation
-    if (context.method === 'create' && donation.status === DonationStatus.PAID) {
-      app
-        .service('milestones')
-        .get(id)
-        .then(milestone => {
-          const { recipient } = milestone;
-
-          app
-            .service('conversations')
-            .create(
-              {
-                milestoneId: id,
-                messageContext: 'payment',
-                txHash: donation.txHash,
-                paidAmount: donation.amount,
-                paidSymbol: donation.token.symbol,
-                recipientAddress: recipient.address,
-              },
-              { performedByAddress: context.params.from },
-            )
-            .then(res => logger.info('created conversation!', res._id))
-            .catch(e => logger.error('could not create conversation', e));
-        })
-        .catch(e => logger.error('Could not find milestone', e));
-    }
+    entityId = donation.ownerTypeId;
+    createConversation(context, donation, entityId);
   } else {
     return;
   }
 
-  updateEntity(context.app, id, type);
+  updateEntity(context.app, entityId, type);
 };
 
 const updateDonationEntityCountersHook = () => async context => {

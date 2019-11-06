@@ -17,8 +17,10 @@ module.exports = function Conversations(app) {
       performedByRole: { type: String, required: true },
       ownerAddress: { type: String, required: true },
       recipientAddress: { type: String },
-      paidAmount: { type: Schema.Types.BN, min: 0 },
-      paidSymbol: { type: String },
+      payments:[{
+        amount: { type: Schema.Types.BN, min: 0 },
+        symbol: { type: String },
+      }],
       items: [Item],
       txHash: { type: String },
       mined: { type: Boolean, default: false },
