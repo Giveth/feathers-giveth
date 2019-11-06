@@ -446,6 +446,7 @@ const watcher = (app, eventHandler) => {
     return eventService.find({ paginate: false, query });
   }
 
+  // TODO: Use real mutex
   let lock = false;
   /**
    * Retrieve and process a single event from the database that has not yet been processed and is next in line
