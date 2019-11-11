@@ -18,20 +18,20 @@ db.once('open', async () => {
 
   const Conversations = db.collection('conversations');
   try {
-    Conversations.find({
+    await Conversations.find({
       paidAmount: { $ne: null },
       paidSymbol: { $ne: null },
-    }).toArray((err, conversations) => {
-      conversations.forEach(async (conversation) => {
-        const { paidAmount, paidSymbol } = conversation;
-        await Conversations.updateOne(
+    }).toArray(async (err, conversations) => {
+      await Promise.all(
+      conversations.map(async (conversation) =>
+        Conversations.updateOne(
           { _id: conversation._id },
           {
             $set: {
               payments: [
                 {
-                  amount: paidAmount,
-                  symbol: paidSymbol,
+                  amount: conversation.paidAmount,
+                  symbol: conversation.paidSymbol,
                 },
               ],
             },
@@ -40,12 +40,11 @@ db.once('open', async () => {
               paidSymbol: '',
             },
           },
-        );
-      });
-    });
-    console.log('Done');
+        )));
+      console.log('Done');
+      process.exit();
+    })
   } catch (e) {
     console.error(e);
   }
-  process.exit();
 });
