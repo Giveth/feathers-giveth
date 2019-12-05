@@ -109,15 +109,19 @@ const milestoneResolvers = {
 
     recipient: () => async (milestoneCore, context) => {
       const milestone = milestoneCore;
-      if (!milestone.recipientAddress && !milestone.recipientId) return;
-      if (milestone.recipientAddress) {
-        milestone.recipient = await context._loaders.user.address.load(milestone.recipientAddress);
-      } else {
+      if (
+        (!milestone.recipientAddress || milestone.recipientAddress === ZERO_ADDRESS) &&
+        !milestone.recipientId
+      )
+        return;
+      if (milestone.recipientId) {
         // TODO: join recipientId
         // currently the UI only supports the parent campaign. If we ever support more options,
         // then we will need to query pledgeAdmins first to fetch the typeId & type, then query
         // for the correct entity
         milestone.recipient = await context._loaders.campaign.projectId.load(milestone.recipientId);
+      } else {
+        milestone.recipient = await context._loaders.user.address.load(milestone.recipientAddress);
       }
     },
 
@@ -185,16 +189,11 @@ const restrict = () => context => {
     keysToRemove.forEach(key => delete data[key]);
 
     if (data.items) {
-      data.items = data.items.map(({ date, description, image }) =>
-        Object.assign(
-          {},
-          {
-            date,
-            description,
-            image,
-          },
-        ),
-      );
+      data.items = data.items.map(({ date, description, image }) => ({
+        date,
+        description,
+        image,
+      }));
     }
 
     // needed b/c we need to call checkConversionRates for proposed milestones
@@ -202,11 +201,8 @@ const restrict = () => context => {
     return Promise.resolve();
   };
 
-  return getMilestones(context).then(
-    milestones =>
-      Array.isArray(milestones)
-        ? Promise.all(milestones.forEach(canUpdate))
-        : canUpdate(milestones),
+  return getMilestones(context).then(milestones =>
+    Array.isArray(milestones) ? Promise.all(milestones.forEach(canUpdate)) : canUpdate(milestones),
   );
 };
 
