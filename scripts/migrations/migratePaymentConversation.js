@@ -23,27 +23,29 @@ db.once('open', async () => {
       paidSymbol: { $ne: null },
     }).toArray(async (err, conversations) => {
       await Promise.all(
-      conversations.map(async (conversation) =>
-        Conversations.updateOne(
-          { _id: conversation._id },
-          {
-            $set: {
-              payments: [
-                {
-                  amount: conversation.paidAmount,
-                  symbol: conversation.paidSymbol,
-                },
-              ],
+        conversations.map(async conversation =>
+          Conversations.updateOne(
+            { _id: conversation._id },
+            {
+              $set: {
+                payments: [
+                  {
+                    amount: conversation.paidAmount,
+                    symbol: conversation.paidSymbol,
+                  },
+                ],
+              },
+              $unset: {
+                paidAmount: '',
+                paidSymbol: '',
+              },
             },
-            $unset: {
-              paidAmount: '',
-              paidSymbol: '',
-            },
-          },
-        )));
+          ),
+        ),
+      );
       console.log('Done');
       process.exit();
-    })
+    });
   } catch (e) {
     console.error(e);
   }
