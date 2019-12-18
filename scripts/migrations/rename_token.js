@@ -2,8 +2,8 @@ const mongoose = require('mongoose');
 require('mongoose-long')(mongoose);
 require('../../src/models/mongoose-bn')(mongoose);
 
-// development database
-const mongoUrl = 'mongodb://localhost:27017/giveth';
+const config = require('../../config/default.json');
+
 const tokenCurrentSymbol = 'DAI';
 const tokenNewSymbol = 'SAI';
 
@@ -52,6 +52,8 @@ const migrateCampaigns = () => {
   });
 };
 
+const mongoUrl = config.mongodb;
+console.log('url:', mongoUrl);
 mongoose.connect(mongoUrl);
 const db = mongoose.connection;
 
