@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 const mongoose = require('mongoose');
 require('mongoose-long')(mongoose);
 require('../../src/models/mongoose-bn')(mongoose);
@@ -21,8 +22,32 @@ const appFactory = () => {
 const app = appFactory();
 app.set('mongooseClient', mongoose);
 
+const Campaigns = require('../../src/models/campaigns.model').createModel(app);
 const Conversations = require('../../src/models/conversations.model')(app);
-const Campaign = require('../../src/models/campaigns.model').createModel(app);
+const ConversionRates = require('../../src/models/conversionRates.model')(app);
+
+const migrateCampaigns = () => {
+  const cursor = Campaigns.find({
+    'donationCounters.symbol': tokenCurrentSymbol,
+  }).cursor();
+
+  return cursor.eachAsync(doc => {
+    const index = doc.donationCounters.findIndex(p => p.symbol === tokenCurrentSymbol);
+    const setObj = {};
+
+    setObj[`donationCounters.${index}.name`] = tokenNewSymbol;
+    setObj[`donationCounters.${index}.symbol`] = tokenNewSymbol;
+
+    return Campaigns.update(
+      { _id: doc._id },
+      {
+        $set: {
+          ...setObj,
+        },
+      },
+    ).exec();
+  });
+};
 
 const migrateConversations = () => {
   const cursor = Conversations.find({
@@ -32,23 +57,61 @@ const migrateConversations = () => {
 
   return cursor.eachAsync(doc => {
     const index = doc.payments.findIndex(p => p.symbol === tokenCurrentSymbol);
-    // eslint-disable-next-line no-param-reassign
-    doc.payments[index].symbol = tokenNewSymbol;
-    return Conversations.update({ _id: doc._id }, doc).exec();
+    const setObj = {};
+
+    setObj[`payments.${index}.symbol`] = tokenNewSymbol;
+
+    return Conversations.update(
+      { _id: doc._id },
+      {
+        $set: {
+          ...setObj,
+        },
+      },
+    ).exec();
   });
 };
 
-const migrateCampaigns = () => {
-  const cursor = Campaign.find({
-    'donationCounters.symbol': tokenCurrentSymbol,
+const migrateConversionRates = () => {
+  const ratesQueryObj = {};
+  ratesQueryObj[`rates.${tokenCurrentSymbol}`] = { $exists: true };
+
+  const cursor = ConversionRates.find({
+    $or: [
+      {
+        symbol: tokenCurrentSymbol,
+      },
+      {
+        ...ratesQueryObj,
+      },
+    ],
   }).cursor();
 
   return cursor.eachAsync(doc => {
-    const index = doc.donationCounters.findIndex(p => p.symbol === tokenCurrentSymbol);
-    // eslint-disable-next-line no-param-reassign
-    doc.donationCounters[index].name = tokenNewSymbol;
-    doc.donationCounters[index].symbol = tokenNewSymbol;
-    return Campaign.update({ _id: doc._id }, doc).exec();
+    const updateObj = {};
+    const setObj = {};
+    const unsetObj = {};
+
+    if (doc.symbol === tokenCurrentSymbol) {
+      setObj.symbol = tokenNewSymbol;
+    }
+
+    const rateValue = doc.rates[tokenCurrentSymbol];
+    // token exists in rates
+    if (rateValue) {
+      setObj[`rates.${tokenNewSymbol}`] = rateValue;
+      unsetObj[`rates.${tokenCurrentSymbol}`] = '';
+
+      updateObj.$unset = {
+        ...unsetObj,
+      };
+    }
+
+    updateObj.$set = {
+      ...setObj,
+    };
+
+    return ConversionRates.update({ _id: doc._id }, { ...updateObj }).exec();
   });
 };
 
@@ -63,5 +126,7 @@ db.on('error', err => console.error('Could not connect to Mongo', err));
 db.once('open', () => {
   console.log('Connected to Mongo');
 
-  Promise.all([migrateConversations(), migrateCampaigns()]).then(() => process.exit());
+  Promise.all([migrateCampaigns(), migrateConversations(), migrateConversionRates()]).then(() =>
+    process.exit(),
+  );
 });
