@@ -26,6 +26,7 @@ const Campaigns = require('../../src/models/campaigns.model').createModel(app);
 const Conversations = require('../../src/models/conversations.model')(app);
 const ConversionRates = require('../../src/models/conversionRates.model')(app);
 const DACs = require('../../src/models/dacs.model').createModel(app);
+const Donations = require('../../src/models/donations.model').createModel(app);
 
 const updateEntityDonationCounters = (model, doc) => {
   const index = doc.donationCounters.findIndex(p => p.symbol === tokenCurrentSymbol);
@@ -128,6 +129,20 @@ const migrateConversionRates = () => {
   });
 };
 
+const migrateDonations = () =>
+  Donations.update(
+    { 'token.name': tokenCurrentSymbol },
+    {
+      $set: {
+        'token.name': tokenNewSymbol,
+        'token.symbol': tokenNewSymbol,
+      },
+    },
+    {
+      multi: true,
+    },
+  );
+
 const mongoUrl = config.mongodb;
 console.log('url:', mongoUrl);
 mongoose.connect(mongoUrl);
@@ -144,5 +159,6 @@ db.once('open', () => {
     migrateConversations(),
     migrateConversionRates(),
     migrateDACs(),
+    migrateDonations(),
   ]).then(() => process.exit());
 });
