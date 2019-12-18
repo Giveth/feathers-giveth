@@ -25,28 +25,41 @@ app.set('mongooseClient', mongoose);
 const Campaigns = require('../../src/models/campaigns.model').createModel(app);
 const Conversations = require('../../src/models/conversations.model')(app);
 const ConversionRates = require('../../src/models/conversionRates.model')(app);
+const DACs = require('../../src/models/dacs.model').createModel(app);
 
-const migrateCampaigns = () => {
-  const cursor = Campaigns.find({
-    'donationCounters.symbol': tokenCurrentSymbol,
-  }).cursor();
+const updateEntityDonationCounters = (model, doc) => {
+  const index = doc.donationCounters.findIndex(p => p.symbol === tokenCurrentSymbol);
+  const setObj = {};
 
-  return cursor.eachAsync(doc => {
-    const index = doc.donationCounters.findIndex(p => p.symbol === tokenCurrentSymbol);
-    const setObj = {};
+  setObj[`donationCounters.${index}.name`] = tokenNewSymbol;
+  setObj[`donationCounters.${index}.symbol`] = tokenNewSymbol;
 
-    setObj[`donationCounters.${index}.name`] = tokenNewSymbol;
-    setObj[`donationCounters.${index}.symbol`] = tokenNewSymbol;
-
-    return Campaigns.update(
+  return model
+    .update(
       { _id: doc._id },
       {
         $set: {
           ...setObj,
         },
       },
-    ).exec();
-  });
+    )
+    .exec();
+};
+
+const migrateCampaigns = () => {
+  const cursor = Campaigns.find({
+    'donationCounters.symbol': tokenCurrentSymbol,
+  }).cursor();
+
+  return cursor.eachAsync(doc => updateEntityDonationCounters(Campaigns, doc));
+};
+
+const migrateDACs = () => {
+  const cursor = DACs.find({
+    'donationCounters.symbol': tokenCurrentSymbol,
+  }).cursor();
+
+  return cursor.eachAsync(doc => updateEntityDonationCounters(DACs, doc));
 };
 
 const migrateConversations = () => {
@@ -126,7 +139,10 @@ db.on('error', err => console.error('Could not connect to Mongo', err));
 db.once('open', () => {
   console.log('Connected to Mongo');
 
-  Promise.all([migrateCampaigns(), migrateConversations(), migrateConversionRates()]).then(() =>
-    process.exit(),
-  );
+  Promise.all([
+    migrateCampaigns(),
+    migrateConversations(),
+    migrateConversionRates(),
+    migrateDACs(),
+  ]).then(() => process.exit());
 });
