@@ -27,40 +27,41 @@ const Conversations = require('../../src/models/conversations.model')(app);
 const ConversionRates = require('../../src/models/conversionRates.model')(app);
 const DACs = require('../../src/models/dacs.model').createModel(app);
 const Donations = require('../../src/models/donations.model').createModel(app);
+const Milestones = require('../../src/models/milestones.model').createModel(app);
 
-const updateEntityDonationCounters = (model, doc) => {
-  const index = doc.donationCounters.findIndex(p => p.symbol === tokenCurrentSymbol);
-  const setObj = {};
+const updateEntityDonationCounters = model => {
+  const cursor = model
+    .find({
+      'donationCounters.symbol': tokenCurrentSymbol,
+    })
+    .cursor();
 
-  setObj[`donationCounters.${index}.name`] = tokenNewSymbol;
-  setObj[`donationCounters.${index}.symbol`] = tokenNewSymbol;
+  return cursor.eachAsync(doc => {
+    const index = doc.donationCounters.findIndex(p => p.symbol === tokenCurrentSymbol);
+    const setObj = {};
 
-  return model
-    .update(
-      { _id: doc._id },
-      {
-        $set: {
-          ...setObj,
+    setObj[`donationCounters.${index}.name`] = tokenNewSymbol;
+    setObj[`donationCounters.${index}.symbol`] = tokenNewSymbol;
+
+    return model
+      .update(
+        { _id: doc._id },
+        {
+          $set: {
+            ...setObj,
+          },
         },
-      },
-    )
-    .exec();
+      )
+      .exec();
+  });
 };
 
 const migrateCampaigns = () => {
-  const cursor = Campaigns.find({
-    'donationCounters.symbol': tokenCurrentSymbol,
-  }).cursor();
-
-  return cursor.eachAsync(doc => updateEntityDonationCounters(Campaigns, doc));
+  return updateEntityDonationCounters(Campaigns);
 };
 
 const migrateDACs = () => {
-  const cursor = DACs.find({
-    'donationCounters.symbol': tokenCurrentSymbol,
-  }).cursor();
-
-  return cursor.eachAsync(doc => updateEntityDonationCounters(DACs, doc));
+  return updateEntityDonationCounters(DACs);
 };
 
 const migrateConversations = () => {
@@ -129,8 +130,8 @@ const migrateConversionRates = () => {
   });
 };
 
-const migrateDonations = () =>
-  Donations.update(
+const migrateDonations = () => {
+  return Donations.update(
     { 'token.name': tokenCurrentSymbol },
     {
       $set: {
@@ -142,6 +143,50 @@ const migrateDonations = () =>
       multi: true,
     },
   );
+};
+
+const migrateMilestones = () => {
+  const updateMilestoneTokenPromise = Milestones.update(
+    { 'token.name': tokenCurrentSymbol },
+    {
+      $set: {
+        'token.name': tokenNewSymbol,
+        'token.symbol': tokenNewSymbol,
+      },
+    },
+    {
+      multi: true,
+    },
+  );
+
+  // Update items selectedFiatType
+  const updateMilestoneItemsPromise = Milestones.find({
+    'items.selectedFiatType': tokenCurrentSymbol,
+  })
+    .cursor()
+    .eachAsync(doc => {
+      const setObj = {};
+      doc.items.forEach((item, index) => {
+        if (item.selectedFiatType === tokenCurrentSymbol) {
+          setObj[`items.${index}.selectedFiatType`] = tokenNewSymbol;
+        }
+      });
+      return Milestones.update(
+        { _id: doc._id },
+        {
+          $set: {
+            ...setObj,
+          },
+        },
+      ).exec();
+    });
+
+  return Promise.all([
+    updateEntityDonationCounters(Milestones),
+    updateMilestoneTokenPromise,
+    updateMilestoneItemsPromise,
+  ]);
+};
 
 const mongoUrl = config.mongodb;
 console.log('url:', mongoUrl);
@@ -160,5 +205,6 @@ db.once('open', () => {
     migrateConversionRates(),
     migrateDACs(),
     migrateDonations(),
+    migrateMilestones(),
   ]).then(() => process.exit());
 });
