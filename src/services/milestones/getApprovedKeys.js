@@ -101,9 +101,7 @@ const getApprovedKeys = (milestone, data, user) => {
           );
         }
         logger.info(
-          `Editing milestone with id: ${milestone._id} status: ${milestone.status} by: ${
-            user.address
-          }`,
+          `Editing milestone with id: ${milestone._id} status: ${milestone.status} by: ${user.address}`,
         );
 
         return editMilestoneKeys;
@@ -117,9 +115,7 @@ const getApprovedKeys = (milestone, data, user) => {
           throw new errors.Forbidden('Only the Milestone Manager can edit rejected milestone');
         }
         logger.info(
-          `Editing milestone with id: ${milestone._id} status: ${milestone.status} by: ${
-            user.address
-          }`,
+          `Editing milestone with id: ${milestone._id} status: ${milestone.status} by: ${user.address}`,
         );
         return editMilestoneKeys;
       }
@@ -238,9 +234,7 @@ const getApprovedKeys = (milestone, data, user) => {
           );
         }
         logger.info(
-          `Cancelling milestone with id: ${milestone._id} status: ${milestone.status} by: ${
-            user.address
-          }`,
+          `Cancelling milestone with id: ${milestone._id} status: ${milestone.status} by: ${user.address}`,
         );
         return ['txHash', 'status', 'mined', 'prevStatus', 'message', 'proofItems'];
       }
@@ -257,9 +251,7 @@ const getApprovedKeys = (milestone, data, user) => {
           throw new errors.Forbidden('Only the Milestone and Campaign Manager can edit milestone');
         }
         logger.info(
-          `Editing milestone with id: ${milestone._id} status: ${milestone.status} by: ${
-            user.address
-          }`,
+          `Editing milestone with id: ${milestone._id} status: ${milestone.status} by: ${user.address}`,
         );
         return editMilestoneKeysOnChain;
       }
