@@ -31,26 +31,29 @@ const _getRatesDb = async (app, timestamp, symbol = 'ETH') => {
  *
  * @param {Number} timestamp   Timestamp for which the value should be retrieved
  * @param {Array}  ratestToGet Rates that are missing in the DB and should be retrieved
+ * @param {Array}  stableCoins coins whose value equal one usd
  *
  * @return {Object} Rates object in format { EUR: 241, USD: 123 }
  */
-const _getRatesCryptocompare = async (timestamp, ratesToGet, symbol) => {
+const _getRatesCryptocompare = async (timestamp, ratesToGet, symbol, stableCoins) => {
   logger.debug(`Fetching coversion rates from crypto compare for: ${ratesToGet}`);
   const timestampMS = Math.round(timestamp / 1000);
 
   const rates = {};
   rates[symbol] = 1;
 
+  const requestSymbol = stableCoins.includes(symbol) ? 'USD' : symbol;
   // Fetch the conversion rate
   const promises = ratesToGet.map(async r => {
-    if (r !== symbol) {
+    const rateSymbol = stableCoins.includes(r) ? 'USD' : r;
+    if (rateSymbol !== symbol) {
       const resp = JSON.parse(
         await rp(
-          `https://min-api.cryptocompare.com/data/dayAvg?fsym=${symbol}&tsym=${r}&toTs=${timestampMS}&extraParams=giveth`,
+          `https://min-api.cryptocompare.com/data/dayAvg?fsym=${requestSymbol}&tsym=${rateSymbol}&toTs=${timestampMS}&extraParams=giveth`,
         ),
       );
 
-      if (resp && resp[r]) rates[r] = resp[r];
+      if (resp && resp[rateSymbol]) rates[r] = resp[rateSymbol];
     }
   });
 
@@ -121,6 +124,7 @@ const getConversionRates = async (app, requestedDate, requestedSymbol = 'ETH') =
   const timestamp = reqDateUTC < yesterdayUTC ? reqDateUTC : yesterdayUTC;
 
   const fiat = app.get('fiatWhitelist');
+  const stableCoins = app.get('stableCoins') || [];
 
   logger.debug(`request eth conversion for timestamp ${timestamp}`);
 
@@ -134,8 +138,13 @@ const getConversionRates = async (app, requestedDate, requestedSymbol = 'ETH') =
   if (unknownRates.length !== 0) {
     logger.debug('fetching eth coversion from crypto compare');
     // Some rates have not been obtained yet, get them from cryptocompare
-    const newRates = await _getRatesCryptocompare(timestamp, unknownRates, requestedSymbol);
-    rates = Object.assign({}, dbRates.rates, newRates);
+    const newRates = await _getRatesCryptocompare(
+      timestamp,
+      unknownRates,
+      requestedSymbol,
+      stableCoins,
+    );
+    rates = { ...dbRates.rates, ...newRates };
 
     // Save the newly retrieved rates
     await _saveToDB(app, dbRates.timestamp, rates, requestedSymbol, dbRates._id);
@@ -149,6 +158,12 @@ const getHourlyUSDCryptoConversion = async (app, ts, tokenSymbol = 'ETH') => {
 
   // set the date to the top of the hour
   const requestTs = new Date(ts).setUTCMinutes(0, 0, 0);
+
+  // Return 1 for stable coins
+  const stableCoins = app.get('stableCoins') || [];
+  if (stableCoins.includes(tokenSymbol)) {
+    return { timestamp: requestTs, rate: 1 };
+  }
 
   // Check if we already have this exchange rate for this timestamp, if not we save it
   const dbRates = await _getRatesDb(app, requestTs, tokenSymbol);
