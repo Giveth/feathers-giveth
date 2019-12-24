@@ -46,7 +46,7 @@ const _getRatesCryptocompare = async (timestamp, ratesToGet, symbol, stableCoins
   // Fetch the conversion rate
   const promises = ratesToGet.map(async r => {
     const rateSymbol = stableCoins.includes(r) ? 'USD' : r;
-    if (rateSymbol !== symbol) {
+    if (rateSymbol !== requestSymbol) {
       const resp = JSON.parse(
         await rp(
           `https://min-api.cryptocompare.com/data/dayAvg?fsym=${requestSymbol}&tsym=${rateSymbol}&toTs=${timestampMS}&extraParams=giveth`,
@@ -54,6 +54,8 @@ const _getRatesCryptocompare = async (timestamp, ratesToGet, symbol, stableCoins
       );
 
       if (resp && resp[rateSymbol]) rates[r] = resp[rateSymbol];
+    } else {
+      rates[r] = 1;
     }
   });
 
@@ -98,7 +100,28 @@ const _saveToDB = (app, timestamp, rates, symbol, _id = undefined) => {
   if (_id) return app.service('conversionRates').patch(_id, { rates });
 
   // Create new record
-  return app.service('conversionRates').create({ timestamp, rates, symbol });
+  return new Promise((resolve, reject) => {
+    app
+      .service('conversionRates')
+      .create({ timestamp, rates, symbol })
+      .then(r => resolve(r))
+      .catch(e => {
+        // Token may exists in db
+        if (e.name === 'Conflict') {
+          // eslint-disable-next-line consistent-return
+          _getRatesDb(app, timestamp, symbol).then(r => {
+            if (r._id) {
+              return _saveToDB(app, timestamp, rates, symbol, r._id);
+            }
+            logger.error(e);
+            reject(e);
+          });
+        } else {
+          logger.error(e);
+          reject(e);
+        }
+      });
+  });
 };
 
 /**
