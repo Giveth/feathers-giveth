@@ -24,40 +24,42 @@ db.once('open', async () => {
       messageContext: 'payment',
     }).toArray();
     await Promise.all(
-      conversations.map(async (conversation) => {
-          const donations = await Donations.find({
-            txHash: conversation.txHash,
-            status: 'Paid',
-          }).toArray();
+      conversations.map(async conversation => {
+        const donations = await Donations.find({
+          txHash: conversation.txHash,
+          status: 'Paid',
+        }).toArray();
 
-          const payments = [];
+        const payments = [];
 
-          donations.forEach(donation => {
-            const { amount } = donation;
-            const symbol = donation.token.name;
-            const index = payments.findIndex(p => p.symbol === symbol);
+        donations.forEach(donation => {
+          const { amount } = donation;
+          const symbol = donation.token.name;
+          const index = payments.findIndex(p => p.symbol === symbol);
 
-            if (index !== -1) {
-              payments[index].amount = toBN(amount).add(toBN(payments[index].amount)).toString();
-            } else {
-              payments.push({ symbol: symbol, amount: amount });
-            }
-          });
+          if (index !== -1) {
+            payments[index].amount = toBN(amount)
+              .add(toBN(payments[index].amount))
+              .toString();
+          } else {
+            payments.push({ symbol, amount });
+          }
+        });
 
-          return Conversations.updateOne(
-            { _id: conversation._id },
-            {
-              $set: {
-                payments: payments,
-              },
-              $unset: {
-                paidAmount: '',
-                paidSymbol: '',
-              },
+        return Conversations.updateOne(
+          { _id: conversation._id },
+          {
+            $set: {
+              payments,
             },
-          );
-        },
-      ));
+            $unset: {
+              paidAmount: '',
+              paidSymbol: '',
+            },
+          },
+        );
+      }),
+    );
     console.log('Done');
     process.exit();
   } catch (e) {
