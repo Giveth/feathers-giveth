@@ -3,11 +3,11 @@ const { toBN } = require('web3-utils');
 const logger = require('winston');
 const semaphore = require('semaphore');
 
+const _groupBy = require('lodash.groupby');
 const { AdminTypes } = require('../../models/pledgeAdmins.model');
 const { DonationStatus } = require('../../models/donations.model');
 const { MilestoneTypes } = require('../../models/milestones.model');
 const { ANY_TOKEN } = require('../../blockchain/lib/web3Helpers');
-const _groupBy = require('lodash.groupby');
 
 const ENTITY_SERVICES = {
   [AdminTypes.DAC]: 'dacs',
@@ -124,7 +124,7 @@ const updateEntity = async (app, id, type) => {
       donationCounters.length > 0 &&
       entity.token.foreignAddress !== ANY_TOKEN.foreignAddress &&
       entity.maxAmount ===
-      donationCounters.find(dc => dc.symbol === entity.token.symbol).totalDonated.toString();
+        donationCounters.find(dc => dc.symbol === entity.token.symbol).totalDonated.toString();
 
     const peopleCount = new Set(donations.map(d => d.giverAddress)).size;
 
@@ -150,18 +150,17 @@ const createConversation = async (context, donation, milestoneId) => {
       .then(milestone => {
         const { recipient } = milestone;
         const { txHash, amount } = donation;
-        const symbol = donation.token.symbol;
+        const { symbol } = donation.token;
         const service = app.service('conversations');
 
         conversationSem.take(async () => {
-
           try {
             const data = await service.find({
               paginate: false,
               query: {
-                milestoneId: milestoneId,
+                milestoneId,
                 messageContext: 'payment',
-                txHash: txHash,
+                txHash,
                 $limit: 1,
               },
             });
@@ -172,27 +171,28 @@ const createConversation = async (context, donation, milestoneId) => {
               const index = payments.findIndex(p => p.symbol === symbol);
 
               if (index !== -1) {
-                payments[index].amount = toBN(amount).add(toBN(payments[index].amount)).toString();
+                payments[index].amount = toBN(amount)
+                  .add(toBN(payments[index].amount))
+                  .toString();
               } else {
-                payments.push({ symbol: symbol, amount: amount });
+                payments.push({ symbol, amount });
               }
 
-              await service.patch(
-                conversation._id,
-                {
-                  payments: payments,
-                },
-              );
+              await service.patch(conversation._id, {
+                payments,
+              });
             } else {
               await service.create(
                 {
-                  milestoneId: milestoneId,
+                  milestoneId,
                   messageContext: 'payment',
-                  txHash: txHash,
-                  payments: [{
-                    amount: amount,
-                    symbol: symbol,
-                  }],
+                  txHash,
+                  payments: [
+                    {
+                      amount,
+                      symbol,
+                    },
+                  ],
                   recipientAddress: recipient.address,
                 },
                 { performedByAddress: context.params.from },
@@ -224,8 +224,8 @@ const updateDonationEntity = async (context, donation) => {
       })
       .then(donations =>
         donations
-        // set isReturn = false b/c so we don't recursively update parent donations
-          .map(d => Object.assign({}, d, { isReturn: false }))
+          // set isReturn = false b/c so we don't recursively update parent donations
+          .map(d => ({ ...d, isReturn: false }))
           .forEach(d => updateDonationEntity(context, d)),
       );
   }

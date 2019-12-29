@@ -5,13 +5,15 @@ const Contract = require('web3-eth-contract');
  * @returns {object} map of event names => log decoder
  */
 function eventDecodersFromArtifact(artifact) {
-  return artifact.compilerOutput.abi.filter(method => method.type === 'event').reduce(
-    (decoders, event) =>
-      Object.assign({}, decoders, {
+  return artifact.compilerOutput.abi
+    .filter(method => method.type === 'event')
+    .reduce(
+      (decoders, event) => ({
+        ...decoders,
         [event.name]: Contract.prototype._decodeEventABI.bind(event),
       }),
-    {},
-  );
+      {},
+    );
 }
 
 module.exports = eventDecodersFromArtifact;

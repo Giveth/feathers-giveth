@@ -1,7 +1,7 @@
+const logger = require('winston');
 const queryGasPrice = require('./blockchain/gasPriceService');
 const { queryConversionRates } = require('./services/conversionRates/getConversionRatesService');
 
-const logger = require('winston');
 const app = require('./app');
 
 const port = app.get('port');

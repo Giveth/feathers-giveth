@@ -49,17 +49,13 @@ module.exports = {
     Object.assign(data, {
       template: 'notification',
       subject: 'Giveth - Thank you for your donation!',
-      secretIntro: `Thank you for your donation of ${data.amount} ${data.token.symbol} to the ${
-        data.donationType
-      } "${data.donatedToTitle}"!`,
+      secretIntro: `Thank you for your donation of ${data.amount} ${data.token.symbol} to the ${data.donationType} "${data.donatedToTitle}"!`,
       title: 'You are so awesome!',
       image: 'Giveth-donation-banner-email.png',
       text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
-          Thank you very much for your donation of ${data.amount} ${data.token.symbol} to the ${
-        data.donationType
-      } <em>${data.donatedToTitle}</em>.
+          Thank you very much for your donation of ${data.amount} ${data.token.symbol} to the ${data.donationType} <em>${data.donatedToTitle}</em>.
           With your donation we can really make this happen, and you play a vital part in making the world a better place!
         </p>
       `,
@@ -78,9 +74,7 @@ module.exports = {
     Object.assign(data, {
       template: 'notification',
       subject: "Giveth - You've received a donation!",
-      secretIntro: `You have received a donation of ${data.amount} ${data.token.symbol} for the ${
-        data.donationType
-      } "${data.donatedToTitle}"!`,
+      secretIntro: `You have received a donation of ${data.amount} ${data.token.symbol} for the ${data.donationType} "${data.donatedToTitle}"!`,
       title: 'You are so awesome!',
       image: 'Giveth-donation-banner-email.png',
       text: `
@@ -106,9 +100,7 @@ module.exports = {
     Object.assign(data, {
       template: 'notification',
       subject: 'Giveth - Delegation required for new donation!',
-      secretIntro: `Take action! Please delegate a new donation of ${data.amount} ${
-        data.token.symbol
-      } for the ${data.donationType} "${data.donatedToTitle}"!`,
+      secretIntro: `Take action! Please delegate a new donation of ${data.amount} ${data.token.symbol} for the ${data.donationType} "${data.donatedToTitle}"!`,
       title: "Take action! You've received a donation, delegate now!",
       image: 'Giveth-donation-banner-email.png',
       text: `
@@ -141,9 +133,7 @@ module.exports = {
     Object.assign(data, {
       template: 'notification',
       subject: 'Giveth - Your donation has been delegated!',
-      secretIntro: `Take action! Please approve or reject the delegation of ${data.amount} ${
-        data.token.symbol
-      } to the ${data.delegationType} "${data.delegatedToTitle}"!`,
+      secretIntro: `Take action! Please approve or reject the delegation of ${data.amount} ${data.token.symbol} to the ${data.delegationType} "${data.delegatedToTitle}"!`,
       title: "Take action! You're donation has been delegated!",
       image: 'Giveth-donation-banner-email.png',
       text: `
@@ -180,9 +170,7 @@ module.exports = {
       text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
-          A milestone <em>${data.milestoneTitle}</em> for ${data.amount} ${
-        data.token.symbol
-      } has been proposed for your campaign to the campaign <em>${data.campaignTitle}</em>.
+          A milestone <em>${data.milestoneTitle}</em> for ${data.amount} ${data.token.symbol} has been proposed for your campaign to the campaign <em>${data.campaignTitle}</em>.
           If you think this is a great idea, then <strong>please approve this milestone within 3 days</strong> to add it to your campaign.
           If not, then please reject it.
         </p>
@@ -201,17 +189,13 @@ module.exports = {
     Object.assign(data, {
       template: 'notification',
       subject: 'Giveth - Your proposed milestone is accepted!',
-      secretIntro: `Your milestone ${
-        data.milestoneTitle
-      } has been accepted by the campaign owner. You can now receive donations.`,
+      secretIntro: `Your milestone ${data.milestoneTitle} has been accepted by the campaign owner. You can now receive donations.`,
       title: 'Take action: Milestone proposed!',
       image: 'Giveth-milestone-review-approved-banner-email.png',
       text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
-          Your proposed milestone <em>${data.milestoneTitle}</em> to the campaign <em>${
-        data.campaignTitle
-      }</em> has been accepted by the campaign owner!
+          Your proposed milestone <em>${data.milestoneTitle}</em> to the campaign <em>${data.campaignTitle}</em> has been accepted by the campaign owner!
           <br/><br/>
           You can now receive donations, start executing the milestone, and once finished, mark it as complete.
         </p>
@@ -230,19 +214,13 @@ module.exports = {
     Object.assign(data, {
       template: 'notification',
       subject: 'Giveth - Your proposed milestone is rejected :-(',
-      secretIntro: `Your milestone ${
-        data.milestoneTitle
-      } has been rejected by the campaign owner :-(`,
+      secretIntro: `Your milestone ${data.milestoneTitle} has been rejected by the campaign owner :-(`,
       title: 'Milestone rejected :-(',
       image: 'Giveth-milestone-review-approved-banner-email.png',
       text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
-          Unfortunately your proposed milestone <em>${
-            data.milestoneTitle
-          }</em> to the campaign <em>${
-        data.campaignTitle
-      }</em> has been rejected by the campaign owner.
+          Unfortunately your proposed milestone <em>${data.milestoneTitle}</em> to the campaign <em>${data.campaignTitle}</em> has been rejected by the campaign owner.
           <br/><br/>
           Please contact the campaign owner to learn why your milestone was rejected.
         </p>
@@ -261,17 +239,13 @@ module.exports = {
     Object.assign(data, {
       template: 'notification',
       subject: 'Giveth - Time to review!',
-      secretIntro: `Take action: you are requested to review the milestone ${
-        data.milestoneTitle
-      } within 3 days.`,
+      secretIntro: `Take action: you are requested to review the milestone ${data.milestoneTitle} within 3 days.`,
       title: 'Milestone review requested',
       image: 'Giveth-review-banner-email.png',
       text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
-          The milestone <em>${data.milestoneTitle}</em> to the campaign <em>${
-        data.campaignTitle
-      }</em> has been marked as completed by the milestone owner.
+          The milestone <em>${data.milestoneTitle}</em> to the campaign <em>${data.campaignTitle}</em> has been marked as completed by the milestone owner.
           <br/><br/>
         </p>
           Now is your moment to shine!
@@ -294,17 +268,13 @@ module.exports = {
     Object.assign(data, {
       template: 'notification',
       subject: 'Giveth - Your milestone is finished!',
-      secretIntro: `Your milestone ${
-        data.milestoneTitle
-      } has been marked complete by the reviewer. The recipient can now collect the payment.`,
+      secretIntro: `Your milestone ${data.milestoneTitle} has been marked complete by the reviewer. The recipient can now collect the payment.`,
       title: `Milestone completed! Time to collect ${data.token.symbol}.`,
       image: 'Giveth-milestone-review-approved-banner-email.png',
       text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
-          The milestone <em>${data.milestoneTitle}</em> in the campaign <em>${
-        data.campaignTitle
-      }</em> has been marked complete by the reviewer!.
+          The milestone <em>${data.milestoneTitle}</em> in the campaign <em>${data.campaignTitle}</em> has been marked complete by the reviewer!.
           <br/><br/>
         </p>
           The recipient can now transfer the funds out of this milestone!
@@ -325,17 +295,13 @@ module.exports = {
       template: 'notification',
       subject: 'Giveth - Milestone rejected by reviewer :-(',
       type: 'milestone-review-rejected',
-      secretIntro: `The completion of your milestone ${
-        data.milestoneTitle
-      } has been rejected by the reviewer.`,
+      secretIntro: `The completion of your milestone ${data.milestoneTitle} has been rejected by the reviewer.`,
       title: 'Milestone completion rejected.',
       image: 'Giveth-milestone-review-rejected-banner-email.png',
       text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
-          The milestone completion <em>${data.milestoneTitle}</em> in the campaign <em>${
-        data.campaignTitle
-      }</em> has been rejected by the reviewer.
+          The milestone completion <em>${data.milestoneTitle}</em> in the campaign <em>${data.campaignTitle}</em> has been rejected by the reviewer.
         </p>
       `,
       cta: `Manage Milestone`,
@@ -359,9 +325,7 @@ module.exports = {
       text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
-          The milestone <em>${data.milestoneTitle}</em> in the campaign <em>${
-        data.campaignTitle
-      }</em> has been canceled.
+          The milestone <em>${data.milestoneTitle}</em> in the campaign <em>${data.campaignTitle}</em> has been canceled.
         </p>
       `,
       cta: `Manage Milestones`,
@@ -387,9 +351,7 @@ module.exports = {
       text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
-          A milestone <em>${data.milestoneTitle}</em> for ${data.amount} ${
-        data.token.symbol
-      } has been created with you as the recipient.
+          A milestone <em>${data.milestoneTitle}</em> for ${data.amount} ${data.token.symbol} has been created with you as the recipient.
         </p>
       `,
       cta: `See your Milestones`,

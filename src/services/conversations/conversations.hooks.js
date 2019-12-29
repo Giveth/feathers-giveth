@@ -1,8 +1,8 @@
 const logger = require('winston');
 const commons = require('feathers-hooks-common');
 const { disallow } = require('feathers-hooks-common');
-const sanitizeAddress = require('../../hooks/sanitizeAddress');
 const errors = require('@feathersjs/errors');
+const sanitizeAddress = require('../../hooks/sanitizeAddress');
 const sanitizeHtml = require('../../hooks/sanitizeHtml');
 const resolveFiles = require('../../hooks/resolveFiles');
 const onlyInternal = require('../../hooks/onlyInternal');

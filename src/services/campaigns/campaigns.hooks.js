@@ -63,8 +63,8 @@ const restrict = () => context => {
     commons.deleteByDot(data, 'txHash');
   };
 
-  return getCampaigns().then(
-    campaigns => (Array.isArray(campaigns) ? campaigns.forEach(canUpdate) : canUpdate(campaigns)),
+  return getCampaigns().then(campaigns =>
+    Array.isArray(campaigns) ? campaigns.forEach(canUpdate) : canUpdate(campaigns),
   );
 };
 
@@ -94,11 +94,10 @@ const addMilestoneCounts = () => context => {
     promises = [countMilestones(items, service)];
   }
 
-  return Promise.all(promises).then(
-    results =>
-      Array.isArray(items)
-        ? commons.replaceItems(context, results)
-        : commons.replaceItems(context, results[0]),
+  return Promise.all(promises).then(results =>
+    Array.isArray(items)
+      ? commons.replaceItems(context, results)
+      : commons.replaceItems(context, results[0]),
   );
 };
 
