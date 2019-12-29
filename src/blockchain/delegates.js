@@ -71,13 +71,15 @@ const delegates = (app, liquidPledging) => {
       if (!dac) return;
 
       const profile = await fetchProfile(delegate.url);
-      const mutation = Object.assign({ title: delegate.name }, profile, {
+      const mutation = {
+        title: delegate.name,
+        ...profile,
         delegateId,
         commitTime: delegate.commitTime,
         pluginAddress: delegate.plugin,
         status: DacStatus.ACTIVE,
         url: delegate.url,
-      });
+      };
 
       return dacs.patch(dac._id, mutation);
     } catch (err) {

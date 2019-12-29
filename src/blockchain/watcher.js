@@ -115,9 +115,7 @@ const watcher = (app, eventHandler) => {
       );
     }
 
-    await eventService.create(
-      Object.assign({}, event, { confirmations: 0, status: EventStatus.PENDING }),
-    );
+    await eventService.create({ ...event, confirmations: 0, status: EventStatus.PENDING });
 
     queue.purge();
   }
@@ -145,9 +143,7 @@ const watcher = (app, eventHandler) => {
    */
   function newPendingEvent(event) {
     logger.info(
-      `newPendingEvent called. Block: ${event.blockNumber} log: ${
-        event.logIndex
-      } transactionHash: ${event.transactionHash}`,
+      `newPendingEvent called. Block: ${event.blockNumber} log: ${event.logIndex} transactionHash: ${event.transactionHash}`,
     );
     // during a reorg, the same event can occur in quick succession, so we add everything to a
     // queue so they are processed synchronously
@@ -188,9 +184,7 @@ const watcher = (app, eventHandler) => {
    */
   function removeEvent(event) {
     logger.info(
-      `removeEvent called. Block: ${event.blockNumber} log: ${event.logIndex} transactionHash: ${
-        event.transactionHash
-      }`,
+      `removeEvent called. Block: ${event.blockNumber} log: ${event.logIndex} transactionHash: ${event.transactionHash}`,
     );
     // during a reorg, the same event can occur in quick succession, so we add everything to a
     // queue so they are processed synchronously
@@ -454,6 +448,8 @@ const watcher = (app, eventHandler) => {
    * @return {Promise} Resolves to the event that was processed of false if there was no event to be processed
    */
   function processNextEvent() {
+    //  TODO: Fix this anti-pattern
+    // eslint-disable-next-line no-async-promise-executor
     return new Promise(async (resolve, reject) => {
       let event;
       try {
@@ -505,9 +501,7 @@ const watcher = (app, eventHandler) => {
     }
 
     logger.info(
-      `Adding new event. Block: ${event.blockNumber} log: ${event.logIndex} transactionHash: ${
-        event.transactionHash
-      }`,
+      `Adding new event. Block: ${event.blockNumber} log: ${event.logIndex} transactionHash: ${event.transactionHash}`,
     );
 
     try {
@@ -522,11 +516,7 @@ const watcher = (app, eventHandler) => {
 
       if (!isReprocess && events.length > 0 && events[0].status !== EventStatus.PENDING) {
         logger.error(
-          `Attempt to add an event that already exists. Blocknumber: ${
-            event.blockNumber
-          }, logIndex: ${event.logIndex}, transactionHash: ${event.transactionHash}, status: ${
-            events[0].status
-          }`,
+          `Attempt to add an event that already exists. Blocknumber: ${event.blockNumber}, logIndex: ${event.logIndex}, transactionHash: ${event.transactionHash}, status: ${events[0].status}`,
         );
         return;
       }
@@ -536,12 +526,11 @@ const watcher = (app, eventHandler) => {
         await eventService.patch(events[0]._id, { status: EventStatus.WAITING });
       } else {
         // Create the event in the DB
-        await eventService.create(
-          Object.assign({}, event, {
-            confirmations: requiredConfirmations,
-            status: EventStatus.WAITING,
-          }),
-        );
+        await eventService.create({
+          ...event,
+          confirmations: requiredConfirmations,
+          status: EventStatus.WAITING,
+        });
       }
     } catch (err) {
       logger.error('Error adding event to the DB', err);

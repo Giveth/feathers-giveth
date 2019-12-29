@@ -40,18 +40,12 @@ const givers = (app, liquidPledging) => {
 
     if (user.giverId > 0 && user.giverId !== Number(giverId)) {
       logger.error(
-        `user already has a giverId set. existing giverId: ${
-          user.giverId
-        }, new giverId: ${giverId}`,
+        `user already has a giverId set. existing giverId: ${user.giverId}, new giverId: ${giverId}`,
       );
     }
 
     const profile = giver.url ? await fetchProfile(giver.url) : undefined;
-    const mutation = Object.assign({ name }, profile, {
-      commitTime,
-      giverId,
-      url,
-    });
+    const mutation = { name, ...profile, commitTime, giverId, url };
 
     return users.patch(user.address, mutation);
   }
@@ -115,9 +109,7 @@ const givers = (app, liquidPledging) => {
         // If a giver changes address, update users to reflect the change.
         if (giver.addr !== user.address) {
           logger.info(
-            `giver address "${giver.addr}" differs from users address "${
-              user.address
-            }". Updating users to match`,
+            `giver address "${giver.addr}" differs from users address "${user.address}". Updating users to match`,
           );
           users.patch(user.address, { $unset: { giverId: true } });
           return addGiver(giver, giverId);

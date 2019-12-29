@@ -427,11 +427,10 @@ const failedTxMonitor = (app, eventWatcher) => {
         getPendingDonations(app),
       ]);
 
-      pendingDonations.forEach(
-        d =>
-          d.txHash
-            ? updateDonationIfFailed(blockNumber, d)
-            : updateInitialDonationIfFailed(blockNumber, d),
+      pendingDonations.forEach(d =>
+        d.txHash
+          ? updateDonationIfFailed(blockNumber, d)
+          : updateInitialDonationIfFailed(blockNumber, d),
       );
     } catch (e) {
       logger.error(e);
