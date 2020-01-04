@@ -2,6 +2,7 @@ const ForeignGivethBridgeArtifact = require('giveth-bridge/build/ForeignGivethBr
 const LiquidPledgingArtifact = require('giveth-liquidpledging/build/LiquidPledging.json');
 const logger = require('winston');
 const { toBN } = require('web3-utils');
+const semaphore = require('semaphore');
 const eventDecodersFromArtifact = require('./lib/eventDecodersFromArtifact');
 const topicsFromArtifacts = require('./lib/topicsFromArtifacts');
 const { getBlockTimestamp, executeRequestsAsBatch, ANY_TOKEN } = require('./lib/web3Helpers');
@@ -12,7 +13,6 @@ const { AdminTypes } = require('../models/pledgeAdmins.model');
 const toWrapper = require('../utils/to');
 const reprocess = require('../utils/reprocess');
 const notify = require('../utils/sendPledgeNotifications');
-const semaphore = require('semaphore');
 
 function isOlderThenAMin(ts) {
   return Date.now() - ts > 1000 * 60;
@@ -20,15 +20,16 @@ function isOlderThenAMin(ts) {
 
 // only log necessary transferInfo
 function logTransferInfo(transferInfo) {
-  const info = Object.assign({}, transferInfo, {
+  const info = {
+    ...transferInfo,
     donations: transferInfo.donations.slice().map(d => {
       // eslint-disable-next-line no-param-reassign
       delete d.ownerEntity;
       return d;
     }),
-    fromPledgeAdmin: Object.assign({}, transferInfo.fromPledgeAdmin),
-    toPledgeAdmin: Object.assign({}, transferInfo.toPledgeAdmin),
-  });
+    fromPledgeAdmin: { ...transferInfo.fromPledgeAdmin },
+    toPledgeAdmin: { ...transferInfo.toPledgeAdmin },
+  };
   delete info.fromPledgeAdmin.admin;
   delete info.toPledgeAdmin.admin;
   logger.error('missing from donation ->', JSON.stringify(info, null, 2));

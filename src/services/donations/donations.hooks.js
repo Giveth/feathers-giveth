@@ -259,7 +259,7 @@ const restrict = () => async context => {
 };
 
 const joinDonationRecipient = (item, context) => {
-  const newContext = Object.assign({}, context, { result: item });
+  const newContext = { ...context, result: item };
 
   let ownerSchema;
   // if this is po-giver schema, we need to change the `nameAs` to ownerEntity
@@ -272,13 +272,12 @@ const joinDonationRecipient = (item, context) => {
   return commons
     .populate({ schema: ownerSchema })(newContext)
     .then(c => (item.delegateId ? commons.populate({ schema: poSchemas['po-dac'] })(c) : c))
-    .then(
-      c =>
-        item.intendedProjectId > 0 && item.intendedProjectType
-          ? commons.populate({
-              schema: poSchemas[`po-${item.intendedProjectType.toLowerCase()}-intended`],
-            })(c)
-          : c,
+    .then(c =>
+      item.intendedProjectId > 0 && item.intendedProjectType
+        ? commons.populate({
+            schema: poSchemas[`po-${item.intendedProjectType.toLowerCase()}-intended`],
+          })(c)
+        : c,
     )
     .then(c => c.result);
 };
@@ -320,7 +319,8 @@ const updateMilestoneIfNotPledged = () => async context => {
 const populateSchema = () => context => {
   if (context.params.schema === 'includeGiverDetails') {
     return commons.populate({ schema: poSchemas['po-giver'] })(context);
-  } else if (['includeTypeDetails', 'includeTypeAndGiverDetails'].includes(context.params.schema)) {
+  }
+  if (['includeTypeDetails', 'includeTypeAndGiverDetails'].includes(context.params.schema)) {
     if (context.params.schema === 'includeTypeAndGiverDetails') {
       commons.populate({ schema: poSchemas['po-giver'] })(context);
     }
