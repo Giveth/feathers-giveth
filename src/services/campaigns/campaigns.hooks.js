@@ -63,8 +63,8 @@ const restrict = () => context => {
     commons.deleteByDot(data, 'txHash');
   };
 
-  return getCampaigns().then(campaigns =>
-    Array.isArray(campaigns) ? campaigns.forEach(canUpdate) : canUpdate(campaigns),
+  return getCampaigns().then(
+    campaigns => (Array.isArray(campaigns) ? campaigns.forEach(canUpdate) : canUpdate(campaigns)),
   );
 };
 

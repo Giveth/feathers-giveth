@@ -27,7 +27,7 @@ function createModel(app) {
       reviewerAddress: { type: String, required: true, index: true },
       ownerAddress: { type: String, required: true, index: true },
       coownerAddress: { type: String, required: true, index: true },
-      fundsForwarder: { type: String, required: false, index: false },
+      fundsForwarder: { type: String, required: true, index: true },
       pluginAddress: { type: String },
       tokenAddress: { type: String },
       mined: { type: Boolean, required: true, default: false },
