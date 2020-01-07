@@ -4,6 +4,9 @@ const fs = require('fs');
 const { LiquidPledging, LiquidPledgingState } = require('giveth-liquidpledging');
 // const web3Helper = require('../../src/blockchain/lib/web3Helpers');
 
+const foreignNodeUrl = 'ws://localhost:8546';
+const liquidPledgingAddress = '0xBeFdf675cb73813952C5A9E4B84ea8B866DBA592';
+
 function instantiateWeb3(nodeUrl) {
   const provider =
     nodeUrl && nodeUrl.startsWith('ws')
@@ -17,15 +20,12 @@ function instantiateWeb3(nodeUrl) {
   return new Web3(provider);
 }
 
-async function getPledgeAdmin(updateState) {
+async function getStatus(updateState) {
+  const cacheFile = './liquidPledgingState.json';
   let status;
   if (updateState) {
-    const nodeUrl = 'wss://rinkeby.giveth.io/ws';
-    const foreignWeb3 = instantiateWeb3(nodeUrl);
-    const liquidPledging = new LiquidPledging(
-      foreignWeb3,
-      '0x8eB047585ABeD935a73ba4b9525213F126A0c979',
-    );
+    const foreignWeb3 = instantiateWeb3(foreignNodeUrl);
+    const liquidPledging = new LiquidPledging(foreignWeb3, liquidPledgingAddress);
     const liquidPledgingState = new LiquidPledgingState(liquidPledging);
 
     // const [numberOfPledges] = await web3Helper.executeRequestsAsBatch(foreignWeb3, [
@@ -35,14 +35,19 @@ async function getPledgeAdmin(updateState) {
 
     status = await liquidPledgingState.getState();
 
-    fs.writeFileSync('liquidPledginState_beta.json', JSON.stringify(status, null, 2));
+    fs.writeFileSync(cacheFile, JSON.stringify(status, null, 2));
   } else {
-    status = JSON.parse(fs.readFileSync('./liquidPledginState_beta.json'));
+    status = JSON.parse(fs.readFileSync(cacheFile));
   }
 
-  console.log('status.pledges.length', status.pledges.length);
-
-  process.exit(0);
+  return status;
 }
 
-getPledgeAdmin(false);
+getStatus(false)
+  .then(status => {
+    console.log('Number of pledges', status.pledges.length - 1);
+    process.exit(0);
+  })
+  .catch(() => {
+    process.exit(1);
+  });
