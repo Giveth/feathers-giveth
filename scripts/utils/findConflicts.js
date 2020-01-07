@@ -1,5 +1,7 @@
+/* eslint-disable no-continue */
 const Web3 = require('web3');
 const fs = require('fs');
+const BigNumber = require('bignumber.js');
 
 const { LiquidPledging, LiquidPledgingState } = require('giveth-liquidpledging');
 // const web3Helper = require('../../src/blockchain/lib/web3Helpers');
@@ -20,10 +22,10 @@ function instantiateWeb3(nodeUrl) {
   return new Web3(provider);
 }
 
-async function getStatus(updateState) {
+async function getStatus(updateCache) {
   const cacheFile = './liquidPledgingState.json';
   let status;
-  if (updateState) {
+  if (updateCache) {
     const foreignWeb3 = instantiateWeb3(foreignNodeUrl);
     const liquidPledging = new LiquidPledging(foreignWeb3, liquidPledgingAddress);
     const liquidPledgingState = new LiquidPledgingState(liquidPledging);
@@ -43,11 +45,44 @@ async function getStatus(updateState) {
   return status;
 }
 
-getStatus(false)
-  .then(status => {
-    console.log('Number of pledges', status.pledges.length - 1);
-    process.exit(0);
-  })
-  .catch(() => {
-    process.exit(1);
-  });
+const main = async updateCache => {
+  try {
+    const status = await getStatus(updateCache);
+    const { pledges, admins } = status;
+
+    const adminProjects = new Set();
+    for (let i = 1; i < admins.length; i += 1) {
+      if (admins[i].type === 'Project') {
+        adminProjects.add(i);
+      }
+    }
+
+    const projectBalanceMap = new Map();
+
+    for (let i = 1; i < pledges.length; i += 1) {
+      const pledge = pledges[i];
+      const { amount, owner, token } = pledge;
+
+      if (amount === '0' || !adminProjects.has(Number(owner))) continue;
+
+      let balance = projectBalanceMap.get(owner);
+      if (balance === undefined) {
+        balance = {};
+        balance[token] = new BigNumber(amount);
+        projectBalanceMap.set(owner, balance);
+      } else {
+        const prevAmount = balance[token] || new BigNumber(0);
+        balance[token] = prevAmount.plus(amount);
+      }
+    }
+    console.log('project admins:', adminProjects);
+    console.log('project balance:', projectBalanceMap);
+  } catch (e) {
+    console.log(e);
+    throw e;
+  }
+};
+
+main(false)
+  .then(() => process.exit(0))
+  .catch(() => process.exit(1));
