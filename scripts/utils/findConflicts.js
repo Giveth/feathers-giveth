@@ -7,13 +7,17 @@ require('mongoose-long')(mongoose);
 require('../../src/models/mongoose-bn')(mongoose);
 const { LiquidPledging, LiquidPledgingState } = require('giveth-liquidpledging');
 
-// const web3Helper = require('../../src/blockchain/lib/web3Helpers');
-const config = require('../../config/default.json');
+const web3Helper = require('../../src/blockchain/lib/web3Helpers');
+
+const configFileName = 'beta'; // default or beta
+
+// eslint-disable-next-line import/no-dynamic-require
+const config = require(`../../config/${configFileName}.json`);
 
 // Map token symbol to foreign address
 const tokenSymbolToForeignAddress = {};
 config.tokenWhitelist.forEach(token => {
-  tokenSymbolToForeignAddress[token.symbol] = token.foreignAddress;
+  tokenSymbolToForeignAddress[token.symbol] = token.foreignAddress.toLowerCase();
 });
 
 const { nodeUrl, liquidPledgingAddress } = config.blockchain;
@@ -54,17 +58,22 @@ const instantiateWeb3 = url => {
 // Gets status of liquidpledging storage
 // @param {boolean} updateCache whether get new status from blockchain or load from cached file
 const getStatus = async updateCache => {
-  const cacheFile = './liquidPledgingState.json';
+  const cacheFile = `./liquidPledgingState_${configFileName}.json`;
   let status;
   if (updateCache) {
     const foreignWeb3 = instantiateWeb3(nodeUrl);
     const liquidPledging = new LiquidPledging(foreignWeb3, liquidPledgingAddress);
     const liquidPledgingState = new LiquidPledgingState(liquidPledging);
 
-    // const [numberOfPledges] = await web3Helper.executeRequestsAsBatch(foreignWeb3, [
-    //   liquidPledging.$contract.methods.numberOfPledges().call.request,
-    // ]);
-    // console.log('Number of pledges', numberOfPledges);
+    const [numberOfPledges, numberOfPledgeAdmins] = await web3Helper.executeRequestsAsBatch(
+      foreignWeb3,
+      [
+        liquidPledging.$contract.methods.numberOfPledges().call.request,
+        liquidPledging.$contract.methods.numberOfPledgeAdmins().call.request,
+      ],
+    );
+    console.log('Number of pledges', numberOfPledges);
+    console.log('Number of pledge admins', numberOfPledgeAdmins);
 
     status = await liquidPledgingState.getState();
 
@@ -84,14 +93,28 @@ const findEntityConflicts = (model, projectBalanceMap) => {
     .cursor();
 
   return cursor.eachAsync(async entity => {
-    const balance = projectBalanceMap.get(String(entity.projectId));
+    const balance = projectBalanceMap.get(String(entity.projectId)) || [];
+    // if (balance === undefined) {
+    //   console.warn(`There is no balance for project ${String(entity.projectId)} in blockchain`);
+    //   return;
+    // }
 
     entity.donationCounters.forEach(dc => {
       const { symbol, currentBalance: dbBalance } = dc;
       const foreignAddress = tokenSymbolToForeignAddress[symbol];
       const blockchainBalance = balance[foreignAddress];
 
-      if (dbBalance.toString() !== blockchainBalance.toString()) {
+      if (blockchainBalance === undefined) {
+        console.warn(
+          `There is no balance for token ${symbol} in blockchain for ${model.modelName} ${entity._id}`,
+        );
+        return;
+      }
+
+      const dbBalanceFromWei = Web3.utils.fromWei(dbBalance.toString());
+      const blockchainBalanceFromWei = Web3.utils.fromWei(blockchainBalance.toFixed(0));
+
+      if (dbBalanceFromWei !== blockchainBalanceFromWei) {
         console.log(
           'conflict found on',
           model.modelName,
@@ -100,9 +123,9 @@ const findEntityConflicts = (model, projectBalanceMap) => {
           ':',
           symbol,
           'value in db',
-          dbBalance.toString(),
+          dbBalanceFromWei,
           'value in smart contract',
-          blockchainBalance,
+          blockchainBalanceFromWei,
         );
       }
     });
@@ -125,19 +148,18 @@ const main = async updateCache => {
 
     for (let i = 1; i < pledges.length; i += 1) {
       const pledge = pledges[i];
-      const { amount, owner, token } = pledge;
+      const { amount, owner } = pledge;
+      const token = pledge.token.toLowerCase();
 
-      if (amount === '0' || !adminProjects.has(Number(owner))) continue;
-
-      let balance = projectBalanceMap.get(owner);
-      if (balance === undefined) {
-        balance = {};
-        balance[token] = new BigNumber(amount);
-        projectBalanceMap.set(owner, balance);
-      } else {
-        const prevAmount = balance[token] || new BigNumber(0);
-        balance[token] = prevAmount.plus(amount);
+      if (!adminProjects.has(Number(owner))) {
+        // console.warn(`owner ${owner} is not a project`);
+        continue;
       }
+
+      const balance = projectBalanceMap.get(owner) || {};
+      const prevAmount = balance[token] || new BigNumber(0);
+      balance[token] = prevAmount.plus(amount);
+      projectBalanceMap.set(owner, balance);
     }
 
     /*
