@@ -2,31 +2,62 @@
 const Web3 = require('web3');
 const fs = require('fs');
 const BigNumber = require('bignumber.js');
-
+const mongoose = require('mongoose');
+require('mongoose-long')(mongoose);
+require('../../src/models/mongoose-bn')(mongoose);
 const { LiquidPledging, LiquidPledgingState } = require('giveth-liquidpledging');
+
 // const web3Helper = require('../../src/blockchain/lib/web3Helpers');
+const config = require('../../config/default.json');
 
-const foreignNodeUrl = 'ws://localhost:8546';
-const liquidPledgingAddress = '0xBeFdf675cb73813952C5A9E4B84ea8B866DBA592';
+// Map token symbol to foreign address
+const tokenSymbolToForeignAddress = {};
+config.tokenWhitelist.forEach(token => {
+  tokenSymbolToForeignAddress[token.symbol] = token.foreignAddress;
+});
 
-function instantiateWeb3(nodeUrl) {
+const { nodeUrl, liquidPledgingAddress } = config.blockchain;
+
+const appFactory = () => {
+  const data = {};
+  return {
+    get(key) {
+      return data[key];
+    },
+    set(key, val) {
+      data[key] = val;
+    },
+  };
+};
+
+const app = appFactory();
+app.set('mongooseClient', mongoose);
+
+const Milestones = require('../../src/models/milestones.model').createModel(app);
+const Campaigns = require('../../src/models/campaigns.model').createModel(app);
+
+// Instantiate Web3 module
+// @params {string} url blockchain node url address
+const instantiateWeb3 = url => {
   const provider =
-    nodeUrl && nodeUrl.startsWith('ws')
-      ? new Web3.providers.WebsocketProvider(nodeUrl, {
+    url && url.startsWith('ws')
+      ? new Web3.providers.WebsocketProvider(url, {
           clientConfig: {
             maxReceivedFrameSize: 100000000,
             maxReceivedMessageSize: 100000000,
           },
         })
-      : nodeUrl;
+      : url;
   return new Web3(provider);
-}
+};
 
-async function getStatus(updateCache) {
+// Gets status of liquidpledging storage
+// @param {boolean} updateCache whether get new status from blockchain or load from cached file
+const getStatus = async updateCache => {
   const cacheFile = './liquidPledgingState.json';
   let status;
   if (updateCache) {
-    const foreignWeb3 = instantiateWeb3(foreignNodeUrl);
+    const foreignWeb3 = instantiateWeb3(nodeUrl);
     const liquidPledging = new LiquidPledging(foreignWeb3, liquidPledgingAddress);
     const liquidPledgingState = new LiquidPledgingState(liquidPledging);
 
@@ -43,7 +74,40 @@ async function getStatus(updateCache) {
   }
 
   return status;
-}
+};
+
+const findEntityConflicts = (model, projectBalanceMap) => {
+  const cursor = model
+    .find({
+      projectId: { $exists: true },
+    })
+    .cursor();
+
+  return cursor.eachAsync(async entity => {
+    const balance = projectBalanceMap.get(String(entity.projectId));
+
+    entity.donationCounters.forEach(dc => {
+      const { symbol, currentBalance: dbBalance } = dc;
+      const foreignAddress = tokenSymbolToForeignAddress[symbol];
+      const blockchainBalance = balance[foreignAddress];
+
+      if (dbBalance.toString() !== blockchainBalance.toString()) {
+        console.log(
+          'conflict found on',
+          model.modelName,
+          entity.title,
+          entity._id,
+          ':',
+          symbol,
+          'value in db',
+          dbBalance.toString(),
+          'value in smart contract',
+          blockchainBalance,
+        );
+      }
+    });
+  });
+};
 
 const main = async updateCache => {
   try {
@@ -75,8 +139,25 @@ const main = async updateCache => {
         balance[token] = prevAmount.plus(amount);
       }
     }
-    console.log('project admins:', adminProjects);
-    console.log('project balance:', projectBalanceMap);
+
+    /*
+     Find conflicts in milestone donation counter
+    */
+    const mongoUrl = config.mongodb;
+    console.log('url:', mongoUrl);
+    mongoose.connect(mongoUrl);
+    const db = mongoose.connection;
+
+    db.on('error', err => console.error('Could not connect to Mongo', err));
+
+    db.once('open', () => {
+      console.log('Connected to Mongo');
+
+      Promise.all([
+        findEntityConflicts(Milestones, projectBalanceMap),
+        findEntityConflicts(Campaigns, projectBalanceMap),
+      ]).then(() => process.exit());
+    });
   } catch (e) {
     console.log(e);
     throw e;
@@ -84,5 +165,5 @@ const main = async updateCache => {
 };
 
 main(false)
-  .then(() => process.exit(0))
+  .then(() => {})
   .catch(() => process.exit(1));
