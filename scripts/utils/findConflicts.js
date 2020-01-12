@@ -1,4 +1,5 @@
 /* eslint-disable no-continue */
+/* eslint-disable no-console */
 const Web3 = require('web3');
 const fs = require('fs');
 const BigNumber = require('bignumber.js');
@@ -9,7 +10,7 @@ const { LiquidPledging, LiquidPledgingState } = require('giveth-liquidpledging')
 
 const web3Helper = require('../../src/blockchain/lib/web3Helpers');
 
-const configFileName = 'beta'; // default or beta
+const configFileName = 'default'; // default or beta
 
 // eslint-disable-next-line import/no-dynamic-require
 const config = require(`../../config/${configFileName}.json`);
@@ -39,6 +40,7 @@ app.set('mongooseClient', mongoose);
 
 const Milestones = require('../../src/models/milestones.model').createModel(app);
 const Campaigns = require('../../src/models/campaigns.model').createModel(app);
+const Donations = require('../../src/models/donations.model').createModel(app);
 
 // Instantiate Web3 module
 // @params {string} url blockchain node url address
@@ -85,7 +87,7 @@ const getStatus = async updateCache => {
   return status;
 };
 
-const findEntityConflicts = (model, projectBalanceMap) => {
+const findEntityConflicts = (model, projectBalanceMap, fixConflicts = false) => {
   const cursor = model
     .find({
       projectId: { $exists: true },
@@ -93,28 +95,28 @@ const findEntityConflicts = (model, projectBalanceMap) => {
     .cursor();
 
   return cursor.eachAsync(async entity => {
-    const balance = projectBalanceMap.get(String(entity.projectId)) || [];
-    // if (balance === undefined) {
-    //   console.warn(`There is no balance for project ${String(entity.projectId)} in blockchain`);
-    //   return;
-    // }
+    const balance = projectBalanceMap.get(String(entity.projectId)) || {};
+    const { donationCounters } = entity;
 
-    entity.donationCounters.forEach(dc => {
+    let conflictFound = false;
+    const setObject = {};
+
+    const promises = donationCounters.map(async (dc, index) => {
       const { symbol, currentBalance: dbBalance } = dc;
       const foreignAddress = tokenSymbolToForeignAddress[symbol];
-      const blockchainBalance = balance[foreignAddress];
+      const donationCounter = balance[foreignAddress];
 
-      if (blockchainBalance === undefined) {
+      if (donationCounter === undefined) {
         console.warn(
           `There is no balance for token ${symbol} in blockchain for ${model.modelName} ${entity._id}`,
         );
         return;
       }
 
-      const dbBalanceFromWei = Web3.utils.fromWei(dbBalance.toString());
-      const blockchainBalanceFromWei = Web3.utils.fromWei(blockchainBalance.toFixed(0));
+      if (dbBalance.toString() !== donationCounter.amount.toFixed(0)) {
+        const dbBalanceFromWei = Web3.utils.fromWei(dbBalance.toString());
+        const blockchainBalanceFromWei = Web3.utils.fromWei(donationCounter.amount.toFixed(0));
 
-      if (dbBalanceFromWei !== blockchainBalanceFromWei) {
         console.log(
           'conflict found on',
           model.modelName,
@@ -126,15 +128,48 @@ const findEntityConflicts = (model, projectBalanceMap) => {
           dbBalanceFromWei,
           'value in smart contract',
           blockchainBalanceFromWei,
+          donationCounter.pledges,
         );
+
+        if (fixConflicts) {
+          conflictFound = true;
+
+          setObject[`donationCounters.${index}.currentBalance`] = donationCounter.amount.toFixed();
+          // for (const pledgeId of donationCounter.pledges) {
+          //   const pledge = pledges[pledgeId];
+          //   const donations = await Donations.find({
+          //     pledgeId,
+          //   });
+          // }
+        }
       }
     });
+
+    await Promise.all(promises);
+
+    if (conflictFound) {
+      return model
+        .update(
+          { _id: entity._id },
+          {
+            $set: {
+              ...setObject,
+            },
+          },
+        )
+        .exec();
+    }
+
+    return Promise.resolve();
   });
 };
 
-const main = async updateCache => {
+const main = async (updateCache, findConflict, fixConflicts = false) => {
   try {
     const status = await getStatus(updateCache);
+
+    if (!findConflict) return;
+
     const { pledges, admins } = status;
 
     const adminProjects = new Set();
@@ -148,17 +183,21 @@ const main = async updateCache => {
 
     for (let i = 1; i < pledges.length; i += 1) {
       const pledge = pledges[i];
-      const { amount, owner } = pledge;
+      const { amount, owner, pledgeState } = pledge;
       const token = pledge.token.toLowerCase();
 
-      if (!adminProjects.has(Number(owner))) {
+      if (pledgeState !== 'Pledged' || !adminProjects.has(Number(owner))) {
         // console.warn(`owner ${owner} is not a project`);
         continue;
       }
 
       const balance = projectBalanceMap.get(owner) || {};
-      const prevAmount = balance[token] || new BigNumber(0);
-      balance[token] = prevAmount.plus(amount);
+      const donationCounter = balance[token] || { pledges: [], amount: new BigNumber(0) };
+      if (amount !== '0') {
+        donationCounter.pledges.push(i);
+        donationCounter.amount = donationCounter.amount.plus(amount);
+      }
+      balance[token] = donationCounter;
       projectBalanceMap.set(owner, balance);
     }
 
@@ -176,8 +215,8 @@ const main = async updateCache => {
       console.log('Connected to Mongo');
 
       Promise.all([
-        findEntityConflicts(Milestones, projectBalanceMap),
-        findEntityConflicts(Campaigns, projectBalanceMap),
+        findEntityConflicts(Milestones, projectBalanceMap, fixConflicts),
+        findEntityConflicts(Campaigns, projectBalanceMap, fixConflicts),
       ]).then(() => process.exit());
     });
   } catch (e) {
@@ -186,6 +225,6 @@ const main = async updateCache => {
   }
 };
 
-main(false)
+main(false, true, true)
   .then(() => {})
   .catch(() => process.exit(1));
