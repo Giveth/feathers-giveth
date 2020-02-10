@@ -254,6 +254,7 @@ const projects = (app, liquidPledging) => {
         projectId,
         ownerAddress: tx.from,
         coownerAddress: '0x0',
+        fundsForwarder: '0x0',
         pluginAddress: project.plugin,
         reviewerAddress,
         title: project.name,
