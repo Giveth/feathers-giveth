@@ -1,0 +1,22 @@
+{
+  "verifiedTransfers": [
+    {
+      "txHash": "0x372fadb29c6a0d1e5dde2574380538fa57824bcc16382acfdb9b18c85fb33b82",
+      "logIndex": 4,
+      "amountRemaining": "0"
+    },
+    {
+      "txHash": "0x372fadb29c6a0d1e5dde2574380538fa57824bcc16382acfdb9b18c85fb33b82",
+      "logIndex": 5
+    },
+    {
+      "txHash": "0xd650a89bd1fcb898ce79430706bd09a6ec203626c7e48688c9a4c70f95fee710",
+      "logIndex": 3,
+      "amountRemaining": "0"
+    },
+    {
+      "txHash": "0xd650a89bd1fcb898ce79430706bd09a6ec203626c7e48688c9a4c70f95fee710",
+      "logIndex": 4
+    }
+  ]
+}

@@ -14,6 +14,8 @@ const configFileName = 'default'; // default or beta
 // eslint-disable-next-line import/no-dynamic-require
 const config = require(`../../config/${configFileName}.json`);
 
+const { verifiedTransfers } = require('./verifiedTransfers.json');
+
 // Create output log file
 
 // Map token symbol to foreign address
@@ -50,7 +52,7 @@ const { DonationStatus } = require('../../src/models/donations.model');
 const { AdminTypes } = require('../../src/models/pledgeAdmins.model');
 
 const terminateScript = (message = '', code = 0) =>
-  process.stdout.write(message, () => process.exit(code));
+  process.stdout.write(`Exit message: ${message}`, () => process.exit(code));
 
 // Instantiate Web3 module
 // @params {string} url blockchain node url address
@@ -301,6 +303,7 @@ const getPledgeDonationItems = async () => {
         ownerId,
         ownerType,
         intendedProjectId,
+        giverAddress,
       }) => {
         if (pledgeId === '0') return;
 
@@ -320,6 +323,7 @@ const getPledgeDonationItems = async () => {
           ownerId,
           ownerType,
           intendedProjectId,
+          giverAddress,
           pledgeId: pledgeId.toString(),
         };
 
@@ -341,7 +345,8 @@ const handleFromDonations = (
   chargedDonationList,
 ) => {
   const usedFromDonations = []; // List of donations which could be parent of the donation
-  let parentIsCancelled = false;
+  let isIgnored = false;
+  let giverAddress;
 
   let toUnusedDonationList = pledgeUnusedDonations.get(to); // List of donations which are candidates to be charged
   if (toUnusedDonationList === undefined) {
@@ -378,22 +383,38 @@ const handleFromDonations = (
     if (candidateParentsFromDB.length > 0) {
       let fromAmount = new BigNumber(amount);
       candidateParentsFromDB.forEach(parentId => {
+        if (fromAmount.eq(0)) {
+          console.log(`No money is moved from parent ${parentId}`);
+          return;
+        }
         const index = candidateChargedParents.findIndex(item => item._id && item._id === parentId);
         if (index === -1) {
+          if (toOwnerAdmin.isCanceled || toOwnerAdmin.canceled) {
+            console.log('To owner is canceled, transfer is ignored');
+            isIgnored = true;
+            return;
+          }
+          if (fromOwnerAdmin.isCanceled || fromOwnerAdmin.canceled) {
+            console.log('From owner is canceled, transfer is ignored');
+            isIgnored = true;
+            return;
+          }
           terminateScript('no appropriate parent found');
         }
         const d = candidateChargedParents[index];
+        if (d.giverAddress) giverAddress = d.giverAddress;
+
         const min = BigNumber.min(d.amountRemaining, fromAmount);
         fromAmount = fromAmount.minus(min);
+        d.amountRemaining = d.amountRemaining.minus(min);
 
         console.log(
-          `Amount ${min} is reduced from ${JSON.stringify(
+          `Amount ${min.toFixed()} is reduced from ${JSON.stringify(
             { ...d, amountRemaining: d.amountRemaining.toFixed() },
             null,
             2,
           )}`,
         );
-        d.amountRemaining = d.amountRemaining.minus(min);
 
         if (d._id) {
           usedFromDonations.push(d._id);
@@ -404,23 +425,31 @@ const handleFromDonations = (
           candidateChargedParents.splice(index, 1);
         }
 
-        if (d.status === DonationStatus.CANCELED) {
-          parentIsCancelled = true;
-        }
+        // if (d.status === DonationStatus.CANCELED) {
+        //   parentIsCancelled = true;
+        // }
       });
-    } else if (toOwnerAdmin.canceled === true) {
+      if (!fromAmount.eq(0) && !isIgnored) {
+        terminateScript('All money is not moved\n');
+      }
+    } else if (toOwnerAdmin.isCanceled || toOwnerAdmin.canceled) {
       console.log('To owner is canceled, transfer is ignored');
-    } else if (fromOwnerAdmin.canceled === true) {
+      isIgnored = true;
+    } else if (fromOwnerAdmin.isCanceled || fromOwnerAdmin.canceled) {
       console.log('From owner is canceled, transfer is ignored');
+      isIgnored = true;
     } else if (candidateChargedParents.length > 0) {
       let fromAmount = new BigNumber(amount);
       let consumedCandidates = 0;
       for (let j = 0; j < candidateChargedParents.length; j += 1) {
         const item = candidateChargedParents[j];
 
-        if (item.status === DonationStatus.CANCELED) {
-          parentIsCancelled = true;
+        if (item.giverAddress) {
+          giverAddress = item.giverAddress;
         }
+        // if (item.status === DonationStatus.CANCELED) {
+        //   parentIsCancelled = true;
+        // }
 
         const min = BigNumber.min(item.amountRemaining, fromAmount);
         item.amountRemaining = item.amountRemaining.minus(min);
@@ -428,7 +457,13 @@ const handleFromDonations = (
           consumedCandidates += 1;
         }
         fromAmount = fromAmount.minus(min);
-        console.log(`Amount ${min} is reduced from ${JSON.stringify(item, null, 2)}`);
+        console.log(
+          `Amount ${min.toFixed()} is reduced from ${JSON.stringify(
+            { ...item, amountRemaining: item.amountRemaining.toFixed() },
+            null,
+            2,
+          )}`,
+        );
         if (item._id) {
           usedFromDonations.push(item._id);
         }
@@ -447,26 +482,30 @@ const handleFromDonations = (
         terminateScript();
       }
     } else {
-      terminateScript(`There is no donation for transfer from ${from} to ${to}`);
+      terminateScript(`There is no donation for transfer from ${from} to ${to}\n`);
     }
   }
 
-  return { usedFromDonations, parentIsCancelled };
+  return { usedFromDonations, isIgnored, giverAddress };
 };
 
-const handleToDonations = (
+const handleToDonations = async (
   from,
   to,
   amount,
   transactionHash,
+  logIndex,
   pledges,
   admins,
   pledgeUnusedDonations,
   candidateDonationList,
   chargedDonationList,
   usedFromDonations,
-  parentIsCancelled,
+  isIgnored,
+  giverAddress,
 ) => {
+  if (isIgnored) return;
+
   let toUnusedDonationList = pledgeUnusedDonations.get(to); // List of donations which are candidates to be charged
   if (toUnusedDonationList === undefined) {
     console.log(`There is no donation for pledgeId ${to}`);
@@ -504,7 +543,6 @@ const handleToDonations = (
   if (toDonation === undefined) {
     // If parent is cancelled, this donation is not needed anymore
     if (!toOwnerAdmin.canceled && !fromOwnerAdmin.canceled) {
-      const fromOwnerId = from !== '0' ? pledges[Number(from)].owner : 0;
       const expectedToDonation = {
         txHash: transactionHash,
         parentDonations: usedFromDonations,
@@ -515,6 +553,109 @@ const handleToDonations = (
         amountRemaining: new BigNumber(amount),
         ownerId: toOwnerId,
       };
+
+      console.log(
+        `this donation should be created: ${JSON.stringify(expectedToDonation, null, 2)}`,
+      );
+      console.log('--------------------------------');
+      console.log('From owner:', fromOwnerAdmin);
+      console.log('To owner:', toOwnerAdmin);
+      console.log('--------------------------------');
+      console.log('From pledge:', fromPledge);
+      console.log('To pledge:', toPledge);
+
+      // If it is a verified transaction that should be added to database
+      const transfer = verifiedTransfers.find(
+        tt => tt.txHash === transactionHash && tt.logIndex === logIndex,
+      );
+      if (transfer !== undefined) {
+        let [toPledgeAdmin] = await PledgeAdmins.find({ id: Number(toOwnerId) }).exec();
+        if (toPledgeAdmin === undefined) {
+          if (toOwnerAdmin.type !== 'Giver') {
+            terminateScript(`No PledgeAdmin record exists for non user admin ${toOwnerAdmin}`);
+            return;
+          }
+
+          // Create user pledge admin
+          toPledgeAdmin = new PledgeAdmins({
+            id: Number(toOwnerId),
+            type: AdminTypes.GIVER,
+            typeId: toOwnerAdmin.addr,
+          });
+          await toPledgeAdmin.save();
+          console.log('pledgeAdmin crated:', toPledgeAdmin._id.toString());
+        }
+
+        // Create donation
+        const token = config.tokenWhitelist.find(t => t.foreignAddress === toPledge.token);
+        if (token === undefined) {
+          terminateScript(`No token found for address ${toPledge.token}`);
+          return;
+        }
+
+        const delegationInfo = {};
+        // It's delegated to a DAC
+        if (toPledge.delegates.length > 0) {
+          const [delegate] = toPledge.delegates;
+          const [dacPledgeAdmin] = await PledgeAdmins.find({ id: Number(delegate.id) }).exec();
+          if (dacPledgeAdmin === undefined) {
+            terminateScript(`No dac found for id: ${delegate.id}`);
+            return;
+          }
+          delegationInfo.delegateId = dacPledgeAdmin.id;
+          delegationInfo.delegateTypeId = dacPledgeAdmin.typeId;
+          delegationInfo.delegateType = dacPledgeAdmin.type;
+
+          // Has intended project
+          const { intendedProject } = toPledge;
+          if (intendedProject !== '0') {
+            const [intendedProjectPledgeAdmin] = await PledgeAdmins.find({
+              id: Number(intendedProject),
+            });
+            if (intendedProjectPledgeAdmin === undefined) {
+              terminateScript(`No project found for id: ${intendedProject}`);
+              return;
+            }
+            delegationInfo.intendedProjectId = intendedProjectPledgeAdmin.id;
+            delegationInfo.intendedProjectTypeId = intendedProjectPledgeAdmin.typeId;
+            delegationInfo.intendedProjectType = intendedProjectPledgeAdmin.type;
+          }
+        }
+
+        // Set giverAddress to owner address if is a Giver
+        if (giverAddress === undefined) {
+          if (toOwnerAdmin.type !== 'Giver') {
+            terminateScript(`Cannot set giverAddress\n`);
+            return;
+          }
+          giverAddress = toPledgeAdmin.typeId;
+          expectedToDonation.giverAddress = giverAddress;
+        }
+
+        const donation = new Donations({
+          status: DonationStatus.COMMITTED,
+          mined: true,
+          parentDonations: expectedToDonation.parentDonations,
+          isReturn: false,
+          giverAddress,
+          amount: expectedToDonation.amount,
+          amountRemaining: transfer.amountRemaining
+            ? transfer.amountRemaining
+            : expectedToDonation.amountRemaining,
+          pledgeId: to,
+          ownerId: toPledgeAdmin.id,
+          ownerTypeId: toPledgeAdmin.typeId,
+          ownerType: toPledgeAdmin.type,
+          token,
+          txHash: transactionHash,
+          ...delegationInfo,
+        });
+
+        await donation.save();
+
+        console.log('donation created:', donation._id.toString());
+        expectedToDonation._id = donation._id.toString();
+      }
       let candidates = candidateDonationList.get(to);
       if (candidates === undefined) {
         candidates = [];
@@ -527,15 +668,6 @@ const handleToDonations = (
         chargedDonationList.set(to, candidates);
       }
       candidates.push(expectedToDonation);
-      console.log(
-        `this donation should be created: ${JSON.stringify(expectedToDonation, null, 2)}`,
-      );
-      console.log('--------------------------------');
-      console.log('From owner:', fromOwnerAdmin);
-      console.log('To owner:', toOwnerAdmin);
-      console.log('--------------------------------');
-      console.log('From pledge:', fromPledge);
-      console.log('To pledge:', toPledge);
     }
   } else {
     toDonation.amountRemaining = toDonation.amountRemaining.plus(amount);
@@ -690,7 +822,11 @@ const revertDonation = (
 
   if (toDonation.amountRemaining.gt(toDonation.amount)) {
     terminateScript(
-      `Donation amountRemaining exceeds its amount!\n${JSON.stringify(toDonation, null, 2)}\n`,
+      `Donation amountRemaining exceeds its amount!\n${JSON.stringify(
+        { ...toDonation, amountRemaining: toDonation.amountRemaining.toFixed() },
+        null,
+        2,
+      )}\n`,
     );
     return;
   }
@@ -727,10 +863,8 @@ const revertDonation = (
   console.log(
     `Amount added to ${JSON.stringify(
       {
-        _id: toDonation._id,
+        ...toDonation,
         amountRemaining: toDonation.amountRemaining.toFixed(),
-        amount: toDonation.amount,
-        status: toDonation.status,
       },
       null,
       2,
@@ -868,7 +1002,7 @@ const syncDonationsWithNetwork = async (fixConflicts, events, pledges, admins) =
 
   // Simulate transactions by events
   for (let i = 0; i < events.length; i += 1) {
-    const { event, transactionHash, returnValues } = events[i];
+    const { event, transactionHash, logIndex, returnValues } = events[i];
     console.log(
       `-----\nProcessing event ${i}:\nEvent: ${event}\nTransaction hash: ${transactionHash}`,
     );
@@ -877,12 +1011,12 @@ const syncDonationsWithNetwork = async (fixConflicts, events, pledges, admins) =
       console.log(`Transfer from ${from} to ${to} amount ${amount}`);
 
       // Ignore transfer if from owner is canceled
-      if (from !== '0' && admins[Number(pledges[Number(from)].owner)].isCanceled) {
-        console.log('Transfer ignored');
-        continue;
-      }
+      // if (from !== '0' && admins[Number(pledges[Number(from)].owner)].isCanceled) {
+      //   console.log('Transfer ignored');
+      //   continue;
+      // }
 
-      const { usedFromDonations, parentIsCancelled } = handleFromDonations(
+      const { usedFromDonations, isIgnored, giverAddress } = handleFromDonations(
         from,
         to,
         amount,
@@ -893,18 +1027,21 @@ const syncDonationsWithNetwork = async (fixConflicts, events, pledges, admins) =
         chargedDonationListMap,
       );
 
-      handleToDonations(
+      // eslint-disable-next-line no-await-in-loop
+      await handleToDonations(
         from,
         to,
         amount,
         transactionHash,
+        logIndex,
         pledges,
         admins,
         pledgeUnusedDonations,
         toCreateDonationListMap,
         chargedDonationListMap,
         usedFromDonations,
-        parentIsCancelled,
+        isIgnored,
+        giverAddress,
       );
     } else if (event === 'CancelProject') {
       const { idProject } = returnValues;
