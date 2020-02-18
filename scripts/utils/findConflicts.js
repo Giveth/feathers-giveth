@@ -14,7 +14,12 @@ const configFileName = 'default'; // default or beta
 // eslint-disable-next-line import/no-dynamic-require
 const config = require(`../../config/${configFileName}.json`);
 
-const { verifiedTransfers } = require('./verifiedTransfers.json');
+const {
+  verifiedTransfers,
+  revertExemptedDonations,
+  ignoredTransactions,
+  corruptedParentPledgeIds,
+} = require('./eventProcessingHelper.json');
 
 // Create output log file
 
@@ -298,6 +303,7 @@ const getPledgeDonationItems = async () => {
         amount,
         pledgeId,
         status,
+        mined,
         txHash,
         parentDonations,
         ownerId,
@@ -305,7 +311,7 @@ const getPledgeDonationItems = async () => {
         intendedProjectId,
         giverAddress,
       }) => {
-        if (pledgeId === '0') return;
+        // if (pledgeId === '0') return;
 
         let list = pledgeDonationListMap.get(pledgeId.toString());
         if (list === undefined) {
@@ -319,6 +325,7 @@ const getPledgeDonationItems = async () => {
           amountRemaining: new BigNumber(0),
           txHash,
           status,
+          mined,
           parentDonations: parentDonations.map(id => id.toString()),
           ownerId,
           ownerType,
@@ -339,23 +346,25 @@ const handleFromDonations = (
   to,
   amount,
   transactionHash,
+  logIndex,
   pledges,
   admins,
-  pledgeUnusedDonations,
+  pledgeNotFilledDonations,
   chargedDonationList,
 ) => {
   const usedFromDonations = []; // List of donations which could be parent of the donation
   let isIgnored = false;
   let giverAddress;
 
-  let toUnusedDonationList = pledgeUnusedDonations.get(to); // List of donations which are candidates to be charged
+  let toUnusedDonationList = pledgeNotFilledDonations.get(to); // List of donations which are candidates to be charged
   if (toUnusedDonationList === undefined) {
     console.log(`There is no donation for pledgeId ${to}`);
     toUnusedDonationList = [];
-    pledgeUnusedDonations.set(to, toUnusedDonationList);
+    pledgeNotFilledDonations.set(to, toUnusedDonationList);
   }
 
-  const toOwnerId = pledges[Number(to)].owner;
+  const toPledge = pledges[Number(to)];
+  const toOwnerId = toPledge.owner;
   const fromOwnerId = from !== '0' ? pledges[Number(from)].owner : null;
 
   const toOwnerAdmin = admins[Number(toOwnerId)];
@@ -373,11 +382,19 @@ const handleFromDonations = (
       console.log('candidateToDonationList length is greater than one!');
     }
 
+    const updateParents = corruptedParentPledgeIds.includes(from);
+
     const candidateParentsFromDB = [];
-    if (candidateToDonationList.length > 0) {
+    if (!updateParents && candidateToDonationList.length > 0) {
       const { parentDonations } = candidateToDonationList[0];
       parentDonations.forEach(parent => candidateParentsFromDB.push(parent));
     }
+
+    const transfer = verifiedTransfers.find(
+      tt => tt.txHash === transactionHash && tt.logIndex === logIndex,
+    );
+    // Paid donations should be created (Not creating Paid donations is a common mistake!)
+    const isVerified = transfer !== undefined || toPledge.pledgeState === 'Paid';
 
     // Reduce money from parents one by one
     if (candidateParentsFromDB.length > 0) {
@@ -399,6 +416,11 @@ const handleFromDonations = (
             isIgnored = true;
             return;
           }
+
+          candidateChargedParents.forEach(p => {
+            console.log(`Parent ${p._id} amount remaining ${p.amountRemaining.toFixed()}`);
+          });
+
           terminateScript('no appropriate parent found');
         }
         const d = candidateChargedParents[index];
@@ -432,10 +454,10 @@ const handleFromDonations = (
       if (!fromAmount.eq(0) && !isIgnored) {
         terminateScript('All money is not moved\n');
       }
-    } else if (toOwnerAdmin.isCanceled || toOwnerAdmin.canceled) {
+    } else if (!isVerified && (toOwnerAdmin.isCanceled || toOwnerAdmin.canceled)) {
       console.log('To owner is canceled, transfer is ignored');
       isIgnored = true;
-    } else if (fromOwnerAdmin.isCanceled || fromOwnerAdmin.canceled) {
+    } else if (!isVerified && (fromOwnerAdmin.isCanceled || fromOwnerAdmin.canceled)) {
       console.log('From owner is canceled, transfer is ignored');
       isIgnored = true;
     } else if (candidateChargedParents.length > 0) {
@@ -489,6 +511,27 @@ const handleFromDonations = (
   return { usedFromDonations, isIgnored, giverAddress };
 };
 
+const convertPledgeStateToStatus = (pledge, pledgeAdmin) => {
+  const { pledgeState, delegates, intendedProject } = pledge;
+  switch (pledgeState) {
+    case 'Paying':
+    case '1':
+      return DonationStatus.PAYING;
+
+    case 'Paid':
+    case '2':
+      return DonationStatus.PAID;
+
+    case 'Pledged':
+    case '0':
+      if (intendedProject !== '0') return DonationStatus.TO_APPROVE;
+      if (pledgeAdmin.type === 'Giver' || delegates.length > 0) return DonationStatus.WAITING;
+      return DonationStatus.COMMITTED;
+
+    default:
+      return null;
+  }
+};
 const handleToDonations = async (
   from,
   to,
@@ -497,30 +540,33 @@ const handleToDonations = async (
   logIndex,
   pledges,
   admins,
-  pledgeUnusedDonations,
+  pledgeNotFilledDonations,
   candidateDonationList,
   chargedDonationList,
   usedFromDonations,
   isIgnored,
   giverAddress,
+  donationMap,
 ) => {
   if (isIgnored) return;
 
-  let toUnusedDonationList = pledgeUnusedDonations.get(to); // List of donations which are candidates to be charged
+  let toUnusedDonationList = pledgeNotFilledDonations.get(to); // List of donations which are candidates to be charged
   if (toUnusedDonationList === undefined) {
     console.log(`There is no donation for pledgeId ${to}`);
     toUnusedDonationList = [];
-    pledgeUnusedDonations.set(to, toUnusedDonationList);
+    pledgeNotFilledDonations.set(to, toUnusedDonationList);
   }
 
+  const updateParents = corruptedParentPledgeIds.includes(from);
   const toIndex = toUnusedDonationList.findIndex(
     item =>
       item.txHash === transactionHash &&
       item.amountRemaining.eq(0) &&
-      item.parentDonations.length === usedFromDonations.length &&
-      item.parentDonations.every(parent =>
-        usedFromDonations.some(value => value.toString() === parent),
-      ),
+      (updateParents ||
+        (item.parentDonations.length === usedFromDonations.length &&
+          item.parentDonations.every(parent =>
+            usedFromDonations.some(value => value.toString() === parent),
+          ))),
   );
 
   const toDonation = toIndex !== -1 ? toUnusedDonationList.splice(toIndex, 1)[0] : undefined;
@@ -542,7 +588,9 @@ const handleToDonations = async (
 
   if (toDonation === undefined) {
     // If parent is cancelled, this donation is not needed anymore
-    if (!toOwnerAdmin.canceled && !fromOwnerAdmin.canceled) {
+    if (!isIgnored) {
+      const status = convertPledgeStateToStatus(toPledge, toOwnerAdmin);
+
       const expectedToDonation = {
         txHash: transactionHash,
         parentDonations: usedFromDonations,
@@ -552,27 +600,31 @@ const handleToDonations = async (
         amount,
         amountRemaining: new BigNumber(amount),
         ownerId: toOwnerId,
+        status,
       };
 
-      console.log(
-        `this donation should be created: ${JSON.stringify(expectedToDonation, null, 2)}`,
-      );
-      console.log('--------------------------------');
-      console.log('From owner:', fromOwnerAdmin);
-      console.log('To owner:', toOwnerAdmin);
-      console.log('--------------------------------');
-      console.log('From pledge:', fromPledge);
-      console.log('To pledge:', toPledge);
-
       // If it is a verified transaction that should be added to database
-      const transfer = verifiedTransfers.find(
+      let transfer = verifiedTransfers.find(
         tt => tt.txHash === transactionHash && tt.logIndex === logIndex,
       );
-      if (transfer !== undefined) {
+
+      // Paid donations should be created (Not creating Paid donations is a common mistake!)
+      const isVerified = transfer !== undefined || toPledge.pledgeState === 'Paid';
+      if (transfer === undefined) {
+        transfer = {};
+      }
+
+      if (isVerified) {
         let [toPledgeAdmin] = await PledgeAdmins.find({ id: Number(toOwnerId) }).exec();
         if (toPledgeAdmin === undefined) {
           if (toOwnerAdmin.type !== 'Giver') {
-            terminateScript(`No PledgeAdmin record exists for non user admin ${toOwnerAdmin}`);
+            terminateScript(
+              `No PledgeAdmin record exists for non user admin ${JSON.stringify(
+                toOwnerAdmin,
+                null,
+                2,
+              )}`,
+            );
             return;
           }
 
@@ -589,7 +641,7 @@ const handleToDonations = async (
         // Create donation
         const token = config.tokenWhitelist.find(t => t.foreignAddress === toPledge.token);
         if (token === undefined) {
-          terminateScript(`No token found for address ${toPledge.token}`);
+          terminateScript(`No token found for address ${toPledge.token}\n`);
           return;
         }
 
@@ -632,8 +684,13 @@ const handleToDonations = async (
           expectedToDonation.giverAddress = giverAddress;
         }
 
-        const donation = new Donations({
-          status: DonationStatus.COMMITTED,
+        if (status === null) {
+          terminateScript(`Pledge status ${toPledge.pledgeState} is unknown\n`);
+          return;
+        }
+
+        const model = {
+          status,
           mined: true,
           parentDonations: expectedToDonation.parentDonations,
           isReturn: false,
@@ -641,7 +698,7 @@ const handleToDonations = async (
           amount: expectedToDonation.amount,
           amountRemaining: transfer.amountRemaining
             ? transfer.amountRemaining
-            : expectedToDonation.amountRemaining,
+            : expectedToDonation.amountRemaining.toFixed(),
           pledgeId: to,
           ownerId: toPledgeAdmin.id,
           ownerTypeId: toPledgeAdmin.typeId,
@@ -649,12 +706,35 @@ const handleToDonations = async (
           token,
           txHash: transactionHash,
           ...delegationInfo,
-        });
+        };
+        if (transfer._id) {
+          model._id = transfer._id;
+        }
+        const donation = new Donations(model);
 
         await donation.save();
 
-        console.log('donation created:', donation._id.toString());
-        expectedToDonation._id = donation._id.toString();
+        const _id = donation._id.toString();
+        console.log('donation created:', _id);
+        expectedToDonation._id = _id;
+        donationMap.set(_id, expectedToDonation);
+      } else {
+        console.log(
+          `this donation should be created: ${JSON.stringify(
+            {
+              ...expectedToDonation,
+              amountRemaining: expectedToDonation.amountRemaining.toFixed(),
+            },
+            null,
+            2,
+          )}`,
+        );
+        console.log('--------------------------------');
+        console.log('From owner:', fromOwnerAdmin);
+        console.log('To owner:', toOwnerAdmin);
+        console.log('--------------------------------');
+        console.log('From pledge:', fromPledge);
+        console.log('To pledge:', toPledge);
       }
       let candidates = candidateDonationList.get(to);
       if (candidates === undefined) {
@@ -670,15 +750,42 @@ const handleToDonations = async (
       candidates.push(expectedToDonation);
     }
   } else {
+    // Check toDonation has correct status and mined flag
+    const status = convertPledgeStateToStatus(toPledge, toOwnerAdmin);
+    if (status === null) {
+      terminateScript(`Pledge status ${toPledge.pledgeState} is unknown\n`);
+      return;
+    }
+
+    if (toDonation.mined === false) {
+      console.log(`Donation ${toDonation._id} mined flag should be true`);
+    } else if (toDonation.status !== status) {
+      // console.log(
+      //   `Donation ${toDonation._id} status should be ${status} but is ${toDonation.status}`,
+      // );
+    }
+
+    const { parentDonations } = toDonation;
+    if (
+      updateParents &&
+      (usedFromDonations.length !== parentDonations.length ||
+        usedFromDonations.some(id => !parentDonations.includes(id)))
+    ) {
+      console.log(`Parent of ${toDonation._id} should be updated to ${usedFromDonations}`);
+      toDonation.parentDonations = usedFromDonations;
+      await Donations.update(
+        { _id: toDonation._id },
+        { parentDonations: usedFromDonations },
+      ).exec();
+    }
+
     toDonation.amountRemaining = toDonation.amountRemaining.plus(amount);
-    const chargedDonation = {
-      ...toDonation,
-      txHash: transactionHash,
-      from,
-      pledgeId: to,
-      pledgeState: toPledge.pledgeState,
-      amountRemaining: new BigNumber(amount),
-    };
+    const chargedDonation = toDonation;
+    chargedDonation.txHash = transactionHash;
+    chargedDonation.from = from;
+    chargedDonation.pledgeId = to;
+    chargedDonation.pledgeState = toPledge.pledgeState;
+    chargedDonation.amountRemaining = new BigNumber(amount);
 
     let candidates = chargedDonationList.get(to);
 
@@ -705,11 +812,11 @@ const handleToDonations = async (
     // The project is cancelled, the donatoin should be reverted
     // if (toDonation.status === DonationStatus.CANCELED) {
     //   console.log(`Reverting donation to ${from}`);
-    //   let fromUnusedDonationList = pledgeUnusedDonations.get(from); // List of donations which are candidates to money return to
+    //   let fromUnusedDonationList =  pledgeNotFilledDonations.get(from); // List of donations which are candidates to money return to
     //   if (fromUnusedDonationList === undefined) {
     //     console.log(`There is no donation for pledgeId ${from}`);
     //     fromUnusedDonationList = [];
-    //     pledgeUnusedDonations.set(from, fromUnusedDonationList);
+    //      pledgeNotFilledDonations.set(from, fromUnusedDonationList);
     //   }
     //
     //   const returnIndex = fromUnusedDonationList.findIndex(
@@ -790,18 +897,22 @@ const revertDonation = (
   donation,
   transactionHash,
   donationMap,
-  pledgeUnusedDonations,
+  pledgeNotFilledDonations,
   toCreateDonationListMap,
   chargedDonationListMap,
   admins,
 ) => {
+  // They should not be processed in regular donation reverting process
+  if (revertExemptedDonations.includes(donation._id)) return;
+  if ([DonationStatus.PAYING, DonationStatus.PAID].includes(donation.status)) return;
+
   const revertToDonation = getMostRecentDonationNotCanceled(donation, donationMap, admins);
-  const toPledgeUnusedDonationList = pledgeUnusedDonations.get(revertToDonation.pledgeId);
-  if (toPledgeUnusedDonationList === undefined) {
+  const toPledgeNotFilledDonationList = pledgeNotFilledDonations.get(revertToDonation.pledgeId);
+  if (toPledgeNotFilledDonationList === undefined) {
     terminateScript(`No pledge found to move money to\n`);
     return;
   }
-  const toIndex = toPledgeUnusedDonationList.findIndex(
+  const toIndex = toPledgeNotFilledDonationList.findIndex(
     item =>
       item.txHash === transactionHash &&
       item.parentDonations.length === 1 &&
@@ -815,31 +926,25 @@ const revertDonation = (
     return;
   }
 
-  const toDonation = toPledgeUnusedDonationList[toIndex];
+  const toDonation = toPledgeNotFilledDonationList[toIndex];
 
   toDonation.amountRemaining = toDonation.amountRemaining.plus(donation.amountRemaining);
   donation.amountRemaining = new BigNumber(0);
 
-  if (toDonation.amountRemaining.gt(toDonation.amount)) {
-    terminateScript(
-      `Donation amountRemaining exceeds its amount!\n${JSON.stringify(
-        { ...toDonation, amountRemaining: toDonation.amountRemaining.toFixed() },
-        null,
-        2,
-      )}\n`,
-    );
-    return;
-  }
+  // TODO: It happens and should be fixed
+  // if (toDonation.amountRemaining.gt(toDonation.amount)) {
+  //   terminateScript(
+  //     `Donation amountRemaining exceeds its amount!\n${JSON.stringify(
+  //       { ...toDonation, amountRemaining: toDonation.amountRemaining.toFixed() },
+  //       null,
+  //       2,
+  //     )}\n`,
+  //   );
+  //   return;
+  // }
 
-  if (toDonation.amountRemaining.eq(toDonation.amount)) {
-    toPledgeUnusedDonationList.splice(toDonation, 1);
-  }
-
-  const chargedDonation = {
-    ...toDonation,
-    txHash: transactionHash,
-    from: donation.pledgeId,
-  };
+  const chargedDonation = toDonation;
+  chargedDonation.from = donation.pledgeId;
 
   let chargedDonationList = chargedDonationListMap.get(toDonation.pledgeId);
 
@@ -850,7 +955,7 @@ const revertDonation = (
 
   chargedDonationList.push(chargedDonation);
 
-  chargedDonationList = chargedDonationListMap.get(donation.pledgeid) || [];
+  chargedDonationList = chargedDonationListMap.get(donation.pledgeId) || [];
 
   const fromIndex = chargedDonationList.findIndex(item => item._id === donation._id);
   if (fromIndex !== -1) chargedDonationList.splice(fromIndex, 1);
@@ -877,7 +982,7 @@ const revertProjectDonations = (
   transactionHash,
   donationMap,
   ownerPledgeList,
-  pledgeUnusedDonations,
+  pledgeNotFilledDonations,
   toCreateDonationListMap,
   chargedDonationListMap,
   admins,
@@ -885,17 +990,17 @@ const revertProjectDonations = (
   const projectPledgesList = ownerPledgeList.get(projectId.toString()) || [];
   projectPledgesList.forEach(pledgeId => {
     const chargedDonationList = chargedDonationListMap.get(String(pledgeId)) || [];
-    chargedDonationList.forEach(chargedDonation =>
+    [...chargedDonationList].forEach(chargedDonation => {
       revertDonation(
         chargedDonation,
         transactionHash,
         donationMap,
-        pledgeUnusedDonations,
+        pledgeNotFilledDonations,
         toCreateDonationListMap,
         chargedDonationListMap,
         admins,
-      ),
-    );
+      );
+    });
   });
 };
 
@@ -905,7 +1010,7 @@ const cancelProject = async (
   donationMap,
   ownerPledgeList,
   campaignMilestoneListMap,
-  pledgeUnusedDonations,
+  pledgeNotFilledDonations,
   toCreateDonationListMap,
   chargedDonationListMap,
   admins,
@@ -927,7 +1032,7 @@ const cancelProject = async (
         transactionHash,
         donationMap,
         ownerPledgeList,
-        pledgeUnusedDonations,
+        pledgeNotFilledDonations,
         toCreateDonationListMap,
         chargedDonationListMap,
         admins,
@@ -940,24 +1045,62 @@ const cancelProject = async (
     transactionHash,
     donationMap,
     ownerPledgeList,
-    pledgeUnusedDonations,
+    pledgeNotFilledDonations,
     toCreateDonationListMap,
     chargedDonationListMap,
     admins,
   );
 };
 
-const findConflictInDonations = donationMap => {
+const findConflictInDonations = (donationMap, pledges, unusedDonationMap) => {
   return Donations.find({})
     .sort({ createdAt: 1 })
     .cursor()
-    .eachAsync(({ _id, amount, amountRemaining, status }) => {
-      const donationItem = donationMap(_id.toString());
+    .eachAsync(({ _id, amount, amountRemaining, status, pledgeId, txHash }) => {
+      const donationItem = donationMap.get(_id.toString());
       if (!donationItem.amountRemaining.eq(amountRemaining.toString())) {
-        terminateScript(
-          `Below donation should have remaining amount ${donationItem.amountRemaining.toFixed()} but has ${amountRemaining.toString()}
-          ${JSON.stringify({ _id, amount, amountRemaining, status }, null, 2)}`,
+        console.log('---------------------------------------------');
+        if (unusedDonationMap.has(_id.toString()) && donationItem.amountRemaining.eq(0)) {
+          console.log(
+            `Donation was unused!\n${JSON.stringify(
+              {
+                _id,
+                amount: amount.toString(),
+                amountRemaining: amountRemaining.toString(),
+                status,
+                pledgeId: pledgeId.toString(),
+                txHash,
+              },
+              null,
+              2,
+            )}\nDeleting...`,
+          );
+          return Donations.findOneAndDelete({ _id }).exec();
+        }
+
+        console.log(
+          `Below donation should have remaining amount ${donationItem.amountRemaining.toFixed()} but has ${amountRemaining.toString()}\n${JSON.stringify(
+            {
+              _id,
+              amount: amount.toString(),
+              amountRemaining: amountRemaining.toString(),
+              status,
+              pledgeId: pledgeId.toString(),
+              txHash,
+            },
+            null,
+            2,
+          )}`,
         );
+        console.log('Updating...');
+        return Donations.update(
+          { _id },
+          {
+            $set: {
+              amountRemaining: donationItem.amountRemaining.toFixed(),
+            },
+          },
+        ).exec();
       }
     });
 };
@@ -965,7 +1108,7 @@ const findConflictInDonations = donationMap => {
 const syncDonationsWithNetwork = async (fixConflicts, events, pledges, admins) => {
   // Map from pledge id to list of donations belongs to which are not used yet!
   const {
-    pledgeDonationListMap: pledgeUnusedDonations,
+    pledgeDonationListMap: pledgeNotFilledDonations,
     donationMap,
   } = await getPledgeDonationItems();
 
@@ -1004,8 +1147,14 @@ const syncDonationsWithNetwork = async (fixConflicts, events, pledges, admins) =
   for (let i = 0; i < events.length; i += 1) {
     const { event, transactionHash, logIndex, returnValues } = events[i];
     console.log(
-      `-----\nProcessing event ${i}:\nEvent: ${event}\nTransaction hash: ${transactionHash}`,
+      `-----\nProcessing event ${i}:\nLog Index: ${logIndex}\nEvent: ${event}\nTransaction hash: ${transactionHash}`,
     );
+
+    if (ignoredTransactions.some(it => it.txHash === transactionHash && it.logIndex === logIndex)) {
+      console.log('Event ignored.');
+      continue;
+    }
+
     if (event === 'Transfer') {
       const { from, to, amount } = returnValues;
       console.log(`Transfer from ${from} to ${to} amount ${amount}`);
@@ -1021,9 +1170,10 @@ const syncDonationsWithNetwork = async (fixConflicts, events, pledges, admins) =
         to,
         amount,
         transactionHash,
+        logIndex,
         pledges,
         admins,
-        pledgeUnusedDonations,
+        pledgeNotFilledDonations,
         chargedDonationListMap,
       );
 
@@ -1036,12 +1186,13 @@ const syncDonationsWithNetwork = async (fixConflicts, events, pledges, admins) =
         logIndex,
         pledges,
         admins,
-        pledgeUnusedDonations,
+        pledgeNotFilledDonations,
         toCreateDonationListMap,
         chargedDonationListMap,
         usedFromDonations,
         isIgnored,
         giverAddress,
+        donationMap,
       );
     } else if (event === 'CancelProject') {
       const { idProject } = returnValues;
@@ -1053,7 +1204,7 @@ const syncDonationsWithNetwork = async (fixConflicts, events, pledges, admins) =
         donationMap,
         ownerPledgeList,
         campaignMilestoneListMap,
-        pledgeUnusedDonations,
+        pledgeNotFilledDonations,
         toCreateDonationListMap,
         chargedDonationListMap,
         admins,
@@ -1061,8 +1212,33 @@ const syncDonationsWithNetwork = async (fixConflicts, events, pledges, admins) =
     }
   }
 
-  // Find conflicts between simulated values and db values
-  await findConflictInDonations(donationMap);
+  // // Find conflicts in donations and pledges!
+  // chargedDonationListMap.forEach((list, pledgeId) => {
+  //   const reducer = (totalAmountRemaining, chargedDonation) => {
+  //     return totalAmountRemaining.plus(chargedDonation.amountRemaining);
+  //   };
+  //   const totalAmountRemaining = list.reduce(reducer, new BigNumber(0));
+  //   const { amount: pledgeAmount, owner, oldPledge } = pledges[Number(pledgeId)];
+  //   const admin = admins[Number(owner)];
+  //   const { isCanceled, canceled } = admin;
+  //
+  //   if (!totalAmountRemaining.eq(pledgeAmount)) {
+  //     console.log('-----------------------');
+  //     console.log(
+  //       `Pledge ${pledgeId} amount ${pledgeAmount} does not equal total amount remaining ${totalAmountRemaining.toFixed()}`,
+  //     );
+  //     console.log('Old Pledge:', oldPledge);
+  //     console.log('Owner:', owner);
+  //     console.log('Owner canceled:', !!canceled);
+  //     console.log('Owner isCanceled:', !!isCanceled);
+  //   }
+  // });
+  // const unusedDonationMap = new Map();
+  // pledgeNotFilledDonations.forEach(list =>
+  //   list.forEach(item => unusedDonationMap.set(item._id, item)),
+  // );
+  // // Find conflicts between simulated values and db values
+  // await findConflictInDonations(donationMap, pledges, unusedDonationMap);
 };
 
 const main = async (updateCache, findConflict, fixConflicts = false) => {
@@ -1089,7 +1265,7 @@ const main = async (updateCache, findConflict, fixConflicts = false) => {
       Promise.all([
         syncDonationsWithNetwork(fixConflicts, events, pledges, admins),
         // findProjectsConflict(fixConflicts, admins, pledges)]
-      ]).then(() => terminateScript());
+      ]).then(() => terminateScript('Finished', 0));
     });
   } catch (e) {
     console.log(e);
