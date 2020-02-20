@@ -719,6 +719,7 @@ const handleToDonations = async (
 
         const _id = donation._id.toString();
         expectedToDonation._id = _id;
+        expectedToDonation.savedAmountRemaining = model.amountRemaining;
         donationMap.set(_id, expectedToDonation);
         console.log(
           `donation created: ${JSON.stringify(
