@@ -178,7 +178,12 @@
     {
       "txHash": "0x63591f3b619b5e4367085e8c7dfa75e3005fb1d41f8928934803419c74e898a2",
       "logIndex": 3
+    },
+    {
+      "txHash": "0x40e1262f6ef88eb402bcd0fee3e21c24c32acec6cbb17495cf2b12ba3d3d33f5",
+      "logIndex": 4
     }
+
   ],
   "revertExemptedDonations": [
   ],
