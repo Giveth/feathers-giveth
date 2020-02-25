@@ -50,11 +50,15 @@ app.set('mongooseClient', mongoose);
 
 const Milestones = require('../../src/models/milestones.model').createModel(app);
 const Campaigns = require('../../src/models/campaigns.model').createModel(app);
+const DACs = require('../../src/models/dacs.model').createModel(app);
 const Donations = require('../../src/models/donations.model').createModel(app);
 const PledgeAdmins = require('../../src/models/pledgeAdmins.model').createModel(app);
 
 const { DonationStatus } = require('../../src/models/donations.model');
 const { AdminTypes } = require('../../src/models/pledgeAdmins.model');
+const { DacStatus } = require('../../src/models/dacs.model');
+const { CampaignStatus } = require('../../src/models/campaigns.model');
+const { MilestoneStatus } = require('../../src/models/milestones.model');
 
 const terminateScript = (message = '', code = 0) =>
   process.stdout.write(`Exit message: ${message}`, () => process.exit(code));
@@ -1383,11 +1387,105 @@ const syncDonationsWithNetwork = async ({ fixConflicts, fixStatus }, events, ple
   await fixConflictInDonations(fixConflicts, donationMap, pledges, unusedDonationMap);
 };
 
-const main = async ({ updateState, updateEvents, findConflicts, fixConflicts, fixStatus }) => {
+const syncPledgeAdmins = async (fixAdminConflicts, events) => {
+  if (!fixAdminConflicts) return;
+
+  for (let i = 9000; i < events.length; i += 1) {
+    const { event, transactionHash, returnValues } = events[i];
+
+    if (event !== 'ProjectAdded') continue;
+
+    const { idProject } = returnValues;
+
+    // eslint-disable-next-line no-await-in-loop
+    const [pledgeAdmin] = await PledgeAdmins.find({ id: Number(idProject) }).exec();
+
+    if (pledgeAdmin === undefined) {
+      console.log('---------------------------');
+      console.log(`No pledge admin exists for ${idProject}`);
+      console.log('Transaction Hash:', transactionHash);
+
+      const projectModelTypeField = [
+        {
+          type: AdminTypes.DAC,
+          model: DACs,
+          idFieldName: 'delegateId',
+          expectedStatus: DacStatus.ACTIVE,
+        },
+        {
+          type: AdminTypes.CAMPAIGN,
+          model: Campaigns,
+          idFieldName: 'projectId',
+          expectedStatus: CampaignStatus.ACTIVE,
+        },
+        {
+          type: AdminTypes.MILESTONE,
+          model: Milestones,
+          idFieldName: 'projectId',
+          expectedStatus: MilestoneStatus.IN_PROGRESS,
+        },
+      ];
+
+      let entityFound = false;
+      for (let j = 0; j < projectModelTypeField.length; j += 1) {
+        const { type, model, idFieldName, expectedStatus } = projectModelTypeField[j];
+        // eslint-disable-next-line no-await-in-loop
+        const [entity] = await model.find({ txHash: transactionHash }).exec();
+
+        // Not found any
+        if (entity === undefined) continue;
+
+        console.log(`a ${type} found with id ${entity._id.toString()} and status ${entity.status}`);
+        console.log(`Title: ${entity.title}`);
+        const newPledgeAdmin = new PledgeAdmins({
+          id: Number(idProject),
+          type,
+          typeId: entity._id.toString(),
+        });
+        // eslint-disable-next-line no-await-in-loop
+        await newPledgeAdmin.save();
+        console.log('pledgeAdmin crated:', newPledgeAdmin._id.toString());
+
+        const mutation = {};
+        mutation[idFieldName] = Number(idProject);
+
+        // eslint-disable-next-line no-await-in-loop
+        await model
+          .update(
+            { _id: entity.id },
+            {
+              status: expectedStatus,
+              prevStatus: entity.status,
+              $set: {
+                ...mutation,
+              },
+            },
+          )
+          .exec();
+
+        entityFound = true;
+        break;
+      }
+
+      if (!entityFound) {
+        console.log("Couldn't found appropriate entity");
+      }
+    }
+  }
+};
+
+const main = async ({
+  updateState,
+  updateEvents,
+  findConflicts,
+  fixConflicts,
+  fixStatus,
+  fixAdminConflicts,
+}) => {
   try {
     const { state, events } = await getBlockchainData({ updateState, updateEvents });
 
-    if (!findConflicts) return;
+    if (!findConflicts && !fixAdminConflicts) return;
 
     const { pledges, admins } = state;
 
@@ -1406,6 +1504,7 @@ const main = async ({ updateState, updateEvents, findConflicts, fixConflicts, fi
 
       Promise.all([
         syncDonationsWithNetwork({ fixConflicts, fixStatus }, events, pledges, admins),
+        // syncPledgeAdmins(fixAdminConflicts, events, admins),
         // findProjectsConflict(fixConflicts, admins, pledges)]
       ]).then(() => terminateScript('Finished', 0));
     });
@@ -1416,11 +1515,12 @@ const main = async ({ updateState, updateEvents, findConflicts, fixConflicts, fi
 };
 
 main({
-  updateState: true,
-  updateEvents: true,
+  updateState: false,
+  updateEvents: false,
   findConflicts: true,
   fixConflicts: true,
   fixStatus: true,
+  fixAdminConflicts: false,
 })
   .then(() => {})
   .catch(e => terminateScript(e, 1));
