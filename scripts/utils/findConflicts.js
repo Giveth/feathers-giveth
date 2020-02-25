@@ -9,7 +9,7 @@ require('../../src/models/mongoose-bn')(mongoose);
 const { LiquidPledging, LiquidPledgingState } = require('giveth-liquidpledging');
 const web3Helper = require('../../src/blockchain/lib/web3Helpers');
 
-const configFileName = 'beta'; // default or beta
+const configFileName = 'default'; // default or beta
 
 // eslint-disable-next-line import/no-dynamic-require
 const config = require(`../../config/${configFileName}.json`);
@@ -133,6 +133,32 @@ const getBlockchainData = async ({ updateState, updateEvents }) => {
     state,
     events,
   };
+};
+
+// Update createdAt date of donations based on transaction date
+// @params {string} url blockchain node url address
+const updateDonationsCreatedDate = async startDate => {
+  const foreignWeb3 = instantiateWeb3(nodeUrl);
+  await Donations.find({
+    createdAt: {
+      $gte: startDate.toISOString(),
+    },
+  })
+    .cursor()
+    .eachAsync(async ({ _id, txHash, createdAt }) => {
+      const { blockNumber } = await foreignWeb3.eth.getTransaction(txHash);
+      const { timestamp } = await foreignWeb3.eth.getBlock(blockNumber);
+      const newCreatedAt = new Date(timestamp * 1000);
+      if (createdAt.toISOString() !== newCreatedAt.toISOString()) {
+        console.log(
+          `Donation ${_id.toString()} createdAt is changed from ${createdAt.toISOString()} to ${newCreatedAt.toISOString()}`,
+        );
+        console.log('Updating...');
+        const [d] = await Donations.find({ _id }).exec();
+        d.createdAt = newCreatedAt;
+        await d.save();
+      }
+    });
 };
 
 const findEntityConflicts = (model, projectPledgeMap, fixConflicts = false, pledges) => {
@@ -604,7 +630,9 @@ const handleToDonations = async (
   from,
   to,
   amount,
+  foreignWeb3,
   transactionHash,
+  blockNumber,
   logIndex,
   pledges,
   admins,
@@ -757,6 +785,8 @@ const handleToDonations = async (
           return;
         }
 
+        const { timestamp } = await foreignWeb3.eth.getBlock(blockNumber);
+
         const model = {
           status,
           mined: true,
@@ -773,6 +803,7 @@ const handleToDonations = async (
           ownerType: toPledgeAdmin.type,
           token,
           txHash: transactionHash,
+          createdAt: new Date(timestamp * 1000),
           ...delegationInfo,
         };
         if (transfer._id) {
@@ -1273,9 +1304,10 @@ const syncDonationsWithNetwork = async ({ fixConflicts, fixStatus }, events, ple
     }
   }
 
+  const foreignWeb3 = instantiateWeb3(nodeUrl);
   // Simulate transactions by events
   for (let i = 0; i < events.length; i += 1) {
-    const { event, transactionHash, logIndex, returnValues } = events[i];
+    const { event, transactionHash, logIndex, returnValues, blockNumber } = events[i];
     console.log(
       `-----\nProcessing event ${i}:\nLog Index: ${logIndex}\nEvent: ${event}\nTransaction hash: ${transactionHash}`,
     );
@@ -1316,7 +1348,9 @@ const syncDonationsWithNetwork = async ({ fixConflicts, fixStatus }, events, ple
         from,
         to,
         amount,
+        foreignWeb3,
         transactionHash,
+        blockNumber,
         logIndex,
         pledges,
         admins,
@@ -1506,6 +1540,7 @@ const main = async ({
         syncDonationsWithNetwork({ fixConflicts, fixStatus }, events, pledges, admins),
         // syncPledgeAdmins(fixAdminConflicts, events, admins),
         // findProjectsConflict(fixConflicts, admins, pledges)]
+        // updateDonationsCreatedDate(new Date('2020-02-01')),
       ]).then(() => terminateScript('Finished', 0));
     });
   } catch (e) {
