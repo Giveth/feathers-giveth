@@ -28,7 +28,14 @@ const updateEntity = async (app, id, type) => {
     Object.assign(donationQuery, {
       delegateTypeId: id,
       delegateType: AdminTypes.DAC,
-      $or: [{ intendedProjectId: 0 }, { intendedProjectId: undefined }],
+      $and: [
+        {
+          $or: [{ intendedProjectId: 0 }, { intendedProjectId: undefined }],
+        },
+        {
+          $or: [{ parentDonations: { $not: { $size: 0 } } }, { amountRemaining: { $ne: '0' } }],
+        },
+      ],
     });
   } else if (type === AdminTypes.CAMPAIGN) {
     Object.assign(donationQuery, {
