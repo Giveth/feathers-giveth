@@ -10,9 +10,11 @@ const getUsersByAddress = (app, addresses) =>
     })
     .then(users =>
       users.concat(
-        addresses.filter(a => !users.find(u => u.address === a)).map(address => ({
-          address,
-        })),
+        addresses
+          .filter(a => !users.find(u => u.address === a))
+          .map(address => ({
+            address,
+          })),
       ),
     );
 

@@ -25,9 +25,7 @@ const checkReviewer = async context => {
           campaign.reviewerAddress.toLowerCase() !== project.campaignReviewerAddress.toLowerCase()
         ) {
           throw new errors.BadRequest(
-            `project campaignReviewerAddress address ${
-              project.campaignReviewerAddress
-            } is not in the whitelist`,
+            `project campaignReviewerAddress address ${project.campaignReviewerAddress} is not in the whitelist`,
           );
         }
       }

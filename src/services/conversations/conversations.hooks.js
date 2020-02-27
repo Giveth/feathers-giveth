@@ -1,8 +1,8 @@
 const logger = require('winston');
 const commons = require('feathers-hooks-common');
 const { disallow } = require('feathers-hooks-common');
-const sanitizeAddress = require('../../hooks/sanitizeAddress');
 const errors = require('@feathersjs/errors');
+const sanitizeAddress = require('../../hooks/sanitizeAddress');
 const sanitizeHtml = require('../../hooks/sanitizeHtml');
 const resolveFiles = require('../../hooks/resolveFiles');
 const onlyInternal = require('../../hooks/onlyInternal');
@@ -62,14 +62,14 @@ const restrictAndSetOwner = () => context => {
       // anyone not involved with the milestone is not allowed to create conversation
       // not taking into account that a user has one or more of these roles
       switch (context.data.ownerAddress) {
-        case milestone.ownerAddress:
-          context.data.performedByRole = 'Milestone Owner';
-          break;
         case milestone.campaign.ownerAddress:
           context.data.performedByRole = 'Campaign Manager';
           break;
         case milestone.campaign.coownerAddress:
           context.data.performedByRole = 'Campaign Co-Manager';
+          break;
+        case milestone.ownerAddress:
+          context.data.performedByRole = 'Milestone Owner';
           break;
         case milestone.recipientAddress:
           context.data.performedByRole = 'Recipient';

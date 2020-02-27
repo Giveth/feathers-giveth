@@ -57,7 +57,7 @@ const restrict = () => context => {
 
       const keysToRemove = Object.keys(data).map(key => !approvedKeys.includes(key));
       keysToRemove.forEach(key => delete data[key]);
-    } else if (user.address !== campaign.ownerAddress) throw new errors.Forbidden();
+    } else if (campaign.ownerAddress && user.address !== campaign.ownerAddress) throw new errors.Forbidden();
 
     // never allow setting txHash in an update/patch
     commons.deleteByDot(data, 'txHash');
@@ -94,11 +94,10 @@ const addMilestoneCounts = () => context => {
     promises = [countMilestones(items, service)];
   }
 
-  return Promise.all(promises).then(
-    results =>
-      Array.isArray(items)
-        ? commons.replaceItems(context, results)
-        : commons.replaceItems(context, results[0]),
+  return Promise.all(promises).then(results =>
+    Array.isArray(items)
+      ? commons.replaceItems(context, results)
+      : commons.replaceItems(context, results[0]),
   );
 };
 

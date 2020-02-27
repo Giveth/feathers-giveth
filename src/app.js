@@ -1,6 +1,15 @@
+const logger = require('winston');
+const path = require('path');
+const favicon = require('serve-favicon');
+const compress = require('compression');
+const cors = require('cors');
+const helmet = require('helmet');
+const feathers = require('@feathersjs/feathers');
+const express = require('@feathersjs/express');
+const configuration = require('@feathersjs/configuration');
+const notFound = require('@feathersjs/errors/not-found');
 const socketsConfig = require('./socketsConfig');
 const configureLogger = require('./utils/configureLogger');
-const logger = require('winston');
 
 const middleware = require('./middleware');
 const services = require('./services');
@@ -12,17 +21,6 @@ const ipfsFetcher = require('./utils/ipfsFetcher');
 const ipfsPinner = require('./utils/ipfsPinner');
 
 const channels = require('./channels');
-
-const path = require('path');
-const favicon = require('serve-favicon');
-const compress = require('compression');
-const cors = require('cors');
-const helmet = require('helmet');
-
-const feathers = require('@feathersjs/feathers');
-const express = require('@feathersjs/express');
-const configuration = require('@feathersjs/configuration');
-const notFound = require('@feathersjs/errors/not-found');
 
 const app = express(feathers());
 
