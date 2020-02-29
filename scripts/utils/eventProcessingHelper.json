@@ -168,8 +168,19 @@
     {
       "txHash": "0x40e1262f6ef88eb402bcd0fee3e21c24c32acec6cbb17495cf2b12ba3d3d33f5",
       "logIndex": 4
+    },
+    {
+      "txHash": "0x4bfee4e3ea6c9ddf7fddc48a40b6033c9e44063d285486d7fe649e7481c1c1b2",
+      "logIndex": 3
+    },
+    {
+      "txHash": "0xe8698c7154097e4f61100e403815c039b504c73b611ad91194489ea877e5e568",
+      "logIndex": 2
+    },
+    {
+      "txHash": "0x0bee34513592a95f8a139f4a37ad949ae0d234a8ad46c998d1a8a416177aac20",
+      "logIndex": 3
     }
-
   ],
   "revertExemptedDonations": [
   ],
