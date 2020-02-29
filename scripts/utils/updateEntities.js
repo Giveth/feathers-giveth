@@ -214,8 +214,9 @@ const updateEntity = async (model, type) => {
         (fullyFunded === true || entity.fullyFunded !== undefined) &&
         entity.fullyFunded !== fullyFunded
       ) {
-        message += `Diff: ${entity.maxAmount -
-          donationCounters.find(dc => dc.symbol === entity.token.symbol).totalDonated}\n`;
+        message += `Diff: ${entity.maxAmount.sub(
+          donationCounters.find(dc => dc.symbol === entity.token.symbol).totalDonated,
+        )}\n`;
         message += `${typeName} ${entity._id.toString()} (${
           entity.status
         }) fullyFunded status changed from ${entity.fullyFunded} to ${fullyFunded}\n`;
