@@ -130,8 +130,9 @@ const updateEntity = async (app, id, type) => {
       type === AdminTypes.MILESTONE &&
       donationCounters.length > 0 &&
       entity.token.foreignAddress !== ANY_TOKEN.foreignAddress &&
-      entity.maxAmount ===
-        donationCounters.find(dc => dc.symbol === entity.token.symbol).totalDonated.toString();
+      entity.maxAmount.eq(
+        donationCounters.find(dc => dc.symbol === entity.token.symbol).totalDonated,
+      );
 
     const peopleCount = new Set(donations.map(d => d.giverAddress)).size;
 

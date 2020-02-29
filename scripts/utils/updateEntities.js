@@ -4,7 +4,7 @@ require('../../src/models/mongoose-bn')(mongoose);
 const _groupBy = require('lodash.groupby');
 const { toBN } = require('web3-utils');
 
-const configFileName = 'default'; // default or beta
+const configFileName = 'beta'; // default or beta
 
 // eslint-disable-next-line import/no-dynamic-require
 const config = require(`../../config/${configFileName}.json`);
@@ -30,7 +30,8 @@ const Campaigns = require('../../src/models/campaigns.model').createModel(app);
 const Donations = require('../../src/models/donations.model').createModel(app);
 
 const { DonationStatus } = require('../../src/models/donations.model');
-const { MilestoneTypes } = require('../../src/models/milestones.model');
+const { MilestoneStatus } = require('../../src/models/milestones.model');
+const { CampaignStatus } = require('../../src/models/campaigns.model');
 const { AdminTypes } = require('../../src/models/pledgeAdmins.model');
 const { ANY_TOKEN } = require('../../src/blockchain/lib/web3Helpers');
 
@@ -45,7 +46,7 @@ const updateEntity = async (model, type) => {
   const donationQuery = {
     // $select: ['amount', 'giverAddress', 'amountRemaining', 'token', 'status', 'isReturn'],
     mined: true,
-    status: { $nin: [DonationStatus.FAILED] },
+    status: { $nin: [DonationStatus.FAILED, DonationStatus.PAYING, DonationStatus.PAID] },
   };
 
   let idFieldName;
@@ -106,35 +107,31 @@ const updateEntity = async (model, type) => {
         const returnedTokenDonations = groupedReturnedDonations[symbol] || [];
 
         // eslint-disable-next-line prefer-const
-        let { totalDonated, currentBalance } = tokenDonations
-          .filter(
-            d =>
-              (type === AdminTypes.MILESTONE && entity.type === MilestoneTypes.LPMilestone) ||
-              ![DonationStatus.PAYING, DonationStatus.PAID].includes(d.status),
-          )
-          .reduce(
-            (accumulator, d) => ({
-              totalDonated: d.isReturn
-                ? accumulator.totalDonated
-                : accumulator.totalDonated.add(toBN(d.amount)),
-              currentBalance: accumulator.currentBalance.add(toBN(d.amountRemaining)),
-            }),
-            {
-              totalDonated: toBN(0),
-              currentBalance: toBN(0),
-            },
-          );
+        let { totalDonated, currentBalance } = tokenDonations.reduce(
+          (accumulator, d) => ({
+            totalDonated: d.isReturn
+              ? accumulator.totalDonated
+              : accumulator.totalDonated.add(toBN(d.amount)),
+            currentBalance: accumulator.currentBalance.add(toBN(d.amountRemaining)),
+          }),
+          {
+            totalDonated: toBN(0),
+            currentBalance: toBN(0),
+          },
+        );
 
-        totalDonated = returnedTokenDonations.reduce((acc, returnedDonation) => {
-          const parentDonation = tokenDonations.find(
-            d => d._id.toString() === returnedDonation.parentDonations[0],
+        // Exclude returned values from canceled milestones
+        if (
+          !(type === AdminTypes.MILESTONE && entity.status === MilestoneStatus.CANCELED) &&
+          !(type === AdminTypes.CAMPAIGN && entity.status === CampaignStatus.CANCELED)
+        ) {
+          totalDonated = returnedTokenDonations.reduce(
+            (acc, d) => acc.sub(toBN(d.amount)),
+            totalDonated,
           );
-          return acc.sub(toBN(parentDonation.amount));
-        }, totalDonated);
+        }
 
-        const donationCount = tokenDonations.filter(
-          d => !d.isReturn && ![DonationStatus.PAYING, DonationStatus.PAID].includes(d.status),
-        ).length;
+        const donationCount = tokenDonations.filter(d => !d.isReturn).length;
 
         // find the first donation in the group that has a token object
         // b/c there are other donation objects coming through as well
@@ -159,7 +156,11 @@ const updateEntity = async (model, type) => {
       const typeName = type[0].toUpperCase() + type.slice(1);
 
       if (donationCounters.length !== oldDonationCounters.length) {
-        message += `${typeName} donation counter length is changed from ${oldDonationCounters.length} to ${donationCounters.length}`;
+        message += `${typeName} ${entity._id.toString()} (${
+          entity.status
+        }) donation counter length is changed from ${oldDonationCounters.length} to ${
+          donationCounters.length
+        }\n`;
         mutations.donationCounters = donationCounters;
         shouldUpdateEntity = true;
       } else {
@@ -171,7 +172,9 @@ const updateEntity = async (model, type) => {
             oldDC.currentBalance.toString() !== dc.currentBalance.toString() ||
             oldDC.donationCount !== dc.donationCount
           ) {
-            message += `${typeName} ${entity._id.toString()} donation counter should be updated\n`;
+            message += `${typeName} ${entity._id.toString()} (${
+              entity.status
+            }) donation counter should be updated\n`;
             message += `Old:\n${JSON.stringify(
               {
                 symbol: oldDC.symbol,
@@ -197,26 +200,34 @@ const updateEntity = async (model, type) => {
         });
       }
 
-      const fullyFunded =
+      const fullyFunded = !!(
         type === AdminTypes.MILESTONE &&
         donationCounters.length > 0 &&
         entity.token.foreignAddress !== ANY_TOKEN.foreignAddress &&
-        entity.maxAmount ===
-          donationCounters.find(dc => dc.symbol === entity.token.symbol).totalDonated.toString();
+        entity.maxAmount &&
+        entity.maxAmount.eq(
+          donationCounters.find(dc => dc.symbol === entity.token.symbol).totalDonated,
+        )
+      );
 
       if (
         (fullyFunded === true || entity.fullyFunded !== undefined) &&
         entity.fullyFunded !== fullyFunded
       ) {
-        message += `${typeName} ${entity._id.toString()} fullyFunded status changed from ${
-          entity.fullyFunded
-        } to ${fullyFunded}\n`;
+        message += `Diff: ${entity.maxAmount -
+          donationCounters.find(dc => dc.symbol === entity.token.symbol).totalDonated}\n`;
+        message += `${typeName} ${entity._id.toString()} (${
+          entity.status
+        }) fullyFunded status changed from ${entity.fullyFunded} to ${fullyFunded}\n`;
         shouldUpdateEntity = true;
         mutations.fullyFunded = fullyFunded;
       }
 
       const peopleCount = new Set(donations.map(d => d.giverAddress)).size;
-      if (peopleCount !== entity.peopleCount) {
+      if (
+        !(peopleCount === 0 && entity.peopleCount === undefined) &&
+        peopleCount !== entity.peopleCount
+      ) {
         message += `${typeName} ${entity._id.toString()} peopleCount value changed from ${
           entity.peopleCount
         } to ${peopleCount}\n`;
@@ -226,7 +237,7 @@ const updateEntity = async (model, type) => {
 
       if (shouldUpdateEntity) {
         console.log(`----------------------------\n${message}\nUpdating...`);
-        // await model.update({ _id: entity._id }, mutations).exec();
+        await model.update({ _id: entity._id }, mutations).exec();
       }
     });
 };
