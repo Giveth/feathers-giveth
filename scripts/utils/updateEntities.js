@@ -205,10 +205,10 @@ const updateEntity = async (model, type) => {
         donationCounters.length > 0 &&
         entity.token.foreignAddress !== ANY_TOKEN.foreignAddress &&
         entity.maxAmount &&
-        entity.maxAmount.eq(
+        entity.maxAmount.sub(
           donationCounters.find(dc => dc.symbol === entity.token.symbol).totalDonated,
-        )
-      );
+        ) < 10000000000
+      ); // Difference less than this number is negligible
 
       if (
         (fullyFunded === true || entity.fullyFunded !== undefined) &&
