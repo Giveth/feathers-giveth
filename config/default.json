@@ -113,7 +113,8 @@
     "GBP",
     "MXN",
     "THB",
-    "USD"
+    "USD",
+    "DAI"
   ],
   "stableCoins": [
     "DAI",
