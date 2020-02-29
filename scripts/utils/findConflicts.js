@@ -9,7 +9,7 @@ require('../../src/models/mongoose-bn')(mongoose);
 const { LiquidPledging, LiquidPledgingState } = require('giveth-liquidpledging');
 const web3Helper = require('../../src/blockchain/lib/web3Helpers');
 
-const configFileName = 'default'; // default or beta
+const configFileName = 'beta'; // default or beta
 
 // eslint-disable-next-line import/no-dynamic-require
 const config = require(`../../config/${configFileName}.json`);
