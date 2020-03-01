@@ -61,7 +61,7 @@ const { CampaignStatus } = require('../../src/models/campaigns.model');
 const { MilestoneStatus } = require('../../src/models/milestones.model');
 
 const terminateScript = (message = '', code = 0) =>
-  process.stdout.write(`Exit message: ${message}`, () => process.exit(code));
+  process.stdout.write(`Exit message: ${message}\n`, () => process.exit(code));
 
 // Instantiate Web3 module
 // @params {string} url blockchain node url address
