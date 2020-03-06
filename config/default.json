@@ -15,7 +15,7 @@
   "ipfsGateway": "http://localhost:8080/ipfs/",
   "ipfsApi": "/ip4/127.0.0.1/tcp/5001",
   "blockchain": {
-    "nodeUrl": "wss://rinkeby.giveth.io/ws",
+    "nodeUrl": "ws://localhost:8546",
     "homeNodeUrl": "ws://localhost:8545",
     "startingBlock": 0,
     "requiredConfirmations": 1,
@@ -80,24 +80,17 @@
   ],
   "tokenWhitelist": [
     {
-      "name": "ETH",
+      "name": "Home Ganache ETH",
       "address": "0x0",
-      "foreignAddress": "0xe3ee055346a9EfaF4AA2900847dEb04de0195398",
+      "foreignAddress": "0x5a42ca500aB159c51312B764bb25C135026e7a31",
       "symbol": "ETH",
       "decimals": 18
     },
     {
-      "name": "SAI",
-      "address": "0x89d24a6b4ccb1b6faa2625fe562bdd9a23260359",
-      "foreignAddress": "0xB5aFaeD1AE9B0485a859023e1372C100b11E98ab",
-      "symbol": "SAI",
-      "decimals": 18
-    },
-    {
-      "name": "DAI",
-      "address": "0x6b175474e89094c44da98b954eedeac495271d0f",
-      "foreignAddress": "0x05A075B296995AdCaEC7c1dE0E52271a4Cf6DEb8",
-      "symbol": "DAI",
+      "name": "MiniMe Test Token",
+      "address": "0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab",
+      "foreignAddress": "0x8F086f895deBc23473dfe507dd4BF35D6184552c",
+      "symbol": "ANT",
       "decimals": 18
     }
   ],
