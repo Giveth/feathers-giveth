@@ -9,7 +9,7 @@ require('../../src/models/mongoose-bn')(mongoose);
 const { LiquidPledging, LiquidPledgingState } = require('giveth-liquidpledging');
 const web3Helper = require('../../src/blockchain/lib/web3Helpers');
 
-const configFileName = 'beta'; // default or beta
+const configFileName = 'default'; // default or beta
 
 // eslint-disable-next-line import/no-dynamic-require
 const config = require(`../../config/${configFileName}.json`);
@@ -1579,5 +1579,7 @@ main({
   fixAdminConflicts: true,
   fixReturnedDonationAmount: true,
 })
-  .then(() => {})
+  .then(() => {
+    terminateScript('Finished', 0);
+  })
   .catch(e => terminateScript(e, 1));
