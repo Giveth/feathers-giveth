@@ -131,7 +131,7 @@ const updateEntity = async (app, id, type) => {
       donationCounters.length > 0 &&
       entity.token.foreignAddress !== ANY_TOKEN.foreignAddress &&
       entity.maxAmount &&
-      entity.maxAmount.sub(
+      toBN(entity.maxAmount).sub(
         donationCounters.find(dc => dc.symbol === entity.token.symbol).totalDonated,
       ) < 10000000000;
 
