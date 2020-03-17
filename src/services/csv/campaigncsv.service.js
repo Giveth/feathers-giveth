@@ -1,6 +1,10 @@
 // const { Readable, Transform } = require('stream');
 const Stream = require('stream');
+const Web3 = require('web3');
 const { Transform } = require('json2csv');
+const { AdminTypes } = require('../../models/pledgeAdmins.model');
+const { DonationStatus } = require('../../models/donations.model');
+const hooks = require('./campaigncsv.hooks');
 
 const fields = [
   {
@@ -11,50 +15,41 @@ const fields = [
   {
     label: 'Giver Name',
     value: 'fromName',
-    default: 'NULL',
+    default: 'Anonymous',
   },
-  'to',
-  'toName',
-  'txHash',
-  'amount',
-  'action',
-  'date',
-  // 'totalCampaignAmount',
+  {
+    label: 'Intended Project',
+    value: 'to',
+  },
+  {
+    label: 'Intended Project Title',
+    value: 'toName',
+  },
+  {
+    label: 'Transaction Hash',
+    value: 'txHash',
+  },
+  {
+    label: 'Amount',
+    value: 'amount',
+  },
+  {
+    label: 'Action',
+    value: 'action',
+  },
+  {
+    label: 'Date',
+    value: 'date',
+  },
+  {
+    label: 'Transaction Etherscan Link',
+    value: 'etherscanLink',
+  },
+  {
+    label: 'Home Transaction Etherscan Link',
+    value: 'homeEtherscanLink',
+  },
 ];
-
-class CsvItem {
-  constructor(from, fromName, to, toName, txHash, amount, action, date) {
-    this.from = from;
-    this.fromName = fromName;
-    this.to = to;
-    this.toName = toName;
-    this.txHash = txHash;
-    this.amount = amount;
-    this.action = action;
-    this.date = date;
-    // this.totalCampaignAmount = totalCampaignAmount;
-  }
-
-  returnJSON() {
-    return {
-      actionDate: this.actionDate,
-      fromName: this.fromName,
-      from: this.from,
-      toName: this.toName,
-      to: this.to,
-      currency: this.currency,
-      amount: this.amount,
-      action: this.action,
-      linkMilestone: this.linkMilestone,
-      linkRecipient: this.linkRecipient,
-      linkDonor: this.linkDonor,
-      ethCampBalance: this.ethCampBalance,
-      daiCampBalance: this.daiCampBalance,
-      linkRink: this.linkRink,
-      linkMain: this.linkMain,
-    };
-  }
-}
 
 module.exports = function registerService() {
   const app = this;
@@ -64,22 +59,86 @@ module.exports = function registerService() {
   const milestoneService = app.service('milestones');
   // const usersService = app.service('users');
 
-  const transformDonation = new Stream.Transform({
-    objectMode: true,
-    transform(donation, _, callback) {
-      const csvItem = new CsvItem(
-        donation.giverAddress,
-        donation.giver.name,
-        donation.ownerTypeId,
-        donation.ownerEntity.title,
-        donation.txHash,
-        donation.amount,
-        'Donated',
-        donation.createdAt,
-      );
-      callback(null, csvItem.returnJSON());
-    },
-  });
+  const dappUrl = app.get('dappUrl');
+  const { etherscan, homeEtherscan } = app.get('blockchain');
+
+  const stringIsEmpty = s => s === undefined || s === null || s === '';
+
+  const newDonationTransform = () => {
+    const getEntityLink = (entity, type) => {
+      switch (type) {
+        case AdminTypes.CAMPAIGN:
+          return `${dappUrl}/campaigns/${entity._id.toString()}`;
+
+        case AdminTypes.MILESTONE:
+          return `${dappUrl}/campaigns/${entity.campaignId}/milestones/${entity._id.toString()}`;
+
+        default:
+          return '';
+      }
+    };
+
+    const getEtherscanLink = txHash => {
+      if (stringIsEmpty(etherscan) || stringIsEmpty(txHash)) return undefined;
+
+      return `${etherscan}tx/${txHash}`;
+    };
+
+    const getHomeEtherscanLink = txHash => {
+      if (stringIsEmpty(homeEtherscan) || stringIsEmpty(txHash)) return undefined;
+
+      return `${homeEtherscan}tx/${txHash}`;
+    };
+
+    const isDelegate = async parentDonationId => {
+      if (stringIsEmpty(parentDonationId)) return false;
+
+      const [parent] = await donationService.find({
+        query: {
+          _id: parentDonationId,
+          $select: ['parentDonations', 'status'],
+        },
+        paginate: false,
+      });
+
+      if (parent.status === DonationStatus.COMMITTED) return true;
+      if (parent.parentDonations.length === 0) return false;
+      return isDelegate(parent.parentDonations[0]);
+    };
+
+    return new Stream.Transform({
+      objectMode: true,
+      async transform(donation, _, callback) {
+        const {
+          txHash,
+          homeTxHash,
+          amount,
+          giverAddress,
+          ownerEntity,
+          ownerType,
+          token,
+          giver,
+          createdAt,
+          parentDonations,
+        } = donation;
+        const donationIsDelegate = await isDelegate(parentDonations[0]);
+        callback(null, {
+          fromName: giver.name === '' ? 'Anonymous' : giver.name,
+          from: giverAddress,
+          toName: ownerEntity.title,
+          to: getEntityLink(ownerEntity, ownerType),
+          currency: token.name,
+          amount: `${Web3.utils.fromWei(amount).toString()} ${token.name}`,
+          action: donationIsDelegate ? 'Delegated' : 'Direct Donation',
+          date: createdAt.toString(),
+          txHash,
+          etherscanLink: getEtherscanLink(txHash),
+          homeEtherscanLink: getHomeEtherscanLink(homeTxHash),
+        });
+      },
+    });
+  };
+
   const getDonationStream = async id => {
     const milestones = await milestoneService.find({
       query: {
@@ -89,45 +148,75 @@ module.exports = function registerService() {
       paginate: false,
     });
 
-    const result = await donationService.find({
-      query: {
-        status: 'Committed',
-        ownerTypeId: { $in: [id, ...milestones.map(m => m._id)] },
-        // $select: [
-        //   '_id',
-        //   'giverAddress',
-        //   'ownerType',
-        //   'ownerTypeId',
-        //   'txHash',
-        //   'amount',
-        //   'createdAt',
-        // ],
-      },
-      paginate: false,
-      schema: 'includeTypeAndGiverDetails',
-    });
+    let skip = 0;
+
     const readable = new Stream.Readable({
-      read() {},
+      read() {
+        donationService
+          .find({
+            query: {
+              status: 'Committed',
+              ownerTypeId: { $in: [id, ...milestones.map(m => m._id)] },
+              $skip: skip,
+              $limit: 10,
+              $select: [
+                '_id',
+                'giverAddress',
+                'ownerType',
+                'ownerTypeId',
+                'txHash',
+                'homeTxHash',
+                'amount',
+                'createdAt',
+                'token',
+                'parentDonations',
+              ],
+            },
+            schema: 'includeTypeAndGiverDetails',
+          })
+          .then(result => {
+            const { data } = result;
+            data.forEach(i => readable.push(i));
+            skip += data.length;
+
+            if (skip === result.total) readable.push(null);
+          });
+      },
       objectMode: true,
     });
-    result.forEach(d => {
-      return readable.push(d);
-    });
-    readable.push(null);
+
     return readable;
   };
   const csvService = {
     async get(id) {
       const donationStream = await getDonationStream(id);
 
-      return donationStream.pipe(transformDonation);
+      return new Promise((resolve, reject) => {
+        const json2csv = new Transform({ fields }, { objectMode: true });
+        const chunks = [];
+        donationStream
+          .on('error', reject)
+          .pipe(newDonationTransform())
+          .on('error', reject)
+          .pipe(json2csv)
+          .on('error', reject)
+          .on('data', chunk => {
+            chunks.push(chunk);
+          })
+          .on('finish', () => {
+            resolve(chunks.join(''));
+          });
+      });
     },
   };
 
   // Initialize our service with any options it requires
   app.use('/campaigncsv', csvService, (req, res) => {
     const result = res.data;
-    const json2csv = new Transform({ fields }, { objectMode: true });
-    result.pipe(json2csv).pipe(res);
+    res.type('csv');
+    res.end(result);
   });
+
+  const service = app.service('campaigncsv');
+  service.hooks(hooks);
 };
