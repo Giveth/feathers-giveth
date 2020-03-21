@@ -2,7 +2,6 @@ const ForeignGivethBridgeArtifact = require('giveth-bridge/build/ForeignGivethBr
 const LiquidPledgingArtifact = require('giveth-liquidpledging/build/LiquidPledging.json');
 const logger = require('winston');
 const { toBN } = require('web3-utils');
-const semaphore = require('semaphore');
 const eventDecodersFromArtifact = require('./lib/eventDecodersFromArtifact');
 const topicsFromArtifacts = require('./lib/topicsFromArtifacts');
 const { getBlockTimestamp, executeRequestsAsBatch, ANY_TOKEN } = require('./lib/web3Helpers');
@@ -511,8 +510,6 @@ const pledges = (app, liquidPledging) => {
     );
   }
 
-  const transferSem = semaphore();
-
   async function hasSimilarDonation(transferInfo) {
     const {
       toPledgeAdmin,
@@ -626,22 +623,13 @@ const pledges = (app, liquidPledging) => {
         return;
       }
 
-      transferSem.take(async () => {
-        try {
-          // Search for similar donation
-          const hasSimilar = await hasSimilarDonation(transferInfo);
-          if (!hasSimilar) {
-            await spendAndUpdateExistingDonations(transferInfo);
-            await createToDonation(transferInfo);
-          } else {
-            logger.warn('Ignore repetitive transfer:', transferInfo);
-          }
-        } catch (e) {
-          logger.error(e);
-        } finally {
-          transferSem.leave();
-        }
-      });
+      const hasSimilar = await hasSimilarDonation(transferInfo);
+      if (!hasSimilar) {
+        await spendAndUpdateExistingDonations(transferInfo);
+        await createToDonation(transferInfo);
+      } else {
+        logger.warn('Ignore repetitive transfer:', transferInfo);
+      }
     } catch (err) {
       logger.error(err);
     }
