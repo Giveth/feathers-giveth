@@ -373,8 +373,8 @@ const watcher = (app, eventHandler) => {
       const receipt = await web3.eth.getTransactionReceipt(lastDonation[0].txHash);
       if (receipt.blockNumber > lastEvent.blockNumber) {
         logger.error(
-          `It appears that you are attempting to reprocess events, or the events table has 
-          been altered and there are donations. In order to correctly sync/re-sync, the 
+          `It appears that you are attempting to reprocess events, or the events table has
+          been altered and there are donations. In order to correctly sync/re-sync, the
           'donations' and 'events' tables must both be cleared, otherwise the donations
           will not be an accurate representation of the blockchain txs`,
         );
@@ -426,8 +426,6 @@ const watcher = (app, eventHandler) => {
 
   /**
    * Fetch any events that have a status `Waiting`
-   *
-   * @param {Object} eventsService feathersjs `events` service
    *
    * @returns {Promise} Resolves to events sorted by blockNumber, transactionIndex, transactionHash & logIndex
    */
@@ -571,7 +569,7 @@ const watcher = (app, eventHandler) => {
         /* empty */
       }
     } catch (e) {
-      logger.error('error in the processing looop', e);
+      logger.error('error in the processing loop: ', e);
     }
   };
 
