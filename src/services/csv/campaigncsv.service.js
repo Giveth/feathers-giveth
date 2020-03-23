@@ -4,7 +4,6 @@ const Web3 = require('web3');
 const { Transform } = require('json2csv');
 const { AdminTypes } = require('../../models/pledgeAdmins.model');
 const { DonationStatus } = require('../../models/donations.model');
-const hooks = require('./campaigncsv.hooks');
 
 const fields = [
   {
@@ -189,34 +188,22 @@ module.exports = function registerService() {
   };
   const csvService = {
     async get(id) {
-      const donationStream = await getDonationStream(id);
-
-      return new Promise((resolve, reject) => {
-        const json2csv = new Transform({ fields }, { objectMode: true });
-        const chunks = [];
-        donationStream
-          .on('error', reject)
-          .pipe(newDonationTransform())
-          .on('error', reject)
-          .pipe(json2csv)
-          .on('error', reject)
-          .on('data', chunk => {
-            chunks.push(chunk);
-          })
-          .on('finish', () => {
-            resolve(chunks.join(''));
-          });
-      });
+      return getDonationStream(id);
     },
   };
 
   // Initialize our service with any options it requires
-  app.use('/campaigncsv', csvService, (req, res) => {
-    const result = res.data;
+  app.use('/campaigncsv', csvService, (req, res, next) => {
     res.type('csv');
-    res.end(result);
-  });
+    const donationStream = res.data;
+    const json2csv = new Transform({ fields }, { objectMode: true });
 
-  const service = app.service('campaigncsv');
-  service.hooks(hooks);
+    donationStream
+      .on('error', next)
+      .pipe(newDonationTransform())
+      .on('error', next)
+      .pipe(json2csv)
+      .on('error', next)
+      .pipe(res);
+  });
 };
