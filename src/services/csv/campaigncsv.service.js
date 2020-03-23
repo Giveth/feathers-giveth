@@ -2,6 +2,7 @@
 const Stream = require('stream');
 const Web3 = require('web3');
 const { Transform } = require('json2csv');
+const { ObjectId } = require('mongoose').Types;
 const { AdminTypes } = require('../../models/pledgeAdmins.model');
 const { DonationStatus } = require('../../models/donations.model');
 
@@ -54,9 +55,8 @@ module.exports = function registerService() {
   const app = this;
 
   const donationService = app.service('donations');
-  // const campaignService = app.service('campaigns');
+  const campaignService = app.service('campaigns');
   const milestoneService = app.service('milestones');
-  // const usersService = app.service('users');
 
   const dappUrl = app.get('dappUrl');
   const { etherscan, homeEtherscan } = app.get('blockchain');
@@ -186,16 +186,23 @@ module.exports = function registerService() {
 
     return readable;
   };
-  const csvService = {
-    async get(id) {
-      return getDonationStream(id);
-    },
-  };
 
   // Initialize our service with any options it requires
-  app.use('/campaigncsv', csvService, (req, res, next) => {
+  app.use('/campaigncsv/:campaignId', async (req, res, next) => {
     res.type('csv');
-    const donationStream = res.data;
+    const { campaignId } = req.params;
+    if (!campaignId || !ObjectId.isValid(campaignId)) {
+      res.status(400).end();
+      return;
+    }
+
+    const result = await campaignService.find({ _id: campaignId });
+    if (result.total !== 1) {
+      res.status(404).end();
+      return;
+    }
+
+    const donationStream = await getDonationStream(campaignId);
     const json2csv = new Transform({ fields }, { objectMode: true });
 
     donationStream
