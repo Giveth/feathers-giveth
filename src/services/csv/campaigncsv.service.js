@@ -187,18 +187,27 @@ module.exports = function registerService() {
     return readable;
   };
 
-  // Initialize our service with any options it requires
-  app.use('/campaigncsv/:campaignId', async (req, res, next) => {
-    res.type('csv');
-    const { campaignId } = req.params;
-    if (!campaignId || !ObjectId.isValid(campaignId)) {
-      res.status(400).end();
-      return;
-    }
+  const csvService = {
+    async get(id) {
+      if (!id || !ObjectId.isValid(id)) {
+        return { error: 400 };
+      }
 
-    const result = await campaignService.find({ _id: campaignId });
-    if (result.total !== 1) {
-      res.status(404).end();
+      const result = await campaignService.find({ query: { _id: id } });
+      if (result.total !== 1) {
+        return { error: 404 };
+      }
+
+      return { campaignId: id };
+    },
+  };
+  // Initialize our service with any options it requires
+  app.use('/campaigncsv/', csvService, async (req, res, next) => {
+    res.type('csv');
+    const { error, campaignId } = res.data;
+
+    if (error) {
+      res.status(error).end();
       return;
     }
 
