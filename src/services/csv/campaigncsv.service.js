@@ -147,38 +147,56 @@ module.exports = function registerService() {
       paginate: false,
     });
 
-    let skip = 0;
+    const query = {
+      status: 'Committed',
+      ownerTypeId: { $in: [id, ...milestones.map(m => m._id)] },
+      $select: [
+        '_id',
+        'giverAddress',
+        'ownerType',
+        'ownerTypeId',
+        'txHash',
+        'homeTxHash',
+        'amount',
+        'createdAt',
+        'token',
+        'parentDonations',
+      ],
+    };
+
+    let totalCount = 0;
+    let cache = [];
+    let noMoreData = false;
 
     const readable = new Stream.Readable({
       read() {
+        if (cache.length > 0) {
+          readable.push(cache.shift());
+          return;
+        }
+
+        if (noMoreData) {
+          readable.push(null);
+          return;
+        }
+
         donationService
           .find({
             query: {
-              status: 'Committed',
-              ownerTypeId: { $in: [id, ...milestones.map(m => m._id)] },
-              $skip: skip,
-              $limit: 10,
-              $select: [
-                '_id',
-                'giverAddress',
-                'ownerType',
-                'ownerTypeId',
-                'txHash',
-                'homeTxHash',
-                'amount',
-                'createdAt',
-                'token',
-                'parentDonations',
-              ],
+              ...query,
+              $skip: totalCount,
+              $limit: 20,
             },
             schema: 'includeTypeAndGiverDetails',
           })
           .then(result => {
             const { data } = result;
-            data.forEach(i => readable.push(i));
-            skip += data.length;
-
-            if (skip === result.total) readable.push(null);
+            totalCount += data.length;
+            if (totalCount === result.total) {
+              noMoreData = true;
+            }
+            cache = data;
+            readable.push(cache.shift());
           });
       },
       objectMode: true,
@@ -193,7 +211,13 @@ module.exports = function registerService() {
         return { error: 400 };
       }
 
-      const result = await campaignService.find({ query: { _id: id }, $select: ['id'] });
+      const result = await campaignService.find({
+        query: {
+          _id: id,
+          $limit: 1,
+          $select: [],
+        },
+      });
       if (result.total !== 1) {
         return { error: 404 };
       }
@@ -203,15 +227,13 @@ module.exports = function registerService() {
   };
   // Initialize our service with any options it requires
   app.use('/campaigncsv/', csvService, async (req, res, next) => {
+    res.type('csv');
     const { error, campaignId } = res.data;
 
     if (error) {
       res.status(error).end();
       return;
     }
-
-    res.type('csv');
-    res.setHeader('Content-disposition', `attachment; filename=${campaignId}.csv`);
 
     const donationStream = await getDonationStream(campaignId);
     const json2csv = new Transform({ fields }, { objectMode: true });
