@@ -227,13 +227,15 @@ module.exports = function registerService() {
   };
   // Initialize our service with any options it requires
   app.use('/campaigncsv/', csvService, async (req, res, next) => {
-    res.type('csv');
     const { error, campaignId } = res.data;
 
     if (error) {
       res.status(error).end();
       return;
     }
+
+    res.type('csv');
+    res.setHeader('Content-disposition', `attachment; filename=${campaignId}.csv`);
 
     const donationStream = await getDonationStream(campaignId);
     const json2csv = new Transform({ fields }, { objectMode: true });
