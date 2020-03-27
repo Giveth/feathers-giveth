@@ -1,6 +1,6 @@
 const logger = require('winston');
 const rp = require('request-promise');
-const app = require('./../app');
+const app = require('../app');
 
 const FIVE_MINUTES = 1000 * 60 * 5;
 
