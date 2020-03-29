@@ -180,6 +180,14 @@
     {
       "txHash": "0x0bee34513592a95f8a139f4a37ad949ae0d234a8ad46c998d1a8a416177aac20",
       "logIndex": 3
+    },
+    {
+      "txHash": "0x334ecb60ac6c72a22afad3081c8bb26247c9586c756ded56289f312d3227d3bf",
+      "logIndex": 1
+    },
+    {
+      "txHash": "0x1b67fddee83d03a356397e35c7d8a7867d1080ea9369876d206084de5f45963d",
+      "logIndex": 5
     }
   ],
   "revertExemptedDonations": [
