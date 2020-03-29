@@ -528,7 +528,6 @@ const pledges = (app, liquidPledging) => {
     try {
       similarDonation = await donationService.find({
         query: {
-          $limit: 1,
           amount,
           amountRemaining: amount,
           giverAddress: donations[0].giverAddress,
@@ -540,13 +539,30 @@ const pledges = (app, liquidPledging) => {
           txHash,
           mined: true,
           'token.symbol': token.symbol,
+          $select: ['_id'],
         },
       });
+
+      // Check whether multiple transfer events exists with same data,
+      // if yes they should not be less than or equals number of donations
+      if (similarDonation.total > 0) {
+        const events = await app.service('events').find({
+          query: {
+            transactionHash: txHash,
+            event: 'Transfer',
+            'returnValues.to': toPledgeId,
+            'returnValues.amount': amount,
+            $select: ['_id'],
+          },
+        });
+
+        return events.total <= similarDonation.total;
+      }
     } catch (e) {
       logger.error(e);
     }
 
-    return similarDonation ? similarDonation.data.length > 0 : false;
+    return false;
   }
 
   // fetches all necessary data to determine what happened for this Transfer event

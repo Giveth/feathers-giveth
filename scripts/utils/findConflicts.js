@@ -102,13 +102,13 @@ const getBlockchainData = async ({ updateState, updateEvents }) => {
     const liquidPledging = new LiquidPledging(foreignWeb3, liquidPledgingAddress);
     const liquidPledgingState = new LiquidPledgingState(liquidPledging);
 
-    const [numberOfPledges, numberOfPledgeAdmins] = await web3Helper.executeRequestsAsBatch(
-      foreignWeb3,
-      [
-        liquidPledging.$contract.methods.numberOfPledges().call.request,
-        liquidPledging.$contract.methods.numberOfPledgeAdmins().call.request,
-      ],
-    );
+    const [
+      numberOfPledges,
+      numberOfPledgeAdmins,
+    ] = await web3Helper.executeRequestsAsBatch(foreignWeb3, [
+      liquidPledging.$contract.methods.numberOfPledges().call.request,
+      liquidPledging.$contract.methods.numberOfPledgeAdmins().call.request,
+    ]);
     console.log('Number of pledges', numberOfPledges);
     console.log('Number of pledge admins', numberOfPledgeAdmins);
 
@@ -340,6 +340,7 @@ const getPledgeDonationItems = async () => {
   const pledgeDonationListMap = new Map();
   // Map from _id to donation
   const donationMap = new Map();
+  // TODO: pendingAmountRemaining is not considered in updating, it should be removed for successful transactions
   await Donations.find({})
     .sort({ createdAt: 1 })
     .cursor()
@@ -1580,6 +1581,6 @@ main({
   fixReturnedDonationAmount: true,
 })
   .then(() => {
-    terminateScript('Finished', 0);
+    // terminateScript('Finished', 0);
   })
   .catch(e => terminateScript(e, 1));

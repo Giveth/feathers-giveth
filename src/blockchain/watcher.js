@@ -545,7 +545,7 @@ const watcher = (app, eventHandler) => {
       const fetchBlockNum = (await web3.eth.getBlockNumber()) - requiredConfirmations;
 
       if (lastBlock < fetchBlockNum && !isFetchingPastEvents) {
-        // FIXME: This should likely use semaphore when setting the veriable or maybe even better extracted into different loop
+        // FIXME: This should likely use semaphore when setting the variable or maybe even better extracted into different loop
         isFetchingPastEvents = true;
         lastBlock += 1;
 
@@ -563,7 +563,7 @@ const watcher = (app, eventHandler) => {
         isFetchingPastEvents = false;
       }
 
-      // Process next event. This is purposely sunchronous with awaits to ensure events are processed in order
+      // Process next event. This is purposely synchronous with awaits to ensure events are processed in order
       // eslint-disable-next-line no-await-in-loop
       while (await processNextEvent()) {
         /* empty */
