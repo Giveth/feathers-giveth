@@ -204,7 +204,7 @@ const createConversation = async (context, donation, milestoneId) => {
                   ],
                   recipientAddress: recipient.address,
                 },
-                { performedByAddress: context.params.from },
+                { performedByAddress: donation.actionTakerAddress },
               );
             }
           } catch (e) {

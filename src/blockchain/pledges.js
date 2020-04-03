@@ -368,18 +368,7 @@ const pledges = (app, liquidPledging) => {
       // Other then that, the donation should always be created before the tx was mined.
 
       if (retry) {
-        let parameters = {};
-        if (
-          mutation.status === DonationStatus.PAID &&
-          mutation.ownerType === AdminTypes.MILESTONE
-        ) {
-          const transaction = await web3.eth.getTransaction(mutation.txHash);
-
-          parameters = {
-            from: transaction.from,
-          };
-        }
-        return donationService.create(mutation, parameters);
+        return donationService.create(mutation);
       }
       return reprocess(createDonation.bind(this, mutation, initialTransfer, true), 5000);
     }

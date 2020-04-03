@@ -6,52 +6,7 @@ const { ObjectId } = require('mongoose').Types;
 const { AdminTypes } = require('../../models/pledgeAdmins.model');
 const { DonationStatus } = require('../../models/donations.model');
 
-const fields = [
-  {
-    label: 'Giver Address',
-    value: 'from',
-    default: 'NULL',
-  },
-  {
-    label: 'Giver Name',
-    value: 'fromName',
-    default: 'Anonymous',
-  },
-  {
-    label: 'Intended Project',
-    value: 'to',
-  },
-  {
-    label: 'Intended Project Title',
-    value: 'toName',
-  },
-  {
-    label: 'Transaction Hash',
-    value: 'txHash',
-  },
-  {
-    label: 'Amount',
-    value: 'amount',
-  },
-  {
-    label: 'Action',
-    value: 'action',
-  },
-  {
-    label: 'Date',
-    value: 'date',
-  },
-  {
-    label: 'Transaction Etherscan Link',
-    value: 'etherscanLink',
-  },
-  {
-    label: 'Home Transaction Etherscan Link',
-    value: 'homeEtherscanLink',
-  },
-];
-
-module.exports = function registerService() {
+module.exports = function csv() {
   const app = this;
 
   const donationService = app.service('donations');
@@ -60,8 +15,6 @@ module.exports = function registerService() {
 
   const dappUrl = app.get('dappUrl');
   const { etherscan, homeEtherscan } = app.get('blockchain');
-
-  const stringIsEmpty = s => s === undefined || s === null || s === '';
 
   const newDonationTransform = () => {
     const getEntityLink = (entity, type) => {
@@ -78,19 +31,19 @@ module.exports = function registerService() {
     };
 
     const getEtherscanLink = txHash => {
-      if (stringIsEmpty(etherscan) || stringIsEmpty(txHash)) return undefined;
+      if (!etherscan || !txHash) return undefined;
 
       return `${etherscan}tx/${txHash}`;
     };
 
     const getHomeEtherscanLink = txHash => {
-      if (stringIsEmpty(homeEtherscan) || stringIsEmpty(txHash)) return undefined;
+      if (!homeEtherscan || !txHash) return undefined;
 
       return `${homeEtherscan}tx/${txHash}`;
     };
 
     const isDelegate = async parentDonationId => {
-      if (stringIsEmpty(parentDonationId)) return false;
+      if (!parentDonationId) return false;
 
       const [parent] = await donationService.find({
         query: {
@@ -225,6 +178,56 @@ module.exports = function registerService() {
       return { campaignId: id };
     },
   };
+
+  const newJson2Csv = () => {
+    const fields = [
+      {
+        label: 'Giver Address',
+        value: 'from',
+        default: 'NULL',
+      },
+      {
+        label: 'Giver Name',
+        value: 'fromName',
+        default: 'Anonymous',
+      },
+      {
+        label: 'Intended Project',
+        value: 'to',
+      },
+      {
+        label: 'Intended Project Title',
+        value: 'toName',
+      },
+      {
+        label: 'Transaction Hash',
+        value: 'txHash',
+      },
+      {
+        label: 'Amount',
+        value: 'amount',
+      },
+      {
+        label: 'Action',
+        value: 'action',
+      },
+      {
+        label: 'Date',
+        value: 'date',
+      },
+      {
+        label: 'Transaction Etherscan Link',
+        value: 'etherscanLink',
+      },
+      {
+        label: 'Home Transaction Etherscan Link',
+        value: 'homeEtherscanLink',
+      },
+    ];
+
+    return new Transform({ fields }, { objectMode: true });
+  };
+
   // Initialize our service with any options it requires
   app.use('/campaigncsv/', csvService, async (req, res, next) => {
     const { error, campaignId } = res.data;
@@ -238,7 +241,7 @@ module.exports = function registerService() {
     res.setHeader('Content-disposition', `attachment; filename=${campaignId}.csv`);
 
     const donationStream = await getDonationStream(campaignId);
-    const json2csv = new Transform({ fields }, { objectMode: true });
+    const json2csv = newJson2Csv();
 
     donationStream
       .on('error', next)
