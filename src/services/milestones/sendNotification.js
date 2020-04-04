@@ -1,7 +1,7 @@
 const logger = require('winston');
 
 const { MilestoneStatus } = require('../../models/milestones.model');
-const Notifications = require('./../../utils/dappMailer');
+const Notifications = require('../../utils/dappMailer');
 
 /**
  *

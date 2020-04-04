@@ -9,9 +9,7 @@ const addConfirmations = require('../../hooks/addConfirmations');
 const { DonationStatus } = require('../../models/donations.model');
 const { AdminTypes } = require('../../models/pledgeAdmins.model');
 const { MilestoneStatus } = require('../../models/milestones.model');
-const {
-  getHourlyUSDCryptoConversion,
-} = require('../../services/conversionRates/getConversionRatesService');
+const { getHourlyUSDCryptoConversion } = require('../conversionRates/getConversionRatesService');
 const { ZERO_ADDRESS } = require('../../blockchain/lib/web3Helpers');
 
 const { updateDonationEntityCountersHook } = require('./updateEntityCounters');

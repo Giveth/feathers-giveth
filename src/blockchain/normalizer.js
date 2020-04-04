@@ -25,17 +25,19 @@ function normalizer(app) {
    *                  occur if the pledge has an intendedProject, and the commitTime has passed
    */
   async function getPledgesToNormalize() {
-    const pledges = (await service.find({
-      paginate: false,
-      query: {
-        status: DonationStatus.TO_APPROVE,
-        intendedProjectId: { $gt: 0 },
-        amountRemaining: { $ne: '0' },
-        commitTime: {
-          $lte: new Date(),
+    const pledges = (
+      await service.find({
+        paginate: false,
+        query: {
+          status: DonationStatus.TO_APPROVE,
+          intendedProjectId: { $gt: 0 },
+          amountRemaining: { $ne: '0' },
+          commitTime: {
+            $lte: new Date(),
+          },
         },
-      },
-    })).reduce((accumulator, d) => d.mined && accumulator.add(d.pledgeId), new Set());
+      })
+    ).reduce((accumulator, d) => d.mined && accumulator.add(d.pledgeId), new Set());
 
     return Array.from(pledges);
   }
