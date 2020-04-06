@@ -96,6 +96,15 @@
       "decimals": 18
     }
   ],
+  "activeTokenWhitelist": [
+    {
+      "name": "Home Ganache ETH",
+      "address": "0x0",
+      "foreignAddress": "0x5a42ca500aB159c51312B764bb25C135026e7a31",
+      "symbol": "ETH",
+      "decimals": 18
+    }
+  ],
   "fiatWhitelist": [
     "AUD",
     "BRL",
