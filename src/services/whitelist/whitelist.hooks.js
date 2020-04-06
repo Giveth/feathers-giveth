@@ -26,7 +26,6 @@ const getWhitelist = () => context => {
   const delegates = app.get('useDelegateWhitelist') ? app.get('delegateWhitelist') : [];
   const projectOwners = app.get('useProjectOwnerWhitelist') ? app.get('projectOwnerWhitelist') : [];
   const tokenWhitelist = app.get('tokenWhitelist');
-  const activeTokenWhitelist = app.get('activeTokenWhitelist') || app.get('tokenWhitelist');
   const fiatWhitelist = app.get('fiatWhitelist');
 
   // find all the users
@@ -40,7 +39,6 @@ const getWhitelist = () => context => {
       delegateWhitelist: delegateUsers,
       projectOwnerWhitelist: projectOwnerUsers,
       tokenWhitelist,
-      activeTokenWhitelist,
       fiatWhitelist,
     };
 
