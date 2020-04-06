@@ -96,6 +96,22 @@
       "decimals": 18
     }
   ],
+  "activeTokenWhitelist": [
+    {
+      "name": "Home Ganache ETH",
+      "address": "0x0",
+      "foreignAddress": "0x5a42ca500aB159c51312B764bb25C135026e7a31",
+      "symbol": "ETH",
+      "decimals": 18
+    },
+    {
+      "name": "MiniMe Test Token",
+      "address": "0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab",
+      "foreignAddress": "0x8F086f895deBc23473dfe507dd4BF35D6184552c",
+      "symbol": "ANT",
+      "decimals": 18
+    }
+  ],
   "fiatWhitelist": [
     "AUD",
     "BRL",
