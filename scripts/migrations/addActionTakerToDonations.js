@@ -67,21 +67,22 @@ const migrateDonations = async () => {
 
   await Promise.all(
     promises.map(async promise => {
-      const { from, hash } = await promise;
+      const tx = await promise;
+      const { hash, from } = tx;
       console.log(
         `Update actionTakerAddress of donation with txHash ${hash} to:\n${from}\n-----------`,
       );
-      // return Donations.update(
-      //   { txHash: hash },
-      //   {
-      //     $set: {
-      //       actionTakerAddress: from,
-      //     },
-      //   },
-      //   {
-      //     multi: true,
-      //   },
-      // );
+      return Donations.update(
+        { txHash: hash },
+        {
+          $set: {
+            actionTakerAddress: from,
+          },
+        },
+        {
+          multi: true,
+        },
+      );
     }),
   );
 };

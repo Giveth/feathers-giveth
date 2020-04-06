@@ -6,12 +6,62 @@ const { ObjectId } = require('mongoose').Types;
 const { AdminTypes } = require('../../models/pledgeAdmins.model');
 const { DonationStatus } = require('../../models/donations.model');
 
+const csvFields = [
+  {
+    label: 'Time',
+    value: 'createdAt',
+  },
+  {
+    label: 'Action',
+    value: 'action',
+  },
+  {
+    label: 'Action Taker Name',
+    value: 'actionTakerName',
+    default: 'Anonymous',
+  },
+  {
+    label: 'Recipient',
+    value: 'recipientName',
+  },
+  {
+    label: 'Recipient Link',
+    value: 'recipient',
+  },
+  {
+    label: 'Amount',
+    value: 'amount',
+  },
+  {
+    label: 'Currency',
+    value: 'currency',
+  },
+  {
+    label: 'Giver Address',
+    value: 'from',
+    default: 'NULL',
+  },
+  {
+    label: 'Giver Name',
+    value: 'fromName',
+    default: 'Anonymous',
+  },
+  {
+    label: 'Transaction Etherscan Link',
+    value: 'etherscanLink',
+  },
+  {
+    label: 'Home Transaction Etherscan Link',
+    value: 'homeEtherscanLink',
+  },
+];
 module.exports = function csv() {
   const app = this;
 
   const donationService = app.service('donations');
   const campaignService = app.service('campaigns');
   const milestoneService = app.service('milestones');
+  const userService = app.service('users');
 
   const dappUrl = app.get('dappUrl');
   const { etherscan, homeEtherscan } = app.get('blockchain');
@@ -72,20 +122,30 @@ module.exports = function csv() {
           giver,
           createdAt,
           parentDonations,
+          actionTakerAddress,
         } = donation;
         const donationIsDelegate = await isDelegate(parentDonations[0]);
+        const [actionTaker] = await userService.find({
+          query: {
+            address: actionTakerAddress,
+            $select: ['name'],
+            $limit: 1,
+          },
+          paginate: false,
+        });
         callback(null, {
           fromName: giver.name === '' ? 'Anonymous' : giver.name,
           from: giverAddress,
-          toName: ownerEntity.title,
-          to: getEntityLink(ownerEntity, ownerType),
+          recipientName: ownerEntity.title,
+          recipient: getEntityLink(ownerEntity, ownerType),
           currency: token.name,
-          amount: `${Web3.utils.fromWei(amount).toString()} ${token.name}`,
+          amount: Web3.utils.fromWei(amount).toString(),
           action: donationIsDelegate ? 'Delegated' : 'Direct Donation',
-          date: createdAt.toString(),
-          txHash,
+          createdAt: createdAt.toString(),
           etherscanLink: getEtherscanLink(txHash),
           homeEtherscanLink: getHomeEtherscanLink(homeTxHash),
+          actionTakerName: actionTaker ? actionTaker.name : undefined,
+          actionTakerAddress,
         });
       },
     });
@@ -114,6 +174,7 @@ module.exports = function csv() {
         'createdAt',
         'token',
         'parentDonations',
+        'actionTakerAddress',
       ],
     };
 
@@ -180,52 +241,7 @@ module.exports = function csv() {
   };
 
   const newJson2Csv = () => {
-    const fields = [
-      {
-        label: 'Giver Address',
-        value: 'from',
-        default: 'NULL',
-      },
-      {
-        label: 'Giver Name',
-        value: 'fromName',
-        default: 'Anonymous',
-      },
-      {
-        label: 'Intended Project',
-        value: 'to',
-      },
-      {
-        label: 'Intended Project Title',
-        value: 'toName',
-      },
-      {
-        label: 'Transaction Hash',
-        value: 'txHash',
-      },
-      {
-        label: 'Amount',
-        value: 'amount',
-      },
-      {
-        label: 'Action',
-        value: 'action',
-      },
-      {
-        label: 'Date',
-        value: 'date',
-      },
-      {
-        label: 'Transaction Etherscan Link',
-        value: 'etherscanLink',
-      },
-      {
-        label: 'Home Transaction Etherscan Link',
-        value: 'homeEtherscanLink',
-      },
-    ];
-
-    return new Transform({ fields }, { objectMode: true });
+    return new Transform({ fields: csvFields }, { objectMode: true });
   };
 
   // Initialize our service with any options it requires
