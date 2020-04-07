@@ -241,7 +241,6 @@ module.exports = function csv() {
   };
 
   const newJson2Csv = () => {
-
     return new Transform({ fields: csvFields }, { objectMode: true });
   };
 

@@ -4,7 +4,7 @@ const Web3 = require('web3');
 require('mongoose-long')(mongoose);
 require('../../src/models/mongoose-bn')(mongoose);
 
-const configFileName = 'develop'; // default or beta
+const configFileName = 'default'; // default or beta
 
 // eslint-disable-next-line import/no-dynamic-require
 const config = require(`../../config/${configFileName}.json`);
