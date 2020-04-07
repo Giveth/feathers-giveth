@@ -7,7 +7,7 @@ require('../../src/models/mongoose-bn')(mongoose);
 
 const configFileName = 'beta'; // default or beta
 
-const tokenWhiteList = ['SAI'];
+const tokenWhiteList = ['SAI', 'DAI', 'ETH'];
 
 // eslint-disable-next-line import/no-dynamic-require
 const config = require(`../../config/${configFileName}.json`);
@@ -65,6 +65,7 @@ const getUserDescription = (title, address) => `${title}: ${dappUrl}/profile/${a
 const getDacDescription = dac => {
   const { ownerAddress, _id, title } = dac;
   let message = `DAC Title: ${title}\n`;
+  message += `Status: ${dac.status}\n`;
   message += `Link: ${dappUrl}/dacs/${_id.toString()}\n`;
   message += getUserDescription('Owner', ownerAddress);
   return message;
@@ -73,6 +74,7 @@ const getDacDescription = dac => {
 const getCampaignDescription = campaign => {
   const { ownerAddress, _id, reviewerAddress, title, coownerAddress } = campaign;
   let message = `Campaign Title: ${title}\n`;
+  message += `Status: ${campaign.status}\n`;
   message += `Link: ${dappUrl}/campaigns/${_id.toString()}\n`;
   message += getUserDescription('Owner', ownerAddress);
   message += getUserDescription('Reviewer', reviewerAddress);
@@ -85,6 +87,7 @@ const getCampaignDescription = campaign => {
 const getMilestoneDescription = milestone => {
   const { ownerAddress, _id, reviewerAddress, title, recipientAddress, campaignId } = milestone;
   let message = `Milestone Title: ${title}\n`;
+  message += `Status: ${milestone.status}\n`;
   message += `Link: ${dappUrl}/campaigns/${campaignId}/milestones/${_id.toString()}\n`;
   message += getUserDescription('Owner', ownerAddress);
   if (reviewerAddress && reviewerAddress !== ZERO_ADDRESS) {
