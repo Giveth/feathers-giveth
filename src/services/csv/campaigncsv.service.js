@@ -1,4 +1,3 @@
-// const { Readable, Transform } = require('stream');
 const Stream = require('stream');
 const Web3 = require('web3');
 const logger = require('winston');
@@ -17,7 +16,7 @@ module.exports = function csv() {
   const userService = app.service('users');
 
   const dappUrl = app.get('dappUrl');
-  const { etherscan, homeEtherscan } = app.get('blockchain');
+  const { etherscan, homeEtherscan, foreignNetworkName, homeNetworkName } = app.get('blockchain');
   const tokenWhiteList = app.get('tokenWhitelist');
 
   const tokenBalanceKey = symbol => `token_${symbol}_balance`;
@@ -58,26 +57,16 @@ module.exports = function csv() {
       default: '0',
     })),
     {
-      label: 'Giver Address',
-      value: 'from',
-      default: 'NULL',
-    },
-    {
       label: 'Action Taker Address',
       value: 'actionTakerAddress',
       default: 'NULL',
     },
     {
-      label: 'Giver Name',
-      value: 'fromName',
-      default: 'Anonymous',
-    },
-    {
-      label: 'Transaction Etherscan Link',
+      label: `${foreignNetworkName} Transaction`,
       value: 'etherscanLink',
     },
     {
-      label: 'Home Transaction Etherscan Link',
+      label: `${homeNetworkName} Transaction`,
       value: 'homeEtherscanLink',
     },
   ];
@@ -147,7 +136,7 @@ module.exports = function csv() {
   };
 
   const newCampaignDonationsTransform = campaignId => {
-    const campaignBalanceMap = new Map();
+    const campaignBalance = {};
 
     const updateCampaignBalance = (donation, isDelegate, parentId) => {
       const { ownerTypeId, amount, token } = donation;
@@ -163,12 +152,12 @@ module.exports = function csv() {
       }
 
       const { symbol } = token;
-      const currentBalance = campaignBalanceMap.get(symbol);
+      const currentBalance = campaignBalance[symbol];
       if (!currentBalance) {
-        campaignBalanceMap.set(symbol, balanceChange);
+        campaignBalance[symbol] = balanceChange;
       } else {
         const newBalance = currentBalance.plus(balanceChange);
-        campaignBalanceMap.set(symbol, newBalance);
+        campaignBalance[symbol] = newBalance;
       }
     };
 
@@ -183,7 +172,6 @@ module.exports = function csv() {
           ownerEntity,
           ownerType,
           token,
-          giver,
           createdAt,
           parentDonations,
           actionTakerAddress,
@@ -201,8 +189,6 @@ module.exports = function csv() {
         });
 
         const result = {
-          fromName: giver.name === '' ? 'Anonymous' : giver.name,
-          from: giverAddress,
           recipientName: ownerEntity.title,
           recipient: getEntityLink(ownerEntity, ownerType),
           currency: token.name,
@@ -212,13 +198,14 @@ module.exports = function csv() {
           etherscanLink: getEtherscanLink(txHash),
           homeEtherscanLink: getHomeEtherscanLink(homeTxHash),
           actionTakerName: actionTaker ? actionTaker.name : undefined,
-          actionTakerAddress,
+          actionTakerAddress: isDelegate ? actionTakerAddress : giverAddress,
         };
 
         updateCampaignBalance(donation, isDelegate, parentOwnerTypeId);
-        campaignBalanceMap.forEach((balance, symbol) => {
-          result[tokenBalanceKey(symbol)] = Web3.utils.fromWei(balance.toFixed());
+        Object.keys(campaignBalance).forEach(symbol => {
+          result[tokenBalanceKey(symbol)] = Web3.utils.fromWei(campaignBalance[symbol].toFixed());
         });
+
         callback(null, result);
       },
     });
@@ -275,7 +262,7 @@ module.exports = function csv() {
               $skip: totalCount,
               $limit: 20,
             },
-            schema: 'includeTypeAndGiverDetails',
+            schema: 'includeTypeDetails',
           })
           .then(result => {
             const { data } = result;
