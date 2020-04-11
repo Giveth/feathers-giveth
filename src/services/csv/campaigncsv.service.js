@@ -1,108 +1,164 @@
-// const { Readable, Transform } = require('stream');
 const Stream = require('stream');
 const Web3 = require('web3');
+const logger = require('winston');
+const BigNumber = require('bignumber.js');
 const { Transform } = require('json2csv');
 const { ObjectId } = require('mongoose').Types;
 const { AdminTypes } = require('../../models/pledgeAdmins.model');
 const { DonationStatus } = require('../../models/donations.model');
 
-const fields = [
-  {
-    label: 'Giver Address',
-    value: 'from',
-    default: 'NULL',
-  },
-  {
-    label: 'Giver Name',
-    value: 'fromName',
-    default: 'Anonymous',
-  },
-  {
-    label: 'Intended Project',
-    value: 'to',
-  },
-  {
-    label: 'Intended Project Title',
-    value: 'toName',
-  },
-  {
-    label: 'Transaction Hash',
-    value: 'txHash',
-  },
-  {
-    label: 'Amount',
-    value: 'amount',
-  },
-  {
-    label: 'Action',
-    value: 'action',
-  },
-  {
-    label: 'Date',
-    value: 'date',
-  },
-  {
-    label: 'Transaction Etherscan Link',
-    value: 'etherscanLink',
-  },
-  {
-    label: 'Home Transaction Etherscan Link',
-    value: 'homeEtherscanLink',
-  },
-];
-
-module.exports = function registerService() {
+module.exports = function csv() {
   const app = this;
 
   const donationService = app.service('donations');
   const campaignService = app.service('campaigns');
   const milestoneService = app.service('milestones');
+  const userService = app.service('users');
 
   const dappUrl = app.get('dappUrl');
-  const { etherscan, homeEtherscan } = app.get('blockchain');
+  const { etherscan, homeEtherscan, foreignNetworkName, homeNetworkName } = app.get('blockchain');
+  const tokenWhiteList = app.get('tokenWhitelist');
 
-  const stringIsEmpty = s => s === undefined || s === null || s === '';
+  const tokenBalanceKey = symbol => `token_${symbol}_balance`;
 
-  const newDonationTransform = () => {
-    const getEntityLink = (entity, type) => {
-      switch (type) {
-        case AdminTypes.CAMPAIGN:
-          return `${dappUrl}/campaigns/${entity._id.toString()}`;
+  const csvFields = [
+    {
+      label: 'Time',
+      value: 'createdAt',
+    },
+    {
+      label: 'Action',
+      value: 'action',
+    },
+    {
+      label: 'Action Taker Name',
+      value: 'actionTakerName',
+      default: 'Anonymous',
+    },
+    {
+      label: 'Recipient',
+      value: 'recipientName',
+    },
+    {
+      label: 'Recipient Link',
+      value: 'recipient',
+    },
+    {
+      label: 'Amount',
+      value: 'amount',
+    },
+    {
+      label: 'Currency',
+      value: 'currency',
+    },
+    ...tokenWhiteList.map(token => ({
+      label: `Available ${token.symbol} Campaign Balance`,
+      value: tokenBalanceKey(token.symbol),
+      default: '0',
+    })),
+    {
+      label: 'Action Taker Address',
+      value: 'actionTakerAddress',
+      default: 'NULL',
+    },
+    {
+      label: `${foreignNetworkName} Transaction`,
+      value: 'etherscanLink',
+    },
+    {
+      label: `${homeNetworkName} Transaction`,
+      value: 'homeEtherscanLink',
+    },
+  ];
 
-        case AdminTypes.MILESTONE:
-          return `${dappUrl}/campaigns/${entity.campaignId}/milestones/${entity._id.toString()}`;
+  // Transform donations related to a campaign to csv items
+  const getEntityLink = (entity, type) => {
+    switch (type) {
+      case AdminTypes.CAMPAIGN:
+        return `${dappUrl}/campaigns/${entity._id.toString()}`;
 
-        default:
-          return '';
+      case AdminTypes.MILESTONE:
+        return `${dappUrl}/campaigns/${entity.campaignId}/milestones/${entity._id.toString()}`;
+
+      default:
+        return '';
+    }
+  };
+
+  const getEtherscanLink = txHash => {
+    if (!etherscan || !txHash) return undefined;
+
+    return `${etherscan}tx/${txHash}`;
+  };
+
+  const getHomeEtherscanLink = txHash => {
+    if (!homeEtherscan || !txHash) return undefined;
+
+    return `${homeEtherscan}tx/${txHash}`;
+  };
+
+  const donationDelegateStatus = async parentDonationId => {
+    if (!parentDonationId) {
+      return {
+        isDelegate: false,
+      };
+    }
+
+    const [parent] = await donationService.find({
+      query: {
+        _id: parentDonationId,
+        $select: ['parentDonations', 'status', 'ownerTypeId'],
+      },
+      paginate: false,
+    });
+
+    if (!parent) {
+      logger.error(`No parent donation with id ${parentDonationId} found`);
+      return {
+        isDelegate: false,
+      };
+    }
+
+    if (parent.status === DonationStatus.COMMITTED) {
+      return {
+        isDelegate: true,
+        parentOwnerTypeId: parent.ownerTypeId,
+      };
+    }
+
+    if (parent.parentDonations.length === 0) {
+      return {
+        isDelegate: false,
+      };
+    }
+
+    return donationDelegateStatus(parent.parentDonations[0]);
+  };
+
+  const newCampaignDonationsTransform = campaignId => {
+    const campaignBalance = {};
+
+    const updateCampaignBalance = (donation, isDelegate, parentId) => {
+      const { ownerTypeId, amount, token } = donation;
+
+      let balanceChange;
+      if (ownerTypeId === campaignId) {
+        balanceChange = new BigNumber(amount.toString());
+      } else if (isDelegate && parentId === campaignId) {
+        balanceChange = new BigNumber(amount.toString()).negated();
+      } else {
+        // Does not affect campaign balance
+        return;
       }
-    };
 
-    const getEtherscanLink = txHash => {
-      if (stringIsEmpty(etherscan) || stringIsEmpty(txHash)) return undefined;
-
-      return `${etherscan}tx/${txHash}`;
-    };
-
-    const getHomeEtherscanLink = txHash => {
-      if (stringIsEmpty(homeEtherscan) || stringIsEmpty(txHash)) return undefined;
-
-      return `${homeEtherscan}tx/${txHash}`;
-    };
-
-    const isDelegate = async parentDonationId => {
-      if (stringIsEmpty(parentDonationId)) return false;
-
-      const [parent] = await donationService.find({
-        query: {
-          _id: parentDonationId,
-          $select: ['parentDonations', 'status'],
-        },
-        paginate: false,
-      });
-
-      if (parent.status === DonationStatus.COMMITTED) return true;
-      if (parent.parentDonations.length === 0) return false;
-      return isDelegate(parent.parentDonations[0]);
+      const { symbol } = token;
+      const currentBalance = campaignBalance[symbol];
+      if (!currentBalance) {
+        campaignBalance[symbol] = balanceChange;
+      } else {
+        const newBalance = currentBalance.plus(balanceChange);
+        campaignBalance[symbol] = newBalance;
+      }
     };
 
     return new Stream.Transform({
@@ -116,40 +172,77 @@ module.exports = function registerService() {
           ownerEntity,
           ownerType,
           token,
-          giver,
           createdAt,
           parentDonations,
+          actionTakerAddress,
+          status,
+          isReturn,
         } = donation;
-        const donationIsDelegate = await isDelegate(parentDonations[0]);
-        callback(null, {
-          fromName: giver.name === '' ? 'Anonymous' : giver.name,
-          from: giverAddress,
-          toName: ownerEntity.title,
-          to: getEntityLink(ownerEntity, ownerType),
+
+        let action;
+        let realActionTakerAddress;
+
+        if (isReturn) {
+          action = 'Return';
+          realActionTakerAddress = actionTakerAddress;
+          updateCampaignBalance(donation, false);
+        } else {
+          const { isDelegate, parentOwnerTypeId } = await donationDelegateStatus(
+            parentDonations[0],
+          );
+          realActionTakerAddress = isDelegate ? actionTakerAddress : giverAddress;
+          action = isDelegate ? 'Delegated' : 'Direct Donation';
+          if (status === DonationStatus.CANCELED) {
+            action += ' - Canceled Later';
+          }
+          updateCampaignBalance(donation, isDelegate, parentOwnerTypeId);
+        }
+
+        const [actionTaker] = await userService.find({
+          query: {
+            address: realActionTakerAddress,
+            $select: ['name'],
+            $limit: 1,
+          },
+          paginate: false,
+        });
+
+        const result = {
+          recipientName: ownerEntity.title,
+          recipient: getEntityLink(ownerEntity, ownerType),
           currency: token.name,
-          amount: `${Web3.utils.fromWei(amount).toString()} ${token.name}`,
-          action: donationIsDelegate ? 'Delegated' : 'Direct Donation',
-          date: createdAt.toString(),
-          txHash,
+          amount: Web3.utils.fromWei(amount).toString(),
+          action,
+          createdAt: createdAt.toString(),
           etherscanLink: getEtherscanLink(txHash),
           homeEtherscanLink: getHomeEtherscanLink(homeTxHash),
+          actionTakerName: actionTaker ? actionTaker.name : undefined,
+          actionTakerAddress: realActionTakerAddress,
+        };
+
+        Object.keys(campaignBalance).forEach(symbol => {
+          result[tokenBalanceKey(symbol)] = Web3.utils.fromWei(campaignBalance[symbol].toFixed());
         });
+
+        callback(null, result);
       },
     });
   };
 
+  // Get stream of donations whose owner are campaign id and its milestones
   const getDonationStream = async id => {
     const milestones = await milestoneService.find({
       query: {
         campaignId: id,
-        $select: ['id'],
+        $select: ['_id'],
       },
       paginate: false,
     });
 
     const query = {
-      status: 'Committed',
+      status: { $in: [DonationStatus.COMMITTED, DonationStatus.CANCELED] },
       ownerTypeId: { $in: [id, ...milestones.map(m => m._id)] },
+      $sort: { createdAt: 1 },
       $select: [
         '_id',
         'giverAddress',
@@ -161,6 +254,9 @@ module.exports = function registerService() {
         'createdAt',
         'token',
         'parentDonations',
+        'actionTakerAddress',
+        'status',
+        'isReturn',
       ],
     };
 
@@ -187,7 +283,7 @@ module.exports = function registerService() {
               $skip: totalCount,
               $limit: 20,
             },
-            schema: 'includeTypeAndGiverDetails',
+            schema: 'includeTypeDetails',
           })
           .then(result => {
             const { data } = result;
@@ -215,7 +311,7 @@ module.exports = function registerService() {
         query: {
           _id: id,
           $limit: 1,
-          $select: [],
+          $select: ['_id'],
         },
       });
       if (result.total !== 1) {
@@ -225,6 +321,12 @@ module.exports = function registerService() {
       return { campaignId: id };
     },
   };
+
+  // Transform csv items in json format to csv format
+  const newCsvTransform = () => {
+    return new Transform({ fields: csvFields }, { objectMode: true });
+  };
+
   // Initialize our service with any options it requires
   app.use('/campaigncsv/', csvService, async (req, res, next) => {
     const { error, campaignId } = res.data;
@@ -238,13 +340,12 @@ module.exports = function registerService() {
     res.setHeader('Content-disposition', `attachment; filename=${campaignId}.csv`);
 
     const donationStream = await getDonationStream(campaignId);
-    const json2csv = new Transform({ fields }, { objectMode: true });
 
     donationStream
       .on('error', next)
-      .pipe(newDonationTransform())
+      .pipe(newCampaignDonationsTransform(campaignId))
       .on('error', next)
-      .pipe(json2csv)
+      .pipe(newCsvTransform())
       .on('error', next)
       .pipe(res);
   });

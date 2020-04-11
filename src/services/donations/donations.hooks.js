@@ -318,6 +318,21 @@ const updateMilestoneIfNotPledged = () => async context => {
   }
 };
 
+const addActionTakerAddress = () => async context => {
+  const { txHash, actionTakerAddress } = context.data;
+
+  // Has already added or txHash is not available
+  if (!txHash || actionTakerAddress) return;
+
+  try {
+    const { app } = context;
+    const { from } = await app.getWeb3().eth.getTransaction(txHash);
+    context.data.actionTakerAddress = from;
+  } catch (e) {
+    logger.error(`Error on getting from of transaction: ${txHash}`, e);
+  }
+};
+
 const populateSchema = () => context => {
   if (context.params.schema === 'includeGiverDetails') {
     return commons.populate({ schema: poSchemas['po-giver'] })(context);
@@ -360,9 +375,14 @@ module.exports = {
         validate: true,
       }),
       updateMilestoneIfNotPledged(),
+      addActionTakerAddress(),
     ],
     update: [commons.disallow()],
-    patch: [restrict(), sanitizeAddress('giverAddress', { validate: true })],
+    patch: [
+      restrict(),
+      sanitizeAddress('giverAddress', { validate: true }),
+      addActionTakerAddress(),
+    ],
     remove: [commons.disallow()],
   },
 

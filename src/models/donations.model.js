@@ -23,6 +23,7 @@ function Donation(app) {
   const donation = new Schema(
     {
       giverAddress: { type: String, required: true, index: true },
+      actionTakerAddress: { type: String },
       amount: { type: Schema.Types.BN, required: true, min: 0 },
       amountRemaining: { type: Schema.Types.BN, required: true, min: 0 },
       pendingAmountRemaining: { type: Schema.Types.BN, min: 0 },
