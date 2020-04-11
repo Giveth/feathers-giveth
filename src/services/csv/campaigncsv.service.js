@@ -175,13 +175,32 @@ module.exports = function csv() {
           createdAt,
           parentDonations,
           actionTakerAddress,
+          status,
+          isReturn,
         } = donation;
 
-        const { isDelegate, parentOwnerTypeId } = await donationDelegateStatus(parentDonations[0]);
+        let action;
+        let realActionTakerAddress;
+
+        if (isReturn) {
+          action = 'Return';
+          realActionTakerAddress = actionTakerAddress;
+          updateCampaignBalance(donation, false);
+        } else {
+          const { isDelegate, parentOwnerTypeId } = await donationDelegateStatus(
+            parentDonations[0],
+          );
+          realActionTakerAddress = isDelegate ? actionTakerAddress : giverAddress;
+          action = isDelegate ? 'Delegated' : 'Direct Donation';
+          if (status === DonationStatus.CANCELED) {
+            action += ' - Canceled Later';
+          }
+          updateCampaignBalance(donation, isDelegate, parentOwnerTypeId);
+        }
 
         const [actionTaker] = await userService.find({
           query: {
-            address: isDelegate ? actionTakerAddress : giverAddress,
+            address: realActionTakerAddress,
             $select: ['name'],
             $limit: 1,
           },
@@ -193,15 +212,14 @@ module.exports = function csv() {
           recipient: getEntityLink(ownerEntity, ownerType),
           currency: token.name,
           amount: Web3.utils.fromWei(amount).toString(),
-          action: isDelegate ? 'Delegated' : 'Direct Donation',
+          action,
           createdAt: createdAt.toString(),
           etherscanLink: getEtherscanLink(txHash),
           homeEtherscanLink: getHomeEtherscanLink(homeTxHash),
           actionTakerName: actionTaker ? actionTaker.name : undefined,
-          actionTakerAddress: isDelegate ? actionTakerAddress : giverAddress,
+          actionTakerAddress: realActionTakerAddress,
         };
 
-        updateCampaignBalance(donation, isDelegate, parentOwnerTypeId);
         Object.keys(campaignBalance).forEach(symbol => {
           result[tokenBalanceKey(symbol)] = Web3.utils.fromWei(campaignBalance[symbol].toFixed());
         });
@@ -222,8 +240,9 @@ module.exports = function csv() {
     });
 
     const query = {
-      status: 'Committed',
+      status: { $in: [DonationStatus.COMMITTED, DonationStatus.CANCELED] },
       ownerTypeId: { $in: [id, ...milestones.map(m => m._id)] },
+      $sort: { createdAt: 1 },
       $select: [
         '_id',
         'giverAddress',
@@ -236,6 +255,8 @@ module.exports = function csv() {
         'token',
         'parentDonations',
         'actionTakerAddress',
+        'status',
+        'isReturn',
       ],
     };
 
