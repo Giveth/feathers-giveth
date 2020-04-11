@@ -1,6 +1,8 @@
+/* eslint-disable no-param-reassign */
 const Stream = require('stream');
 const Web3 = require('web3');
 const logger = require('winston');
+const MemoryCache = require('memory-cache');
 const BigNumber = require('bignumber.js');
 const { Transform } = require('json2csv');
 const { ObjectId } = require('mongoose').Types;
@@ -156,8 +158,7 @@ module.exports = function csv() {
       if (!currentBalance) {
         campaignBalance[symbol] = balanceChange;
       } else {
-        const newBalance = currentBalance.plus(balanceChange);
-        campaignBalance[symbol] = newBalance;
+        campaignBalance[symbol] = currentBalance.plus(balanceChange);
       }
     };
 
@@ -301,7 +302,7 @@ module.exports = function csv() {
     return readable;
   };
 
-  const csvService = {
+  const getCampaignInfo = {
     async get(id) {
       if (!id || !ObjectId.isValid(id)) {
         return { error: 400 };
@@ -311,14 +312,14 @@ module.exports = function csv() {
         query: {
           _id: id,
           $limit: 1,
-          $select: ['_id'],
+          $select: ['_id', 'updatedAt'],
         },
       });
       if (result.total !== 1) {
         return { error: 404 };
       }
 
-      return { campaignId: id };
+      return { campaignId: id, updatedAt: result.data[0].updatedAt };
     },
   };
 
@@ -327,26 +328,54 @@ module.exports = function csv() {
     return new Transform({ fields: csvFields }, { objectMode: true });
   };
 
-  // Initialize our service with any options it requires
-  app.use('/campaigncsv/', csvService, async (req, res, next) => {
-    const { error, campaignId } = res.data;
-
-    if (error) {
-      res.status(error).end();
-      return;
-    }
-
+  const csvService = async (req, res, next) => {
+    const { campaignId } = req;
     res.type('csv');
     res.setHeader('Content-disposition', `attachment; filename=${campaignId}.csv`);
 
     const donationStream = await getDonationStream(campaignId);
-
+    const chunks = [];
     donationStream
       .on('error', next)
       .pipe(newCampaignDonationsTransform(campaignId))
       .on('error', next)
       .pipe(newCsvTransform())
       .on('error', next)
-      .pipe(res);
-  });
+      .on('data', chunk => {
+        chunks.push(chunk);
+      })
+      .on('finish', () => {
+        res.send(chunks.join(''));
+      });
+  };
+
+  const cacheMiddleWare = (req, res, next) => {
+    const { error, campaignId, updatedAt } = res.data;
+
+    if (error) {
+      res.status(error).end();
+      return;
+    }
+
+    const value = MemoryCache.get(campaignId);
+
+    if (value && value.updatedAt.getTime() === updatedAt.getTime()) {
+      res.send(value.body);
+      return;
+    }
+
+    res.sendResponse = res.send;
+    res.send = body => {
+      MemoryCache.put(campaignId, { updatedAt, body });
+      res.sendResponse(body);
+      res.end();
+    };
+
+    req.campaignId = campaignId;
+
+    next();
+  };
+
+  // Initialize our service with any options it requires
+  app.use('/campaigncsv/', getCampaignInfo, cacheMiddleWare, csvService);
 };
