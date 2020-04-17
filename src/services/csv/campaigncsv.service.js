@@ -360,6 +360,8 @@ module.exports = function csv() {
     const value = MemoryCache.get(campaignId);
 
     if (value && value.updatedAt.getTime() === updatedAt.getTime()) {
+      res.type('csv');
+      res.setHeader('Content-disposition', `attachment; filename=${campaignId}.csv`);
       res.send(value.body);
       return;
     }
