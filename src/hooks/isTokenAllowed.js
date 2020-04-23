@@ -4,13 +4,13 @@ const { ANY_TOKEN } = require('../blockchain/lib/web3Helpers');
 
 const checkToken = context => {
   const { app } = context;
-  const activeTokenWhitelist = app.get('activeTokenWhitelist') || app.get('tokenWhitelist');
+  const tokenWhitelist = app.get('tokenWhitelist');
 
   const items = commons.getItems(context);
 
   const inWhitelist = project => {
     if (project.token.address === ANY_TOKEN.address) return;
-    if (activeTokenWhitelist.find(t => t.address === project.token.address)) return;
+    if (tokenWhitelist.find(t => t.address === project.token.address)) return;
 
     throw new errors.BadRequest(`token ${project.token.symbol} is not in the whitelist`);
   };
