@@ -69,9 +69,9 @@ const projects = (app, liquidPledging) => {
   function findToken(foreignAddress) {
     if (foreignAddress === ANY_TOKEN.foreignAddress) return ANY_TOKEN;
 
-    const activeTokenWhitelist = app.get('activeTokenWhitelist') || app.get('tokenWhitelist');
+    const tokenWhitelist = app.get('tokenWhitelist');
 
-    const token = activeTokenWhitelist.find(
+    const token = tokenWhitelist.find(
       t => t.foreignAddress.toLowerCase() === foreignAddress.toLowerCase(),
     );
 
