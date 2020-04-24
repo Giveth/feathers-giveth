@@ -41,6 +41,9 @@ function createModel(app) {
     },
   );
 
+  // Prevent duplicate event creation
+  event.index({ logIndex: 1, transactionHash: 1 }, { unique: true });
+
   return mongooseClient.model('event', event);
 }
 
