@@ -28,12 +28,19 @@ const sendNotification = () => async context => {
       .then(res => logger.info('created conversation!', res._id))
       .catch(e => logger.error('could not create conversation', e));
   };
-
-  /**
-   * Notifications when a milestone get created
-   * */
+  const {
+    REJECTED,
+    COMPLETED,
+    CANCELED,
+    PAYING,
+    PAID,
+    NEEDS_REVIEW,
+    IN_PROGRESS,
+    PROPOSED,
+    ARCHIVED,
+  } = MilestoneStatus;
   if (context.method === 'create') {
-    if (result.status === MilestoneStatus.PROPOSED) {
+    if (result.status === PROPOSED) {
       try {
         const campaign = await app.service('campaigns').get(data.campaignId);
 
@@ -52,168 +59,141 @@ const sendNotification = () => async context => {
   }
 
   /**
-   * Notifications when a milestone get patches
-   * This only gets triggered when the txHash is received through a milestone event
-   * Which basically means the event is really mined
-   * */
-  if (context.method === 'patch' && context.params.eventTxHash) {
-    if (
-      result.prevStatus === MilestoneStatus.PROPOSED &&
-      result.status === MilestoneStatus.IN_PROGRESS
-    ) {
-      _createConversion('proposedAccepted');
+   * Generate Notifications and Conversations when a milestone is patched
+   */
+  if (context.method === 'patch' && data.status) {
+    /**
+     * This only gets triggered when the txHash is received through a milestone event
+     * Which basically means the event is really mined
+     * */
+    if (context.params.eventTxHash) {
+      if (data.status === IN_PROGRESS && result.prevStatus === PROPOSED) {
+        _createConversion('proposedAccepted');
 
-      // find the milestone owner and send a notification that his/her proposed milestone is approved
-      Notifications.proposedMilestoneAccepted(app, {
-        recipient: result.owner.email,
-        user: result.owner.name,
-        milestoneTitle: result.title,
-        campaignTitle: result.campaign.title,
-        amount: result.maxAmount,
-        txHash: result.txHash,
-        message: result.message,
-      });
+        // find the milestone owner and send a notification that his/her proposed milestone is approved
+        Notifications.proposedMilestoneAccepted(app, {
+          recipient: result.owner.email,
+          user: result.owner.name,
+          milestoneTitle: result.title,
+          campaignTitle: result.campaign.title,
+          amount: result.maxAmount,
+          txHash: result.txHash,
+          message: result.message,
+        });
 
-      // milestone may have been created on the recipient's behalf
-      // lets notify them if they are registered
-      if (result.ownerAddress !== result.recipientAddress) {
+        // milestone may have been created on the recipient's behalf
+        // lets notify them if they are registered
+        if (result.ownerAddress !== result.recipientAddress) {
+          try {
+            const recipient = await app.service('users').get(result.recipientAddress);
+
+            Notifications.milestoneCreated(app, {
+              recipient: recipient.email,
+              user: recipient.name,
+              milestoneTitle: data.title,
+              amount: data.maxAmount,
+              token: data.token,
+            });
+          } catch (e) {
+            // ignore missing recipient
+          }
+        }
+      } else if (data.status === PROPOSED && result.prevStatus === REJECTED) {
         try {
-          const recipient = await app.service('users').get(result.recipientAddress);
+          const campaign = await app.service('campaigns').get(data.campaignId);
 
-          Notifications.milestoneCreated(app, {
-            recipient: recipient.email,
-            user: recipient.name,
+          Notifications.milestoneProposed(app, {
+            recipient: campaign.owner.email,
+            user: campaign.owner.name,
             milestoneTitle: data.title,
+            campaignTitle: campaign.title,
             amount: data.maxAmount,
             token: data.token,
           });
         } catch (e) {
-          // ignore missing recipient
+          logger.error('error sending proposed milestone notification', e);
         }
-      }
-    }
+      } else if (
+        data.status === IN_PROGRESS &&
+        result.prevStatus === PROPOSED &&
+        result.ownerAddress !== result.recipientAddress
+      ) {
+        // milestone may have been created on the recipient's behalf
+        // lets notify them if they are registered
+        try {
+          const user = await app.service('users').get(result.recipientAddress);
 
-    if (
-      result.prevStatus === MilestoneStatus.REJECTED &&
-      result.status === MilestoneStatus.PROPOSED
-    ) {
-      try {
-        const campaign = await app.service('campaigns').get(data.campaignId);
-
-        Notifications.milestoneProposed(app, {
-          recipient: campaign.owner.email,
-          user: campaign.owner.name,
-          milestoneTitle: data.title,
-          campaignTitle: campaign.title,
-          amount: data.maxAmount,
-          token: data.token,
-        });
-      } catch (e) {
-        logger.error('error sending proposed milestone notification', e);
-      }
-    }
-
-    if (
-      result.status === MilestoneStatus.IN_PROGRESS &&
-      result.ownerAddress !== result.recipientAddress
-    ) {
-      // milestone may have been created on the recipient's behalf
-      // lets notify them if they are registered
-      try {
-        const user = await app.service('users').get(result.recipientAddress);
-
-        if (user) {
-          Notifications.milestoneCreated(app, {
-            recipient: user.email,
-            user: user.name,
-            milestoneTitle: data.title,
-            amount: data.maxAmount,
-            token: data.token,
-          });
+          if (user) {
+            Notifications.milestoneCreated(app, {
+              recipient: user.email,
+              user: user.name,
+              milestoneTitle: data.title,
+              amount: data.maxAmount,
+              token: data.token,
+            });
+          }
+        } catch (e) {
+          // ignore missing user
         }
-      } catch (e) {
-        // ignore missing user
-      }
-    }
+      } else if (data.status === NEEDS_REVIEW) {
+        // find the milestone reviewer owner and send a notification that this milestone is been marked as complete and needs review
+        _createConversion(result.status);
 
-    if (result.status === MilestoneStatus.NEEDS_REVIEW) {
-      // find the milestone reviewer owner and send a notification that this milestone is been marked as complete and needs review
-      _createConversion(result.status);
-
-      Notifications.milestoneRequestReview(app, {
-        recipient: result.reviewer.email,
-        user: result.reviewer.name,
-        milestoneTitle: result.title,
-        campaignTitle: result.campaign.title,
-        message: result.message,
-      });
-    }
-
-    if (result.status === MilestoneStatus.COMPLETED && result.mined) {
-      _createConversion(result.status);
-
-      // find the milestone owner and send a notification that his/her milestone is marked complete
-      Notifications.milestoneMarkedCompleted(app, {
-        recipient: result.owner.email,
-        user: result.owner.name,
-        milestoneTitle: result.title,
-        campaignTitle: result.campaign.title,
-        message: result.message,
-      });
-    }
-
-    if (
-      result.prevStatus === MilestoneStatus.NEEDS_REVIEW &&
-      result.status === MilestoneStatus.IN_PROGRESS
-    ) {
-      _createConversion('rejected');
-
-      // find the milestone reviewer and send a notification that his/her milestone has been rejected by reviewer
-      // it's possible to have a null reviewer if that address has never logged in
-      if (result.reviewer) {
-        Notifications.milestoneReviewRejected(app, {
+        Notifications.milestoneRequestReview(app, {
           recipient: result.reviewer.email,
           user: result.reviewer.name,
           milestoneTitle: result.title,
           campaignTitle: result.campaign.title,
           message: result.message,
         });
+      } else if (data.status === COMPLETED && result.mined) {
+        _createConversion(result.status);
+
+        // find the milestone owner and send a notification that his/her milestone is marked complete
+        Notifications.milestoneMarkedCompleted(app, {
+          recipient: result.owner.email,
+          user: result.owner.name,
+          milestoneTitle: result.title,
+          campaignTitle: result.campaign.title,
+          message: result.message,
+        });
+      } else if (data.status === IN_PROGRESS && result.prevStatus === NEEDS_REVIEW) {
+        _createConversion('rejected');
+
+        // find the milestone reviewer and send a notification that his/her milestone has been rejected by reviewer
+        // it's possible to have a null reviewer if that address has never logged in
+        if (result.reviewer) {
+          Notifications.milestoneReviewRejected(app, {
+            recipient: result.reviewer.email,
+            user: result.reviewer.name,
+            milestoneTitle: result.title,
+            campaignTitle: result.campaign.title,
+            message: result.message,
+          });
+        }
+      } else if (data.status === CANCELED && result.mined) {
+        _createConversion(result.status);
+
+        // find the milestone owner and send a notification that his/her milestone is canceled
+        Notifications.milestoneCanceled(app, {
+          recipient: result.owner.email,
+          user: result.owner.name,
+          milestoneTitle: result.title,
+          campaignTitle: result.campaign.title,
+          message: result.message,
+        });
+      } else if (data.status === PAID && result.mined && result.prevStatus === PAYING) {
+        Notifications.milestonePaid(app, {
+          recipient: result.recipient.email,
+          user: result.recipient.name,
+          milestoneTitle: result.title,
+          donationCounters: result.donationCounters,
+          address: result.recipientAddress,
+        });
       }
     }
-
-    if (result.status === MilestoneStatus.CANCELED && result.mined) {
-      _createConversion(result.status);
-
-      // find the milestone owner and send a notification that his/her milestone is canceled
-      Notifications.milestoneCanceled(app, {
-        recipient: result.owner.email,
-        user: result.owner.name,
-        milestoneTitle: result.title,
-        campaignTitle: result.campaign.title,
-        message: result.message,
-      });
-    }
-
-    if (
-      result.status === MilestoneStatus.PAID &&
-      result.mined &&
-      result.prevStatus === MilestoneStatus.PAYING
-    ) {
-      Notifications.milestonePaid(app, {
-        recipient: result.recipient.email,
-        user: result.recipient.name,
-        milestoneTitle: result.title,
-        donationCounters: result.donationCounters,
-        address: result.recipientAddress,
-      });
-    }
-  }
-
-  if (context.method === 'patch' && !context.params.eventTxHash) {
-    if (
-      result.prevStatus === MilestoneStatus.PROPOSED &&
-      result.status === MilestoneStatus.REJECTED
-    ) {
+    //  if (!context.params.eventTxHash)
+    else if (data.status === REJECTED && result.prevStatus === PROPOSED) {
       _createConversion('proposedRejected');
 
       // find the milestone owner and send a notification that his/her proposed milestone is rejected
@@ -224,19 +204,9 @@ const sendNotification = () => async context => {
         campaignTitle: result.campaign.title,
         message: result.message,
       });
-    }
-
-    if (
-      result.prevStatus === MilestoneStatus.REJECTED &&
-      result.status === MilestoneStatus.PROPOSED
-    ) {
+    } else if (data.status === PROPOSED && result.prevStatus === REJECTED) {
       _createConversion('rePropose');
-    }
-
-    if (
-      result.prevStatus === MilestoneStatus.IN_PROGRESS &&
-      result.status === MilestoneStatus.ARCHIVED
-    ) {
+    } else if (data.status === ARCHIVED && result.prevStatus === IN_PROGRESS) {
       _createConversion('archived');
     }
   }

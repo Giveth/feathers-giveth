@@ -233,9 +233,10 @@ const canDelete = () => context => {
 const storePrevState = () => context => {
   // do not update prevStatus when triggered by contract event
   // it has already been set
-  if (context.data.status && !context.params.eventTxHash) {
+  const { params, data } = context;
+  if (data.status && !params.eventTxHash) {
     return getMilestones(context).then(milestone => {
-      context.data.prevStatus = milestone.status;
+      data.prevStatus = milestone.status;
       return context;
     });
   }
