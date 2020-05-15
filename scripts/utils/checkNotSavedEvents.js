@@ -3,11 +3,11 @@ const fs = require('fs');
 require('mongoose-long')(mongoose);
 require('../../src/models/mongoose-bn')(mongoose);
 
-const configFileName = 'develop'; // default or beta
+const configFileName = 'beta'; // default or beta
 
 // eslint-disable-next-line import/no-dynamic-require
 const config = require(`../../config/${configFileName}.json`);
-const { liquidPledgingAddress } = config.blockchain;
+const { liquidPledgingAddress, requiredConfirmations } = config.blockchain;
 
 const appFactory = () => {
   const data = {};
@@ -25,6 +25,8 @@ const app = appFactory();
 app.set('mongooseClient', mongoose);
 
 const Events = require('../../src/models/events.model').createModel(app);
+
+const { EventStatus } = require('../../src/models/events.model');
 
 const terminateScript = (message = '', code = 0) =>
   process.stdout.write(`Exit message: ${message}`, () => process.exit(code));
@@ -47,9 +49,20 @@ const main = async () => {
     });
 
   // eslint-disable-next-line no-restricted-syntax
-  for (const e of savedEvents) {
-    if (!dbEventsSet.has(getEventKey(e))) {
-      console.log(`This event is not saved in db!\n${JSON.stringify(e, null, 2)}`);
+  for (const event of savedEvents) {
+    if (!dbEventsSet.has(getEventKey(event))) {
+      console.log(`This event is not saved in db!\n${JSON.stringify(event, null, 2)}`);
+      if (!event || !event.event || !event.signature || !event.returnValues || !event.raw) {
+        console.error('Attempted to add undefined event or event with undefined values');
+      } else {
+        console.log('Creating...');
+        // eslint-disable-next-line no-await-in-loop
+        await Events.create({
+          ...event,
+          confirmations: requiredConfirmations,
+          status: EventStatus.WAITING,
+        });
+      }
     }
   }
 };
