@@ -86,7 +86,7 @@ const getBlockchainData = async ({ updateState, updateEvents }) => {
   let state;
   let events;
 
-  if (!updateState) state = JSON.parse(fs.readFileSync(stateFile));
+  if (!updateState) state = fs.existsSync(stateFile) ? JSON.parse(fs.readFileSync(stateFile)) : {};
   events = fs.existsSync(eventsFile) ? JSON.parse(fs.readFileSync(eventsFile)) : [];
 
   if (updateState || updateEvents) {
@@ -137,6 +137,7 @@ const getBlockchainData = async ({ updateState, updateEvents }) => {
 
 // Update createdAt date of donations based on transaction date
 // @params {string} url blockchain node url address
+// eslint-disable-next-line no-unused-vars
 const updateDonationsCreatedDate = async startDate => {
   const foreignWeb3 = instantiateWeb3(nodeUrl);
   await Donations.find({
@@ -298,6 +299,7 @@ const findEntityConflicts = (model, projectPledgeMap, fixConflicts = false, pled
   });
 };
 
+// eslint-disable-next-line no-unused-vars
 const findProjectsConflict = (fixConflicts, admins, pledges) => {
   const projectAdmins = new Set();
   for (let i = 1; i < admins.length; i += 1) {
@@ -508,8 +510,9 @@ const handleFromDonations = async (
     const transfer = verifiedTransfers.find(
       tt => tt.txHash === transactionHash && tt.logIndex === logIndex,
     );
-    // Paid donations should be created (Not creating Paid donations is a common mistake!)
-    const isVerified = transfer !== undefined || toPledge.pledgeState === 'Paid';
+    // Paid and Paying donations should be created (Not creating Paid donations is a common mistake!)
+    const isVerified =
+      transfer !== undefined || ['Paid', 'Paying', 'Waiting'].includes(toPledge.pledgeState);
 
     // Reduce money from parents one by one
     if (candidateParentsFromDB.length > 0) {
@@ -698,6 +701,7 @@ const handleToDonations = async (
         amountRemaining: new BigNumber(amount),
         ownerId: toOwnerId,
         status,
+        giverAddress,
       };
 
       // If it is a verified transaction that should be added to database
@@ -706,7 +710,8 @@ const handleToDonations = async (
       );
 
       // Paid donations should be created (Not creating Paid donations is a common mistake!)
-      const isVerified = transfer !== undefined || toPledge.pledgeState === 'Paid';
+      const isVerified =
+        transfer !== undefined || ['Paid', 'Paying', 'Waiting'].includes(toPledge.pledgeState);
       if (transfer === undefined) {
         transfer = {};
       }
@@ -1437,6 +1442,7 @@ const syncDonationsWithNetwork = async (
   await fixConflictInDonations(fixConflicts, donationMap, pledges, unusedDonationMap);
 };
 
+// eslint-disable-next-line no-unused-vars
 const syncPledgeAdmins = async (fixAdminConflicts, events) => {
   if (!fixAdminConflicts) return;
 
