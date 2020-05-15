@@ -188,6 +188,46 @@
     {
       "txHash": "0x1b67fddee83d03a356397e35c7d8a7867d1080ea9369876d206084de5f45963d",
       "logIndex": 5
+    },
+    {
+      "txHash": "0x420908be8758a6cebe211a8ecbe12a81e5ebb395bd80d49208d2217cdab55f87",
+      "logIndex": 3
+    },
+    {
+      "txHash": "0xb78576130d83828f86846b40631e2b2012f3673ca76ed325a44736cb8e07922f",
+      "logIndex": 6
+    },
+    {
+      "txHash": "0xb78576130d83828f86846b40631e2b2012f3673ca76ed325a44736cb8e07922f",
+      "logIndex": 7
+    },
+    {
+      "txHash": "0xb78576130d83828f86846b40631e2b2012f3673ca76ed325a44736cb8e07922f",
+      "logIndex": 8
+    },
+    {
+      "txHash": "0xca0d563056fb64c89c299bf727561484f649681872773b8eba325ff200e6c5c5",
+      "logIndex": 2
+    },
+    {
+      "txHash": "0xca0d563056fb64c89c299bf727561484f649681872773b8eba325ff200e6c5c5",
+      "logIndex": 7
+    },
+    {
+      "txHash": "0xca0d563056fb64c89c299bf727561484f649681872773b8eba325ff200e6c5c5",
+      "logIndex": 12
+    },
+    {
+      "txHash": "0xca0d563056fb64c89c299bf727561484f649681872773b8eba325ff200e6c5c5",
+      "logIndex": 17
+    },
+    {
+      "txHash": "0xaea0a3ed6cda02b594399962d0b9ccca4885f6616a513dd1b0999986fd3f12e3",
+      "logIndex": 2
+    },
+    {
+      "txHash": "0xaea0a3ed6cda02b594399962d0b9ccca4885f6616a513dd1b0999986fd3f12e3",
+      "logIndex": 3
     }
   ],
   "revertExemptedDonations": [

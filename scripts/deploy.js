@@ -205,9 +205,8 @@ async function deploy() {
 
     // transfer tokens to all other home accounts, so that Meta mask will detect these tokens
     await Promise.all(
-      homeAccounts.map(
-        async a =>
-          await miniMeToken.transfer(a, Web3.utils.toWei('10000'), { from: homeAccounts[10] }),
+      homeAccounts.map(async a =>
+        miniMeToken.transfer(a, Web3.utils.toWei('10000'), { from: homeAccounts[10] }),
       ),
     );
 
