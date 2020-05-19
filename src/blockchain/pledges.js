@@ -323,7 +323,7 @@ const pledges = (app, liquidPledging) => {
   }
 
   function getPledgeAdmin(id) {
-    return pledgeAdmins.find({ paginate: false, query: { id } }).then(data => data[0]);
+    return pledgeAdmins.find({ paginate: false, query: { id: Number(id) } }).then(data => data[0]);
   }
 
   async function createDonation(mutation, initialTransfer = false, retry = false) {
