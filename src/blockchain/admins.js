@@ -22,9 +22,9 @@ const adminFactory = (app, liquidPledging) => {
     try {
       return await pledgeAdmins.patch(
         null,
-        { id, type, typeId },
+        { id: Number(id), type, typeId },
         {
-          query: { id },
+          query: { id: Number(id) },
           mongoose: { upsert: true },
         },
       );
