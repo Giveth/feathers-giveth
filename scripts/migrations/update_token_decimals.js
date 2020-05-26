@@ -4,7 +4,7 @@ require('mongoose-long')(mongoose);
 require('../../src/models/mongoose-bn')(mongoose);
 const { toBN } = require('web3-utils');
 
-const config = require('../../config/default.json');
+const config = require('../../config/develop.json');
 
 const { tokenWhitelist } = config;
 
@@ -86,8 +86,14 @@ const updateLessThanCutoff = () => {
           const { _id, token, amountRemaining } = donation;
           const { cutoff } = symbolDecimalsMap[token.symbol];
           const lessThanCutoff = amountRemaining.lt(cutoff);
-          if (donation.lessThanCutoff !== lessThanCutoff)
-            await Donations.update({ _id }, { lessThanCutoff }).exec();
+          await Donations.update(
+            { _id },
+            {
+              $set: {
+                lessThanCutoff,
+              },
+            },
+          ).exec();
         },
         {
           parallel: 100,
