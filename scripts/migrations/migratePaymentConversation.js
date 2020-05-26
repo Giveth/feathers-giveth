@@ -34,7 +34,7 @@ db.once('open', async () => {
 
         donations.forEach(donation => {
           const { amount } = donation;
-          const symbol = donation.token.name;
+          const { symbol, decimals } = donation.token;
           const index = payments.findIndex(p => p.symbol === symbol);
 
           if (index !== -1) {
@@ -42,7 +42,7 @@ db.once('open', async () => {
               .add(toBN(payments[index].amount))
               .toString();
           } else {
-            payments.push({ symbol, amount });
+            payments.push({ symbol, amount, tokenDecimals: decimals });
           }
         });
 

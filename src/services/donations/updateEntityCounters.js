@@ -159,7 +159,7 @@ const createConversation = async (context, donation, milestoneId) => {
       .then(milestone => {
         const { recipient } = milestone;
         const { txHash, amount } = donation;
-        const { symbol } = donation.token;
+        const { symbol, decimals } = donation.token;
         const service = app.service('conversations');
 
         conversationSem.take(async () => {
@@ -184,7 +184,7 @@ const createConversation = async (context, donation, milestoneId) => {
                   .add(toBN(payments[index].amount))
                   .toString();
               } else {
-                payments.push({ symbol, amount });
+                payments.push({ symbol, amount, tokenDecimals: decimals });
               }
 
               await service.patch(conversation._id, {
@@ -200,6 +200,7 @@ const createConversation = async (context, donation, milestoneId) => {
                     {
                       amount,
                       symbol,
+                      tokenDecimals: decimals,
                     },
                   ],
                   recipientAddress: recipient.address,
