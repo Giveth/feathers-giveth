@@ -35,6 +35,7 @@ const Donations = require('../../src/models/donations.model').createModel(app);
 const DACs = require('../../src/models/dacs.model').createModel(app);
 const Campaigns = require('../../src/models/campaigns.model').createModel(app);
 const Milestones = require('../../src/models/milestones.model').createModel(app);
+const Conversations = require('../../src/models/conversations.model')(app);
 
 const { DonationStatus } = require('../../src/models/donations.model');
 
@@ -113,6 +114,22 @@ const updateLessThanCutoff = () => {
   ]);
 };
 
+const updatePaymentConversations = () => {
+  return Conversations.find({ messageContext: 'payment' })
+    .cursor()
+    .eachAsync(
+      ({ _id, payments }) => {
+        payments.forEach(p => {
+          p.tokenDecimals = symbolDecimalsMap[p.symbol].decimals;
+        });
+        return Conversations.update({ _id }, { payments }).exec();
+      },
+      {
+        parallel: 100,
+      },
+    );
+};
+
 const mongoUrl = config.mongodb;
 console.log('url:', mongoUrl);
 mongoose.connect(mongoUrl);
@@ -131,5 +148,6 @@ db.once('open', () => {
     populateEntityDonationCounter(Campaigns),
     populateEntityDonationCounter(Milestones),
     updateLessThanCutoff(),
+    updatePaymentConversations(),
   ]).then(() => process.exit());
 });

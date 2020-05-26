@@ -21,6 +21,7 @@ module.exports = function Conversations(app) {
         {
           amount: { type: Schema.Types.BN, min: 0 },
           symbol: { type: String },
+          tokenDecimals: { type: String },
         },
       ],
       items: [Item],
