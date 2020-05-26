@@ -44,7 +44,7 @@ const sendEmail = (app, data) => {
 
 module.exports = {
   donation: (app, data) => {
-    data.amount = Number(data.amount) / 10 ** Number(data.token.decimals);
+    data.amount = Number(data.amount) / 10 ** 18;
 
     Object.assign(data, {
       template: 'notification',
@@ -95,7 +95,7 @@ module.exports = {
   },
 
   delegationRequired: (app, data) => {
-    data.amount = Number(data.amount) / 10 ** Number(data.token.decimals);
+    data.amount = Number(data.amount) / 10 ** 18;
 
     Object.assign(data, {
       template: 'notification',
@@ -128,7 +128,7 @@ module.exports = {
   },
 
   donationDelegated: (app, data) => {
-    data.amount = Number(data.amount) / 10 ** Number(data.token.decimals);
+    data.amount = Number(data.amount) / 10 ** 18;
 
     Object.assign(data, {
       template: 'notification',
@@ -139,9 +139,9 @@ module.exports = {
       text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
-          The ${data.delegateType} <em>${data.delegateTitle}</em> has proposed a delegation of 
+          The ${data.delegateType} <em>${data.delegateTitle}</em> has proposed a delegation of
           <span style="display: block; color: rgb(53, 184, 209); line-height: 72px; font-size: 48px;">
-          ${data.amount} ${data.token.symbol}</span> from your donation to 
+          ${data.amount} ${data.token.symbol}</span> from your donation to
           ${data.delegateType} <em>${data.delegateTitle}</em>.
         </p>
         <p>
@@ -159,7 +159,7 @@ module.exports = {
   },
 
   milestoneProposed: (app, data) => {
-    data.amount = Number(data.amount) / 10 ** Number(data.token.decimals);
+    data.amount = Number(data.amount) / 10 ** 18;
 
     Object.assign(data, {
       template: 'notification',
@@ -339,7 +339,7 @@ module.exports = {
   },
 
   milestoneCreated: (app, data) => {
-    data.amount = Number(data.amount) / 10 ** Number(data.token.decimals);
+    data.amount = Number(data.amount) / 10 ** 18;
 
     Object.assign(data, {
       template: 'notification',
@@ -378,9 +378,7 @@ module.exports = {
           data.milestoneTitle
         }</em>:</p>
         <p></p>
-        ${data.donationCounters.map(
-          c => `<p>${c.currentBalance / 10 ** Number(c.decimals)} ${c.symbol}</p>`,
-        )}
+        ${data.donationCounters.map(c => `<p>${c.currentBalance / 10 ** 18} ${c.symbol}</p>`)}
         <p></p>
         <p>You can expect to see these payment(s) to arrive in your wallet <em>${
           data.address
