@@ -482,6 +482,7 @@ const handleFromDonations = async (
 
         toFixDonation.status = convertPledgeStateToStatus(toPledge, toOwnerAdmin);
         toFixDonation.pledgeId = to;
+        toFixDonation.mined = true;
         toUnusedDonationList.push(toFixDonation);
 
         candidateToDonationList = [toFixDonation];
@@ -874,6 +875,8 @@ const handleToDonations = async (
 
     if (toDonation.mined === false) {
       console.log(`Donation ${toDonation._id} mined flag should be true`);
+      console.log('Updating...');
+      await Donations.update({ _id: toDonation._id }, { mined: true }).exec();
     } else if (toDonation.status !== expectedStatus) {
       // console.log(
       //   `Donation ${toDonation._id} status should be ${status} but is ${toDonation.status}`,
