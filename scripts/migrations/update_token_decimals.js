@@ -4,7 +4,7 @@ require('mongoose-long')(mongoose);
 require('../../src/models/mongoose-bn')(mongoose);
 const { toBN } = require('web3-utils');
 
-const config = require('../../config/develop.json');
+const config = require('../../config/default.json');
 
 const { tokenWhitelist } = config;
 
