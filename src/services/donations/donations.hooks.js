@@ -126,7 +126,7 @@ const setUSDValue = async (context, donation) => {
         {
           usdValue: Number(
             new BigNumber(donation.amount)
-              .div(10 ** Number(donation.token.decimals))
+              .div(10 ** 18)
               .times(rate)
               .toFixed(2),
           ),
@@ -333,6 +333,48 @@ const addActionTakerAddress = () => async context => {
   }
 };
 
+const setLessThanCutoff = async (context, donation) => {
+  const { _id, amountRemaining, token, status } = donation;
+
+  if (!amountRemaining) return donation;
+
+  const { COMMITTED, WAITING, TO_APPROVE } = DonationStatus;
+  if (token && [COMMITTED, TO_APPROVE, WAITING].includes(status)) {
+    // amountRemaining equal or greater than 1, has at least 18 digits
+    // It will be greater than cut-off value (10 ** (-1 * token.decimals)), if
+    // it has digits not less than 18 - token.decimals
+    // amountRemaining type is String
+    const lessThanCutoff = amountRemaining.length <= 18 - Number(token.decimals);
+    if (donation.lessThanCutoff !== lessThanCutoff) {
+      return context.app.service('donations').patch(
+        _id,
+        {
+          lessThanCutoff,
+        },
+        {
+          skipLessThanCutoffUpdate: true,
+          skipEntityCounterUpdate: true,
+        },
+      );
+    }
+  }
+  return donation;
+};
+
+const setLessThanCutoffHook = () => async context => {
+  commons.checkContext(context, 'after', ['create', 'patch']);
+
+  // prevent recursive calls
+  if (context.params.skipLessThanCutoffUpdate) return context;
+
+  if (Array.isArray(context.result)) {
+    context.result = await Promise.all(context.result.map(setLessThanCutoff.bind(null, context)));
+  } else {
+    context.result = await setLessThanCutoff(context, context.result);
+  }
+  return context;
+};
+
 const populateSchema = () => context => {
   if (context.params.schema === 'includeGiverDetails') {
     return commons.populate({ schema: poSchemas['po-giver'] })(context);
@@ -390,9 +432,19 @@ module.exports = {
     all: [populateSchema()],
     find: [addConfirmations()],
     get: [addConfirmations()],
-    create: [setUSDValueHook(), updateDonationEntityCountersHook(), setEntityUpdated()],
+    create: [
+      setUSDValueHook(),
+      updateDonationEntityCountersHook(),
+      setEntityUpdated(),
+      setLessThanCutoffHook(),
+    ],
     update: [],
-    patch: [setUSDValueHook(), updateDonationEntityCountersHook(), setEntityUpdated()],
+    patch: [
+      setUSDValueHook(),
+      updateDonationEntityCountersHook(),
+      setEntityUpdated(),
+      setLessThanCutoffHook(),
+    ],
     remove: [],
   },
 

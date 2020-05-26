@@ -53,6 +53,7 @@ function Donation(app) {
       parentDonations: { type: [String], default: [], required: true },
       isReturn: { type: Boolean, default: false },
       token: { type: Token, required: true },
+      lessThanCutoff: { type: Boolean, default: false, index: true },
       usdValue: { type: Number, default: 0 },
     },
     {
