@@ -200,14 +200,15 @@ const updateEntity = async (model, type) => {
         });
       }
 
+      const { token, maxAmount } = entity;
       const fullyFunded = !!(
         type === AdminTypes.MILESTONE &&
         donationCounters.length > 0 &&
-        entity.token.foreignAddress !== ANY_TOKEN.foreignAddress &&
-        entity.maxAmount &&
-        entity.maxAmount.sub(
-          donationCounters.find(dc => dc.symbol === entity.token.symbol).totalDonated,
-        ) < 10000000000
+        token.foreignAddress !== ANY_TOKEN.foreignAddress &&
+        maxAmount &&
+        maxAmount
+          .sub(donationCounters.find(dc => dc.symbol === token.symbol).totalDonated)
+          .lt(toBN(10 ** (18 - Number(token.decimals))))
       ); // Difference less than this number is negligible
 
       if (

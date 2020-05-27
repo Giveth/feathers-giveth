@@ -125,15 +125,15 @@ const updateEntity = async (app, id, type) => {
         donationCount,
       };
     });
-
+    const { token, maxAmount } = entity;
     const fullyFunded =
       type === AdminTypes.MILESTONE &&
       donationCounters.length > 0 &&
-      entity.token.foreignAddress !== ANY_TOKEN.foreignAddress &&
-      entity.maxAmount &&
-      toBN(entity.maxAmount).sub(
-        donationCounters.find(dc => dc.symbol === entity.token.symbol).totalDonated,
-      ) < 10000000000;
+      token.foreignAddress !== ANY_TOKEN.foreignAddress &&
+      maxAmount &&
+      toBN(maxAmount)
+        .sub(donationCounters.find(dc => dc.symbol === token.symbol).totalDonated)
+        .lt(toBN(10 ** (18 - Number(token.decimals))));
 
     const peopleCount = new Set(donations.map(d => d.giverAddress)).size;
 
