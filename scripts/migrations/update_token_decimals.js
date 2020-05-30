@@ -4,7 +4,7 @@ require('mongoose-long')(mongoose);
 require('../../src/models/mongoose-bn')(mongoose);
 const { toBN } = require('web3-utils');
 
-const config = require('../../config/default.json');
+const config = require('../../config/beta.json');
 
 const { tokenWhitelist } = config;
 
@@ -76,10 +76,10 @@ const populateEntityDonationCounter = model => {
 };
 
 const updateLessThanCutoff = () => {
-  const { COMMITTED, WAITING, TO_APPROVE } = DonationStatus;
+  const { COMMITTED, WAITING, TO_APPROVE, PAYING, PAID } = DonationStatus;
   return Promise.all([
     Donations.find({
-      status: { $in: [WAITING, COMMITTED, TO_APPROVE] },
+      status: { $in: [WAITING, COMMITTED, TO_APPROVE, PAYING, PAID] },
     })
       .cursor()
       .eachAsync(
@@ -102,7 +102,7 @@ const updateLessThanCutoff = () => {
       ),
     Donations.update(
       {
-        status: { $nin: [WAITING, COMMITTED, TO_APPROVE] },
+        status: { $nin: [WAITING, COMMITTED, TO_APPROVE, PAYING, PAID] },
       },
       {
         lessThanCutoff: false,
