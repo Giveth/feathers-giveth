@@ -327,17 +327,21 @@ const pledges = (app, liquidPledging) => {
   }
 
   async function createDonation(mutation, initialTransfer = false, retry = false) {
+    // Combine $or statements
+    const orStatements = [];
     const query = {
       $limit: 1,
       giverAddress: mutation.giverAddress,
       amount: mutation.amount,
       mined: false,
       'token.symbol': mutation.token.symbol,
-      $or: [{ pledgeId: '0' }, { pledgeId: mutation.pledgeId }],
     };
+    orStatements.push([{ pledgeId: '0' }, { pledgeId: mutation.pledgeId }]);
     if (initialTransfer) {
-      if (mutation.homeTxHash !== 'unknown') query.homeTxHash = mutation.homeTxHash;
-      else {
+      if (mutation.homeTxHash !== 'unknown') {
+        const { nonce } = await app.getHomeWeb3().eth.getTransaction(mutation.homeTxHash);
+        orStatements.push([{ txNonce: nonce }, { homeTxHash: mutation.homeTxHash }]);
+      } else {
         // if we don't have a homeTxHash, attempt to find the 1st donation where all other params are the same
         Object.assign(query, {
           status: DonationStatus.PENDING,
@@ -354,6 +358,8 @@ const pledges = (app, liquidPledging) => {
     } else {
       query.txHash = mutation.txHash;
     }
+
+    query.$and = orStatements.map(statement => ({ $or: statement }));
 
     const donations = await donationService.find({
       paginate: false,
