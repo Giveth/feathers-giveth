@@ -44,13 +44,13 @@ const getBlockchainData = async readFromCache => {
     const liquidPledging = new LiquidPledging(foreignWeb3, liquidPledgingAddress);
     const liquidPledgingState = new LiquidPledgingState(liquidPledging);
 
-    const [numberOfPledges, numberOfPledgeAdmins] = await web3Helper.executeRequestsAsBatch(
-      foreignWeb3,
-      [
-        liquidPledging.$contract.methods.numberOfPledges().call.request,
-        liquidPledging.$contract.methods.numberOfPledgeAdmins().call.request,
-      ],
-    );
+    const [
+      numberOfPledges,
+      numberOfPledgeAdmins,
+    ] = await web3Helper.executeRequestsAsBatch(foreignWeb3, [
+      liquidPledging.$contract.methods.numberOfPledges().call.request,
+      liquidPledging.$contract.methods.numberOfPledgeAdmins().call.request,
+    ]);
     console.log('Number of pledges', numberOfPledges);
     console.log('Number of pledge admins', numberOfPledgeAdmins);
 

@@ -29,6 +29,14 @@ config.tokenWhitelist.forEach(token => {
   tokenSymbolToForeignAddress[token.symbol] = token.foreignAddress.toLowerCase();
 });
 
+const symbolDecimalsMap = {};
+
+config.tokenWhitelist.forEach(({ symbol, decimals }) => {
+  symbolDecimalsMap[symbol] = {
+    cutoff: new BigNumber(10 ** (18 - Number(decimals))),
+  };
+});
+
 const tokensForeignAddress = config.tokenWhitelist.map(t => t.foreignAddress.toLowerCase());
 
 const { nodeUrl, liquidPledgingAddress } = config.blockchain;
@@ -136,7 +144,7 @@ const getBlockchainData = async ({ updateState, updateEvents }) => {
 };
 
 // Update createdAt date of donations based on transaction date
-// @params {string} url blockchain node url address
+// @params {string} startDate
 // eslint-disable-next-line no-unused-vars
 const updateDonationsCreatedDate = async startDate => {
   const foreignWeb3 = instantiateWeb3(nodeUrl);
@@ -162,7 +170,7 @@ const updateDonationsCreatedDate = async startDate => {
     });
 };
 
-const findEntityConflicts = (model, projectPledgeMap, fixConflicts = false, pledges) => {
+const fixEntityDonationCounter = (model, projectPledgeMap, fixConflicts = false, pledges) => {
   const cursor = model
     .find({
       projectId: { $exists: true },
@@ -332,8 +340,8 @@ const findProjectsConflict = (fixConflicts, admins, pledges) => {
   }
 
   return Promise.all([
-    findEntityConflicts(Milestones, projectPledgeMap, fixConflicts, pledges),
-    findEntityConflicts(Campaigns, projectPledgeMap, fixConflicts, pledges),
+    fixEntityDonationCounter(Milestones, projectPledgeMap, fixConflicts, pledges),
+    fixEntityDonationCounter(Campaigns, projectPledgeMap, fixConflicts, pledges),
   ]);
 };
 
@@ -360,6 +368,7 @@ const getPledgeDonationItems = async () => {
         ownerType,
         intendedProjectId,
         giverAddress,
+        token,
       }) => {
         // if (pledgeId === '0') return;
 
@@ -383,6 +392,7 @@ const getPledgeDonationItems = async () => {
           intendedProjectId,
           giverAddress,
           pledgeId: pledgeId.toString(),
+          token,
         };
 
         list.push(item);
@@ -508,12 +518,15 @@ const handleFromDonations = async (
       parentDonations.forEach(parent => candidateParentsFromDB.push(parent));
     }
 
-    const transfer = verifiedTransfers.find(
-      tt => tt.txHash === transactionHash && tt.logIndex === logIndex,
-    );
-    // Paid and Paying donations should be created (Not creating Paid donations is a common mistake!)
-    const isVerified =
-      transfer !== undefined || ['Paid', 'Paying', 'Waiting'].includes(toPledge.pledgeState);
+    // *** Remove verifiedTransfers feature (Create any donation that is not ignored)
+    // const transfer = verifiedTransfers.find(
+    //   tt => tt.txHash === transactionHash && tt.logIndex === logIndex,
+    // );
+    // // Paid and Paying donations should be created (Not creating Paid donations is a common mistake!)
+    // const isVerified =
+    //   transfer !== undefined || ['Paid', 'Paying', 'Waiting'].includes(toPledge.pledgeState);
+
+    const isVerified = true;
 
     // Reduce money from parents one by one
     if (candidateParentsFromDB.length > 0) {
@@ -631,7 +644,7 @@ const handleFromDonations = async (
 };
 
 const handleToDonations = async (
-  { fixConflicts, fixStatus },
+  { fixConflicts },
   from,
   to,
   amount,
@@ -705,17 +718,20 @@ const handleToDonations = async (
         giverAddress,
       };
 
-      // If it is a verified transaction that should be added to database
+      // *** Remove verifiedTransfers feature (Create any donation that is not ignored)
+      // // If it is a verified transaction that should be added to database
       let transfer = verifiedTransfers.find(
         tt => tt.txHash === transactionHash && tt.logIndex === logIndex,
       );
-
-      // Paid donations should be created (Not creating Paid donations is a common mistake!)
-      const isVerified =
-        transfer !== undefined || ['Paid', 'Paying', 'Waiting'].includes(toPledge.pledgeState);
+      //
+      // // Paid donations should be created (Not creating Paid donations is a common mistake!)
+      // const isVerified =
+      //   transfer !== undefined || ['Paid', 'Paying', 'Waiting'].includes(toPledge.pledgeState);
       if (transfer === undefined) {
         transfer = {};
       }
+
+      const isVerified = true;
 
       if (isVerified && fixConflicts) {
         let [toPledgeAdmin] = await PledgeAdmins.find({ id: Number(toOwnerId) }).exec();
@@ -747,6 +763,7 @@ const handleToDonations = async (
           terminateScript(`No token found for address ${toPledge.token}\n`);
           return;
         }
+        expectedToDonation.token = token;
 
         const delegationInfo = {};
         // It's delegated to a DAC
@@ -813,6 +830,10 @@ const handleToDonations = async (
           createdAt: new Date(timestamp * 1000),
           ...delegationInfo,
         };
+
+        const { cutoff } = symbolDecimalsMap[token.symbol];
+        model.lessThanCutoff = cutoff.gt(model.amountRemaining);
+
         if (transfer._id) {
           model._id = transfer._id;
         }
@@ -913,7 +934,7 @@ const handleToDonations = async (
     ) {
       if (expectedStatus !== toDonation.status) {
         console.log(`Donation status is ${toDonation.status}, but should be ${expectedStatus}`);
-        if (fixStatus) {
+        if (fixConflicts) {
           console.log('Updating...');
           await Donations.update({ _id: toDonation._id }, { status: expectedStatus }).exec();
           toDonation.status = expectedStatus;
@@ -1028,7 +1049,7 @@ const getMostRecentDonationNotCanceled = (donation, donationMap, admins) => {
 };
 
 const revertDonation = async (
-  { fixStatus, fixReturnedDonationAmount },
+  { fixConflicts },
   donation,
   transactionHash,
   donationMap,
@@ -1102,7 +1123,7 @@ const revertDonation = async (
   );
   if (donation.status !== DonationStatus.CANCELED) {
     console.log(`Donation status should be ${DonationStatus.CANCELED}, but is ${donation.status}`);
-    if (fixStatus) {
+    if (fixConflicts) {
       console.log('Updating...');
       await Donations.update({ _id: donation._id }, { status: DonationStatus.CANCELED }).exec();
       toDonation.status = DonationStatus.CANCELED;
@@ -1112,9 +1133,13 @@ const revertDonation = async (
   const { _id, amount, amountRemaining } = toDonation;
   if (!amountRemaining.eq(amount)) {
     console.log(`Donation ${_id} amount should be ${amountRemaining.toFixed()} but is ${amount}`);
-    if (fixReturnedDonationAmount) {
+    if (fixConflicts) {
       console.log('Updating...');
-      await Donations.update({ _id }, { amount: amountRemaining.toFixed() }).exec();
+      const { cutoff } = symbolDecimalsMap[donation.token.symbol];
+      await Donations.update(
+        { _id },
+        { amount: amountRemaining.toFixed(), lessThanCutoff: cutoff.gt(amountRemaining) },
+      ).exec();
       toDonation.amount = amountRemaining.toFixed();
     }
   }
@@ -1132,7 +1157,7 @@ const revertDonation = async (
 };
 
 const revertProjectDonations = (
-  { fixStatus, fixReturnedDonationAmount },
+  { fixConflicts },
   projectId,
   transactionHash,
   donationMap,
@@ -1149,7 +1174,7 @@ const revertProjectDonations = (
       return Promise.all(
         [...chargedDonationList].map(chargedDonation =>
           revertDonation(
-            { fixStatus, fixReturnedDonationAmount },
+            { fixConflicts },
             chargedDonation,
             transactionHash,
             donationMap,
@@ -1165,7 +1190,7 @@ const revertProjectDonations = (
 };
 
 const cancelProject = async (
-  { fixStatus, fixReturnedDonationAmount },
+  { fixConflicts },
   projectId,
   transactionHash,
   donationMap,
@@ -1190,7 +1215,7 @@ const cancelProject = async (
     await Promise.all(
       milestoneList.map(id => {
         return revertProjectDonations(
-          { fixStatus, fixReturnedDonationAmount },
+          { fixConflicts },
           id,
           transactionHash,
           donationMap,
@@ -1205,7 +1230,7 @@ const cancelProject = async (
   }
 
   await revertProjectDonations(
-    { fixStatus, fixReturnedDonationAmount },
+    { fixConflicts },
     projectId,
     transactionHash,
     donationMap,
@@ -1220,7 +1245,7 @@ const cancelProject = async (
 const fixConflictInDonations = (fixConflicts, donationMap, pledges, unusedDonationMap) => {
   const promises = [];
   donationMap.forEach(
-    ({ _id, amount, amountRemaining, savedAmountRemaining, status, pledgeId, txHash }) => {
+    ({ _id, amount, amountRemaining, savedAmountRemaining, status, pledgeId, txHash, token }) => {
       if (pledgeId === '0') return;
 
       const pledge = pledges[Number(pledgeId)];
@@ -1268,12 +1293,14 @@ const fixConflictInDonations = (fixConflicts, donationMap, pledges, unusedDonati
         }
         if (fixConflicts) {
           console.log('Updating...');
+          const { cutoff } = symbolDecimalsMap[token.symbol];
           promises.push(
             Donations.update(
               { _id },
               {
                 $set: {
                   amountRemaining: amountRemaining.toFixed(),
+                  lessThanCutoff: cutoff.gt(amountRemaining),
                 },
               },
             ).exec(),
@@ -1285,12 +1312,7 @@ const fixConflictInDonations = (fixConflicts, donationMap, pledges, unusedDonati
   return Promise.all(promises);
 };
 
-const syncDonationsWithNetwork = async (
-  { fixConflicts, fixStatus, fixReturnedDonationAmount },
-  events,
-  pledges,
-  admins,
-) => {
+const syncDonationsWithNetwork = async ({ fixConflicts }, events, pledges, admins) => {
   // Map from pledge id to list of donations belongs to which are not used yet!
   const {
     pledgeDonationListMap: pledgeNotFilledDonations,
@@ -1368,7 +1390,7 @@ const syncDonationsWithNetwork = async (
 
       // eslint-disable-next-line no-await-in-loop
       await handleToDonations(
-        { fixConflicts, fixStatus },
+        { fixConflicts },
         from,
         to,
         amount,
@@ -1391,7 +1413,7 @@ const syncDonationsWithNetwork = async (
       console.log(`Cancel project ${idProject}: ${JSON.stringify(admins[Number(idProject)])}`);
       // eslint-disable-next-line no-await-in-loop
       await cancelProject(
-        { fixStatus, fixReturnedDonationAmount },
+        { fixConflicts },
         idProject,
         transactionHash,
         donationMap,
@@ -1445,9 +1467,11 @@ const syncDonationsWithNetwork = async (
   await fixConflictInDonations(fixConflicts, donationMap, pledges, unusedDonationMap);
 };
 
+// Creates PledgeAdmins entity for a project entity
+// Requires corresponding project entity has been saved holding correct value of txHash
 // eslint-disable-next-line no-unused-vars
-const syncPledgeAdmins = async (fixAdminConflicts, events) => {
-  if (!fixAdminConflicts) return;
+const syncPledgeAdmins = async (fixConflicts, events) => {
+  if (!fixConflicts) return;
 
   for (let i = 9000; i < events.length; i += 1) {
     const { event, transactionHash, returnValues } = events[i];
@@ -1533,19 +1557,14 @@ const syncPledgeAdmins = async (fixAdminConflicts, events) => {
   }
 };
 
-const main = async ({
-  updateState,
-  updateEvents,
-  findConflicts,
-  fixConflicts,
-  fixReturnedDonationAmount,
-  fixStatus,
-  fixAdminConflicts,
-}) => {
+const main = async ({ updateState, updateEvents, findConflicts, fixConflicts }) => {
   try {
     const { state, events } = await getBlockchainData({ updateState, updateEvents });
 
-    if (!findConflicts && !fixAdminConflicts) return;
+    if (!findConflicts && !fixConflicts) {
+      terminateScript('Finished', 0);
+      return;
+    }
 
     const { pledges, admins } = state;
 
@@ -1563,13 +1582,8 @@ const main = async ({
       console.log('Connected to Mongo');
 
       Promise.all([
-        syncDonationsWithNetwork(
-          { fixConflicts, fixStatus, fixReturnedDonationAmount },
-          events,
-          pledges,
-          admins,
-        ),
-        // syncPledgeAdmins(fixAdminConflicts, events, admins),
+        syncDonationsWithNetwork({ fixConflicts }, events, pledges, admins),
+        // syncPledgeAdmins(fixConflicts, events, admins),
         // findProjectsConflict(fixConflicts, admins, pledges)]
         // updateDonationsCreatedDate(new Date('2020-02-01')),
       ]).then(() => terminateScript('Finished', 0));
@@ -1581,13 +1595,10 @@ const main = async ({
 };
 
 main({
-  updateState: false,
-  updateEvents: false,
-  findConflicts: true,
-  fixConflicts: true,
-  fixStatus: true,
-  fixAdminConflicts: true,
-  fixReturnedDonationAmount: true,
+  updateState: true,
+  updateEvents: true,
+  findConflicts: false,
+  fixConflicts: false,
 })
   .then(() => {
     // terminateScript('Finished', 0);

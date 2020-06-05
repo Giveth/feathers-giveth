@@ -240,6 +240,94 @@
     {
       "txHash": "0x9f36b1a48511534117624a10df145f03cc1f5280c23aa6c80c15e2389bf19a5d",
       "logIndex": 3
+    },
+    {
+      "txHash": "0x650ce9a369e384578c4d428ccd616e6efbe9604985eaee82d043180008c4405d",
+      "logIndex": 8
+    },
+    {
+      "txHash": "0xcc6443ee117f7bacc114bc19ce2494e8727833e7906e36b8b2750a26104452f0",
+      "logIndex": 13
+    },
+    {
+      "txHash": "0x242ebccdee0934a216b89f8b1df400e07d42f526dfcace9e739ac9e05a71c052",
+      "logIndex": 5
+    },
+    {
+      "txHash": "0x005e96a4aac2c2ce223deadbfc871dd91c762a14830b857f3291df7b4ca54b69",
+      "logIndex": 10
+    },
+    {
+      "txHash": "0x8202a83df4a1fcb8eb4dbbdfc3ffd5930dc9f627b3bcab780a75d44a8157ee41",
+      "logIndex": 15
+    },
+    {
+      "txHash": "0xc7de49866ced91cf4cd8b9ef9cd13d6ed0c81d1941c75dff5c0650c1f911c5fa",
+      "logIndex": 3
+    },
+    {
+      "txHash": "0x9e170f8bb93b7a1ce2c70d7611379a5dcdbda31f9966614a90349e46c2a00ea9",
+      "logIndex": 8
+    },
+    {
+      "txHash": "0x680456dcf8d2c9364e11bccae6273e6c0f3ea57693d94c2d6e5cbfd3c8448be5",
+      "logIndex": 5
+    },
+    {
+      "txHash": "0x2fb17cc390d1200bad30d2f64001bfa5ff5e6b6d6299f9157d9cf05ed25ab610",
+      "logIndex": 15
+    },
+    {
+      "txHash": "0x449f790db37ed51f2e52e01c7015a2f80dfac47428abaaecd274328885b6a01e",
+      "logIndex": 6
+    },
+    {
+      "txHash": "0x591ceb86a243a1e9fd0497c863e2f4356608e4b5a8a5862a31b21626dc4982e7",
+      "logIndex": 3
+    },
+    {
+      "txHash": "0x591ceb86a243a1e9fd0497c863e2f4356608e4b5a8a5862a31b21626dc4982e7",
+      "logIndex": 4
+    },
+    {
+      "txHash": "0x6d0d82528c5a49ddc5bdc0ca39ca6b94f9eb84c235fe6a7343fd361e2d2c7729",
+      "logIndex": 3
+    },
+    {
+      "txHash": "0x6d0d82528c5a49ddc5bdc0ca39ca6b94f9eb84c235fe6a7343fd361e2d2c7729",
+      "logIndex": 4
+    },
+    {
+      "txHash": "0xd5cd97580331f3d450953b5cae58787037460f636146d3217e695eb2482c5c60",
+      "logIndex": 10
+    },
+    {
+      "txHash": "0xc9a56e232d0ce25fa43097b77ca95eb659209ae6883d293578b19468ba29f0e0",
+      "logIndex": 4
+    },
+    {
+      "txHash": "0xe14782c1e615591483731facdb9c8e60a4fb4ae8c114b268da865b9c1dd03322",
+      "logIndex": 4
+    },
+    {
+      "txHash": "0xf88ec621ad7536823c9300768c54f2f1ce0c9e23d3589f7e595babbeeeb7fb0e",
+      "logIndex": 3
+    },
+    {
+      "txHash": "0x0e0442dfe9f912e7fd5f4cb77c4c6eea72f3aa97267e38d84d7e298098fadf6b",
+      "logIndex": 5
+    },
+    {
+      "txHash": "0xd499c9e6f54a77c0e47bef48978a0a9594f0c4cdba934fbcfdd189ed9cfeb748",
+      "logIndex": 3
+    },
+    {
+      "txHash": "0x3afc0a8ec7c93b5e61a9b4e712a012ed3adb11456f360555a9e663e4690312f2",
+      "logIndex": 3
+    },
+    {
+      "txHash": "0xac4ddbd8bc34001f2289797fca05dcbf7c24f191bbf3922c8fba8f9e03420944",
+      "logIndex": 5
     }
   ],
   "corruptedParentPledgeIds": [
