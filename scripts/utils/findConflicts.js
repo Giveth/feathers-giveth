@@ -580,7 +580,9 @@ const handleToDonations = async (
         }
 
         // Create donation
-        const token = config.tokenWhitelist.find(t => t.foreignAddress === toPledge.token);
+        const token = config.tokenWhitelist.find(
+          t => t.foreignAddress.toLowerCase() === toPledge.token.toLowerCase(),
+        );
         if (token === undefined) {
           terminateScript(`No token found for address ${toPledge.token}\n`);
           return;
