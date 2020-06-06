@@ -1,4 +1,8 @@
 /* eslint-disable no-console */
+/**
+ * This script populate and updates entities dependent to token decimals
+ * Entities include Donation, Milestone, Campaign, DACs and Conversations
+ */
 const mongoose = require('mongoose');
 require('mongoose-long')(mongoose);
 require('../../src/models/mongoose-bn')(mongoose);
