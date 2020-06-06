@@ -1,3 +1,8 @@
+/*
+ * This script updates entities (DACs, Campaigns, Milestones) donation counters with
+ * correct value calculated based on donation values
+ * Suggestion: run this script after updating donations by findConflicts.js
+ */
 const mongoose = require('mongoose');
 require('mongoose-long')(mongoose);
 require('../../src/models/mongoose-bn')(mongoose);
