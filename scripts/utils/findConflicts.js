@@ -9,17 +9,12 @@ require('../../src/models/mongoose-bn')(mongoose);
 const { LiquidPledging, LiquidPledgingState } = require('giveth-liquidpledging');
 const web3Helper = require('../../src/blockchain/lib/web3Helpers');
 
-const configFileName = 'default'; // default or beta
+const configFileName = 'beta'; // default or beta
 
 // eslint-disable-next-line import/no-dynamic-require
 const config = require(`../../config/${configFileName}.json`);
 
-const {
-  verifiedTransfers,
-  revertExemptedDonations,
-  ignoredTransactions,
-  corruptedParentPledgeIds,
-} = require('./eventProcessingHelper.json');
+const { ignoredTransactions } = require('./eventProcessingHelper.json');
 
 // Create output log file
 
@@ -36,8 +31,6 @@ config.tokenWhitelist.forEach(({ symbol, decimals }) => {
     cutoff: new BigNumber(10 ** (18 - Number(decimals))),
   };
 });
-
-const tokensForeignAddress = config.tokenWhitelist.map(t => t.foreignAddress.toLowerCase());
 
 const { nodeUrl, liquidPledgingAddress } = config.blockchain;
 
@@ -168,181 +161,6 @@ const updateDonationsCreatedDate = async startDate => {
         await d.save();
       }
     });
-};
-
-const fixEntityDonationCounter = (model, projectPledgeMap, fixConflicts = false, pledges) => {
-  const cursor = model
-    .find({
-      projectId: { $exists: true },
-    })
-    .cursor();
-
-  return cursor.eachAsync(async entity => {
-    const balance = projectPledgeMap.get(String(entity.projectId)) || {};
-
-    const balancePledged = balance.Pledged || {};
-
-    const { donationCounters } = entity;
-
-    let conflictFound = false;
-    const setObject = {};
-
-    /*
-     Update entity donationCounters
-    */
-    donationCounters.forEach((dc, index) => {
-      const { symbol, currentBalance: dbBalance } = dc;
-      const foreignAddress = tokenSymbolToForeignAddress[symbol];
-      const tokenBalance = balancePledged[foreignAddress];
-
-      if (tokenBalance === undefined) {
-        console.log(
-          `There is no balance for token ${symbol} in blockchain for ${model.modelName} ${entity._id}`,
-        );
-        return;
-      }
-
-      if (dbBalance.toString() !== tokenBalance.amount.toFixed(0)) {
-        const dbBalanceFromWei = Web3.utils.fromWei(dbBalance.toString());
-        const blockchainBalanceFromWei = Web3.utils.fromWei(tokenBalance.amount.toFixed(0));
-
-        console.log(
-          'conflict found on',
-          model.modelName,
-          entity.title,
-          entity._id,
-          ':',
-          symbol,
-          'value in db',
-          dbBalanceFromWei,
-          'value in smart contract',
-          blockchainBalanceFromWei,
-          tokenBalance.pledges,
-        );
-
-        if (fixConflicts) {
-          conflictFound = true;
-
-          setObject[`donationCounters.${index}.currentBalance`] = tokenBalance.amount.toFixed();
-        }
-      }
-    });
-
-    if (conflictFound) {
-      await model
-        .update(
-          { _id: entity._id },
-          {
-            $set: {
-              ...setObject,
-            },
-          },
-        )
-        .exec();
-    }
-
-    /*
-    Update donations
-     */
-    const [paidDonations, payingDonations, committedDonations] = await Promise.all(
-      [DonationStatus.PAID, DonationStatus.PAYING, DonationStatus.COMMITTED].map(status => {
-        return Donations.find({
-          ownerTypeId: entity._id,
-          status,
-        }).exec();
-      }),
-    );
-
-    // Find conflict in donations
-    [
-      {
-        pledgeStatus: 'Pledged',
-        donationStatus: DonationStatus.COMMITTED,
-        donations: committedDonations,
-      },
-      {
-        pledgeStatus: 'Paying',
-        donationStatus: DonationStatus.PAYING,
-        donations: payingDonations,
-      },
-      {
-        pledgeStatus: 'Paid',
-        donationStatus: DonationStatus.PAID,
-        donations: paidDonations,
-      },
-    ].forEach(item => {
-      const { pledgeStatus, donationStatus, donations } = item;
-
-      tokensForeignAddress.forEach(tokenAddress => {
-        if (!balance[pledgeStatus]) return;
-
-        const thisBalance = balance[pledgeStatus][tokenAddress];
-        if (!thisBalance) return;
-
-        thisBalance.pledges.forEach(pledgeId => {
-          const pledge = pledges[pledgeId];
-
-          const pledgeDonations = donations.filter(d => d.pledgeId.toNumber() === pledgeId);
-
-          let donationsAmount = new BigNumber(0);
-
-          pledgeDonations.forEach(d => {
-            if (d.status !== donationStatus)
-              console.log(
-                `Donation ${d._id} status should be ${donationStatus} but is ${d.status}`,
-              );
-            donationsAmount = donationsAmount.plus(d.amount.toString());
-          });
-
-          if (pledge.amount !== donationsAmount.toFixed()) {
-            console.log(
-              `Pledge ${pledgeId} amount is ${pledge.amount} but sum of ${
-                pledgeDonations.length
-              } donations is ${donationsAmount.toFixed()}`,
-            );
-          }
-        });
-      });
-    });
-  });
-};
-
-// eslint-disable-next-line no-unused-vars
-const findProjectsConflict = (fixConflicts, admins, pledges) => {
-  const projectAdmins = new Set();
-  for (let i = 1; i < admins.length; i += 1) {
-    if (admins[i].type === 'Project') {
-      projectAdmins.add(i);
-    }
-  }
-
-  const projectPledgeMap = new Map();
-
-  for (let i = 1; i < pledges.length; i += 1) {
-    const pledge = pledges[i];
-    const { amount, owner, pledgeState } = pledge;
-
-    if (!projectAdmins.has(Number(owner))) {
-      // console.log(`owner ${owner} is not a project`);
-      continue;
-    }
-
-    const token = pledge.token.toLowerCase();
-    const balance = projectPledgeMap.get(owner) || { Pledged: {}, Paying: {}, Paid: {} };
-    const donationCounter = balance[pledgeState][token] || {
-      pledges: [],
-      amount: new BigNumber(0),
-    };
-    donationCounter.pledges.push(i);
-    donationCounter.amount = donationCounter.amount.plus(amount);
-    balance[pledgeState][token] = donationCounter;
-    projectPledgeMap.set(owner, balance);
-  }
-
-  return Promise.all([
-    fixEntityDonationCounter(Milestones, projectPledgeMap, fixConflicts, pledges),
-    fixEntityDonationCounter(Campaigns, projectPledgeMap, fixConflicts, pledges),
-  ]);
 };
 
 // Returns a map contains empty donation items for each pledge
@@ -510,7 +328,8 @@ const handleFromDonations = async (
       }
     }
 
-    const updateParents = corruptedParentPledgeIds.includes(from);
+    // const updateParents = corruptedParentPledgeIds.includes(from);
+    const updateParents = true;
 
     const candidateParentsFromDB = [];
     if (!updateParents && candidateToDonationList.length > 0) {
@@ -538,16 +357,17 @@ const handleFromDonations = async (
         }
         const index = candidateChargedParents.findIndex(item => item._id && item._id === parentId);
         if (index === -1) {
-          if (toOwnerAdmin.isCanceled || toOwnerAdmin.canceled) {
-            console.log('To owner is canceled, transfer is ignored');
-            isIgnored = true;
-            return;
-          }
-          if (fromOwnerAdmin.isCanceled || fromOwnerAdmin.canceled) {
-            console.log('From owner is canceled, transfer is ignored');
-            isIgnored = true;
-            return;
-          }
+          // TODO: for canceled projects we should transfer money too.
+          // if (toOwnerAdmin.isCanceled || toOwnerAdmin.canceled) {
+          //   console.log('To owner is canceled, transfer is ignored');
+          //   isIgnored = true;
+          //   return;
+          // }
+          // if (fromOwnerAdmin.isCanceled || fromOwnerAdmin.canceled) {
+          //   console.log('From owner is canceled, transfer is ignored');
+          //   isIgnored = true;
+          //   return;
+          // }
 
           candidateChargedParents.forEach(p => {
             console.log(`Parent ${p._id} amount remaining ${p.amountRemaining.toFixed()}`);
@@ -671,7 +491,8 @@ const handleToDonations = async (
     pledgeNotFilledDonations.set(to, toNotFilledDonationList);
   }
 
-  const updateParents = corruptedParentPledgeIds.includes(from);
+  // const updateParents = corruptedParentPledgeIds.includes(from);
+  const updateParents = true;
   const toIndex = toNotFilledDonationList.findIndex(
     item =>
       item.txHash === transactionHash &&
@@ -720,18 +541,19 @@ const handleToDonations = async (
 
       // *** Remove verifiedTransfers feature (Create any donation that is not ignored)
       // // If it is a verified transaction that should be added to database
-      let transfer = verifiedTransfers.find(
-        tt => tt.txHash === transactionHash && tt.logIndex === logIndex,
-      );
+      // let transfer = veriVjfiedTransfers.find(
+      //   tt => tt.txHash === transactionHash && tt.logIndex === logIndex,
+      // );
       //
       // // Paid donations should be created (Not creating Paid donations is a common mistake!)
       // const isVerified =
       //   transfer !== undefined || ['Paid', 'Paying', 'Waiting'].includes(toPledge.pledgeState);
-      if (transfer === undefined) {
-        transfer = {};
-      }
+      // if (transfer === undefined) {
+      //   transfer = {};
+      // }
 
       const isVerified = true;
+      const transfer = {};
 
       if (isVerified && fixConflicts) {
         let [toPledgeAdmin] = await PledgeAdmins.find({ id: Number(toOwnerId) }).exec();
@@ -1026,171 +848,171 @@ const handleToDonations = async (
     // }
   }
 };
-const getMostRecentDonationNotCanceled = (donation, donationMap, admins) => {
-  // givers can never be canceled
-  if (donation.ownerType === AdminTypes.GIVER && !donation.intendedProjectId) {
-    return donation;
-  }
+// const getMostRecentDonationNotCanceled = (donation, donationMap, admins) => {
+//   // givers can never be canceled
+//   if (donation.ownerType === AdminTypes.GIVER && !donation.intendedProjectId) {
+//     return donation;
+//   }
+//
+//   const pledgeOwnerAdmin = admins[Number(donation.ownerId)];
+//
+//   // if pledgeOwnerAdmin is canceled or donation is a delegation, go back 1 donation
+//   if (pledgeOwnerAdmin.isCanceled || Number(donation.intendedProjectId) > 0) {
+//     // we use the 1st parentDonation b/c the owner of all parentDonations
+//     // is the same
+//     return getMostRecentDonationNotCanceled(
+//       donationMap.get(donation.parentDonations[0]),
+//       donationMap,
+//       admins,
+//     );
+//   }
+//
+//   return donation;
+// };
 
-  const pledgeOwnerAdmin = admins[Number(donation.ownerId)];
+// const revertDonation = async (
+//   { fixConflicts },
+//   donation,
+//   transactionHash,
+//   donationMap,
+//   pledgeNotFilledDonations,
+//   toCreateDonationListMap,
+//   chargedDonationListMap,
+//   admins,
+// ) => {
+//   // They should not be processed in regular donation reverting process
+//   // if (revertExemptedDonations.includes(donation._id)) return;
+//   if ([DonationStatus.PAYING, DonationStatus.PAID].includes(donation.status)) return;
+//
+//   const revertToDonation = getMostRecentDonationNotCanceled(donation, donationMap, admins);
+//   const toPledgeNotFilledDonationList = pledgeNotFilledDonations.get(revertToDonation.pledgeId);
+//   if (toPledgeNotFilledDonationList === undefined) {
+//     terminateScript(`No pledge found to move money to\n`);
+//     return;
+//   }
+//   const toIndex = toPledgeNotFilledDonationList.findIndex(
+//     item =>
+//       item.txHash === transactionHash &&
+//       item.parentDonations.length === 1 &&
+//       (donation._id === undefined || item.parentDonations[0] === donation._id),
+//   );
+//
+//   if (toIndex === -1) {
+//     terminateScript(
+//       `Couldn't find donation to move money of ${JSON.stringify(donation, null, 2)}\n`,
+//     );
+//     return;
+//   }
+//
+//   const toDonation =
+//     toIndex !== -1 ? toPledgeNotFilledDonationList.splice(toIndex, 1)[0] : undefined;
+//
+//   toDonation.amountRemaining = toDonation.amountRemaining.plus(donation.amountRemaining);
+//   donation.amountRemaining = new BigNumber(0);
+//
+//   // TODO: It happens and should be fixed
+//   // if (toDonation.amountRemaining.gt(toDonation.amount)) {
+//   //   terminateScript(
+//   //     `Donation amountRemaining exceeds its amount!\n${JSON.stringify(
+//   //       { ...toDonation, amountRemaining: toDonation.amountRemaining.toFixed() },
+//   //       null,
+//   //       2,
+//   //     )}\n`,
+//   //   );
+//   //   return;
+//   // }
+//
+//   toDonation.from = donation.pledgeId;
+//
+//   let chargedDonationList = chargedDonationListMap.get(toDonation.pledgeId);
+//
+//   if (chargedDonationList === undefined) {
+//     chargedDonationList = [];
+//     chargedDonationListMap.set(toDonation.pledgeId, chargedDonationList);
+//   }
+//
+//   chargedDonationList.push(toDonation);
+//
+//   chargedDonationList = chargedDonationListMap.get(donation.pledgeId) || [];
+//
+//   const fromIndex = chargedDonationList.findIndex(item => item._id === donation._id);
+//   if (fromIndex !== -1) chargedDonationList.splice(fromIndex, 1);
+//
+//   console.log(
+//     `Revert money from ${donation.pledgeId} to ${
+//       toDonation.pledgeId
+//     } amount ${toDonation.amountRemaining.toFixed()}`,
+//   );
+//   if (donation.status !== DonationStatus.CANCELED) {
+//     console.log(`Donation status should be ${DonationStatus.CANCELED}, but is ${donation.status}`);
+//     if (fixConflicts) {
+//       console.log('Updating...');
+//       await Donations.update({ _id: donation._id }, { status: DonationStatus.CANCELED }).exec();
+//       toDonation.status = DonationStatus.CANCELED;
+//     }
+//   }
+//
+//   const { _id, amount, amountRemaining } = toDonation;
+//   if (!amountRemaining.eq(amount)) {
+//     console.log(`Donation ${_id} amount should be ${amountRemaining.toFixed()} but is ${amount}`);
+//     if (fixConflicts) {
+//       console.log('Updating...');
+//       const { cutoff } = symbolDecimalsMap[donation.token.symbol];
+//       await Donations.update(
+//         { _id },
+//         { amount: amountRemaining.toFixed(), lessThanCutoff: cutoff.gt(amountRemaining) },
+//       ).exec();
+//       toDonation.amount = amountRemaining.toFixed();
+//     }
+//   }
+//
+//   console.log(
+//     `Amount added to ${JSON.stringify(
+//       {
+//         ...toDonation,
+//         amountRemaining: toDonation.amountRemaining.toFixed(),
+//       },
+//       null,
+//       2,
+//     )}`,
+//   );
+// };
 
-  // if pledgeOwnerAdmin is canceled or donation is a delegation, go back 1 donation
-  if (pledgeOwnerAdmin.isCanceled || Number(donation.intendedProjectId) > 0) {
-    // we use the 1st parentDonation b/c the owner of all parentDonations
-    // is the same
-    return getMostRecentDonationNotCanceled(
-      donationMap.get(donation.parentDonations[0]),
-      donationMap,
-      admins,
-    );
-  }
-
-  return donation;
-};
-
-const revertDonation = async (
-  { fixConflicts },
-  donation,
-  transactionHash,
-  donationMap,
-  pledgeNotFilledDonations,
-  toCreateDonationListMap,
-  chargedDonationListMap,
-  admins,
-) => {
-  // They should not be processed in regular donation reverting process
-  if (revertExemptedDonations.includes(donation._id)) return;
-  if ([DonationStatus.PAYING, DonationStatus.PAID].includes(donation.status)) return;
-
-  const revertToDonation = getMostRecentDonationNotCanceled(donation, donationMap, admins);
-  const toPledgeNotFilledDonationList = pledgeNotFilledDonations.get(revertToDonation.pledgeId);
-  if (toPledgeNotFilledDonationList === undefined) {
-    terminateScript(`No pledge found to move money to\n`);
-    return;
-  }
-  const toIndex = toPledgeNotFilledDonationList.findIndex(
-    item =>
-      item.txHash === transactionHash &&
-      item.parentDonations.length === 1 &&
-      (donation._id === undefined || item.parentDonations[0] === donation._id),
-  );
-
-  if (toIndex === -1) {
-    terminateScript(
-      `Couldn't find donation to move money of ${JSON.stringify(donation, null, 2)}\n`,
-    );
-    return;
-  }
-
-  const toDonation =
-    toIndex !== -1 ? toPledgeNotFilledDonationList.splice(toIndex, 1)[0] : undefined;
-
-  toDonation.amountRemaining = toDonation.amountRemaining.plus(donation.amountRemaining);
-  donation.amountRemaining = new BigNumber(0);
-
-  // TODO: It happens and should be fixed
-  // if (toDonation.amountRemaining.gt(toDonation.amount)) {
-  //   terminateScript(
-  //     `Donation amountRemaining exceeds its amount!\n${JSON.stringify(
-  //       { ...toDonation, amountRemaining: toDonation.amountRemaining.toFixed() },
-  //       null,
-  //       2,
-  //     )}\n`,
-  //   );
-  //   return;
-  // }
-
-  toDonation.from = donation.pledgeId;
-
-  let chargedDonationList = chargedDonationListMap.get(toDonation.pledgeId);
-
-  if (chargedDonationList === undefined) {
-    chargedDonationList = [];
-    chargedDonationListMap.set(toDonation.pledgeId, chargedDonationList);
-  }
-
-  chargedDonationList.push(toDonation);
-
-  chargedDonationList = chargedDonationListMap.get(donation.pledgeId) || [];
-
-  const fromIndex = chargedDonationList.findIndex(item => item._id === donation._id);
-  if (fromIndex !== -1) chargedDonationList.splice(fromIndex, 1);
-
-  console.log(
-    `Revert money from ${donation.pledgeId} to ${
-      toDonation.pledgeId
-    } amount ${toDonation.amountRemaining.toFixed()}`,
-  );
-  if (donation.status !== DonationStatus.CANCELED) {
-    console.log(`Donation status should be ${DonationStatus.CANCELED}, but is ${donation.status}`);
-    if (fixConflicts) {
-      console.log('Updating...');
-      await Donations.update({ _id: donation._id }, { status: DonationStatus.CANCELED }).exec();
-      toDonation.status = DonationStatus.CANCELED;
-    }
-  }
-
-  const { _id, amount, amountRemaining } = toDonation;
-  if (!amountRemaining.eq(amount)) {
-    console.log(`Donation ${_id} amount should be ${amountRemaining.toFixed()} but is ${amount}`);
-    if (fixConflicts) {
-      console.log('Updating...');
-      const { cutoff } = symbolDecimalsMap[donation.token.symbol];
-      await Donations.update(
-        { _id },
-        { amount: amountRemaining.toFixed(), lessThanCutoff: cutoff.gt(amountRemaining) },
-      ).exec();
-      toDonation.amount = amountRemaining.toFixed();
-    }
-  }
-
-  console.log(
-    `Amount added to ${JSON.stringify(
-      {
-        ...toDonation,
-        amountRemaining: toDonation.amountRemaining.toFixed(),
-      },
-      null,
-      2,
-    )}`,
-  );
-};
-
-const revertProjectDonations = (
-  { fixConflicts },
-  projectId,
-  transactionHash,
-  donationMap,
-  ownerPledgeList,
-  pledgeNotFilledDonations,
-  toCreateDonationListMap,
-  chargedDonationListMap,
-  admins,
-) => {
-  const projectPledgesList = ownerPledgeList.get(projectId.toString()) || [];
-  return Promise.all(
-    projectPledgesList.map(pledgeId => {
-      const chargedDonationList = chargedDonationListMap.get(String(pledgeId)) || [];
-      return Promise.all(
-        [...chargedDonationList].map(chargedDonation =>
-          revertDonation(
-            { fixConflicts },
-            chargedDonation,
-            transactionHash,
-            donationMap,
-            pledgeNotFilledDonations,
-            toCreateDonationListMap,
-            chargedDonationListMap,
-            admins,
-          ),
-        ),
-      );
-    }),
-  );
-};
+// // eslint-disable-next-line no-unused-vars
+// const revertProjectDonations = (
+//   { fixConflicts },
+//   projectId,
+//   transactionHash,
+//   donationMap,
+//   ownerPledgeList,
+//   pledgeNotFilledDonations,
+//   toCreateDonationListMap,
+//   chargedDonationListMap,
+//   admins,
+// ) => {
+//   const projectPledgesList = ownerPledgeList.get(projectId.toString()) || [];
+//   return Promise.all(
+//     projectPledgesList.map(pledgeId => {
+//       const chargedDonationList = chargedDonationListMap.get(String(pledgeId)) || [];
+//       return Promise.all(
+//         [...chargedDonationList].map(chargedDonation =>
+//           revertDonation(
+//             { fixConflicts },
+//             chargedDonation,
+//             transactionHash,
+//             donationMap,
+//             pledgeNotFilledDonations,
+//             toCreateDonationListMap,
+//             chargedDonationListMap,
+//             admins,
+//           ),
+//         ),
+//       );
+//     }),
+//   );
+// };
 
 const cancelProject = async (
-  { fixConflicts },
   projectId,
   transactionHash,
   donationMap,
@@ -1209,37 +1031,42 @@ const cancelProject = async (
     }
   });
 
-  // Cancel campaign milestones
-  if (campaignMilestoneListMap.has(projectId)) {
-    const milestoneList = campaignMilestoneListMap.get(projectId) || [];
-    await Promise.all(
-      milestoneList.map(id => {
-        return revertProjectDonations(
-          { fixConflicts },
-          id,
-          transactionHash,
-          donationMap,
-          ownerPledgeList,
-          pledgeNotFilledDonations,
-          toCreateDonationListMap,
-          chargedDonationListMap,
-          admins,
-        );
-      }),
-    );
-  }
+  /* TODO: We should not revert project donations when the project is cancelled!
+   * We should wait for transfer event to be emitted. This logic should be implemented
+   * in feathers-giveth core too.
+   */
 
-  await revertProjectDonations(
-    { fixConflicts },
-    projectId,
-    transactionHash,
-    donationMap,
-    ownerPledgeList,
-    pledgeNotFilledDonations,
-    toCreateDonationListMap,
-    chargedDonationListMap,
-    admins,
-  );
+  // Cancel campaign milestones
+  // if (campaignMilestoneListMap.has(projectId)) {
+  //   const milestoneList = campaignMilestoneListMap.get(projectId) || [];
+  //   await Promise.all(
+  //     milestoneList.map(id => {
+  //       return revertProjectDonations(
+  //         { fixConflicts },
+  //         id,
+  //         transactionHash,
+  //         donationMap,
+  //         ownerPledgeList,
+  //         pledgeNotFilledDonations,
+  //         toCreateDonationListMap,
+  //         chargedDonationListMap,
+  //         admins,
+  //       );
+  //     }),
+  //   );
+  // }
+  //
+  // await revertProjectDonations(
+  //   { fixConflicts },
+  //   projectId,
+  //   transactionHash,
+  //   donationMap,
+  //   ownerPledgeList,
+  //   pledgeNotFilledDonations,
+  //   toCreateDonationListMap,
+  //   chargedDonationListMap,
+  //   admins,
+  // );
 };
 
 const fixConflictInDonations = (fixConflicts, donationMap, pledges, unusedDonationMap) => {
@@ -1367,12 +1194,6 @@ const syncDonationsWithNetwork = async ({ fixConflicts }, events, pledges, admin
       const { from, to, amount } = returnValues;
       console.log(`Transfer from ${from} to ${to} amount ${amount}`);
 
-      // Ignore transfer if from owner is canceled
-      // if (from !== '0' && admins[Number(pledges[Number(from)].owner)].isCanceled) {
-      //   console.log('Transfer ignored');
-      //   continue;
-      // }
-
       // eslint-disable-next-line no-await-in-loop
       const { usedFromDonations, isIgnored, giverAddress } = await handleFromDonations(
         fixConflicts,
@@ -1413,7 +1234,6 @@ const syncDonationsWithNetwork = async ({ fixConflicts }, events, pledges, admin
       console.log(`Cancel project ${idProject}: ${JSON.stringify(admins[Number(idProject)])}`);
       // eslint-disable-next-line no-await-in-loop
       await cancelProject(
-        { fixConflicts },
         idProject,
         transactionHash,
         donationMap,
@@ -1584,7 +1404,6 @@ const main = async ({ updateState, updateEvents, findConflicts, fixConflicts }) 
       Promise.all([
         syncDonationsWithNetwork({ fixConflicts }, events, pledges, admins),
         // syncPledgeAdmins(fixConflicts, events, admins),
-        // findProjectsConflict(fixConflicts, admins, pledges)]
         // updateDonationsCreatedDate(new Date('2020-02-01')),
       ]).then(() => terminateScript('Finished', 0));
     });
@@ -1595,12 +1414,10 @@ const main = async ({ updateState, updateEvents, findConflicts, fixConflicts }) 
 };
 
 main({
-  updateState: true,
-  updateEvents: true,
-  findConflicts: false,
-  fixConflicts: false,
+  updateState: false,
+  updateEvents: false,
+  findConflicts: true,
+  fixConflicts: true,
 })
-  .then(() => {
-    // terminateScript('Finished', 0);
-  })
+  .then(() => {})
   .catch(e => terminateScript(e, 1));

@@ -41,8 +41,6 @@ const Campaigns = require('../../src/models/campaigns.model').createModel(app);
 const Milestones = require('../../src/models/milestones.model').createModel(app);
 const Conversations = require('../../src/models/conversations.model')(app);
 
-const { DonationStatus } = require('../../src/models/donations.model');
-
 const populateEntityToken = model => {
   return Promise.all(
     tokenWhitelist.map(token =>
@@ -80,42 +78,26 @@ const populateEntityDonationCounter = model => {
 };
 
 const updateLessThanCutoff = () => {
-  const { COMMITTED, WAITING, TO_APPROVE, PAYING, PAID } = DonationStatus;
-  return Promise.all([
-    Donations.find({
-      status: { $in: [WAITING, COMMITTED, TO_APPROVE, PAYING, PAID] },
-    })
-      .cursor()
-      .eachAsync(
-        async donation => {
-          const { _id, token, amountRemaining } = donation;
-          const { cutoff } = symbolDecimalsMap[token.symbol];
-          const lessThanCutoff = amountRemaining.lt(cutoff);
-          await Donations.update(
-            { _id },
-            {
-              $set: {
-                lessThanCutoff,
-              },
+  return Donations.find({})
+    .cursor()
+    .eachAsync(
+      async donation => {
+        const { _id, token, amountRemaining } = donation;
+        const { cutoff } = symbolDecimalsMap[token.symbol];
+        const lessThanCutoff = amountRemaining.lt(cutoff);
+        await Donations.update(
+          { _id },
+          {
+            $set: {
+              lessThanCutoff,
             },
-          ).exec();
-        },
-        {
-          parallel: 100,
-        },
-      ),
-    Donations.update(
-      {
-        status: { $nin: [WAITING, COMMITTED, TO_APPROVE, PAYING, PAID] },
+          },
+        ).exec();
       },
       {
-        lessThanCutoff: false,
+        parallel: 200,
       },
-      {
-        multi: true,
-      },
-    ),
-  ]);
+    );
 };
 
 const updatePaymentConversations = () => {
