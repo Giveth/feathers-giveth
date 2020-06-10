@@ -1,19 +1,20 @@
 const isIPFS = require('is-ipfs');
 const logger = require('winston');
 const to = require('../utils/to');
+const { AdminTypes } = require('../models/pledgeAdmins.model');
 
 const givers = (app, liquidPledging) => {
   const users = app.service('/users');
 
-  async function fetchProfile(url) {
+  async function fetchProfile(url, giverId) {
     const [err, profile] = await to(app.ipfsFetcher(url));
 
     if (err) {
       logger.warn(`error fetching giver profile from ${url}`, err);
     } else if (profile && typeof profile === 'object') {
-      app.ipfsPinner(url);
+      app.ipfsPinner(url, 'object', { type: AdminTypes.GIVER, id: giverId });
       if (profile.avatar && isIPFS.ipfsPath(profile.avatar)) {
-        app.ipfsPinner(profile.avatar);
+        app.ipfsPinner(profile.avatar, 'image', { ownerType: AdminTypes.GIVER, ownerId: giverId });
       }
     }
     return profile;
@@ -44,7 +45,7 @@ const givers = (app, liquidPledging) => {
       );
     }
 
-    const profile = giver.url ? await fetchProfile(giver.url) : undefined;
+    const profile = giver.url ? await fetchProfile(giver.url, giverId) : undefined;
     const mutation = { name, ...profile, commitTime, giverId, url };
 
     return users.patch(user.address, mutation);
@@ -117,7 +118,7 @@ const givers = (app, liquidPledging) => {
 
         const mutation = { name: giver.name };
         if (giver.url && giver.url !== user.url) {
-          const profile = await fetchProfile(giver.url);
+          const profile = await fetchProfile(giver.url, giverId);
           Object.assign(mutation, profile);
         }
         Object.assign(mutation, {
