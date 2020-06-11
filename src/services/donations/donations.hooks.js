@@ -338,8 +338,8 @@ const setLessThanCutoff = async (context, donation) => {
 
   if (!amountRemaining) return donation;
 
-  const { COMMITTED, WAITING, TO_APPROVE } = DonationStatus;
-  if (token && [COMMITTED, TO_APPROVE, WAITING].includes(status)) {
+  const { COMMITTED, WAITING, TO_APPROVE, PAYING } = DonationStatus;
+  if (token && [COMMITTED, TO_APPROVE, WAITING, PAYING].includes(status)) {
     // amountRemaining equal or greater than 1, has at least 18 digits
     // It will be greater than cut-off value (10 ** (-1 * token.decimals)), if
     // it has digits not less than 18 - token.decimals
