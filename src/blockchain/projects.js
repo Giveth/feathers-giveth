@@ -53,7 +53,7 @@ const projects = (app, liquidPledging) => {
     if (err) {
       logger.warn(`error fetching project profile from ${url}`, err);
     } else if (profile && typeof profile === 'object') {
-      app.ipfsPinner(url, 'object', { ownerType: projectType, id: projectId });
+      app.ipfsPinner(url, 'object', { type: projectType, id: projectId });
       if (profile.image && isIPFS.ipfsPath(profile.image)) {
         app.ipfsPinner(profile.image, 'image', { ownerType: projectType, ownerId: projectId });
       }
