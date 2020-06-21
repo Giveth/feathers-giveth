@@ -10,15 +10,15 @@ const delegates = (app, liquidPledging) => {
   const web3 = app.getWeb3();
   const dacs = app.service('/dacs');
 
-  async function fetchProfile(url) {
+  async function fetchProfile(url, delegateId) {
     const [err, profile] = await to(app.ipfsFetcher(url));
 
     if (err) {
       logger.warn(`error fetching delegate profile from ${url}`, err);
     } else if (profile && typeof profile === 'object') {
-      app.ipfsPinner(url);
+      app.ipfsPinner(url, 'object', { type: 'delegate', id: delegateId });
       if (profile.image && isIPFS.ipfsPath(profile.image)) {
-        app.ipfsPinner(profile.image);
+        app.ipfsPinner(profile.image, 'image', { ownerType: 'delegate', ownerId: delegateId });
       }
     }
     return profile;
@@ -70,7 +70,7 @@ const delegates = (app, liquidPledging) => {
       // most likely b/c the whitelist check failed
       if (!dac) return;
 
-      const profile = await fetchProfile(delegate.url);
+      const profile = await fetchProfile(delegate.url, delegateId);
       const mutation = {
         title: delegate.name,
         ...profile,
@@ -136,7 +136,7 @@ const delegates = (app, liquidPledging) => {
 
         const mutation = { title: delegate.name };
         if (delegate.url && delegate.url !== dac.url) {
-          const profile = await fetchProfile(delegate.url);
+          const profile = await fetchProfile(delegate.url, delegateId);
           Object.assign(mutation, profile);
         }
         Object.assign(mutation, {
