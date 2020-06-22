@@ -35,6 +35,7 @@ function Milestone(app) {
       title: { type: String, required: true },
       description: { type: String, required: true },
       image: { type: String },
+      prevImage: { type: String }, // To store deleted/cleared lost ipfs values
       maxAmount: { type: Schema.Types.BN },
       ownerAddress: { type: String, required: true, index: true },
       reviewerAddress: { type: String, index: true },
@@ -64,6 +65,7 @@ function Milestone(app) {
       mined: { type: Boolean, required: true, default: false },
       prevStatus: { type: String },
       url: { type: String },
+      prevUrl: { type: String }, // To store deleted/cleared lost ipfs values
       type: {
         type: String,
         required: true,

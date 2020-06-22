@@ -13,8 +13,10 @@ module.exports = function User(app) {
       giverId: { type: Schema.Types.Long }, // we can use Long here b/c lp only stores adminId in pledges as uint64
       commitTime: { type: Number },
       avatar: { type: String },
+      prevAvatar: { type: String }, // To store deleted/cleared lost ipfs values
       linkedin: { type: String },
       url: { type: String },
+      prevUrl: { type: String }, // To store deleted/cleared lost ipfs values
     },
     {
       timestamps: true,
