@@ -20,6 +20,7 @@ function createModel(app) {
       description: { type: String, required: true },
       projectId: { type: Schema.Types.Long, index: true }, // we can use Long here b/c lp only stores adminId in pledges as uint64
       image: { type: String, required: true },
+      prevImage: { type: String, required: true }, // To store deleted/cleared lost ipfs values
       txHash: { type: String, index: true, required: true },
       peopleCount: { type: Number },
       donationCounters: [DonationCounter],
@@ -38,6 +39,7 @@ function createModel(app) {
         default: CampaignStatus.PENDING,
       },
       url: { type: String },
+      prevUrl: { type: String }, // To store deleted/cleared lost ipfs values
       commitTime: { type: Number },
       communityUrl: { type: String },
       archivedMilestones: { type: [Schema.Types.Long] },

@@ -19,8 +19,47 @@ module.exports = class {
     });
   }
 
-  getPinList() {
-    const url = `https://api.pinata.cloud/data/pinList`;
+  getPinList(queryParams) {
+    let queryString = '?';
+    if (queryParams.hashContains) {
+      queryString += `hashContains=${queryParams.hashContains}&`;
+    }
+    if (queryParams.pinStartDate) {
+      queryString += `pinStart=${queryParams.pinStartDate}&`;
+    }
+    if (queryParams.pinEndDate) {
+      queryString += `pinEnd=${queryParams.pinEndDate}&`;
+    }
+    if (queryParams.unpinStartDate) {
+      queryString += `unpinStart=${queryParams.unpinStartDate}&`;
+    }
+    if (queryParams.unpinEndDate) {
+      queryString += `unpinEnd=${queryParams.unpinEndDate}&`;
+    }
+    if (queryParams.selectedPinStatus) {
+      queryString += `pinFilter=${queryParams.selectedPinStatus}&`;
+    }
+    if (queryParams.unpinEndDate) {
+      queryString += `unpinEnd=${queryParams.unpinEndDate}&`;
+    }
+    if (queryParams.unpinEndDate) {
+      queryString += `unpinEnd=${queryParams.unpinEndDate}&`;
+    }
+    if (queryParams.pageLimit) {
+      queryString += `pageLimit=${queryParams.pageLimit}&`;
+    }
+    if (queryParams.pageOffset) {
+      queryString += `pageOffset=${queryParams.pageOffset}&`;
+    }
+    if (queryParams.nameContains) {
+      queryString += `metadata[name]=${queryParams.nameContains}&`;
+    }
+    // Make sure keyvalues are properly formatted as described earlier in the docs.
+    if (queryParams.keyvalues) {
+      const stringKeyValues = JSON.stringify(queryParams.keyvalues);
+      queryString += `metadata[keyvalues]=${stringKeyValues}`;
+    }
+    const url = `https://api.pinata.cloud/data/pinList${queryString}`;
     return this.axios.get(url, {
       headers: {
         pinata_api_key: this.pinataApiKey,

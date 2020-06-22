@@ -32,6 +32,7 @@ function createModel(app) {
         default: DacStatus.PENDING,
       },
       image: { type: String },
+      prevImage: { type: String }, // To store deleted/cleared lost ipfs values
       txHash: { type: String, index: true, required: true },
       donationCounters: [DonationCounter],
       peopleCount: { type: Number },
@@ -41,6 +42,7 @@ function createModel(app) {
       commitTime: { type: Number },
       mined: { type: Boolean },
       url: { type: String },
+      prevUrl: { type: String }, // To store deleted/cleared lost ipfs values
     },
     {
       timestamps: true,
