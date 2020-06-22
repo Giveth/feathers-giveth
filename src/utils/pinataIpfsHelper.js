@@ -19,7 +19,7 @@ module.exports = class {
     });
   }
 
-  getPinList(queryParams) {
+  getPinList(queryParams = {}) {
     let queryString = '?';
     if (queryParams.hashContains) {
       queryString += `hashContains=${queryParams.hashContains}&`;
