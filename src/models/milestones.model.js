@@ -79,6 +79,7 @@ function Milestone(app) {
       proofItems: [Item],
       messageContext: { type: String },
       token: { type: Token, required: true },
+      projectAddedAt: { type: Date }, // Store the time milestone is accepted or added by campaign owner
     },
     {
       timestamps: true,
