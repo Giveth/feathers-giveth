@@ -183,41 +183,43 @@ const projects = (app, liquidPledging) => {
     try {
       const date = await getBlockTimestamp(web3, tx.blockNumber);
       const profile = await fetchProfile(project.url, AdminTypes.MILESTONE, projectId);
-      return milestones.create(
-        {
-          title: project.name,
-          description: 'Missing Description... Added outside of UI',
-          fiatAmount: milestone.maxAmount === '0' ? undefined : milestone.maxAmount,
-          selectedFiatType: milestone.token === ANY_TOKEN ? undefined : milestone.token.symbol,
-          date,
-          conversionRateTimestamp: milestone.maxAmount === '0' ? undefined : new Date(),
-          conversionRate: milestone.maxAmount === '0' ? undefined : 1,
-          ...profile,
-          projectId,
-          maxAmount: milestone.maxAmount === '0' ? undefined : milestone.maxAmount,
-          reviewerAddress: milestone.reviewer,
-          dacId: milestone.dacId,
-          recipientAddress: isAddress(milestone.recipient) ? milestone.recipient : undefined,
-          recipientId: !isAddress(milestone.recipient) ? milestone.recipient : undefined,
-          campaignReviewerAddress: milestone.campaignReviewer,
-          campaignId: campaign._id,
-          txHash: tx.hash,
-          pluginAddress: project.plugin,
-          url: project.url,
-          ownerAddress: milestone.ownerAddress,
-          token: milestone.token,
-          status: milestone.status,
-          totalDonated: '0',
-          currentBalance: '0',
-          donationCount: 0,
-          mined: true,
-          type: milestone.type,
-        },
-        {
-          eventTxHash: tx.hash,
-          performedByAddress: tx.from,
-        },
-      );
+      const model = {
+        title: project.name,
+        description: 'Missing Description... Added outside of UI',
+        fiatAmount: milestone.maxAmount === '0' ? undefined : milestone.maxAmount,
+        selectedFiatType: milestone.token === ANY_TOKEN ? undefined : milestone.token.symbol,
+        date,
+        conversionRateTimestamp: milestone.maxAmount === '0' ? undefined : new Date(),
+        conversionRate: milestone.maxAmount === '0' ? undefined : 1,
+        ...profile,
+        projectId,
+        maxAmount: milestone.maxAmount === '0' ? undefined : milestone.maxAmount,
+        reviewerAddress: milestone.reviewer,
+        dacId: milestone.dacId,
+        recipientAddress: isAddress(milestone.recipient) ? milestone.recipient : undefined,
+        recipientId: !isAddress(milestone.recipient) ? milestone.recipient : undefined,
+        campaignReviewerAddress: milestone.campaignReviewer,
+        campaignId: campaign._id,
+        txHash: tx.hash,
+        pluginAddress: project.plugin,
+        url: project.url,
+        ownerAddress: milestone.ownerAddress,
+        token: milestone.token,
+        status: milestone.status,
+        totalDonated: '0',
+        currentBalance: '0',
+        donationCount: 0,
+        mined: true,
+        type: milestone.type,
+      };
+
+      if (model.status === MilestoneStatus.IN_PROGRESS) {
+        model.projectAddedAt = date;
+      }
+      return milestones.create(model, {
+        eventTxHash: tx.hash,
+        performedByAddress: tx.from,
+      });
     } catch (err) {
       // milestones service will throw BadRequest error if reviewer/owner isn't whitelisted
       if (err.name === 'BadRequest') return;
@@ -376,6 +378,12 @@ const projects = (app, liquidPledging) => {
         type,
         mined: true,
       };
+      if (
+        [MilestoneStatus.PENDING, MilestoneStatus.PROPOSED].includes(milestone.status) &&
+        mutation.status === MilestoneStatus.IN_PROGRESS
+      ) {
+        mutation.projectAddedAt = await getBlockTimestamp(web3, tx.blockNumber);
+      }
 
       return milestones.patch(milestone._id, mutation, {
         eventTxHash: txHash,
