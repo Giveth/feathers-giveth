@@ -243,9 +243,9 @@ module.exports = {
       title: 'Milestone review requested',
       image: 'Giveth-review-banner-email.png',
       text: `
-        <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
+        <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user.toUpperCase()}</span></p>
         <p>
-          The milestone <em>${data.milestoneTitle}</em> to the campaign <em>${data.campaignTitle}</em> has been marked as completed by the milestone owner.
+          The milestone <em>${data.milestoneTitle.toUpperCase()}</em> to the campaign <em>${data.campaignTitle.toUpperCase()}</em> has been marked as completed by the milestone owner.
           <br/><br/>
         </p>
           Now is your moment to shine!
