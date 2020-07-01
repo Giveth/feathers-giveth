@@ -170,22 +170,21 @@ const failedTxMonitor = (app, eventWatcher) => {
   }
 
   async function handlePendingDonation(currentBlock, donation, receipt, topics) {
-    let transactionCount = 0;
+    let userMaxNonce = 0;
     const { giverAddress, _id, homeTxHash, updatedAt, parentDonations, txNonce } = donation;
     if (homeTxHash) {
       try {
-        transactionCount = await homeWeb3.eth.getTransactionCount(giverAddress);
+        userMaxNonce = (await homeWeb3.eth.getTransactionCount(giverAddress)) - 1;
       } catch (e) {
         logger.error(e);
       }
     }
     // reset the donation status if the tx has been pending for more then 2 hrs, otherwise ignore
-    if (!receipt && transactionCount < txNonce && updatedAt.getTime() >= Date.now() - TWO_HOURS)
-      return;
+    if (!receipt && userMaxNonce < txNonce && updatedAt.getTime() >= Date.now() - TWO_HOURS) return;
     // ignore if there isn't enough confirmations
     if (receipt && currentBlock - receipt.blockNumber < requiredConfirmations) return;
 
-    if (!receipt || !receipt.status || transactionCount >= txNonce) {
+    if (!receipt || !receipt.status || userMaxNonce >= txNonce) {
       if (parentDonations.length > 0) {
         updateFailedDonationParents(donation);
       }
