@@ -170,11 +170,12 @@ const failedTxMonitor = (app, eventWatcher) => {
   }
 
   async function handlePendingDonation(currentBlock, donation, receipt, topics) {
-    let userMaxNonce = 0;
+    let userMaxNonce = -1;
     const { giverAddress, _id, homeTxHash, updatedAt, parentDonations, txNonce } = donation;
     if (homeTxHash) {
       try {
-        userMaxNonce = (await homeWeb3.eth.getTransactionCount(giverAddress)) - 1;
+        const transactionCount = await homeWeb3.eth.getTransactionCount(giverAddress);
+        if (transactionCount) userMaxNonce = transactionCount - 1;
       } catch (e) {
         logger.error(e);
       }
