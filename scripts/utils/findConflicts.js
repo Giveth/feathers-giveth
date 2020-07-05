@@ -203,10 +203,10 @@ const getBlockchainData = async () => {
       if (!firstTry) {
         logger.error('Some problem on fetching network info... Trying again!');
         if (!Array.isArray(state.pledges) || state.pledges.length <= 1) {
-          logger.debug('state.pledges: ', state.pledges);
+          logger.debug(`state.pledges: ${state.pledges}`);
         }
         if (!Array.isArray(state.admins) || state.admins.length <= 1) {
-          logger.debug('state.admins: ', state.admins);
+          logger.debug(`state.admins: ${state.admins}`);
         }
       }
       // eslint-disable-next-line no-await-in-loop
@@ -682,7 +682,7 @@ const handleToDonations = async (
             typeId: toOwnerAdmin.addr,
           });
           await toPledgeAdmin.save();
-          logger.info('pledgeAdmin crated:', toPledgeAdmin._id.toString());
+          logger.info(`pledgeAdmin crated: ${toPledgeAdmin._id.toString()}`);
         }
 
         // Create donation
@@ -797,11 +797,11 @@ const handleToDonations = async (
           )}`,
         );
         logger.debug('--------------------------------');
-        logger.debug('From owner:', fromOwnerAdmin);
-        logger.debug('To owner:', toOwnerAdmin);
+        logger.debug(`From owner: ${fromOwnerAdmin}`);
+        logger.debug(`To owner:${toOwnerAdmin}`);
         logger.debug('--------------------------------');
-        logger.debug('From pledge:', fromPledge);
-        logger.debug('To pledge:', toPledge);
+        logger.debug(`From pledge: ${fromPledge}`);
+        logger.debug(`To pledge: ${toPledge}`);
       }
       let candidates = candidateDonationList.get(to);
       if (candidates === undefined) {
@@ -1218,7 +1218,7 @@ const fixConflictInDonations = (donationMap, pledges, unusedDonationMap) => {
           )}`,
         );
         if (Number(pledgeId) !== 0) {
-          logger.info('Pledge Amount:', pledge.amount);
+          logger.info(`Pledge Amount: ${pledge.amount}`);
         }
         if (fixConflicts) {
           logger.debug('Updating...');
@@ -1372,13 +1372,19 @@ const syncDonationsWithNetwork = async (events, pledges, admins) => {
       logger.info(
         `Pledge ${pledgeId} owner is canceled and its amount equals total amount remaining ${totalAmountRemaining.toFixed()}`,
       );
-      logger.debug({
-        PledgeState: pledgeState,
-        'Old Pledge': oldPledge,
-        Owner: owner,
-        'Owner canceled': !!canceled,
-        'Owner isCanceled': !!isCanceled,
-      });
+      logger.debug(
+        JSON.stringify(
+          {
+            PledgeState: pledgeState,
+            'Old Pledge': oldPledge,
+            Owner: owner,
+            'Owner canceled': !!canceled,
+            'Owner isCanceled': !!isCanceled,
+          },
+          null,
+          2,
+        ),
+      );
     }
   });
 
@@ -1448,7 +1454,7 @@ const syncPledgeAdmins = async events => {
         });
         // eslint-disable-next-line no-await-in-loop
         await newPledgeAdmin.save();
-        logger.info('pledgeAdmin crated:', newPledgeAdmin._id.toString());
+        logger.info(`pledgeAdmin crated: ${newPledgeAdmin._id.toString()}`);
 
         const mutation = {};
         mutation[idFieldName] = Number(idProject);
@@ -1493,11 +1499,10 @@ const main = async () => {
      Find conflicts in milestone donation counter
     */
     const mongoUrl = config.mongodb;
-    logger.info('url:', mongoUrl);
     mongoose.connect(mongoUrl);
     const db = mongoose.connection;
 
-    db.on('error', err => logger.error('Could not connect to Mongo', err));
+    db.on('error', err => logger.error(`Could not connect to Mongo:\n${err.stack}`));
 
     db.once('open', () => {
       logger.info('Connected to Mongo');
