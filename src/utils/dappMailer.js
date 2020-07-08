@@ -135,7 +135,7 @@ module.exports = {
       template: 'notification',
       subject: 'Giveth - Your donation has been delegated!',
       secretIntro: `Take action! Please approve or reject the delegation of ${data.amount} ${data.token.symbol} to the ${data.delegationType} "${data.delegatedToTitle}"!`,
-      title: "Take action! You're donation has been delegated!",
+      title: "Take action! Your donation has been delegated!",
       image: 'Giveth-donation-banner-email.png',
       text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
