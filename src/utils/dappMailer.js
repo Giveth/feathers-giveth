@@ -129,7 +129,6 @@ module.exports = {
 
   donationDelegated: (app, data) => {
     data.amount = Number(data.amount) / 10 ** 18;
-     
 
     Object.assign(data, {
       template: 'notification',
