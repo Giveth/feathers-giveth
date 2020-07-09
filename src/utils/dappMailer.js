@@ -189,13 +189,13 @@ module.exports = {
     Object.assign(data, {
       template: 'notification',
       subject: 'Giveth - Your proposed milestone is accepted!',
-      secretIntro: `Your milestone ${data.milestoneTitle} has been accepted by the campaign owner. You can now receive donations.`,
+      secretIntro: `Your milestone ${data.milestoneTitle} has been accepted by the campaign Owner. You can now receive donations.`,
       title: 'Take action: Milestone proposed!',
       image: 'Giveth-milestone-review-approved-banner-email.png',
       text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
-          Your proposed milestone <em>${data.milestoneTitle}</em> to the campaign <em>${data.campaignTitle}</em> has been accepted by the campaign owner!
+          Your proposed milestone <em>${data.milestoneTitle}</em> to the campaign <em>${data.campaignTitle}</em> has been accepted by the campaign Owner!
           <br/><br/>
           You can now receive donations, start executing the milestone, and once finished, mark it as complete.
         </p>
@@ -239,31 +239,25 @@ module.exports = {
     Object.assign(data, {
       template: 'notification',
       subject: 'Giveth - Time to review!',
-      secretIntro: `Take action: you are requested to review the milestone ${data.milestoneTitle} within 3 days.`,
+      secretIntro: `Take action: you are requested to review the Milestone ${data.milestoneTitle} within 3 days.`,
       title: 'Milestone review requested',
       image: 'Giveth-review-banner-email.png',
       text: `
-        <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user
-          .charAt(0)
-          .toUpperCase() + data.user.slice(1)}</span></p>
+        <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
-          The milestone <em>${data.milestoneTitle.charAt(0).toUpperCase() +
-            data.milestoneTitle.slice(1)}</em> to the campaign <em>${data.campaignTitle
-        .charAt(0)
-        .toUpperCase() +
-        data.campaignTitle.slice(1)}</em> has been marked as completed by the milestone owner.
+          The Milestone <em>${data.milestoneTitle}</em> to the Campaign <em>${data.campaignTitle}</em> has been marked as completed by the Milestone Owner.
           <br/><br/>
         </p>
           Now is your moment to shine!
         </p>
         <p>
-          Please contact the milestone owner and <strong>review the completion of this milestone within 3 days.</strong>
+          Please contact the Milestone Owner and <strong>review the completion of this Milestone within 3 days.</strong>
         </p>
       `,
       cta: `Review Milestone`,
       ctaRelativeUrl: `/my-milestones`,
       unsubscribeType: 'milestone-request-review',
-      unsubscribeReason: `You receive this email because you run a milestone`,
+      unsubscribeReason: `You receive this email because you run a Milestone`,
       message: data.message,
     });
 
