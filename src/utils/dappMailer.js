@@ -189,13 +189,13 @@ module.exports = {
     Object.assign(data, {
       template: 'notification',
       subject: 'Giveth - Your proposed milestone is accepted!',
-      secretIntro: `Your milestone ${data.milestoneTitle} has been accepted by the campaign Owner. You can now receive donations.`,
+      secretIntro: `Your milestone ${data.milestoneTitle} has been accepted by the campaign owner. You can now receive donations.`,
       title: 'Take action: Milestone proposed!',
       image: 'Giveth-milestone-review-approved-banner-email.png',
       text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
-          Your proposed milestone <em>${data.milestoneTitle}</em> to the campaign <em>${data.campaignTitle}</em> has been accepted by the campaign Owner!
+          Your proposed milestone <em>${data.milestoneTitle}</em> to the campaign <em>${data.campaignTitle}</em> has been accepted by the campaign owner!
           <br/><br/>
           You can now receive donations, start executing the milestone, and once finished, mark it as complete.
         </p>
