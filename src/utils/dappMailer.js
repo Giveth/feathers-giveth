@@ -114,7 +114,7 @@ module.exports = {
         </p>
         <p>
           You can now delegate this money to a ${
-            data.donationType === AdminTypes.DAC ? 'campaign or a milestone' : 'milestone'
+            data.donationType === AdminTypes.DAC ? 'Campaign or a Milestone' : 'Milestone'
           }.
         </p>
       `,
@@ -163,22 +163,22 @@ module.exports = {
 
     Object.assign(data, {
       template: 'notification',
-      subject: 'Giveth - A milestone has been proposed!',
-      secretIntro: `Take action! A milestone has been proposed for your campaign! Please accept or reject.`,
+      subject: 'Giveth - A Milestone has been proposed!',
+      secretIntro: `Take action! A Milestone has been proposed for your Campaign! Please accept or reject.`,
       title: 'Take action: Milestone proposed!',
       image: 'Giveth-suggest-milestone-banner.png',
       text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
-          The milestone <em>${data.milestoneTitle}</em> for <em>${data.amount} ${data.token.symbol}</em> has been proposed to <em>${data.campaignTitle}</em> campaign .
-          If you think this is a great idea, then <strong>please approve this milestone within 3 days</strong> to add it to your campaign.
+          The Milestone <em>${data.milestoneTitle}</em> for <em>${data.amount} ${data.token.symbol}</em> has been proposed to <em>${data.campaignTitle}</em> Campaign .
+          If you think this is a great idea, then <strong>please approve this Milestone within 3 days</strong> to add it to your Campaign.
           If not, then please reject it with comment.
         </p>
       `,
       cta: `See the Milestone`,
       ctaRelativeUrl: `/my-milestones`,
       unsubscribeType: 'milestone-proposed',
-      unsubscribeReason: `You receive this email because you run a campaign`,
+      unsubscribeReason: `You receive this email because you run a Campaign`,
       message: data.message,
     });
 
@@ -188,22 +188,22 @@ module.exports = {
   proposedMilestoneAccepted: (app, data) => {
     Object.assign(data, {
       template: 'notification',
-      subject: 'Giveth - Your proposed milestone is accepted!',
-      secretIntro: `Your milestone ${data.milestoneTitle} has been accepted by the campaign owner. You can now receive donations.`,
+      subject: 'Giveth - Your proposed Milestone is accepted!',
+      secretIntro: `Your Milestone ${data.milestoneTitle} has been accepted by the Campaign Owner. You can now receive donations.`,
       title: 'Take action: Milestone proposed!',
       image: 'Giveth-milestone-review-approved-banner-email.png',
       text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
-          Your proposed milestone <em>${data.milestoneTitle}</em> to the campaign <em>${data.campaignTitle}</em> has been accepted by the campaign owner!
+          Your proposed Milestone <em>${data.milestoneTitle}</em> to the Campaign <em>${data.campaignTitle}</em> has been accepted by the Campaign Owner!
           <br/><br/>
-          You can now receive donations, start executing the milestone, and once finished, mark it as complete.
+          You can now receive donations, start executing the Milestone, and once finished, mark it as complete.
         </p>
       `,
       cta: `Manage Milestone`,
       ctaRelativeUrl: `/my-milestones`,
       unsubscribeType: 'proposed-milestone-accepted',
-      unsubscribeReason: `You receive this email because you run a milestone`,
+      unsubscribeReason: `You receive this email because you run a Milestone`,
       message: data.message,
     });
 
@@ -213,22 +213,22 @@ module.exports = {
   proposedMilestoneRejected: (app, data) => {
     Object.assign(data, {
       template: 'notification',
-      subject: 'Giveth - Your proposed milestone is rejected :-(',
-      secretIntro: `Your milestone ${data.milestoneTitle} has been rejected by the campaign owner :-(`,
+      subject: 'Giveth - Your proposed Milestone is rejected :-(',
+      secretIntro: `Your Milestone ${data.milestoneTitle} has been rejected by the Campaign Owner :-(`,
       title: 'Milestone rejected :-(',
       image: 'Giveth-milestone-review-approved-banner-email.png',
       text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
-          Unfortunately your proposed milestone <em>${data.milestoneTitle}</em> to the campaign <em>${data.campaignTitle}</em> has been rejected by the campaign owner.
+          Unfortunately your proposed Milestone <em>${data.milestoneTitle}</em> to the Campaign <em>${data.campaignTitle}</em> has been rejected by the Campaign Owner.
           <br/><br/>
-          Please contact the campaign owner to learn why your milestone was rejected.
+          Please contact the Campaign Owner to learn why your Milestone was rejected.
         </p>
       `,
       cta: `Manage Milestone`,
       ctaRelativeUrl: `/my-milestones`,
       unsubscribeType: 'proposed-milestone-rejected',
-      unsubscribeReason: `You receive this email because you proposed a milestone`,
+      unsubscribeReason: `You receive this email because you proposed a Milestone`,
       message: data.message,
     });
 
@@ -239,25 +239,25 @@ module.exports = {
     Object.assign(data, {
       template: 'notification',
       subject: 'Giveth - Time to review!',
-      secretIntro: `Take action: you are requested to review the milestone ${data.milestoneTitle} within 3 days.`,
+      secretIntro: `Take action: you are requested to review the Milestone ${data.milestoneTitle} within 3 days.`,
       title: 'Milestone review requested',
       image: 'Giveth-review-banner-email.png',
       text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
-          The milestone <em>${data.milestoneTitle}</em> to the campaign <em>${data.campaignTitle}</em> has been marked as completed by the milestone owner.
+          The Milestone <em>${data.milestoneTitle}</em> to the Campaign <em>${data.campaignTitle}</em> has been marked as completed by the Milestone Owner.
           <br/><br/>
         </p>
           Now is your moment to shine!
         </p>
         <p>
-          Please contact the milestone owner and <strong>review the completion of this milestone within 3 days.</strong>
+          Please contact the Milestone Owner and <strong>review the completion of this Milestone within 3 days.</strong>
         </p>
       `,
       cta: `Review Milestone`,
       ctaRelativeUrl: `/my-milestones`,
       unsubscribeType: 'milestone-request-review',
-      unsubscribeReason: `You receive this email because you run a milestone`,
+      unsubscribeReason: `You receive this email because you run a Milestone`,
       message: data.message,
     });
 
@@ -267,23 +267,23 @@ module.exports = {
   milestoneMarkedCompleted: (app, data) => {
     Object.assign(data, {
       template: 'notification',
-      subject: 'Giveth - Your milestone is finished!',
-      secretIntro: `Your milestone ${data.milestoneTitle} has been marked complete by the reviewer. The recipient can now collect the payment.`,
+      subject: 'Giveth - Your Milestone is finished!',
+      secretIntro: `Your Milestone ${data.milestoneTitle} has been marked complete by the reviewer. The recipient can now collect the payment.`,
       title: `Milestone completed! Time to collect ${data.token.symbol}.`,
       image: 'Giveth-milestone-review-approved-banner-email.png',
       text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
-          The milestone <em>${data.milestoneTitle}</em> in the campaign <em>${data.campaignTitle}</em> has been marked complete by the reviewer!.
+          The Milestone <em>${data.milestoneTitle}</em> in the Campaign <em>${data.campaignTitle}</em> has been marked complete by the reviewer!.
           <br/><br/>
         </p>
-          The recipient can now transfer the funds out of this milestone!
+          The recipient can now transfer the funds out of this Milestone!
         </p>
       `,
       cta: `Manage Milestone`,
       ctaRelativeUrl: `/my-milestones`,
       unsubscribeType: 'milestone-review-approved',
-      unsubscribeReason: `You receive this email because you run a milestone`,
+      unsubscribeReason: `You receive this email because you run a Milestone`,
       message: data.message,
     });
 
@@ -295,19 +295,19 @@ module.exports = {
       template: 'notification',
       subject: 'Giveth - Milestone rejected by reviewer :-(',
       type: 'milestone-review-rejected',
-      secretIntro: `The completion of your milestone ${data.milestoneTitle} has been rejected by the reviewer.`,
+      secretIntro: `The completion of your Milestone ${data.milestoneTitle} has been rejected by the reviewer.`,
       title: 'Milestone completion rejected.',
       image: 'Giveth-milestone-review-rejected-banner-email.png',
       text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
-          The milestone completion <em>${data.milestoneTitle}</em> in the campaign <em>${data.campaignTitle}</em> has been rejected by the reviewer.
+          The Milestone completion <em>${data.milestoneTitle}</em> in the Campaign <em>${data.campaignTitle}</em> has been rejected by the reviewer.
         </p>
       `,
       cta: `Manage Milestone`,
       ctaRelativeUrl: `/my-milestones`,
       unsubscribeType: 'milestone-review-rejected',
-      unsubscribeReason: `You receive this email because you run a milestone`,
+      unsubscribeReason: `You receive this email because you run a Milestone`,
       message: data.message,
     });
 
@@ -319,19 +319,19 @@ module.exports = {
       template: 'notification',
       subject: 'Giveth - Milestone canceled :-(',
       type: 'milestone-canceled',
-      secretIntro: `Your milestone ${data.milestoneTitle} has been canceled.`,
+      secretIntro: `Your Milestone ${data.milestoneTitle} has been canceled.`,
       title: 'Milestone canceled.',
       image: 'Giveth-milestone-canceled-banner-email.png',
       text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
-          The milestone <em>${data.milestoneTitle}</em> in the campaign <em>${data.campaignTitle}</em> has been canceled.
+          The Milestone <em>${data.milestoneTitle}</em> in the Campaign <em>${data.campaignTitle}</em> has been canceled.
         </p>
       `,
       cta: `Manage Milestones`,
       ctaRelativeUrl: `/my-milestones`,
       unsubscribeType: 'milestone-canceled',
-      unsubscribeReason: `You receive this email because you run a milestone`,
+      unsubscribeReason: `You receive this email because you run a Milestone`,
       message: data.message,
     });
 
@@ -345,19 +345,19 @@ module.exports = {
       template: 'notification',
       subject: 'Giveth - Milestone created with you as a recipient',
       type: 'milestone-created',
-      secretIntro: `A milestone ${data.milestoneTitle} has been created with you as the recipient.`,
+      secretIntro: `A Milestone ${data.milestoneTitle} has been created with you as the recipient.`,
       title: 'Milestone created.',
       image: 'Giveth-milestone-review-approved-banner-email.png',
       text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
-          A milestone <em>${data.milestoneTitle}</em> for ${data.amount} ${data.token.symbol} has been created with you as the recipient.
+          A Milestone <em>${data.milestoneTitle}</em> for ${data.amount} ${data.token.symbol} has been created with you as the recipient.
         </p>
       `,
       cta: `See your Milestones`,
       ctaRelativeUrl: `/my-milestones`,
       unsubscribeType: 'milestone-created',
-      unsubscribeReason: `You receive this email because you are the recipient of a milestone`,
+      unsubscribeReason: `You receive this email because you are the recipient of a Milestone`,
       message: data.message,
     });
 
@@ -369,12 +369,12 @@ module.exports = {
       template: 'notification',
       subject: 'Giveth - Milestone paid',
       type: 'milestone-paid',
-      secretIntro: `Your milestone ${data.milestoneTitle} has been paid.`,
+      secretIntro: `Your Milestone ${data.milestoneTitle} has been paid.`,
       title: 'Milestone paid.',
       image: 'Giveth-milestone-review-approved-banner-email.png',
       text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
-        <p>The following payments have been initiated for your milestone <em>${
+        <p>The following payments have been initiated for your Milestone <em>${
           data.milestoneTitle
         }</em>:</p>
         <p></p>
@@ -387,7 +387,7 @@ module.exports = {
       cta: `See your Milestones`,
       ctaRelativeUrl: `/my-milestones`,
       unsubscribeType: 'milestone-paid',
-      unsubscribeReason: `You receive this email because you are the recipient of a milestone`,
+      unsubscribeReason: `You receive this email because you are the recipient of a Milestone`,
     });
 
     sendEmail(app, data);
