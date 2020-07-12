@@ -130,19 +130,26 @@ module.exports = {
   donationDelegated: (app, data) => {
     data.amount = Number(data.amount) / 10 ** 18;
 
+    const capitalizeDelegateType = delegateType => {
+      if (delegateType.toLowerCase() === 'dac') return 'DAC';
+      return delegateType.charAt(0).toUpperCase() + delegateType.slice(1);
+    };
+
     Object.assign(data, {
       template: 'notification',
       subject: 'Giveth - Your donation has been delegated!',
       secretIntro: `Take action! Please approve or reject the delegation of ${data.amount} ${data.token.symbol} to the ${data.delegationType} "${data.delegatedToTitle}"!`,
-      title: "Take action! Your donation has been delegated!",
+      title: 'Take action! Your donation has been delegated!',
       image: 'Giveth-donation-banner-email.png',
       text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${data.user}</span></p>
         <p>
-          The ${data.delegateType.toUpperCase()} <em>${data.delegateTitle}</em> has proposed a delegation of
+          The ${capitalizeDelegateType(data.delegateType)} <em>${
+        data.delegateTitle
+      }</em> has proposed a delegation of
           <span style="display: block; color: rgb(53, 184, 209); line-height: 72px; font-size: 48px;">
           ${data.amount} ${data.token.symbol}</span> from your donation to
-          ${data.delegateType.toUpperCase()} <em>${data.delegateTitle}</em>.
+          ${capitalizeDelegateType(data.delegateType)} <em>${data.delegateTitle}</em>.
         </p>
         <p>
           You have until ${data.commitTime.toUTCString()} to approve or reject this delegation. If you fail to
