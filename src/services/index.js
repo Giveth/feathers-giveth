@@ -9,6 +9,7 @@ const campaigncsv = require('./csv/campaigncsv.service.js');
 const users = require('./users/users.service.js');
 const uploads = require('./uploads/uploads.service.js');
 const donations = require('./donations/donations.service.js');
+const transactions = require('./transactions/transactions.service.js');
 const whitelist = require('./whitelist/whitelist.service.js');
 const gasprice = require('./gasprice/gasprice.service.js');
 const conversionRates = require('./conversionRates/conversionRates.service.js');
@@ -23,6 +24,7 @@ module.exports = function configure() {
   app.configure(users);
   app.configure(uploads);
   app.configure(donations);
+  app.configure(transactions);
   app.configure(challenges);
   app.configure(pledgeAdmins);
   app.configure(whitelist);

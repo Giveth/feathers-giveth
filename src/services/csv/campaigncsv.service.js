@@ -9,6 +9,7 @@ const { ObjectId } = require('mongoose').Types;
 const { AdminTypes } = require('../../models/pledgeAdmins.model');
 const { DonationStatus } = require('../../models/donations.model');
 const { EventStatus } = require('../../models/events.model');
+const { getTransaction } = require('../../blockchain/lib/web3Helpers');
 
 module.exports = function csv() {
   const app = this;
@@ -283,9 +284,9 @@ module.exports = function csv() {
             {
               const projectId = Number(returnValues.idProject);
               if (campaign.projectId === projectId) {
-                const tx = await app.getWeb3().eth.getTransaction(transactionHash);
-                const actionTaker = await getUser(tx.from);
-                campaignOwner = tx.from;
+                const { from } = await getTransaction(app, transactionHash);
+                const actionTaker = await getUser(from);
+                campaignOwner = from;
                 result = {
                   ...result,
                   action: 'Campaign Created',
@@ -294,15 +295,15 @@ module.exports = function csv() {
                   recipientName: campaign.title,
                   recipientType: 'Campaign',
                   recipient: getEntityLink(campaign, AdminTypes.CAMPAIGN),
-                  actionTakerAddress: tx.from,
+                  actionTakerAddress: from,
                   actionRecipientAddress: campaign.pluginAddress,
                   etherscanLink: getEtherscanLink(transactionHash),
                 };
               } else {
                 const milestone = milestoneMap.get(projectId);
                 if (milestone) {
-                  const tx = await app.getWeb3().eth.getTransaction(transactionHash);
-                  const actionTaker = await getUser(tx.from);
+                  const { from } = await getTransaction(app, transactionHash);
+                  const actionTaker = await getUser(from);
                   const action =
                     campaignOwner === actionTaker ? 'Milestone Added' : 'Milestone Accepted';
                   result = {
@@ -313,7 +314,7 @@ module.exports = function csv() {
                     recipientName: milestone.title,
                     recipientType: 'Milestone',
                     recipient: getEntityLink(milestone, AdminTypes.MILESTONE),
-                    actionTakerAddress: tx.from,
+                    actionTakerAddress: from,
                     actionRecipientAddress: milestone.pluginAddress,
                     etherscanLink: getEtherscanLink(transactionHash),
                   };
