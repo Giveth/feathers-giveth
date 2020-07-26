@@ -16,6 +16,7 @@ module.exports = function csv() {
 
   const eventService = app.service('events');
   const donationService = app.service('donations');
+  const dacService = app.service('dacs');
   const campaignService = app.service('campaigns');
   const milestoneService = app.service('milestones');
   const userService = app.service('users');
@@ -31,6 +32,11 @@ module.exports = function csv() {
     REQUESTED: 'requested',
     HOLD: 'hold',
     PAID: 'paid',
+  };
+
+  const capitalizeAdminType = type => {
+    if (type.toLowerCase() === 'dac') return 'DAC';
+    return type.charAt(0).toUpperCase() + type.slice(1);
   };
 
   const csvFields = [
@@ -134,6 +140,8 @@ module.exports = function csv() {
       case AdminTypes.MILESTONE:
         return `${dappUrl}/campaigns/${entity.campaignId}/milestones/${entity._id.toString()}`;
 
+      case AdminTypes.GIVER:
+        return `${dappUrl}/profile/${entity.address}`;
       default:
         return '';
     }
@@ -161,7 +169,14 @@ module.exports = function csv() {
     const [parent] = await donationService.find({
       query: {
         _id: parentDonationId,
-        $select: ['parentDonations', 'status', 'ownerTypeId'],
+        $select: [
+          'parentDonations',
+          'status',
+          'ownerTypeId',
+          'ownerType',
+          'delegateType',
+          'delegateTypeId',
+        ],
       },
       paginate: false,
     });
@@ -173,20 +188,30 @@ module.exports = function csv() {
       };
     }
 
-    if (parent.status === DonationStatus.COMMITTED) {
+    const {
+      status,
+      delegateTypeId,
+      delegateType,
+      ownerTypeId,
+      parentDonations,
+      ownerType,
+    } = parent;
+
+    if (status === DonationStatus.COMMITTED) {
       return {
         isDelegate: true,
-        parentOwnerTypeId: parent.ownerTypeId,
+        parentOwnerTypeId: delegateTypeId || ownerTypeId,
+        parentOwnerType: delegateType || ownerType,
       };
     }
 
-    if (parent.parentDonations.length === 0) {
+    if (parentDonations.length === 0) {
       return {
         isDelegate: false,
       };
     }
 
-    return donationDelegateStatus(parent.parentDonations[0]);
+    return donationDelegateStatus(parentDonations[0]);
   };
 
   const getUser = async address => {
@@ -202,8 +227,11 @@ module.exports = function csv() {
   };
 
   const newEventTransform = (campaign, milestones, pledgeIds) => {
-    const { id: campaignId } = campaign;
-    const campaignBalance = {};
+    const campaignId = campaign._id.toString();
+    const campaignBalance = {
+      campaignCommitted: {},
+      milestonesCommitted: {},
+    };
     const milestonesBalance = {};
     const milestoneMap = new Map();
     milestones.forEach(milestone => {
@@ -233,6 +261,20 @@ module.exports = function csv() {
       return balance;
     };
 
+    const insertCampaignBalanceItems = result => {
+      const { campaignCommitted, milestonesCommitted } = campaignBalance;
+      Object.keys(campaignCommitted).forEach(symbol => {
+        result[tokenKey(symbol, 'campaign', TokenKeyType.BALANCE)] = Web3.utils.fromWei(
+          campaignCommitted[symbol].toFixed(),
+        );
+      });
+      Object.keys(milestonesCommitted).forEach(symbol => {
+        result[tokenKey(symbol, 'milestones', TokenKeyType.BALANCE)] = Web3.utils.fromWei(
+          milestonesCommitted[symbol].toFixed(),
+        );
+      });
+    };
+
     // Get milestone balance items
     const insertMilestoneBalanceItems = (id, result) => {
       const balance = milestonesBalance[id.toString()];
@@ -250,38 +292,146 @@ module.exports = function csv() {
 
     let campaignOwner;
 
-    const updateCampaignBalance = (donation, isDelegate, parentId) => {
-      const { ownerTypeId, amount, token } = donation;
+    const updateBalance = (donation, isDelegate, parentId) => {
+      const { ownerType, ownerTypeId, amount, token, status } = donation;
 
       let balanceChange;
+      let updateCampaignCommitted = false;
       if (ownerTypeId === campaignId) {
         balanceChange = new BigNumber(amount.toString());
+        updateCampaignCommitted = true;
       } else if (isDelegate && parentId === campaignId) {
         balanceChange = new BigNumber(amount.toString()).negated();
-      } else {
-        // Does not affect campaign balance
-        return;
+        updateCampaignCommitted = true;
       }
 
       const { symbol } = token;
-      const currentBalance = campaignBalance[symbol];
-      if (!currentBalance) {
-        campaignBalance[symbol] = balanceChange;
-      } else {
-        campaignBalance[symbol] = currentBalance.plus(balanceChange);
+      if (updateCampaignCommitted) {
+        const { campaignCommitted } = campaignBalance;
+        const currentCampaignCommitted = campaignCommitted[symbol];
+        if (!currentCampaignCommitted) {
+          campaignCommitted[symbol] = balanceChange;
+        } else {
+          campaignCommitted[symbol] = currentCampaignCommitted.plus(balanceChange);
+        }
+      }
+
+      if (ownerType === AdminTypes.MILESTONE) {
+        const balance = milestonesBalance[ownerTypeId];
+        if (status === DonationStatus.PAID) {
+          balance[symbol][TokenKeyType.HOLD] = balance[symbol][TokenKeyType.HOLD].minus(amount);
+          balance[symbol][TokenKeyType.PAID] = balance[symbol][TokenKeyType.PAID].plus(amount);
+          balanceChange = new BigNumber(amount.toString()).negated();
+        } else {
+          balance[symbol][TokenKeyType.HOLD] = balance[symbol][TokenKeyType.HOLD].plus(amount);
+          balanceChange = new BigNumber(amount.toString());
+        }
+        const { milestonesCommitted } = campaignBalance;
+        const currentMilestonesCommitted = milestonesCommitted[symbol];
+        if (!currentMilestonesCommitted) {
+          milestonesCommitted[symbol] = balanceChange;
+        } else {
+          milestonesCommitted[symbol] = currentMilestonesCommitted.plus(balanceChange);
+        }
       }
     };
 
+    let payouts = {};
+
+    const flushPayouts = async stream => {
+      const { transactionHash } = payouts;
+
+      // Do nothing if payouts is empty
+      if (transactionHash) {
+        const { ownerEntity, actionTakerAddress, commitTime } = payouts;
+        const recipient = (await getUser(ownerEntity.recipientAddress)) || {};
+        recipient.address = ownerEntity.recipientAddress;
+        const result = {
+          createdAt: commitTime.toString(),
+          action: 'Milestone Paid Out',
+          actor:
+            actionTakerAddress === ownerEntity.ownerAddress
+              ? 'Milestone Proposer'
+              : 'Milestone Recipient',
+          actionOnBehalfOf: ownerEntity.title,
+          recipientName: recipient.name,
+          recipientType: 'Givether',
+          recipient: getEntityLink(recipient, AdminTypes.GIVER),
+          amount: '-',
+          currency: '-',
+          actionTakerAddress,
+          actionRecipientAddress: ownerEntity.pluginAddress,
+          etherscanLink: getEtherscanLink(transactionHash),
+        };
+
+        insertCampaignBalanceItems(result);
+        insertMilestoneBalanceItems(ownerEntity._id, result);
+
+        // Clear payouts
+        payouts = {};
+
+        stream.push(result);
+      }
+    };
+
+    const addPayout = async (stream, donation, createdAt) => {
+      updateBalance(donation, false);
+      const { transactionHash, balance = {} } = payouts;
+      const {
+        amount,
+        actionTakerAddress,
+        commitTime = createdAt,
+        ownerEntity,
+        txHash,
+        token,
+        ownerTypeId,
+      } = donation;
+      // Its a new payouts, the collected one should be printed
+      if (transactionHash && transactionHash !== txHash) {
+        await flushPayouts(stream);
+      }
+
+      payouts.ownerId = ownerTypeId;
+      const { symbol } = token;
+      const tokenBalance = balance[symbol] || new BigNumber(0);
+      tokenBalance.plus(amount);
+      balance[symbol] = tokenBalance;
+
+      // This is new payout, info should be filled.
+      // Fill the info by the first donation only, all donations of one payout has the similar value;
+      if (transactionHash !== txHash) {
+        payouts.transactionHash = txHash;
+        payouts.balance = balance;
+        payouts.ownerEntity = ownerEntity;
+        payouts.actionTakerAddress = actionTakerAddress;
+        payouts.commitTime = commitTime;
+      }
+
+      // Some donations doesn't have commitTime,
+      // Fill payouts if the first donation doesn't have commitTime
+      if (!payouts.commitTime) {
+        payouts.commitTime = commitTime;
+      }
+    };
+
+    let counter = 0; // TODO: for debug, should be removed
     return new Stream.Transform({
       objectMode: true,
       async transform(eventObject, _, callback) {
+        counter += 1;
+        console.log('counter:', counter);
         const { event, transactionHash, returnValues, createdAt } = eventObject;
         let result = {
           createdAt: createdAt.toString(),
         };
+
+        console.log('event:', event);
         switch (event) {
           case 'ProjectAdded':
             {
+              // Flush any payout if exists
+              await flushPayouts(this);
+
               const projectId = Number(returnValues.idProject);
               if (campaign.projectId === projectId) {
                 const { from } = await getTransaction(app, transactionHash);
@@ -329,79 +479,151 @@ module.exports = function csv() {
             }
             break;
 
-          // case 'Transfer':
-          //   {
-          //     let pledgeId;
-          //     const { from, to } = returnValues;
-          //     if (pledgeIds.has(to)) {
-          //       pledgeId = to;
-          //     } else {
-          //       pledgeId = from;
-          //     }
-          //     const [donation] = await donationService.find({
-          //       query: { txHash: transactionHash, pledgeId },
-          //       paginate: false,
-          //     });
-          //     const {
-          //       txHash,
-          //       homeTxHash,
-          //       amount,
-          //       giverAddress,
-          //       ownerEntity,
-          //       ownerType,
-          //       token,
-          //       parentDonations,
-          //       actionTakerAddress,
-          //       status,
-          //       isReturn,
-          //     } = donation;
-          //
-          //     let action;
-          //     let realActionTakerAddress;
-          //
-          //     if (isReturn) {
-          //       action = 'Return';
-          //       realActionTakerAddress = actionTakerAddress;
-          //       updateCampaignBalance(donation, false);
-          //     } else {
-          //       const { isDelegate, parentOwnerTypeId } = await donationDelegateStatus(
-          //         parentDonations[0],
-          //       );
-          //       realActionTakerAddress = isDelegate ? actionTakerAddress : giverAddress;
-          //       action = isDelegate ? 'Delegated' : 'Direct Donation';
-          //       if (status === DonationStatus.CANCELED) {
-          //         action += ' - Canceled Later';
-          //       }
-          //       updateCampaignBalance(donation, isDelegate, parentOwnerTypeId);
-          //     }
-          //
-          //     const actionTaker = await getUser(realActionTakerAddress);
-          //
-          //     result = {
-          //       recipientName: ownerEntity.title,
-          //       recipient: getEntityLink(ownerEntity, ownerType),
-          //       currency: token.name,
-          //       amount: Web3.utils.fromWei(amount).toString(),
-          //       action,
-          //       createdAt: createdAt.toString(),
-          //       etherscanLink: getEtherscanLink(txHash),
-          //       homeEtherscanLink: getHomeEtherscanLink(homeTxHash),
-          //       actor: actionTaker ? actionTaker.name : undefined,
-          //       actionTakerAddress: realActionTakerAddress,
-          //     };
-          //
-          //     Object.keys(campaignBalance).forEach(symbol => {
-          //       result[tokenKey(symbol)] = Web3.utils.fromWei(campaignBalance[symbol].toFixed());
-          //     });
-          //   }
-          //   break;
+          case 'Transfer':
+            {
+              let pledgeId;
+              let exitDonation = false; // Money exits from campaign/milestone
+              const { from, to, amount } = returnValues;
+
+              if (pledgeIds.has(to)) {
+                pledgeId = to;
+              } else {
+                pledgeId = from;
+                exitDonation = true;
+              }
+
+              const [donation] = await donationService.find({
+                query: { txHash: transactionHash, pledgeId, amount },
+                paginate: false,
+                schema: 'includeTypeDetails',
+              });
+
+              // Donation not found, put the event data
+              if (!donation) {
+                result = {
+                  ...result,
+                  etherscanLink: getEtherscanLink(transactionHash),
+                  amount: Web3.utils.fromWei(amount).toString(),
+                };
+                callback(null, result);
+                return;
+              }
+
+              const {
+                homeTxHash,
+                giverAddress,
+                ownerEntity,
+                ownerType,
+                token,
+                parentDonations,
+                actionTakerAddress,
+                status,
+                isReturn,
+                commitTime = createdAt,
+              } = donation;
+
+              let action;
+              let actor;
+              let realActionTakerAddress;
+              let actionOnBehalfOf;
+
+              const capitalizeOwnerType = capitalizeAdminType(ownerType);
+
+              if (isReturn) {
+                action = 'Return';
+                realActionTakerAddress = actionTakerAddress;
+                updateBalance(donation, false);
+              } else if (!exitDonation) {
+                if (status === DonationStatus.PAID) {
+                  await addPayout(this, donation, createdAt);
+                  // Payouts should be accumulated and printed once
+                  callback();
+                  return;
+                }
+
+                // Flush any payout if exists
+                await flushPayouts(this);
+                const {
+                  isDelegate,
+                  parentOwnerTypeId,
+                  parentOwnerType,
+                } = await donationDelegateStatus(parentDonations[0]);
+
+                // Update campaign and milestones balance
+                updateBalance(donation, isDelegate, parentOwnerTypeId);
+
+                // Action and Actor
+                if (isDelegate) {
+                  const capitalizedParentOwnerType = capitalizeAdminType(parentOwnerType);
+                  action = `${capitalizedParentOwnerType} Delegated to ${capitalizeOwnerType}`;
+                  actor = `${capitalizedParentOwnerType} Manager`;
+                } else if (ownerType === AdminTypes.CAMPAIGN) {
+                  action = 'Campaign Received Donation';
+                  actor = 'Donor';
+                } else {
+                  action = 'Direct Donation to Milestone';
+                  actor = 'Giver';
+                }
+
+                realActionTakerAddress = isDelegate ? actionTakerAddress : giverAddress;
+                if (status === DonationStatus.CANCELED) {
+                  action += ' - Canceled Later';
+                }
+                const actionTaker = await getUser(realActionTakerAddress);
+
+                if (!isDelegate) {
+                  actionOnBehalfOf = actionTaker.name;
+                } else {
+                  let service;
+                  if (parentOwnerType === AdminTypes.DAC) {
+                    service = dacService;
+                  } else {
+                    // Campaignn
+                    service = campaignService;
+                  }
+                  const [parentOwner] = await service.find({
+                    query: {
+                      _id: parentOwnerTypeId,
+                      $select: ['title'],
+                    },
+                    paginate: false,
+                  });
+                  actionOnBehalfOf = parentOwner && parentOwner.title;
+                }
+              }
+              result = {
+                ...result,
+                action,
+                actor,
+                actionOnBehalfOf,
+                recipientName: ownerEntity.title,
+                recipientType: capitalizeOwnerType,
+                recipient: getEntityLink(ownerEntity, ownerType),
+                amount: Web3.utils.fromWei(amount).toString(),
+                currency: token.name,
+                createdAt: commitTime.toString(),
+                actionTakerAddress: realActionTakerAddress,
+                actionRecipientAddress: ownerEntity.pluginAddress,
+                etherscanLink: getEtherscanLink(transactionHash),
+                homeEtherscanLink: getHomeEtherscanLink(homeTxHash),
+              };
+
+              if (ownerType === AdminTypes.MILESTONE) {
+                insertMilestoneBalanceItems(ownerEntity._id, result);
+              }
+            }
+            break;
           default:
         }
 
-        Object.keys(campaignBalance).forEach(symbol => {
-          result[tokenKey(symbol)] = Web3.utils.fromWei(campaignBalance[symbol].toFixed());
-        });
+        insertCampaignBalanceItems(result);
+
         callback(null, result);
+      },
+      async flush(callback) {
+        await flushPayouts(this);
+        callback();
+        console.log('finished....');
       },
     });
   };
@@ -477,7 +699,7 @@ module.exports = function csv() {
 
     const result = await donationModel.distinct('pledgeId', {
       ownerTypeId: { $in: [id, ...milestones.map(m => m._id)] },
-      status: { $in: [DonationStatus.COMMITTED, DonationStatus.CANCELED] },
+      status: { $in: [DonationStatus.COMMITTED, DonationStatus.PAID, DonationStatus.CANCELED] },
     });
     const pledgeIds = result.map(String);
     // List of projects ID of campaign and its milestones
@@ -521,24 +743,24 @@ module.exports = function csv() {
           event: {
             $in: [
               'ProjectAdded',
-              'ProjectUpdated',
-              'CancelProject',
-              'MilestoneCompleteRequestApproved',
-              'MilestoneCompleteRequestRejected',
-              'MilestoneCompleteRequested',
-              'PaymentCollected',
-              'RecipientChanged',
+              // 'ProjectUpdated',
+              // 'CancelProject',
+              // 'MilestoneCompleteRequestApproved',
+              // 'MilestoneCompleteRequestRejected',
+              // 'MilestoneCompleteRequested',
+              // 'PaymentCollected',
+              // 'RecipientChanged',
             ],
           },
           'returnValues.idProject': { $in: projectIds.map(String) },
         },
-        // {
-        //   event: 'Transfer',
-        //   $or: [
-        //     { 'returnValues.from': { $in: pledgeIds } },
-        //     { 'returnValues.to': { $in: pledgeIds } },
-        //   ],
-        // },
+        {
+          event: 'Transfer',
+          $or: [
+            // { 'returnValues.from': { $in: pledgeIds } },
+            { 'returnValues.to': { $in: pledgeIds } },
+          ],
+        },
       ],
       $select: ['event', 'returnValues', 'transactionHash', 'createdAt'],
       $sort: { blockNumber: 1, transactionIndex: 1, logIndex: 1 },
