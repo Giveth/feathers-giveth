@@ -65,8 +65,8 @@ module.exports = app => {
           event: {
             $in: [
               'ProjectAdded',
+              'CancelProject',
               // 'ProjectUpdated',
-              // 'CancelProject',
               // 'MilestoneCompleteRequestApproved',
               // 'MilestoneCompleteRequestRejected',
               // 'MilestoneCompleteRequested',

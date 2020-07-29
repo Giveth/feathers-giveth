@@ -305,6 +305,82 @@ module.exports = app => {
             }
             break;
 
+          case 'CancelProject':
+            {
+              // Flush any payout if exists
+              await flushPayouts(this);
+
+              const projectId = Number(returnValues.idProject);
+              if (campaign.projectId === projectId) {
+                const { from } = await getTransaction(app, transactionHash);
+                // const actionTaker = await getUser(from);
+                let actor;
+                const { ownerAddress, reviewerAddress, coownerAddress } = campaign;
+                if (ownerAddress === from) {
+                  actor = 'Owner';
+                } else if (reviewerAddress === from) {
+                  actor = 'Reviewer';
+                } else if (coownerAddress === from) {
+                  actor = 'CoOwner';
+                } else {
+                  actor = 'Unknown';
+                }
+
+                campaignOwner = from;
+                result = {
+                  ...result,
+                  action: 'Campaign Canceled',
+                  actor,
+                  actionOnBehalfOf: 'Campaign',
+                  recipientName: campaign.title,
+                  recipientType: 'Campaign',
+                  recipient: getEntityLink(campaign, AdminTypes.CAMPAIGN),
+                  actionTakerAddress: from,
+                  actionRecipientAddress: campaign.pluginAddress,
+                  etherscanLink: getEtherscanLink(transactionHash),
+                };
+              } else {
+                const milestone = milestoneMap.get(projectId);
+                if (milestone) {
+                  const { from } = await getTransaction(app, transactionHash);
+                  let actor;
+                  const { ownerAddress, reviewerAddress, recipientAddress } = milestone;
+                  if (ownerAddress === from) {
+                    actor = 'Proposer';
+                  } else if (reviewerAddress === from) {
+                    actor = 'Reviewer';
+                  } else if (recipientAddress === from) {
+                    actor = 'Recipient';
+                  } else if (campaign.ownerAddress === from) {
+                    actor = 'Campaign Owner';
+                  } else if (campaign.reviewerAddress === from) {
+                    actor = 'Campaign Reviewer';
+                  } else {
+                    actor = 'Unknown';
+                  }
+
+                  result = {
+                    ...result,
+                    action: 'Milestone Canceled',
+                    actor,
+                    actionOnBehalfOf: 'Milestone',
+                    recipientName: campaign.title,
+                    recipientType: 'Campaign',
+                    recipient: getEntityLink(campaign, AdminTypes.CAMPAIGN),
+                    actionTakerAddress: from,
+                    actionRecipientAddress: milestone.pluginAddress,
+                    etherscanLink: getEtherscanLink(transactionHash),
+                  };
+                  initializeMilestoneBalance(milestone);
+                  insertMilestoneBalanceItems(milestone._id, result);
+                } else {
+                  logger.error(
+                    `campaign csv could'nt find corresponding project to id ${projectId}`,
+                  );
+                }
+              }
+            }
+            break;
           case 'Transfer':
             {
               const { from, to, amount } = returnValues;
@@ -502,6 +578,7 @@ module.exports = app => {
               }
             }
             break;
+
           default:
         }
 
