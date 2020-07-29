@@ -14,6 +14,8 @@ module.exports = function csv() {
   const { newEventTransform } = eventTransform(app);
   const { getNewCsvTransform } = json2csv(app);
 
+  const infoListeners = {};
+
   const campaignService = app.service('campaigns');
   const getCampaignInfo = {
     async get(id) {
@@ -21,17 +23,34 @@ module.exports = function csv() {
         return { error: 400 };
       }
 
+      if (infoListeners[id]) {
+        return new Promise(resolve => {
+          infoListeners.push(resolve);
+        });
+      }
+
+      infoListeners[id] = [];
+
       const result = await campaignService.find({
         query: {
           _id: id,
           $limit: 1,
         },
       });
+
+      let response;
+
       if (result.total !== 1) {
-        return { error: 404 };
+        response = { error: 404 };
+      } else {
+        const campaign = result.data[0];
+        response = { campaign };
       }
-      const campaign = result.data[0];
-      return { campaign };
+
+      infoListeners[id].forEach(cb => cb(response));
+      delete infoListeners[id];
+
+      return response;
     },
   };
 
@@ -57,11 +76,13 @@ module.exports = function csv() {
       });
   };
 
+  const cacheListeners = {};
+
   const cacheMiddleWare = (req, res, next) => {
     const { error, campaign } = res.data;
 
-    const { id, updatedAt } = campaign;
-
+    const { _id, updatedAt } = campaign;
+    const id = _id.toString();
     if (error) {
       res.status(error).end();
       return;
@@ -76,10 +97,22 @@ module.exports = function csv() {
       return;
     }
 
+    if (cacheListeners[id]) {
+      cacheListeners[id].push(body => {
+        res.type('csv');
+        res.setHeader('Content-disposition', `attachment; filename=${id}.csv`);
+        res.send(body);
+      });
+      return;
+    }
+    cacheListeners[id] = [];
+
     res.sendResponse = res.send;
     res.send = body => {
       MemoryCache.put(id, { updatedAt, body });
       res.sendResponse(body);
+      cacheListeners[id].forEach(cb => cb(body));
+      delete cacheListeners[id];
       res.end();
     };
 
