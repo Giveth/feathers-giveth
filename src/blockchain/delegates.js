@@ -5,9 +5,9 @@ const logger = require('winston');
 const { DacStatus } = require('../models/dacs.model');
 const reprocess = require('../utils/reprocess');
 const to = require('../utils/to');
+const { getTransaction } = require('./lib/web3Helpers');
 
 const delegates = (app, liquidPledging) => {
-  const web3 = app.getWeb3();
   const dacs = app.service('/dacs');
 
   async function fetchProfile(url, delegateId) {
@@ -33,10 +33,10 @@ const delegates = (app, liquidPledging) => {
         return reprocess(getOrCreateDac.bind(this, delegate, txHash, true), 5000);
       }
 
-      const tx = await web3.eth.getTransaction(txHash);
+      const { from } = await getTransaction(app, txHash);
       try {
         return dacs.create({
-          ownerAddress: tx.from,
+          ownerAddress: from,
           pluginAddress: delegate.plugin,
           title: delegate.name,
           commitTime: delegate.commitTime,

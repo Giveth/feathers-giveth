@@ -17,6 +17,9 @@ module.exports = function serviceFactory() {
   // Initialize our service with any options it requires
   app.use('/donations', createService(options));
 
+  // Save donation model
+  app.set('donationModel', Model);
+
   // Get our initialized service so that we can register hooks and filters
   const service = app.service('donations');
 
