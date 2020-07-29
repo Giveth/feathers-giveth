@@ -238,18 +238,14 @@ module.exports = app => {
       }
     };
 
-    let counter = 0; // TODO: for debug, should be removed
     return new Stream.Transform({
       objectMode: true,
       async transform(eventObject, _, callback) {
-        counter += 1;
-        console.log('counter:', counter);
         const { event, transactionHash, returnValues, createdAt } = eventObject;
         let result = {
           createdAt: createdAt.toString(),
         };
 
-        console.log('event:', event);
         switch (event) {
           case 'ProjectAdded':
             {
@@ -589,7 +585,6 @@ module.exports = app => {
       async flush(callback) {
         await flushPayouts(this);
         callback();
-        console.log('finished....');
       },
     });
   };
