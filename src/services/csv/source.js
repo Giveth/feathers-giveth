@@ -32,50 +32,6 @@ module.exports = app => {
       paginate: false,
     });
 
-    const findQueryStream = (service, query, params = {}) => {
-      let totalCount = 0;
-      let cache = [];
-      let noMoreData = false;
-
-      const stream = new Stream.Readable({
-        read() {
-          if (cache.length > 0) {
-            stream.push(cache.shift());
-            return;
-          }
-
-          if (noMoreData) {
-            stream.push(null);
-            return;
-          }
-
-          service
-            .find({
-              query: {
-                ...query,
-                $skip: totalCount,
-                $limit: 100,
-              },
-              ...params,
-            })
-            .then(result => {
-              console.log(result.total);
-              const { data } = result;
-              console.log(data.length);
-              totalCount += data.length;
-              if (totalCount === result.total) {
-                noMoreData = true;
-              }
-              cache = data;
-              stream.push(cache.shift());
-            });
-        },
-        objectMode: true,
-      });
-
-      return stream;
-    };
-
     const [distinctPledgeIds, distinctCanceledPledgeIds] = await Promise.all([
       // List of pledges ID owned by campaign and its milestones
       donationModel.distinct('pledgeId', {
@@ -132,7 +88,85 @@ module.exports = app => {
       $sort: { blockNumber: 1, transactionIndex: 1, logIndex: 1 },
     };
 
-    const eventsStream = findQueryStream(eventService, eventQuery);
+    let totalCount = 0;
+    let cache = [];
+    let noMoreData = false;
+
+    // Filter transfer events returned back immediately in same transaction
+    // @param {Stream} stream to send filtered event
+    // @param {Object} fetched event to send
+    // @return {Boolean} filtered
+    const filterTransfers = async (stream, fetchedEvent) => {
+      const { event } = fetchedEvent;
+      if (event !== 'Transfer') {
+        stream.push(fetchedEvent);
+        return false;
+      }
+
+      const { returnValues, transactionHash } = fetchedEvent;
+      const { from, to, amount } = returnValues;
+
+      const result = await eventService.find({
+        query: {
+          transactionHash,
+          event,
+          'returnValues.from': to,
+          'returnValues.to': from,
+          'returnValues.amount': amount,
+          $limit: 1,
+        },
+      });
+
+      const { data } = result;
+      // Transfer is not returned immediately
+      if (data.length === 0) {
+        stream.push(fetchedEvent);
+        return false;
+      }
+
+      return true;
+    };
+
+    const readEvents = async stream => {
+      if (cache.length > 0) {
+        // eslint-disable-next-line no-await-in-loop
+        const filtered = await filterTransfers(stream, cache.shift());
+        // eslint-disable-next-line no-await-in-loop
+        if (filtered) await readEvents(stream);
+        return;
+      }
+
+      if (noMoreData) {
+        stream.push(null);
+        return;
+      }
+
+      const result = await eventService.find({
+        query: {
+          ...eventQuery,
+          $skip: totalCount,
+          $limit: 100,
+        },
+      });
+      const { data } = result;
+      totalCount += data.length;
+      if (totalCount === result.total) {
+        noMoreData = true;
+      }
+
+      cache = data;
+
+      const filtered = await filterTransfers(stream, cache.shift());
+      if (filtered) await readEvents(stream);
+    };
+
+    const eventsStream = new Stream.Readable({
+      read() {
+        return readEvents(eventsStream);
+      },
+      objectMode: true,
+    });
+
     return {
       eventsStream,
       milestones,
