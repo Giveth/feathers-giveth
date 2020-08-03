@@ -193,8 +193,12 @@ const pledges = (app, liquidPledging) => {
 
     if (logs.length === 0) return undefined;
 
-    const log = logs[0];
-
+    const [log] = logs;
+    const { data } = log;
+    // Just keep homeTx
+    log.data = `0x${'0'.repeat(128)}${data.substring(130, 130 + 64)}${'0'.repeat(
+      data.length - 2 - 128 - 64,
+    )}`;
     const topic = topics.find(t => t.hash === log.topics[0]);
     const event = decoders[topic.name](log);
 
