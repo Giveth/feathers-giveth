@@ -10,7 +10,7 @@ const { DonationStatus } = require('../../models/donations.model');
 const { AdminTypes } = require('../../models/pledgeAdmins.model');
 const { MilestoneStatus } = require('../../models/milestones.model');
 const { getHourlyUSDCryptoConversion } = require('../conversionRates/getConversionRatesService');
-const { ZERO_ADDRESS } = require('../../blockchain/lib/web3Helpers');
+const { ZERO_ADDRESS, getTransaction } = require('../../blockchain/lib/web3Helpers');
 
 const { updateDonationEntityCountersHook } = require('./updateEntityCounters');
 
@@ -326,7 +326,7 @@ const addActionTakerAddress = () => async context => {
 
   try {
     const { app } = context;
-    const { from } = await app.getWeb3().eth.getTransaction(txHash);
+    const { from } = await getTransaction(app, txHash);
     context.data.actionTakerAddress = from;
   } catch (e) {
     logger.error(`Error on getting from of transaction: ${txHash}`, e);

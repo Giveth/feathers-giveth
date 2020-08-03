@@ -12,6 +12,7 @@ const {
   removeHexPrefix,
   getBlockTimestamp,
   executeRequestsAsBatch,
+  getTransaction,
   ANY_TOKEN,
 } = require('./lib/web3Helpers');
 const { CampaignStatus } = require('../models/campaigns.model');
@@ -252,11 +253,11 @@ const projects = (app, liquidPledging) => {
   }
 
   async function createCampaign(project, projectId, reviewerAddress, canceled, txHash) {
-    const tx = await web3.eth.getTransaction(txHash);
+    const { from } = await getTransaction(app, txHash);
     try {
       return campaigns.create({
         projectId,
-        ownerAddress: tx.from,
+        ownerAddress: from,
         coownerAddress: '0x0',
         fundsForwarder: '0x0',
         pluginAddress: project.plugin,

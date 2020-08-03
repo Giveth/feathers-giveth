@@ -144,6 +144,50 @@ const getBlockTimestamp = async (web3, blockNumber) => {
   return ts;
 };
 
+const txListeners = {};
+
+/**
+ * fetches the transaction for the given hash in foreign network.
+ *
+ * first checks if the transaction has been saved in db
+ * if it misses, we fetch the block using web3 and save it in db
+ *
+ * if we are currently fetching a given hash, we will not fetch it twice.
+ * instead, we resolve the promise after we fetch the transaction for the hash.
+ *
+ * @param {object} app application instance
+ * @param {string} hash the hash to fetch the transaction of
+ */
+const getTransaction = async (app, hash) => {
+  const web3 = app.getWeb3();
+  const Transaction = app.get('transactionsModel');
+  const result = await Transaction.find({ hash }).exec();
+  if (result.length > 0) {
+    return result[0];
+  }
+
+  // if we are already fetching the transaction, don't do it twice
+  if (txListeners[hash]) {
+    return new Promise(resolve => {
+      // attach a listener which is executed when we get the block ts
+      txListeners[hash].push(resolve);
+    });
+  }
+
+  txListeners[hash] = [];
+
+  const { from } = await web3.eth.getTransaction(hash);
+
+  const transaction = new Transaction({ hash, from });
+  await transaction.save();
+
+  // execute any listeners for the block
+  txListeners[hash].forEach(cb => cb(transaction));
+  delete txListeners[hash];
+
+  return transaction;
+};
+
 // if the websocket connection drops, attempt to re-connect
 // upon successful re-connection, we re-start all listeners
 const reconnectOnEnd = (web3Core, nodeUrl) => {
@@ -262,6 +306,7 @@ module.exports = {
   removeHexPrefix,
   addAccountToWallet,
   getBlockTimestamp,
+  getTransaction,
   ANY_TOKEN,
   ZERO_ADDRESS,
 };
