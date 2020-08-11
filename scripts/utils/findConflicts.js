@@ -229,7 +229,7 @@ const getBlockchainData = async () => {
     }
 
     if (updateState) fs.writeFileSync(stateFile, JSON.stringify(state, null, 2));
-    if (updateEvents) {
+    if (updateEvents && newEvents) {
       events = [...events, ...newEvents];
       fs.writeFileSync(eventsFile, JSON.stringify(events, null, 2));
     }
