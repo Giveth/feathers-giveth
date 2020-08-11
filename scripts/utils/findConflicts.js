@@ -190,7 +190,7 @@ const getBlockchainData = async () => {
     const liquidPledging = new LiquidPledging(foreignWeb3, liquidPledgingAddress);
     const liquidPledgingState = new LiquidPledgingState(liquidPledging);
 
-    let newEvents;
+    let newEvents = [];
     let error = null;
     let firstTry = true;
     while (
@@ -198,7 +198,8 @@ const getBlockchainData = async () => {
       !Array.isArray(state.pledges) ||
       state.pledges.length <= 1 ||
       !Array.isArray(state.admins) ||
-      state.admins.length <= 1
+      state.admins.length <= 1 ||
+      !Array.isArray(newEvents)
     ) {
       if (!firstTry) {
         logger.error('Some problem on fetching network info... Trying again!');
