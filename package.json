@@ -85,7 +85,7 @@
     "serve-favicon": "^2.4.3",
     "shortid": "^2.2.8",
     "triple-beam": "^1.3.0",
-    "web3": "^1.2.11",
+    "web3": "^1.2.2",
     "web3-core-promievent": "^1.2.11",
     "web3-eth-accounts": "^1.2.11",
     "web3-eth-contract": "^1.2.11",
