@@ -1,0 +1,22 @@
+diff --git a/node_modules/@ethersproject/abi/lib/coders/abstract-coder.js b/node_modules/@ethersproject/abi/lib/coders/abstract-coder.js
+index 1482119..7fc6dc6 100644
+--- a/node_modules/@ethersproject/abi/lib/coders/abstract-coder.js
++++ b/node_modules/@ethersproject/abi/lib/coders/abstract-coder.js
+@@ -130,14 +130,13 @@ var Reader = /** @class */ (function () {
+         return Reader.coerce(name, value);
+     };
+     Reader.prototype._peekBytes = function (offset, length) {
+-        var alignedLength = Math.ceil(length / this.wordSize) * this.wordSize;
+-        if (this._offset + alignedLength > this._data.length) {
++        if (this._offset + length > this._data.length) {
+             logger.throwError("data out-of-bounds", logger_1.Logger.errors.BUFFER_OVERRUN, {
+                 length: this._data.length,
+-                offset: this._offset + alignedLength
++                offset: this._offset + length
+             });
+         }
+-        return this._data.slice(this._offset, this._offset + alignedLength);
++        return this._data.slice(this._offset, this._offset + length);
+     };
+     Reader.prototype.subReader = function (offset) {
+         return new Reader(this._data.slice(this._offset + offset), this.wordSize, this._coerceFunc);
