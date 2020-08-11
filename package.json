@@ -35,8 +35,7 @@
     "mocha": "mocha test/ --recursive",
     "prettify": "prettier --write 'src/**/*.js*'",
     "reset-db": "node scripts/resetDataBase.js",
-    "mongo": "mongod --fork --syslog",
-    "postinstall": "CI=true patch-package"
+    "mongo": "mongod --fork --syslog"
   },
   "dependencies": {
     "@feathers-plus/batch-loader": "^0.3.6",
