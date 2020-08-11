@@ -7,7 +7,7 @@ const logger = require('winston');
 
 const processingQueue = require('../utils/processingQueue');
 const to = require('../utils/to');
-const { removeHexPrefix, executeRequestsAsBatch } = require('./lib/web3Helpers');
+const { removeHexPrefix } = require('./lib/web3Helpers');
 const { EventStatus } = require('../models/events.model');
 const { DonationStatus } = require('../models/donations.model');
 
@@ -583,19 +583,8 @@ const watcher = (app, eventHandler) => {
     async start() {
       setLastBlock(await getLastBlock(app));
 
-      let kernelAddress = await liquidPledging.kernel();
-      // There were cases that the above function was not working!
-      if (typeof kernelAddress !== 'string') {
-        [kernelAddress] = await executeRequestsAsBatch(web3, [
-          liquidPledging.$contract.methods.kernel().call.request,
-        ]);
-      }
-
-      try {
-        kernel = new Kernel(web3, kernelAddress);
-      } catch (e) {
-        logger.error('Error on getting liquid pledging kernel', e);
-      }
+      const kernelAddress = await liquidPledging.kernel();
+      kernel = new Kernel(web3, kernelAddress);
 
       await checkDonations();
 
