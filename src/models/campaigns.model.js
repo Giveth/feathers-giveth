@@ -39,6 +39,7 @@ function createModel(app) {
         default: CampaignStatus.PENDING,
       },
       url: { type: String },
+      customThanksMessage: { type: String },
       prevUrl: { type: String }, // To store deleted/cleared lost ipfs values
       commitTime: { type: Number },
       communityUrl: { type: String },
