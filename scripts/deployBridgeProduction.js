@@ -9,7 +9,7 @@ const { LPPCappedMilestoneFactory, LPPCappedMilestone } = require('lpp-capped-mi
 const keys = require('./keys.js');
 
 const homeWeb3 = new Web3('https://mew.giveth.io');
-const foreignWeb3 = new Web3('https://rinkeby.giveth.io');
+const foreignWeb3 = new Web3('https://rinkeby2.giveth.io');
 
 const PK = keys.mainnet;
 const rinkebyPK = keys.rinkeby;

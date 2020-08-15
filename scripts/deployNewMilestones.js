@@ -6,7 +6,7 @@ const { BridgedMilestone, LPMilestone, MilestoneFactory } = require('lpp-milesto
 
 const keys = require('./keys.js');
 
-const foreignWeb3 = new Web3('https://rinkeby.giveth.io');
+const foreignWeb3 = new Web3('https://rinkeby2.giveth.io');
 
 const rinkebyPK = keys.rinkeby;
 const foreignAccount = foreignWeb3.eth.accounts.privateKeyToAccount(rinkebyPK);
@@ -15,6 +15,7 @@ foreignWeb3.eth.accounts.wallet.add(foreignAccount);
 const foreignGasPrice = foreignWeb3.utils.toWei('10', 'gwei');
 
 function getBlockAndBalance(w3, address) {
+  // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
     try {
       resolve({
@@ -28,6 +29,7 @@ function getBlockAndBalance(w3, address) {
 }
 
 function deploy() {
+  // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
     const foreignFrom = foreignAccount.address;
 

@@ -10,7 +10,7 @@ const { LPPCappedMilestoneFactory, LPPCappedMilestone } = require('lpp-capped-mi
 const keys = require('./keys.js');
 
 const homeWeb3 = new Web3('https://ropsten.infura.io');
-const foreignWeb3 = new Web3('https://rinkeby.giveth.io');
+const foreignWeb3 = new Web3('https://rinkeby2.giveth.io');
 
 const ropstenPK = keys.ropsten;
 const rinkebyPK = keys.rinkeby;
@@ -26,6 +26,7 @@ const homeGasPrice = homeWeb3.utils.toWei('6', 'gwei');
 const foreignGasPrice = foreignWeb3.utils.toWei('10', 'gwei');
 
 function getBlockAndBalance(w3, address) {
+  // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
     try {
       resolve({
@@ -39,6 +40,7 @@ function getBlockAndBalance(w3, address) {
 }
 
 function deploy() {
+  // eslint-disable-next-line no-async-promise-executor
   return new Promise(async (resolve, reject) => {
     const { keccak256 } = foreignWeb3.utils;
 

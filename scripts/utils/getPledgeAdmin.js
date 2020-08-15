@@ -1,7 +1,7 @@
 const Web3 = require('web3');
 const { LiquidPledging } = require('giveth-liquidpledging');
 
-const foreignWeb3 = new Web3('https://rinkeby.giveth.io');
+const foreignWeb3 = new Web3('https://rinkeby2.giveth.io');
 
 /**
   Utility method to get a single pledge from liquidPledging
