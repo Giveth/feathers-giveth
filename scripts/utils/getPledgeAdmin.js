@@ -1,7 +1,31 @@
 const Web3 = require('web3');
 const { LiquidPledging } = require('giveth-liquidpledging');
 
-const foreignWeb3 = new Web3('https://rinkeby2.giveth.io');
+const configFileName = 'default'; // default or beta
+
+// eslint-disable-next-line import/no-dynamic-require
+const config = require(`../../config/${configFileName}.json`);
+
+const { nodeUrl, liquidPledgingAddress } = config.blockchain;
+
+const instantiateWeb3 = url => {
+  const provider =
+    url && url.startsWith('ws')
+      ? new Web3.providers.WebsocketProvider(url, {
+          clientConfig: {
+            maxReceivedFrameSize: 100000000,
+            maxReceivedMessageSize: 100000000,
+          },
+        })
+      : url;
+  return new Web3(provider);
+};
+
+const foreignWeb3 = instantiateWeb3(
+  nodeUrl.startsWith('ws')
+    ? nodeUrl.replace('wss://', 'http://').replace('ws://', 'http://')
+    : nodeUrl,
+);
 
 /**
   Utility method to get a single pledge from liquidPledging
@@ -10,10 +34,7 @@ const foreignWeb3 = new Web3('https://rinkeby2.giveth.io');
 * */
 
 async function getPledgeAdmin(adminId) {
-  const liquidPledging = new LiquidPledging(
-    foreignWeb3,
-    '0x8eB047585ABeD935a73ba4b9525213F126A0c979',
-  );
+  const liquidPledging = new LiquidPledging(foreignWeb3, liquidPledgingAddress);
 
   const admin = await liquidPledging.getPledgeAdmin(adminId);
   console.log('admin', admin);
