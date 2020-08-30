@@ -13,6 +13,7 @@ require('mongoose-long')(mongoose);
 require('../../src/models/mongoose-bn')(mongoose);
 const { LiquidPledging, LiquidPledgingState } = require('giveth-liquidpledging');
 const toFn = require('../../src/utils/to');
+const DonationUsdValueUtility = require('./DonationUsdValueUtility');
 
 const { argv } = yargs
   .option('dry-run', {
@@ -137,12 +138,15 @@ const Campaigns = require('../../src/models/campaigns.model').createModel(app);
 const DACs = require('../../src/models/dacs.model').createModel(app);
 const Donations = require('../../src/models/donations.model').createModel(app);
 const PledgeAdmins = require('../../src/models/pledgeAdmins.model').createModel(app);
+const ConversationRates = require('../../src/models/conversionRates.model')(app);
 
 const { DonationStatus } = require('../../src/models/donations.model');
 const { AdminTypes } = require('../../src/models/pledgeAdmins.model');
 const { DacStatus } = require('../../src/models/dacs.model');
 const { CampaignStatus } = require('../../src/models/campaigns.model');
 const { MilestoneStatus } = require('../../src/models/milestones.model');
+
+const donationUsdValueUtility = new DonationUsdValueUtility(ConversationRates);
 
 // Instantiate Web3 module
 // @params {string} url blockchain node url address
@@ -769,6 +773,8 @@ const handleToDonations = async (
           model._id = transfer._id;
         }
         const donation = new Donations(model);
+
+        await donationUsdValueUtility.setDonationUsdValue(donation);
 
         await donation.save();
 
