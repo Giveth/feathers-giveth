@@ -39,8 +39,11 @@ const main = async () => {
     .cursor()
     .eachAsync(
       async d => {
-        await donationUsdValueUtility.setDonationUsdValue(d);
-        await d.save();
+        const { usdValue, lessThanCutoff } = d;
+        if (!lessThanCutoff) {
+          await donationUsdValueUtility.setDonationUsdValue(d);
+          if (usdValue !== d.usdValue) await d.save();
+        }
       },
       {
         parallel: 50,
