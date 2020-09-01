@@ -148,6 +148,19 @@ const { MilestoneStatus } = require('../../src/models/milestones.model');
 
 const donationUsdValueUtility = new DonationUsdValueUtility(ConversationRates);
 
+// Blockchain data
+let events;
+let pledges;
+let admins;
+// Donations which are charged and can be used to move money from
+const chargedDonationListMap = {};
+// Map from pledge id to list of donations belonged to the pledge and are not used yet!
+const pledgeNotUsedDonationListMap = {};
+// Map from _id to donation
+const donationMap = {};
+// Map from txHash to list of included events
+const txHashEventMap = {};
+
 // Instantiate Web3 module
 // @params {string} url blockchain node url address
 const instantiateWeb3 = url => {
@@ -164,7 +177,7 @@ const instantiateWeb3 = url => {
 };
 
 // Gets status of liquidpledging storage
-const getBlockchainData = async () => {
+const fetchBlockchainData = async () => {
   try {
     if (!fs.existsSync(cacheDir)) {
       fs.mkdirSync(cacheDir);
@@ -176,7 +189,6 @@ const getBlockchainData = async () => {
   const eventsFile = path.join(cacheDir, `./liquidPledgingEvents_${configFileName}.json`);
 
   let state = {};
-  let events = [];
 
   if (!updateState) state = fs.existsSync(stateFile) ? JSON.parse(fs.readFileSync(stateFile)) : {};
   events = fs.existsSync(eventsFile) ? JSON.parse(fs.readFileSync(eventsFile)) : [];
@@ -238,10 +250,18 @@ const getBlockchainData = async () => {
       fs.writeFileSync(eventsFile, JSON.stringify(events, null, 2));
     }
   }
-  return {
-    state,
-    events,
-  };
+
+  events.forEach(event => {
+    const { transactionHash } = event;
+    const list = txHashEventMap[transactionHash] || [];
+    if (list.length === 0) {
+      txHashEventMap[transactionHash] = list;
+    }
+    list.push(event);
+  });
+
+  pledges = state.pledges;
+  admins = state.admins;
 };
 
 // Update createdAt date of donations based on transaction date
@@ -271,11 +291,9 @@ const updateDonationsCreatedDate = async startDate => {
     });
 };
 
-// Returns a map contains empty donation items for each pledge
-const getPledgeDonationItems = async () => {
-  const pledgeDonationListMap = new Map();
-  // Map from _id to donation
-  const donationMap = new Map();
+// Fills pledgeNotUsedDonationListMap map to contain donation items for each pledge
+// Fills donationMap to map id to donation item
+const fetchDonationsInfo = async () => {
   // TODO: pendingAmountRemaining is not considered in updating, it should be removed for successful transactions
   await Donations.find({})
     .sort({ createdAt: 1 })
@@ -298,10 +316,9 @@ const getPledgeDonationItems = async () => {
       }) => {
         // if (pledgeId === '0') return;
 
-        let list = pledgeDonationListMap.get(pledgeId.toString());
-        if (list === undefined) {
-          list = [];
-          pledgeDonationListMap.set(pledgeId.toString(), list);
+        const list = pledgeNotUsedDonationListMap[pledgeId.toString()] || [];
+        if (list.length === 0) {
+          pledgeNotUsedDonationListMap[pledgeId.toString()] = list;
         }
 
         const item = {
@@ -322,10 +339,9 @@ const getPledgeDonationItems = async () => {
         };
 
         list.push(item);
-        donationMap.set(_id.toString(), item);
+        donationMap[_id.toString()] = item;
       },
     );
-  return { pledgeDonationListMap, donationMap };
 };
 
 const convertPledgeStateToStatus = (pledge, pledgeAdmin) => {
@@ -350,27 +366,43 @@ const convertPledgeStateToStatus = (pledge, pledgeAdmin) => {
   }
 };
 
-const handleFromDonations = async (
-  from,
-  to,
-  amount,
-  transactionHash,
-  logIndex,
-  pledges,
-  admins,
-  pledgeNotFilledDonations,
-  chargedDonationList,
-  donationMap,
-) => {
+/**
+ * Determine if this transfer was a return of excess funds of an over-funded milestone
+ * @param {object} transferInfo
+ */
+async function isReturnTransfer(transferInfo) {
+  const { fromPledge, fromPledgeAdmin, toPledgeId, txHash, fromPledgeId } = transferInfo;
+  // currently only milestones will can be over-funded
+  if (fromPledgeAdmin.type !== AdminTypes.MILESTONE) return false;
+
+  const eventsInTx = txHashEventMap[txHash];
+
+  // ex events in return case:
+  // Transfer(from: 1, to: 2, amount: 1000)
+  // Transfer(from: 2, to: 1, amount: < 1000)
+  return eventsInTx.some(
+    e =>
+      // it may go directly to fromPledge.oldPledge if this was delegated funds
+      // being returned b/c the intermediary pledge is the pledge w/ the intendedProject
+      e.event === 'Transfer' &&
+      [e.returnValues.from, fromPledge.oldPledge].includes(toPledgeId) &&
+      e.returnValues.to === fromPledgeId,
+  );
+}
+
+const isRejectedDelegation = ({ fromPledge, toPledge }) =>
+  Number(fromPledge.intendedProject) > 0 && fromPledge.intendedProject !== toPledge.owner;
+
+const handleFromDonations = async (from, to, amount, transactionHash) => {
   const usedFromDonations = []; // List of donations which could be parent of the donation
   let isIgnored = false;
   let giverAddress;
 
-  let toUnusedDonationList = pledgeNotFilledDonations.get(to); // List of donations which are candidates to be charged
+  let toUnusedDonationList = pledgeNotUsedDonationListMap[to]; // List of donations which are candidates to be charged
   if (toUnusedDonationList === undefined) {
     logger.debug(`There is no donation for pledgeId ${to}`);
     toUnusedDonationList = [];
-    pledgeNotFilledDonations.set(to, toUnusedDonationList);
+    pledgeNotUsedDonationListMap[to] = toUnusedDonationList;
   }
 
   const toPledge = pledges[Number(to)];
@@ -381,7 +413,7 @@ const handleFromDonations = async (
   const fromOwnerAdmin = from !== '0' ? admins[Number(fromOwnerId)] : {};
 
   if (from !== '0') {
-    const candidateChargedParents = chargedDonationList.get(from) || [];
+    const candidateChargedParents = chargedDonationListMap[from] || [];
 
     // Trying to find the best parent from DB
     let candidateToDonationList = toUnusedDonationList.filter(
@@ -392,7 +424,7 @@ const handleFromDonations = async (
       logger.debug('candidateToDonationList length is greater than one!');
     } else if (candidateToDonationList.length === 0) {
       // Try to find donation among failed ones!
-      const failedDonationList = pledgeNotFilledDonations.get('0') || [];
+      const failedDonationList = pledgeNotUsedDonationListMap['0'] || [];
       const matchingFailedDonationIndex = failedDonationList.findIndex(item => {
         if (item.txHash === transactionHash && item.amount === amount) {
           const { parentDonations } = item;
@@ -401,7 +433,7 @@ const handleFromDonations = async (
           } // It should not have parent
           // Check whether parent pledgeId equals from
           if (parentDonations.length === 0) return false;
-          const parent = donationMap.get(item.parentDonations[0]);
+          const parent = donationMap[item.parentDonations[0]];
           return parent.pledgeId === from;
         }
         return false;
@@ -556,7 +588,7 @@ const handleFromDonations = async (
         if (fromAmount.eq(0)) break;
       }
 
-      chargedDonationList.set(from, candidateChargedParents.slice(consumedCandidates));
+      chargedDonationListMap[from] = candidateChargedParents.slice(consumedCandidates);
 
       if (!fromAmount.eq(0)) {
         logger.debug(`from delegate ${from} donations don't have enough amountRemaining!`);
@@ -583,23 +615,16 @@ const handleToDonations = async (
   transactionHash,
   blockNumber,
   logIndex,
-  pledges,
-  admins,
-  pledgeNotFilledDonations,
-  candidateDonationList,
-  chargedDonationList,
   usedFromDonations,
   isIgnored,
   giverAddress,
-  donationMap,
 ) => {
   if (isIgnored) return;
 
-  let toNotFilledDonationList = pledgeNotFilledDonations.get(to); // List of donations which are candidates to be charged
-  if (toNotFilledDonationList === undefined) {
+  const toNotFilledDonationList = pledgeNotUsedDonationListMap[to] || []; // List of donations which are candidates to be charged
+  if (toNotFilledDonationList.length === 0) {
     logger.debug(`There is no donation for pledgeId ${to}`);
-    toNotFilledDonationList = [];
-    pledgeNotFilledDonations.set(to, toNotFilledDonationList);
+    pledgeNotUsedDonationListMap[to] = toNotFilledDonationList;
   }
 
   // const updateParents = corruptedParentPledgeIds.includes(from);
@@ -690,6 +715,8 @@ const handleToDonations = async (
           logger.info(`pledgeAdmin crated: ${toPledgeAdmin._id.toString()}`);
         }
 
+        const [fromPledgeAdmin] = await PledgeAdmins.find({ id: Number(fromOwnerId) }).exec();
+
         // Create donation
         const token = config.tokenWhitelist.find(
           t => t.foreignAddress.toLowerCase() === toPledge.token.toLowerCase(),
@@ -745,12 +772,21 @@ const handleToDonations = async (
         }
 
         const { timestamp } = await foreignWeb3.eth.getBlock(blockNumber);
+        const returnedTransfer = await isReturnTransfer({
+          fromPledge,
+          fromPledgeAdmin,
+          fromPledgeId: from,
+          toPledgeId: to,
+          txHash: transactionHash,
+        });
+
+        const rejectedDelegation = isRejectedDelegation({ toPledge, fromPledge });
 
         const model = {
           status,
           mined: true,
           parentDonations: expectedToDonation.parentDonations,
-          isReturn: false,
+          isReturn: returnedTransfer || rejectedDelegation,
           giverAddress,
           amount: expectedToDonation.amount,
           amountRemaining: transfer.amountRemaining
@@ -781,7 +817,7 @@ const handleToDonations = async (
         const _id = donation._id.toString();
         expectedToDonation._id = _id;
         expectedToDonation.savedAmountRemaining = model.amountRemaining;
-        donationMap.set(_id, expectedToDonation);
+        donationMap[_id] = expectedToDonation;
         logger.info(
           `donation created: ${JSON.stringify(
             {
@@ -810,16 +846,9 @@ const handleToDonations = async (
         logger.debug(`From pledge: ${fromPledge}`);
         logger.debug(`To pledge: ${toPledge}`);
       }
-      let candidates = candidateDonationList.get(to);
-      if (candidates === undefined) {
-        candidates = [];
-        candidateDonationList.set(to, candidates);
-      }
-      candidates.push(expectedToDonation);
-      candidates = chargedDonationList.get(to);
-      if (candidates === undefined) {
-        candidates = [];
-        chargedDonationList.set(to, candidates);
+      const candidates = chargedDonationListMap[to] || [];
+      if (candidates.length === 0) {
+        chargedDonationListMap[to] = candidates;
       }
       candidates.push(expectedToDonation);
     }
@@ -881,13 +910,10 @@ const handleToDonations = async (
       }
     }
 
-    let candidates = chargedDonationList.get(to);
-
-    if (candidates === undefined) {
-      candidates = [];
-      chargedDonationList.set(to, candidates);
+    const candidates = chargedDonationListMap[to] || [];
+    if (candidates.length === 0) {
+      chargedDonationListMap[to] = candidates;
     }
-
     candidates.push(toDonation);
 
     logger.debug(
@@ -902,241 +928,10 @@ const handleToDonations = async (
         2,
       )}`,
     );
-
-    // The project is cancelled, the donatoin should be reverted
-    // if (toDonation.status === DonationStatus.CANCELED) {
-    //   console.log(`Reverting donation to ${from}`);
-    //   let fromUnusedDonationList =  pledgeNotFilledDonations.get(from); // List of donations which are candidates to money return to
-    //   if (fromUnusedDonationList === undefined) {
-    //     console.log(`There is no donation for pledgeId ${from}`);
-    //     fromUnusedDonationList = [];
-    //      pledgeNotFilledDonations.set(from, fromUnusedDonationList);
-    //   }
-    //
-    //   const returnIndex = fromUnusedDonationList.findIndex(
-    //     item =>
-    //       item.amountRemaining.eq(0) &&
-    //       item.amount === amount &&
-    //       item.parentDonations.length === 1 &&
-    //       item.parentDonations[0].toString() === toDonation._id.toString(),
-    //   );
-    //
-    //   const returnDonation =
-    //     returnIndex !== -1 ? fromUnusedDonationList.splice(returnIndex, 1)[0] : undefined;
-    //   if (returnDonation === undefined) {
-    //     process.stdout.write("could'nt find return donation", () => {
-    //       process.exit();
-    //     });
-    //   }
-    //   returnDonation.amountRemaining = returnDonation.amountRemaining.plus(amount);
-    //   const returnChargedDonation = {
-    //     _id: returnDonation._id,
-    //     status: returnDonation.status,
-    //     txHash: transactionHash,
-    //     parentDonations: returnDonation.parentDonations,
-    //     from,
-    //     pledgeId: to,
-    //     pledgeState: toPledge.pledgeState,
-    //     amount,
-    //     amountRemaining: new BigNumber(amount),
-    //   };
-    //
-    //   let fromChargedDonationList = chargedDonationList.get(from);
-    //
-    //   if (fromChargedDonationList === undefined) {
-    //     fromChargedDonationList = [];
-    //     chargedDonationList.set(to, fromChargedDonationList);
-    //   }
-    //
-    //   fromChargedDonationList.push(returnChargedDonation);
-    //
-    //   console.log(
-    //     `Amount added to ${JSON.stringify(
-    //       {
-    //         _id: returnDonation._id,
-    //         amountRemaining: returnDonation.amountRemaining.toFixed(),
-    //         amount: returnDonation.amount,
-    //         status: returnDonation.status,
-    //       },
-    //       null,
-    //       2,
-    //     )}`,
-    //   );
-    // }
   }
 };
-// const getMostRecentDonationNotCanceled = (donation, donationMap, admins) => {
-//   // givers can never be canceled
-//   if (donation.ownerType === AdminTypes.GIVER && !donation.intendedProjectId) {
-//     return donation;
-//   }
-//
-//   const pledgeOwnerAdmin = admins[Number(donation.ownerId)];
-//
-//   // if pledgeOwnerAdmin is canceled or donation is a delegation, go back 1 donation
-//   if (pledgeOwnerAdmin.isCanceled || Number(donation.intendedProjectId) > 0) {
-//     // we use the 1st parentDonation b/c the owner of all parentDonations
-//     // is the same
-//     return getMostRecentDonationNotCanceled(
-//       donationMap.get(donation.parentDonations[0]),
-//       donationMap,
-//       admins,
-//     );
-//   }
-//
-//   return donation;
-// };
 
-// const revertDonation = async (
-//   donation,
-//   transactionHash,
-//   donationMap,
-//   pledgeNotFilledDonations,
-//   toCreateDonationListMap,
-//   chargedDonationListMap,
-//   admins,
-// ) => {
-//   // They should not be processed in regular donation reverting process
-//   // if (revertExemptedDonations.includes(donation._id)) return;
-//   if ([DonationStatus.PAYING, DonationStatus.PAID].includes(donation.status)) return;
-//
-//   const revertToDonation = getMostRecentDonationNotCanceled(donation, donationMap, admins);
-//   const toPledgeNotFilledDonationList = pledgeNotFilledDonations.get(revertToDonation.pledgeId);
-//   if (toPledgeNotFilledDonationList === undefined) {
-//     terminateScript(`No pledge found to move money to`);
-//     return;
-//   }
-//   const toIndex = toPledgeNotFilledDonationList.findIndex(
-//     item =>
-//       item.txHash === transactionHash &&
-//       item.parentDonations.length === 1 &&
-//       (donation._id === undefined || item.parentDonations[0] === donation._id),
-//   );
-//
-//   if (toIndex === -1) {
-//     terminateScript(
-//       `Couldn't find donation to move money of ${JSON.stringify(donation, null, 2)}`,
-//     );
-//     return;
-//   }
-//
-//   const toDonation =
-//     toIndex !== -1 ? toPledgeNotFilledDonationList.splice(toIndex, 1)[0] : undefined;
-//
-//   toDonation.amountRemaining = toDonation.amountRemaining.plus(donation.amountRemaining);
-//   donation.amountRemaining = new BigNumber(0);
-//
-//   // TODO: It happens and should be fixed
-//   // if (toDonation.amountRemaining.gt(toDonation.amount)) {
-//   //   terminateScript(
-//   //     `Donation amountRemaining exceeds its amount!\n${JSON.stringify(
-//   //       { ...toDonation, amountRemaining: toDonation.amountRemaining.toFixed() },
-//   //       null,
-//   //       2,
-//   //     )}`,
-//   //   );
-//   //   return;
-//   // }
-//
-//   toDonation.from = donation.pledgeId;
-//
-//   let chargedDonationList = chargedDonationListMap.get(toDonation.pledgeId);
-//
-//   if (chargedDonationList === undefined) {
-//     chargedDonationList = [];
-//     chargedDonationListMap.set(toDonation.pledgeId, chargedDonationList);
-//   }
-//
-//   chargedDonationList.push(toDonation);
-//
-//   chargedDonationList = chargedDonationListMap.get(donation.pledgeId) || [];
-//
-//   const fromIndex = chargedDonationList.findIndex(item => item._id === donation._id);
-//   if (fromIndex !== -1) chargedDonationList.splice(fromIndex, 1);
-//
-//   console.log(
-//     `Revert money from ${donation.pledgeId} to ${
-//       toDonation.pledgeId
-//     } amount ${toDonation.amountRemaining.toFixed()}`,
-//   );
-//   if (donation.status !== DonationStatus.CANCELED) {
-//     console.log(`Donation status should be ${DonationStatus.CANCELED}, but is ${donation.status}`);
-//     if (fixConflicts) {
-//       console.log('Updating...');
-//       await Donations.update({ _id: donation._id }, { status: DonationStatus.CANCELED }).exec();
-//       toDonation.status = DonationStatus.CANCELED;
-//     }
-//   }
-//
-//   const { _id, amount, amountRemaining } = toDonation;
-//   if (!amountRemaining.eq(amount)) {
-//     console.log(`Donation ${_id} amount should be ${amountRemaining.toFixed()} but is ${amount}`);
-//     if (fixConflicts) {
-//       console.log('Updating...');
-//       const { cutoff } = symbolDecimalsMap[donation.token.symbol];
-//       await Donations.update(
-//         { _id },
-//         { amount: amountRemaining.toFixed(), lessThanCutoff: cutoff.gt(amountRemaining) },
-//       ).exec();
-//       toDonation.amount = amountRemaining.toFixed();
-//     }
-//   }
-//
-//   console.log(
-//     `Amount added to ${JSON.stringify(
-//       {
-//         ...toDonation,
-//         amountRemaining: toDonation.amountRemaining.toFixed(),
-//       },
-//       null,
-//       2,
-//     )}`,
-//   );
-// };
-
-// // eslint-disable-next-line no-unused-vars
-// const revertProjectDonations = (
-//   projectId,
-//   transactionHash,
-//   donationMap,
-//   ownerPledgeList,
-//   pledgeNotFilledDonations,
-//   toCreateDonationListMap,
-//   chargedDonationListMap,
-//   admins,
-// ) => {
-//   const projectPledgesList = ownerPledgeList.get(projectId.toString()) || [];
-//   return Promise.all(
-//     projectPledgesList.map(pledgeId => {
-//       const chargedDonationList = chargedDonationListMap.get(String(pledgeId)) || [];
-//       return Promise.all(
-//         [...chargedDonationList].map(chargedDonation =>
-//           revertDonation(
-//             chargedDonation,
-//             transactionHash,
-//             donationMap,
-//             pledgeNotFilledDonations,
-//             toCreateDonationListMap,
-//             chargedDonationListMap,
-//             admins,
-//           ),
-//         ),
-//       );
-//     }),
-//   );
-// };
-
-const cancelProject = async (
-  projectId,
-  transactionHash,
-  donationMap,
-  ownerPledgeList,
-  campaignMilestoneListMap,
-  pledgeNotFilledDonations,
-  toCreateDonationListMap,
-  chargedDonationListMap,
-  admins,
-) => {
+const cancelProject = async projectId => {
   admins[projectId].isCanceled = true;
   const projectIdStr = String(projectId);
   admins.slice(1).forEach(admin => {
@@ -1149,41 +944,11 @@ const cancelProject = async (
    * We should wait for transfer event to be emitted. This logic should be implemented
    * in feathers-giveth core too.
    */
-
-  // Cancel campaign milestones
-  // if (campaignMilestoneListMap.has(projectId)) {
-  //   const milestoneList = campaignMilestoneListMap.get(projectId) || [];
-  //   await Promise.all(
-  //     milestoneList.map(id => {
-  //       return revertProjectDonations(
-  //         id,
-  //         transactionHash,
-  //         donationMap,
-  //         ownerPledgeList,
-  //         pledgeNotFilledDonations,
-  //         toCreateDonationListMap,
-  //         chargedDonationListMap,
-  //         admins,
-  //       );
-  //     }),
-  //   );
-  // }
-  //
-  // await revertProjectDonations(
-  //   projectId,
-  //   transactionHash,
-  //   donationMap,
-  //   ownerPledgeList,
-  //   pledgeNotFilledDonations,
-  //   toCreateDonationListMap,
-  //   chargedDonationListMap,
-  //   admins,
-  // );
 };
 
-const fixConflictInDonations = (donationMap, pledges, unusedDonationMap) => {
+const fixConflictInDonations = unusedDonationMap => {
   const promises = [];
-  donationMap.forEach(
+  Object.values(donationMap).forEach(
     ({ _id, amount, amountRemaining, savedAmountRemaining, status, pledgeId, txHash, token }) => {
       if (pledgeId === '0') return;
 
@@ -1248,44 +1013,9 @@ const fixConflictInDonations = (donationMap, pledges, unusedDonationMap) => {
   return Promise.all(promises);
 };
 
-const syncDonationsWithNetwork = async (events, pledges, admins) => {
-  // Map from pledge id to list of donations belongs to which are not used yet!
-  const {
-    pledgeDonationListMap: pledgeNotFilledDonations,
-    donationMap,
-  } = await getPledgeDonationItems();
-
-  // Donations which are candidate to be created
-  const toCreateDonationListMap = new Map();
-  // Donations which are charged and can be used to move money from
-  const chargedDonationListMap = new Map();
-  // Map from owner to list of its pledges
-  const ownerPledgeList = new Map();
-  // Map from campaign to list of its milestones
-  const campaignMilestoneListMap = new Map();
-
-  for (let i = 1; i < pledges.length; i += 1) {
-    const { owner } = pledges[i];
-    let list = ownerPledgeList.get(owner);
-    if (list === undefined) {
-      list = [];
-      ownerPledgeList.set(owner, list);
-    }
-    list.push(i);
-  }
-
-  for (let i = 1; i < admins.length; i += 1) {
-    const { parentProject } = admins[i];
-    if (parentProject !== '0') {
-      let list = campaignMilestoneListMap.get(parentProject);
-      if (list === undefined) {
-        list = [];
-        campaignMilestoneListMap.set(parentProject, list);
-      }
-      list.push(i);
-    }
-  }
-
+const syncDonationsWithNetwork = async () => {
+  // Map from pledge id to list of donations belonged to the pledge and are not used yet!
+  await fetchDonationsInfo();
   const foreignWeb3 = instantiateWeb3(nodeUrl);
   // Simulate transactions by events
   for (let i = 0; i < events.length; i += 1) {
@@ -1310,11 +1040,6 @@ const syncDonationsWithNetwork = async (events, pledges, admins) => {
         amount,
         transactionHash,
         logIndex,
-        pledges,
-        admins,
-        pledgeNotFilledDonations,
-        chargedDonationListMap,
-        donationMap,
       );
 
       // eslint-disable-next-line no-await-in-loop
@@ -1326,36 +1051,21 @@ const syncDonationsWithNetwork = async (events, pledges, admins) => {
         transactionHash,
         blockNumber,
         logIndex,
-        pledges,
-        admins,
-        pledgeNotFilledDonations,
-        toCreateDonationListMap,
-        chargedDonationListMap,
         usedFromDonations,
         isIgnored,
         giverAddress,
-        donationMap,
       );
     } else if (event === 'CancelProject') {
       const { idProject } = returnValues;
       logger.debug(`Cancel project ${idProject}: ${JSON.stringify(admins[Number(idProject)])}`);
       // eslint-disable-next-line no-await-in-loop
-      await cancelProject(
-        idProject,
-        transactionHash,
-        donationMap,
-        ownerPledgeList,
-        campaignMilestoneListMap,
-        pledgeNotFilledDonations,
-        toCreateDonationListMap,
-        chargedDonationListMap,
-        admins,
-      );
+      await cancelProject(idProject, transactionHash);
     }
   }
 
   // Find conflicts in donations and pledges!
-  chargedDonationListMap.forEach((list, pledgeId) => {
+  Object.keys(chargedDonationListMap).forEach(pledgeId => {
+    const list = chargedDonationListMap[pledgeId];
     const reducer = (totalAmountRemaining, chargedDonation) => {
       return totalAmountRemaining.plus(chargedDonation.amountRemaining);
     };
@@ -1396,16 +1106,16 @@ const syncDonationsWithNetwork = async (events, pledges, admins) => {
   });
 
   const unusedDonationMap = new Map();
-  pledgeNotFilledDonations.forEach(list =>
+  Object.values(pledgeNotUsedDonationListMap).forEach(list =>
     list.forEach(item => unusedDonationMap.set(item._id, item)),
   );
-  await fixConflictInDonations(donationMap, pledges, unusedDonationMap);
+  await fixConflictInDonations(unusedDonationMap);
 };
 
 // Creates PledgeAdmins entity for a project entity
 // Requires corresponding project entity has been saved holding correct value of txHash
 // eslint-disable-next-line no-unused-vars
-const syncPledgeAdmins = async events => {
+const syncPledgeAdmins = async () => {
   if (!fixConflicts) return;
 
   for (let i = 9000; i < events.length; i += 1) {
@@ -1493,14 +1203,12 @@ const syncPledgeAdmins = async events => {
 
 const main = async () => {
   try {
-    const { state, events } = await getBlockchainData();
+    await fetchBlockchainData();
 
     if (!findConflicts && !fixConflicts) {
       terminateScript(null, 0);
       return;
     }
-
-    const { pledges, admins } = state;
 
     /*
      Find conflicts in milestone donation counter
@@ -1515,8 +1223,8 @@ const main = async () => {
       logger.info('Connected to Mongo');
 
       Promise.all([
-        syncDonationsWithNetwork(events, pledges, admins),
-        // syncPledgeAdmins(events, admins),
+        syncDonationsWithNetwork(),
+        // syncPledgeAdmins(),
         // updateDonationsCreatedDate(new Date('2020-02-01')),
       ]).then(() => terminateScript(null, 0));
     });
