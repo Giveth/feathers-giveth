@@ -836,7 +836,7 @@ const handleToDonations = async ({
     await donationUsdValueUtility.setDonationUsdValue(toDonation);
     if (toDonation.usdValue !== usdValue) {
       logger.error(
-        `Donation ${toDonation._id} usdValue should be updated to ${toDonation.usdValue}`,
+        `Donation ${toDonation._id} usdValue is ${usdValue} but should be updated to ${toDonation.usdValue}`,
       );
       logger.debug('Updating...');
       await Donations.update({ _id: toDonation._id }, { usdValue: toDonation.usdValue }).exec();
@@ -910,6 +910,17 @@ const revertProjectDonations = async (projectId, transactionHash, blockNumber) =
     const donation = values[i];
     if (!donation.amountRemaining.isZero()) {
       const revertToDonation = getMostRecentDonationNotCanceled(donation._id);
+      logger.debug(`Revert donation ${JSON.stringify(donation, null, 2)}`);
+      logger.debug(
+        `To a donation like: ${JSON.stringify(
+          {
+            pledgeId: revertToDonation.pledgeId,
+            giverAddress: revertToDonation.giverAddress,
+          },
+          null,
+          2,
+        )}`,
+      );
       // eslint-disable-next-line no-await-in-loop
       await handleToDonations({
         from: donation.pledgeId,
@@ -1061,7 +1072,9 @@ const syncDonationsWithNetwork = async () => {
       });
     } else if (event === 'CancelProject') {
       const { idProject } = returnValues;
-      logger.debug(`Cancel project ${idProject}: ${JSON.stringify(admins[Number(idProject)])}`);
+      logger.debug(
+        `Cancel project ${idProject}: ${JSON.stringify(admins[Number(idProject)], null, 2)}`,
+      );
       // eslint-disable-next-line no-await-in-loop
       await cancelProject(idProject, transactionHash, blockNumber);
     }
