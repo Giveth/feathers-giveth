@@ -36,6 +36,7 @@ const MESSAGE_CONTEXT = [
   'rePropose',
   'archived',
   'payment',
+  'comment',
 ];
 
 /**
