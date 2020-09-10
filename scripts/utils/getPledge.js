@@ -1,20 +1,9 @@
+const Web3 = require('web3');
 const { LiquidPledging } = require('giveth-liquidpledging');
 
-const configFileName = 'default'; // default or beta
+const liquidPledgingAddress = '0x8eB047585ABeD935a73ba4b9525213F126A0c979';
 
-// eslint-disable-next-line import/no-dynamic-require
-const config = require(`../../config/${configFileName}.json`);
-
-const { liquidPledgingAddress } = config.blockchain;
-const { getWeb3 } = require('../../src/blockchain/lib/web3Helpers');
-
-const getForeignWeb3 = () => {
-  return getWeb3({
-    get: key => config[key],
-  });
-};
-
-const foreignWeb3 = getForeignWeb3();
+const foreignWeb3 = new Web3('https://rinkeby2.giveth.io');
 
 /**
   Utility method to get a single pledge from liquidPledging
