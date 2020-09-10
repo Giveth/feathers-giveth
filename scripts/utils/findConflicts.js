@@ -1,5 +1,6 @@
 /* eslint-disable no-continue */
 /* eslint-disable no-console */
+const Web3 = require('web3');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -13,7 +14,6 @@ require('../../src/models/mongoose-bn')(mongoose);
 const { LiquidPledging, LiquidPledgingState } = require('giveth-liquidpledging');
 const toFn = require('../../src/utils/to');
 const DonationUsdValueUtility = require('./DonationUsdValueUtility');
-const { getWeb3 } = require('../../src/blockchain/lib/web3Helpers');
 
 const { argv } = yargs
   .option('dry-run', {
@@ -116,7 +116,7 @@ config.tokenWhitelist.forEach(({ symbol, decimals }) => {
   };
 });
 
-const { liquidPledgingAddress } = config.blockchain;
+const { nodeUrl, liquidPledgingAddress } = config.blockchain;
 
 const appFactory = () => {
   const data = {};
@@ -164,10 +164,25 @@ const txHashTransferEventMap = {};
 // Map from owner pledge admin ID to dictionary of charged donations
 const ownerPledgeAdminIdChargedDonationMap = {};
 
+const instantiateWeb3 = url => {
+  const provider =
+    url && url.startsWith('ws')
+      ? new Web3.providers.WebsocketProvider(url, {
+          clientConfig: {
+            maxReceivedFrameSize: 100000000,
+            maxReceivedMessageSize: 100000000,
+          },
+        })
+      : url;
+  return new Web3(provider);
+};
+
+let foreignWeb3;
 const getForeignWeb3 = () => {
-  return getWeb3({
-    get: key => config[key],
-  });
+  if (!foreignWeb3) {
+    foreignWeb3 = instantiateWeb3(nodeUrl);
+  }
+  return foreignWeb3;
 };
 
 // Gets status of liquidpledging storage
