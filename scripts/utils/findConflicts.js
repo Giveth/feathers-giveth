@@ -875,27 +875,7 @@ const handleToDonations = async ({
   }
 };
 
-const getMostRecentDonationNotCanceled = donationId => {
-  const donation = donationMap[donationId];
-
-  // givers can never be canceled
-  if (donation.ownerType === AdminTypes.GIVER && !donation.intendedProjectId) {
-    return donation;
-  }
-
-  const pledgeOwnerAdmin = admins[Number(donation.ownerId)];
-
-  // if pledgeOwnerAdmin is canceled or donation is a delegation, go back 1 donation
-  if (pledgeOwnerAdmin.isCanceled || donation.intendedProjectId > 0) {
-    // we use the 1st parentDonation b/c the owner of all parentDonations
-    // is the same
-    return getMostRecentDonationNotCanceled(donation.parentDonations[0]);
-  }
-
-  return donation;
-};
-
-const revertProjectDonations = async (projectId, transactionHash, blockNumber) => {
+const revertProjectDonations = async projectId => {
   const donations = ownerPledgeAdminIdChargedDonationMap[projectId] || {};
   const values = Object.values(donations);
   const revertExceptionStatus = [DonationStatus.PAYING, DonationStatus.PAID];
@@ -903,43 +883,24 @@ const revertProjectDonations = async (projectId, transactionHash, blockNumber) =
   for (let i = 0; i < values.length; i += 1) {
     const donation = values[i];
     if (!donation.amountRemaining.isZero() && !revertExceptionStatus.includes(donation.status)) {
-      const revertToDonation = getMostRecentDonationNotCanceled(donation._id);
-      logger.debug(`Revert donation ${JSON.stringify(donation, null, 2)}`);
-      logger.debug(
-        `To a donation like: ${JSON.stringify(
-          {
-            pledgeId: revertToDonation.pledgeId,
-            giverAddress: revertToDonation.giverAddress,
-          },
-          null,
-          2,
-        )}`,
-      );
-      // eslint-disable-next-line no-await-in-loop
-      await handleToDonations({
-        from: donation.pledgeId,
-        to: revertToDonation.pledgeId,
-        amount: donation.amountRemaining.toFixed(),
-        transactionHash,
-        blockNumber,
-        usedFromDonations: [donation._id],
-        giverAddress: revertToDonation.giverAddress,
-        isReverted: true,
-      });
-      donation.amountRemaining = new BigNumber(0);
+      if (donation.status !== DonationStatus.CANCELED) {
+        logger.error(
+          `Donation ${donation._id} status should be ${DonationStatus.CANCELED} but is ${donation.status}`,
+        );
+        logger.debug('Updating...');
+        // eslint-disable-next-line no-await-in-loop
+        await Donations.update({ _id: donation._id }, { status: DonationStatus.CANCELED }).exec();
+      }
     }
 
     // Remove all donations of same pledgeId from charged donation list that are not Paying or Paid
     // because all will be reverted
-    chargedDonationListMap[donation.pledgeId] = chargedDonationListMap[
-      donation.pledgeId
-    ].filter(({ status }) => revertExceptionStatus.includes(status));
   }
 };
 
-const cancelProject = async (projectId, transactionHash, blockNumber) => {
+const cancelProject = async projectId => {
   admins[projectId].isCanceled = true;
-  await revertProjectDonations(projectId, transactionHash, blockNumber);
+  await revertProjectDonations(projectId);
 
   const projectIdStr = String(projectId);
   for (let index = 1; index < admins.length; index += 1) {
@@ -948,7 +909,7 @@ const cancelProject = async (projectId, transactionHash, blockNumber) => {
     if (admin.parentProject === projectIdStr) {
       admin.isCanceled = true;
       // eslint-disable-next-line no-await-in-loop
-      await revertProjectDonations(index, transactionHash, blockNumber);
+      await revertProjectDonations(index);
     }
   }
 };
@@ -1040,18 +1001,6 @@ const syncDonationsWithNetwork = async () => {
       const { from, to, amount } = returnValues;
       logger.debug(`Transfer from ${from} to ${to} amount ${amount}`);
 
-      if (from !== '0') {
-        const fromPledge = pledges[Number(from)];
-        const fromPledgeOwner = admins[Number(fromPledge.owner)];
-
-        // Ignore transfer money from canceled projects, they have been reverted already
-        if (fromPledgeOwner.isCanceled) {
-          logger.debug(`From pledge owner ${fromPledge.owner} is canceled...
-Transfer is ignored`);
-          continue;
-        }
-      }
-
       // eslint-disable-next-line no-await-in-loop
       const { usedFromDonations, giverAddress } = await handleFromDonations(
         from,
@@ -1077,7 +1026,7 @@ Transfer is ignored`);
         `Cancel project ${idProject}: ${JSON.stringify(admins[Number(idProject)], null, 2)}`,
       );
       // eslint-disable-next-line no-await-in-loop
-      await cancelProject(idProject, transactionHash, blockNumber);
+      await cancelProject(idProject);
     }
   }
 
