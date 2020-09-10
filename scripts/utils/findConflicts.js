@@ -395,10 +395,10 @@ const isRejectedDelegation = ({ fromPledge, toPledge }) =>
   Number(fromPledge.intendedProject) > 0 &&
   fromPledge.intendedProject !== toPledge.owner;
 
-const addChargedDonation = (ownerPledgeAdminId, donation) => {
-  const candidates = chargedDonationListMap[ownerPledgeAdminId] || [];
+const addChargedDonation = donation => {
+  const candidates = chargedDonationListMap[donation.pledgeId] || [];
   if (candidates.length === 0) {
-    chargedDonationListMap[ownerPledgeAdminId] = candidates;
+    chargedDonationListMap[donation.pledgeId] = candidates;
   }
   candidates.push(donation);
 
@@ -475,93 +475,70 @@ const handleFromDonations = async (from, to, amount, transactionHash) => {
       }
     }
 
-    /* updateParents had been used while script was not trusted
-     * true value for this variable allows script to update parents of each donation it wants
-     */
-    // const updateParents = corruptedParentPledgeIds.includes(from);
-    const updateParents = true;
-
-    const candidateParentsFromDB = [];
-    if (!updateParents && candidateToDonationList.length > 0) {
-      const { parentDonations } = candidateToDonationList[0];
-      parentDonations.forEach(parent => candidateParentsFromDB.push(parent));
-    }
-
     // Reduce money from parents one by one
-    if (candidateParentsFromDB.length > 0) {
+    if (candidateChargedParents.length > 0) {
       let fromAmount = new BigNumber(amount);
-      candidateParentsFromDB.forEach(parentId => {
-        if (fromAmount.eq(0)) {
-          logger.debug(`No money is moved from parent ${parentId}`);
-          return;
-        }
-        const index = candidateChargedParents.findIndex(item => item._id && item._id === parentId);
-        if (index === -1) {
-          candidateChargedParents.forEach(p => {
-            logger.debug(`Parent ${p._id} amount remaining ${p.amountRemaining.toFixed()}`);
-          });
 
-          terminateScript(
-            `no appropriate parent(s) found to move ${candidateToDonationList[0]._id}`,
+      // If this is a return transfer, last donate added to charged parents has the same
+      // transaction hash and greater than or equal amount remaining than this transfer amount
+      // Money should be removed from that donation for better transparency
+      const lastInsertedCandidate = candidateChargedParents[candidateChargedParents.length - 1];
+      if (
+        lastInsertedCandidate.txHash === transactionHash &&
+        lastInsertedCandidate.amountRemaining.gte(amount)
+      ) {
+        giverAddress = lastInsertedCandidate.giverAddress;
+        lastInsertedCandidate.amountRemaining = lastInsertedCandidate.amountRemaining.minus(amount);
+
+        fromAmount = new BigNumber(0);
+        logger.debug(
+          `Amount ${amount} is reduced from ${JSON.stringify(
+            {
+              ...lastInsertedCandidate,
+              amountRemaining: lastInsertedCandidate.amountRemaining.toFixed(),
+            },
+            null,
+            2,
+          )}`,
+        );
+
+        if (lastInsertedCandidate._id) {
+          usedFromDonations.push(lastInsertedCandidate._id);
+        }
+
+        if (lastInsertedCandidate.amountRemaining.isZero()) {
+          candidateChargedParents.pop();
+        }
+      } else {
+        let consumedCandidates = 0;
+        for (let j = 0; j < candidateChargedParents.length; j += 1) {
+          const item = candidateChargedParents[j];
+
+          if (item.giverAddress) {
+            giverAddress = item.giverAddress;
+          }
+
+          const min = BigNumber.min(item.amountRemaining, fromAmount);
+          item.amountRemaining = item.amountRemaining.minus(min);
+          if (item.amountRemaining.isZero()) {
+            consumedCandidates += 1;
+          }
+          fromAmount = fromAmount.minus(min);
+          logger.debug(
+            `Amount ${min.toFixed()} is reduced from ${JSON.stringify(
+              { ...item, amountRemaining: item.amountRemaining.toFixed() },
+              null,
+              2,
+            )}`,
           );
-        }
-        const d = candidateChargedParents[index];
-        if (d.giverAddress) giverAddress = d.giverAddress;
-
-        const min = BigNumber.min(d.amountRemaining, fromAmount);
-        fromAmount = fromAmount.minus(min);
-        d.amountRemaining = d.amountRemaining.minus(min);
-
-        logger.debug(
-          `Amount ${min.toFixed()} is reduced from ${JSON.stringify(
-            { ...d, amountRemaining: d.amountRemaining.toFixed() },
-            null,
-            2,
-          )}`,
-        );
-
-        if (d._id) {
-          usedFromDonations.push(d._id);
+          if (item._id) {
+            usedFromDonations.push(item._id);
+          }
+          if (fromAmount.eq(0)) break;
         }
 
-        // Remove donation from candidate if it's drained
-        if (d.amountRemaining.eq(0)) {
-          candidateChargedParents.splice(index, 1);
-        }
-      });
-      if (!fromAmount.eq(0)) {
-        terminateScript('All money is not moved');
+        chargedDonationListMap[from] = candidateChargedParents.slice(consumedCandidates);
       }
-    } else if (candidateChargedParents.length > 0) {
-      let fromAmount = new BigNumber(amount);
-      let consumedCandidates = 0;
-      for (let j = 0; j < candidateChargedParents.length; j += 1) {
-        const item = candidateChargedParents[j];
-
-        if (item.giverAddress) {
-          giverAddress = item.giverAddress;
-        }
-
-        const min = BigNumber.min(item.amountRemaining, fromAmount);
-        item.amountRemaining = item.amountRemaining.minus(min);
-        if (item.amountRemaining.eq(0)) {
-          consumedCandidates += 1;
-        }
-        fromAmount = fromAmount.minus(min);
-        logger.debug(
-          `Amount ${min.toFixed()} is reduced from ${JSON.stringify(
-            { ...item, amountRemaining: item.amountRemaining.toFixed() },
-            null,
-            2,
-          )}`,
-        );
-        if (item._id) {
-          usedFromDonations.push(item._id);
-        }
-        if (fromAmount.eq(0)) break;
-      }
-
-      chargedDonationListMap[from] = candidateChargedParents.slice(consumedCandidates);
 
       if (!fromAmount.eq(0)) {
         logger.debug(`from delegate ${from} donations don't have enough amountRemaining!`);
@@ -789,7 +766,7 @@ const handleToDonations = async ({
       logger.debug(`From pledge: ${fromPledge}`);
       logger.debug(`To pledge: ${toPledge}`);
     }
-    addChargedDonation(to, expectedToDonation);
+    addChargedDonation(expectedToDonation);
   } else {
     // Check toDonation has correct status and mined flag
     const expectedStatus = convertPledgeStateToStatus(toPledge, toOwnerAdmin);
@@ -807,6 +784,8 @@ const handleToDonations = async ({
       logger.error(
         `Donation ${toDonation._id} status should be ${expectedStatus} but is ${toDonation.status}`,
       );
+      logger.debug('Updating...');
+      await Donations.update({ _id: toDonation._id }, { status: expectedStatus }).exec();
     }
 
     const { parentDonations } = toDonation;
@@ -842,7 +821,6 @@ const handleToDonations = async ({
       await Donations.update({ _id: toDonation._id }, { usdValue: toDonation.usdValue }).exec();
     }
 
-    toDonation.amountRemaining = toDonation.amountRemaining.plus(amount);
     toDonation.txHash = transactionHash;
     toDonation.from = from;
     toDonation.pledgeId = to;
@@ -865,7 +843,7 @@ const handleToDonations = async ({
       }
     }
 
-    addChargedDonation(to, toDonation);
+    addChargedDonation(toDonation);
 
     logger.debug(
       `Amount added to ${JSON.stringify(
@@ -905,10 +883,11 @@ const getMostRecentDonationNotCanceled = donationId => {
 const revertProjectDonations = async (projectId, transactionHash, blockNumber) => {
   const donations = ownerPledgeAdminIdChargedDonationMap[projectId] || {};
   const values = Object.values(donations);
+  const revertExceptionStatus = [DonationStatus.PAYING, DonationStatus.PAID];
 
   for (let i = 0; i < values.length; i += 1) {
     const donation = values[i];
-    if (!donation.amountRemaining.isZero()) {
+    if (!donation.amountRemaining.isZero() && !revertExceptionStatus.includes(donation.status)) {
       const revertToDonation = getMostRecentDonationNotCanceled(donation._id);
       logger.debug(`Revert donation ${JSON.stringify(donation, null, 2)}`);
       logger.debug(
@@ -932,11 +911,14 @@ const revertProjectDonations = async (projectId, transactionHash, blockNumber) =
         giverAddress: revertToDonation.giverAddress,
         isReverted: true,
       });
+      donation.amountRemaining = new BigNumber(0);
     }
 
-    donation.amountRemaining = new BigNumber(0);
-    // Remove all donations of same pledgeId from charged donation list, because all will be reverted
-    chargedDonationListMap[donation.pledgeId] = [];
+    // Remove all donations of same pledgeId from charged donation list that are not Paying or Paid
+    // because all will be reverted
+    chargedDonationListMap[donation.pledgeId] = chargedDonationListMap[
+      donation.pledgeId
+    ].filter(({ status }) => revertExceptionStatus.includes(status));
   }
 };
 
@@ -1048,7 +1030,11 @@ const syncDonationsWithNetwork = async () => {
         const fromPledgeOwner = admins[Number(fromPledge.owner)];
 
         // Ignore transfer money from canceled projects, they have been reverted already
-        if (fromPledgeOwner.isCanceled) continue;
+        if (fromPledgeOwner.isCanceled) {
+          logger.debug(`From pledge owner ${fromPledge.owner} is canceled...
+Transfer is ignored`);
+          continue;
+        }
       }
 
       // eslint-disable-next-line no-await-in-loop
@@ -1094,17 +1080,6 @@ const syncDonationsWithNetwork = async () => {
     if (!totalAmountRemaining.eq(pledgeAmount)) {
       logger.error(
         `Pledge ${pledgeId} amount ${pledgeAmount} does not equal total amount remaining ${totalAmountRemaining.toFixed()}`,
-      );
-      logger.debug({
-        PledgeState: pledgeState,
-        'Old Pledge': oldPledge,
-        Owner: owner,
-        'Owner canceled': !!canceled,
-        'Owner isCanceled': !!isCanceled,
-      });
-    } else if (isCanceled && !['Paying', 'Paid'].includes(pledgeState)) {
-      logger.info(
-        `Pledge ${pledgeId} owner is canceled and its amount equals total amount remaining ${totalAmountRemaining.toFixed()}`,
       );
       logger.debug(
         JSON.stringify(
