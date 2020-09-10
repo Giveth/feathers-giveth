@@ -528,59 +528,14 @@ const projects = (app, liquidPledging) => {
       .then(data => data[0]);
   }
 
-  async function getMostRecentDonationNotCanceled(donationId) {
-    if (!donationId) throw new Error('donationId is missing, not sure what to do');
-
-    const donation = await donations.get(donationId);
-
-    // givers can never be canceled
-    if (donation.ownerType === AdminTypes.GIVER && !donation.intendedProjectId) {
-      return donation;
-    }
-
-    const pledgeOwnerAdmin = await getAdmin(donation.ownerId);
-
-    // if pledgeOwnerAdmin is canceled or donation is a delegation, go back 1 donation
-    if (
-      [CampaignStatus.CANCELED, MilestoneStatus.CANCELED].includes(pledgeOwnerAdmin.admin.status) ||
-      donation.intendedProjectId > 0
-    ) {
-      // we use the 1st parentDonation b/c the owner of all parentDonations
-      // is the same
-      return getMostRecentDonationNotCanceled(donation.parentDonations[0]);
-    }
-
-    return donation;
-  }
-
-  async function createToDonation(donation, txHash) {
-    const { amountRemaining, pledgeId, _id } = donation;
-    const revertToDonation = await getMostRecentDonationNotCanceled(_id);
-    const newDonation = {
-      ...revertToDonation,
-      txHash,
-      amount: amountRemaining,
-      amountRemaining,
-      canceledPledgeId: pledgeId,
-      parentDonations: [_id],
-      isReturn: true,
-      mined: true,
-    };
-    delete newDonation._id;
-
-    return donations.create(newDonation);
-  }
-
-  // revert donation b/c a project was canceled
-  async function revertDonation(donation, txHash) {
+  // cancel donation b/c a project was canceled
+  async function revertDonation(donation) {
     try {
       const mutation = {
         status: DonationStatus.CANCELED,
-        amountRemaining: '0',
       };
 
-      await donations.patch(donation._id, mutation);
-      return createToDonation(donation, txHash);
+      return donations.patch(donation._id, mutation);
     } catch (err) {
       logger.error(err);
     }

@@ -29,12 +29,19 @@ function normalizer(app) {
       await service.find({
         paginate: false,
         query: {
-          status: DonationStatus.TO_APPROVE,
-          intendedProjectId: { $gt: 0 },
           amountRemaining: { $ne: '0' },
-          commitTime: {
-            $lte: new Date(),
-          },
+          $or: [
+            {
+              status: DonationStatus.TO_APPROVE,
+              intendedProjectId: { $gt: 0 },
+              commitTime: {
+                $lte: new Date(),
+              },
+            },
+            {
+              status: DonationStatus.CANCELED,
+            },
+          ],
         },
       })
     ).reduce((accumulator, d) => d.mined && accumulator.add(d.pledgeId), new Set());

@@ -202,11 +202,37 @@ const pledges = (app, liquidPledging) => {
   }
 
   /**
+   * Determine if this transfer was a return of excess funds of an over-funded milestone
+   * @param {object} transferInfo
+   */
+  async function isReturnTransfer(transferInfo) {
+    const { fromPledge, fromPledgeAdmin, toPledgeId, txHash, donations } = transferInfo;
+    // currently only milestones will can be over-funded
+    if (fromPledgeAdmin.type !== AdminTypes.MILESTONE) return false;
+
+    const from = donations[0].pledgeId; // all donations will have same pledgeId
+    const transferEventsInTx = await app
+      .service('events')
+      .find({ paginate: false, query: { transactionHash: txHash, event: 'Transfer' } });
+
+    // ex events in return case:
+    // Transfer(from: 1, to: 2, amount: 1000)
+    // Transfer(from: 2, to: 1, amount: < 1000)
+    return transferEventsInTx.some(
+      e =>
+        // it may go directly to fromPledge.oldPledge if this was delegated funds
+        // being returned b/c the intermediary pledge is the pledge w/ the intendedProject
+        [e.returnValues.from, fromPledge.oldPledge].includes(toPledgeId) &&
+        e.returnValues.to === from,
+    );
+  }
+
+  /**
    * generate a mutation object used to create/update the `to` donation
    *
    * @param {object} transferInfo object containing information regarding the Transfer event
    */
-  async function createToDonationMutation(transferInfo, returnTransfer) {
+  async function createToDonationMutation(transferInfo) {
     const {
       toPledgeAdmin,
       toPledge,
@@ -219,6 +245,7 @@ const pledges = (app, liquidPledging) => {
       ts,
       txHash,
       initialTransfer,
+      isReturn,
     } = transferInfo;
 
     // find token
@@ -263,7 +290,7 @@ const pledges = (app, liquidPledging) => {
       });
     }
 
-    if (returnTransfer || isRejectedDelegation(transferInfo)) {
+    if (isReturn || (await isReturnTransfer(transferInfo)) || isRejectedDelegation(transferInfo)) {
       mutation.isReturn = true;
     }
 
@@ -411,41 +438,12 @@ const pledges = (app, liquidPledging) => {
   }
 
   /**
-   * Determine if this transfer was a return of excess funds of an over-funded milestone
-   * @param {object} transferInfo
-   */
-  async function isReturnTransfer(transferInfo) {
-    const { fromPledge, fromPledgeAdmin, toPledgeId, txHash, donations } = transferInfo;
-    // currently only milestones will can be over-funded
-    if (fromPledgeAdmin.type !== AdminTypes.MILESTONE) return false;
-
-    const from = donations[0].pledgeId; // all donations will have same pledgeId
-    const transferEventsInTx = await app
-      .service('events')
-      .find({ paginate: false, query: { transactionHash: txHash, event: 'Transfer' } });
-
-    // ex events in return case:
-    // Transfer(from: 1, to: 2, amount: 1000)
-    // Transfer(from: 2, to: 1, amount: < 1000)
-    return transferEventsInTx.some(
-      e =>
-        // it may go directly to fromPledge.oldPledge if this was delegated funds
-        // being returned b/c the intermediary pledge is the pledge w/ the intendedProject
-        [e.returnValues.from, fromPledge.oldPledge].includes(toPledgeId) &&
-        e.returnValues.to === from,
-    );
-  }
-
-  /**
    * create a new donation for the `to` pledge
    *
    * @param {object} transferInfo
    */
   async function createToDonation(transferInfo) {
-    const mutation = await createToDonationMutation(
-      transferInfo,
-      await isReturnTransfer(transferInfo),
-    );
+    const mutation = await createToDonationMutation(transferInfo);
 
     // if tx is older then 1 min, set retry = true to instantly create the donation if necessary
     const r = createDonation(
@@ -571,20 +569,6 @@ const pledges = (app, liquidPledging) => {
 
       const fromPledgeAdmin = await getPledgeAdmin(fromPledge.owner);
 
-      if (
-        (fromPledgeAdmin.type === AdminTypes.MILESTONE &&
-          fromPledgeAdmin.admin.status === MilestoneStatus.CANCELED) ||
-        (fromPledgeAdmin.type === AdminTypes.CAMPAIGN &&
-          fromPledgeAdmin.admin.status === CampaignStatus.CANCELED)
-      ) {
-        // When a project is canceled in lp, the pledges are not "reverted" until they
-        // are normalized. This normalization function can be called, but it is also
-        // run on before every transfer. Thus we update the donations when handling
-        // the `CancelProject` event so the cache contains the appropriate info to
-        // normalize & transfer the pledge in a single call
-        return;
-      }
-
       const initialTransfer = isInitialTransfer(from, amount, receipt);
 
       const promises = [
@@ -627,6 +611,15 @@ const pledges = (app, liquidPledging) => {
         ts,
         txHash,
       };
+
+      if (
+        (fromPledgeAdmin.type === AdminTypes.MILESTONE &&
+          fromPledgeAdmin.admin.status === MilestoneStatus.CANCELED) ||
+        (fromPledgeAdmin.type === AdminTypes.CAMPAIGN &&
+          fromPledgeAdmin.admin.status === CampaignStatus.CANCELED)
+      ) {
+        transferInfo.isReturn = true;
+      }
 
       if (donations.length === 0) {
         logTransferInfo(transferInfo);
