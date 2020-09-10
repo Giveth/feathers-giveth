@@ -7,6 +7,8 @@ const sanitizeHtml = require('../../hooks/sanitizeHtml');
 const resolveFiles = require('../../hooks/resolveFiles');
 const onlyInternal = require('../../hooks/onlyInternal');
 
+const config = require(`../../../config/default.json`);
+
 /**
   API for creating conversations
   The following params are accepted when creating a message for a conversation
@@ -38,6 +40,16 @@ const MESSAGE_CONTEXT = [
   'payment',
   'comment',
 ];
+
+const checkMessageLimit = () => context => {
+  const { message, messageContext } = context.data;
+  if (
+    messageContext === 'comment' &&
+    (message.length > config.conversation.message.maxLength ||
+      message.length < config.conversation.message.minLength)
+  )
+    throw new errors.NotAcceptable();
+};
 
 /**
  Only people involved with the milestone can create conversation
@@ -145,7 +157,12 @@ module.exports = {
     all: [],
     find: [sanitizeAddress(['ownerAddress'])],
     get: [],
-    create: [restrictAndSetOwner(), checkMessageContext(), sanitizeHtml('message')],
+    create: [
+      restrictAndSetOwner(),
+      checkMessageContext(),
+      sanitizeHtml('message'),
+      checkMessageLimit(),
+    ],
     update: [disallow()],
     patch: [onlyInternal()],
     remove: [disallow()],
