@@ -7,8 +7,6 @@ const sanitizeHtml = require('../../hooks/sanitizeHtml');
 const resolveFiles = require('../../hooks/resolveFiles');
 const onlyInternal = require('../../hooks/onlyInternal');
 
-const config = require(`../../../config/default.json`);
-
 /**
   API for creating conversations
   The following params are accepted when creating a message for a conversation
@@ -45,10 +43,9 @@ const checkMessageLimit = () => context => {
   const { message, messageContext } = context.data;
   if (
     messageContext === 'comment' &&
-    (message.length > config.conversation.message.maxLength ||
-      message.length < config.conversation.message.minLength)
+    message.length > context.app.get('conversationMessageMaxLength')
   )
-    throw new errors.NotAcceptable();
+    throw new errors.NotAcceptable('Message length exceeded limit');
 };
 
 /**
