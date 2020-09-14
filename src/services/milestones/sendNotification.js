@@ -12,21 +12,40 @@ const sendNotification = () => async context => {
   const { data, app, result, params } = context;
   const { performedByAddress } = params;
 
-  const _createConversion = messageContext => {
-    app
-      .service('conversations')
-      .create(
+  const _createConversion = async messageContext => {
+    const service = app.service('conversations');
+    const { proofItems, _id, message } = result;
+
+    if (messageContext !== 'comment') {
+      const similarConversations = await service.find({
+        paginate: false,
+        query: {
+          milestoneId: _id,
+          messageContext,
+          txHash: context.params.eventTxHash,
+        },
+      });
+      // Conversation has been created before
+      if (similarConversations && similarConversations.length > 0) {
+        return;
+      }
+    }
+
+    try {
+      const res = await service.create(
         {
-          milestoneId: result._id,
-          message: result.message,
-          items: result.proofItems,
+          milestoneId: _id,
+          message,
+          items: proofItems,
           messageContext,
           txHash: context.params.eventTxHash,
         },
         { performedByAddress },
-      )
-      .then(res => logger.info('created conversation!', res._id))
-      .catch(e => logger.error('could not create conversation', e));
+      );
+      logger.info('created conversation!', res._id);
+    } catch (e) {
+      logger.error('could not create conversation', e);
+    }
   };
   const {
     REJECTED,
