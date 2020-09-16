@@ -126,7 +126,9 @@ const sendNotification = () => async context => {
             recipient: campaign.owner.email,
             user: campaign.owner.name,
             milestoneTitle: data.title,
+            milestoneId: data.milestoneId,
             campaignTitle: campaign.title,
+            campaignId: campaign.campaignId,
             amount: data.maxAmount,
             token: data.token,
           });
