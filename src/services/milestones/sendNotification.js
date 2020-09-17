@@ -68,10 +68,12 @@ const sendNotification = () => async context => {
           recipient: campaign.owner.email,
           user: campaign.owner.name,
           milestoneTitle: data.title,
+          milestoneId: data.milestoneId,
           campaignTitle: campaign.title,
+          campaignId: data.campaignId,
           amount: data.maxAmount,
           token: data.token,
-        });
+     });
       } catch (e) {
         logger.error('error sending proposed milestone notification', e);
       }
@@ -128,7 +130,7 @@ const sendNotification = () => async context => {
             milestoneTitle: data.title,
             milestoneId: data.milestoneId,
             campaignTitle: campaign.title,
-            campaignId: campaign.campaignId,
+            campaignId: data.campaignId,
             amount: data.maxAmount,
             token: data.token,
           });
