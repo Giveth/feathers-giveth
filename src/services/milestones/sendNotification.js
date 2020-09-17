@@ -59,11 +59,29 @@ const sendNotification = () => async context => {
     PROPOSED,
     ARCHIVED,
   } = MilestoneStatus;
-  const { status, title, _id, campaignId, maxAmount, token }  = result;
+  const {
+    status,
+    title,
+    _id,
+    campaignId,
+    maxAmount,
+    token,
+    prevStatus,
+    owner,
+    txHash,
+    message,
+    ownerAddress,
+    recipientAddress,
+    mined,
+    donationCounters,
+    campaign,
+    reviewer,
+    recipient,
+  } = result;
+
   if (context.method === 'create') {
-    if ( status === PROPOSED) {
+    if (status === PROPOSED) {
       try {
-        const campaign = await app.service('campaigns').get(data.campaignId);
         const { email, name } = campaign.owner;
         Notifications.milestoneProposed(app, {
           recipient: email,
@@ -71,9 +89,9 @@ const sendNotification = () => async context => {
           milestoneTitle: title,
           milestoneId: _id,
           campaignTitle: campaign.title,
-          campaignId: campaignId,
+          campaignId,
           amount: maxAmount,
-          token: token,
+          token,
         });
       } catch (e) {
         logger.error('error sending proposed milestone notification', e);
@@ -90,26 +108,24 @@ const sendNotification = () => async context => {
      * Which basically means the event is really mined
      * */
     if (eventTxHash) {
-      if (data.status === IN_PROGRESS && result.prevStatus === PROPOSED) {
+      if (data.status === IN_PROGRESS && prevStatus === PROPOSED) {
         _createConversion('proposedAccepted');
 
         // find the milestone owner and send a notification that his/her proposed milestone is approved
         Notifications.proposedMilestoneAccepted(app, {
-          recipient: result.owner.email,
-          user: result.owner.name,
-          milestoneTitle: result.title,
-          campaignTitle: result.campaign.title,
-          amount: result.maxAmount,
-          txHash: result.txHash,
-          message: result.message,
+          recipient: owner.email,
+          user: owner.name,
+          milestoneTitle: title,
+          campaignTitle: campaign.title,
+          amount: maxAmount,
+          txHash,
+          message,
         });
 
         // milestone may have been created on the recipient's behalf
         // lets notify them if they are registered
-        if (result.ownerAddress !== result.recipientAddress) {
+        if (ownerAddress !== recipientAddress) {
           try {
-            const recipient = await app.service('users').get(result.recipientAddress);
-
             Notifications.milestoneCreated(app, {
               recipient: recipient.email,
               user: recipient.name,
@@ -121,10 +137,8 @@ const sendNotification = () => async context => {
             // ignore missing recipient
           }
         }
-      } else if (data.status === PROPOSED && result.prevStatus === REJECTED) {
-        const { status, title, _id, campaignId, maxAmount, token }  = result;
+      } else if (status === PROPOSED && prevStatus === REJECTED) {
         try {
-          const campaign = await app.service('campaigns').get(data.campaignId);
           const { email, name } = campaign.owner;
           Notifications.milestoneProposed(app, {
             recipient: email,
@@ -132,22 +146,22 @@ const sendNotification = () => async context => {
             milestoneTitle: title,
             milestoneId: _id,
             campaignTitle: campaign.title,
-            campaignId: campaignId,
+            campaignId,
             amount: maxAmount,
-            token: token,
+            token,
           });
         } catch (e) {
           logger.error('error sending proposed milestone notification', e);
         }
       } else if (
-        data.status === IN_PROGRESS &&
-        result.prevStatus === PROPOSED &&
-        result.ownerAddress !== result.recipientAddress
+        status === IN_PROGRESS &&
+        prevStatus === PROPOSED &&
+        ownerAddress !== recipientAddress
       ) {
         // milestone may have been created on the recipient's behalf
         // lets notify them if they are registered
         try {
-          const user = await app.service('users').get(result.recipientAddress);
+          const user = await app.service('users').get(recipientAddress);
 
           if (user) {
             Notifications.milestoneCreated(app, {
@@ -163,74 +177,74 @@ const sendNotification = () => async context => {
         }
       } else if (data.status === NEEDS_REVIEW) {
         // find the milestone reviewer owner and send a notification that this milestone is been marked as complete and needs review
-        _createConversion(result.status);
+        _createConversion(status);
 
         Notifications.milestoneRequestReview(app, {
-          recipient: result.reviewer.email,
-          user: result.reviewer.name,
-          milestoneTitle: result.title,
-          campaignTitle: result.campaign.title,
-          message: result.message,
+          recipient: reviewer.email,
+          user: reviewer.name,
+          milestoneTitle: title,
+          campaignTitle: campaign.title,
+          message,
         });
-      } else if (data.status === COMPLETED && result.mined) {
-        _createConversion(result.status);
+      } else if (status === COMPLETED && mined) {
+        _createConversion(status);
 
         // find the milestone owner and send a notification that his/her milestone is marked complete
         Notifications.milestoneMarkedCompleted(app, {
-          recipient: result.owner.email,
-          user: result.owner.name,
-          milestoneTitle: result.title,
-          campaignTitle: result.campaign.title,
-          message: result.message,
+          recipient: owner.email,
+          user: owner.name,
+          milestoneTitle: title,
+          campaignTitle: campaign.title,
+          message,
         });
-      } else if (data.status === IN_PROGRESS && result.prevStatus === NEEDS_REVIEW) {
+      } else if (data.status === IN_PROGRESS && prevStatus === NEEDS_REVIEW) {
         _createConversion('rejected');
 
         // find the milestone reviewer and send a notification that his/her milestone has been rejected by reviewer
         // it's possible to have a null reviewer if that address has never logged in
-        if (result.reviewer) {
+        if (reviewer) {
           Notifications.milestoneReviewRejected(app, {
-            recipient: result.reviewer.email,
-            user: result.reviewer.name,
-            milestoneTitle: result.title,
-            campaignTitle: result.campaign.title,
-            message: result.message,
+            recipient: reviewer.email,
+            user: reviewer.name,
+            milestoneTitle: title,
+            campaignTitle: campaign.title,
+            message,
           });
         }
-      } else if (data.status === CANCELED && result.mined) {
-        _createConversion(result.status);
+      } else if (status === CANCELED && mined) {
+        _createConversion(status);
 
         // find the milestone owner and send a notification that his/her milestone is canceled
         Notifications.milestoneCanceled(app, {
-          recipient: result.owner.email,
-          user: result.owner.name,
-          milestoneTitle: result.title,
-          campaignTitle: result.campaign.title,
-          message: result.message,
+          recipient: owner.email,
+          user: owner.name,
+          milestoneTitle: title,
+          campaignTitle: campaign.title,
+          message,
         });
-      } else if (data.status === PAID && result.mined && result.prevStatus === PAYING) {
+      } else if (status === PAID && mined && prevStatus === PAYING) {
         Notifications.milestonePaid(app, {
-          recipient: result.recipient.email,
-          user: result.recipient.name,
-          milestoneTitle: result.title,
-          donationCounters: result.donationCounters,
-          address: result.recipientAddress,
+          recipient: recipient.email,
+          user: recipient.name,
+          milestoneTitle: title,
+          donationCounters,
+          address: recipientAddress,
         });
       }
-    } else if (data.status === REJECTED && result.prevStatus === PROPOSED) {
+    } else if (data.status === REJECTED && prevStatus === PROPOSED) {
       _createConversion('proposedRejected');
 
       // find the milestone owner and send a notification that his/her proposed milestone is rejected
       Notifications.proposedMilestoneRejected(app, {
-        recipient: result.owner.email,
-        user: result.owner.name,
-        milestoneTitle: result.title,
-        campaignTitle: result.campaign.title,
-        message: result.message,
+        recipient: owner.email,
+        user: owner.name,
+        milestoneTitle: title,
+        campaignTitle: campaign.title,
+        message,
       });
-    } else if (data.status === PROPOSED && result.prevStatus === REJECTED) {
+    } else if (data.status === PROPOSED && prevStatus === REJECTED) {
       _createConversion('rePropose');
-    } else if (data.status === ARCHIVED && result.prevStatus === IN_PROGRESS) {
+    } else if (data.status === ARCHIVED && prevStatus === IN_PROGRESS) {
       _createConversion('archived');
     }
   }
