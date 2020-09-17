@@ -67,13 +67,13 @@ const sendNotification = () => async context => {
         Notifications.milestoneProposed(app, {
           recipient: campaign.owner.email,
           user: campaign.owner.name,
-          milestoneTitle: data.title,
-          milestoneId: data.milestoneId,
+          milestoneTitle: result.title,
+          milestoneId: result._id,
           campaignTitle: campaign.title,
-          campaignId: data.campaignId,
-          amount: data.maxAmount,
-          token: data.token,
-     });
+          campaignId: result.campaignId,
+          amount: result.maxAmount,
+          token: result.token,
+        });
       } catch (e) {
         logger.error('error sending proposed milestone notification', e);
       }
@@ -127,12 +127,12 @@ const sendNotification = () => async context => {
           Notifications.milestoneProposed(app, {
             recipient: campaign.owner.email,
             user: campaign.owner.name,
-            milestoneTitle: data.title,
-            milestoneId: data.milestoneId,
+            milestoneTitle: result.title,
+            milestoneId: result._id,
             campaignTitle: campaign.title,
-            campaignId: data.campaignId,
-            amount: data.maxAmount,
-            token: data.token,
+            campaignId: result.campaignId,
+            amount: result.maxAmount,
+            token: result.token,
           });
         } catch (e) {
           logger.error('error sending proposed milestone notification', e);
