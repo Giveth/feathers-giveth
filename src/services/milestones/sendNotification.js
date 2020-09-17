@@ -59,20 +59,21 @@ const sendNotification = () => async context => {
     PROPOSED,
     ARCHIVED,
   } = MilestoneStatus;
+  const { status, title, _id, campaignId, maxAmount, token }  = result;
   if (context.method === 'create') {
-    if (result.status === PROPOSED) {
+    if ( status === PROPOSED) {
       try {
         const campaign = await app.service('campaigns').get(data.campaignId);
-
+        const { email, name } = campaign.owner;
         Notifications.milestoneProposed(app, {
-          recipient: campaign.owner.email,
-          user: campaign.owner.name,
-          milestoneTitle: result.title,
-          milestoneId: result._id,
+          recipient: email,
+          user: name,
+          milestoneTitle: title,
+          milestoneId: _id,
           campaignTitle: campaign.title,
-          campaignId: result.campaignId,
-          amount: result.maxAmount,
-          token: result.token,
+          campaignId: campaignId,
+          amount: maxAmount,
+          token: token,
         });
       } catch (e) {
         logger.error('error sending proposed milestone notification', e);
@@ -121,18 +122,19 @@ const sendNotification = () => async context => {
           }
         }
       } else if (data.status === PROPOSED && result.prevStatus === REJECTED) {
+        const { status, title, _id, campaignId, maxAmount, token }  = result;
         try {
           const campaign = await app.service('campaigns').get(data.campaignId);
-
+          const { email, name } = campaign.owner;
           Notifications.milestoneProposed(app, {
-            recipient: campaign.owner.email,
-            user: campaign.owner.name,
-            milestoneTitle: result.title,
-            milestoneId: result._id,
+            recipient: email,
+            user: name,
+            milestoneTitle: title,
+            milestoneId: _id,
             campaignTitle: campaign.title,
-            campaignId: result.campaignId,
-            amount: result.maxAmount,
-            token: result.token,
+            campaignId: campaignId,
+            amount: maxAmount,
+            token: token,
           });
         } catch (e) {
           logger.error('error sending proposed milestone notification', e);
