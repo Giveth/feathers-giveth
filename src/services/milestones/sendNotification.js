@@ -82,7 +82,8 @@ const sendNotification = () => async context => {
   if (context.method === 'create') {
     if (status === PROPOSED) {
       try {
-        const { email, name } = campaign.owner;
+        const { owner: campaignOwner } = await app.service('campaigns').get(data.campaignId);
+        const { email, name } = campaignOwner;
         Notifications.milestoneProposed(app, {
           recipient: email,
           user: name,
@@ -126,9 +127,10 @@ const sendNotification = () => async context => {
         // lets notify them if they are registered
         if (ownerAddress !== recipientAddress) {
           try {
+            const { email, name } = await app.service('users').get(result.recipientAddress);
             Notifications.milestoneCreated(app, {
-              recipient: recipient.email,
-              user: recipient.name,
+              recipient: email,
+              user: name,
               milestoneTitle: data.title,
               amount: data.maxAmount,
               token: data.token,
@@ -139,7 +141,9 @@ const sendNotification = () => async context => {
         }
       } else if (status === PROPOSED && prevStatus === REJECTED) {
         try {
-          const { email, name } = campaign.owner;
+          const { owner: campaignOwner } = await app.service('campaigns').get(data.campaignId);
+          const { email, name } = campaignOwner;
+
           Notifications.milestoneProposed(app, {
             recipient: email,
             user: name,
