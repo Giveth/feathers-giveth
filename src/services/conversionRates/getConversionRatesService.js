@@ -35,7 +35,7 @@ const _getRatesDb = async (app, timestamp, symbol = 'ETH') => {
  *
  * @return {Object} Rates object in format { EUR: 241, USD: 123 }
  */
-const _getRatesCryptocompare = async (timestamp, ratesToGet, symbol, stableCoins, coingecko_id) => {
+const _getRatesCryptocompare = async (timestamp, ratesToGet, symbol, stableCoins) => {
   logger.debug(`Fetching coversion rates from crypto compare for: ${ratesToGet}`);
   const timestampMS = Math.round(timestamp / 1000);
 
@@ -46,53 +46,14 @@ const _getRatesCryptocompare = async (timestamp, ratesToGet, symbol, stableCoins
   // Fetch the conversion rate
   const promises = ratesToGet.map(async r => {
     const rateSymbol = stableCoins.includes(r) ? 'USD' : r;
-   
     if (rateSymbol !== requestSymbol) {
-      
-      if (requestSymbol == 'PAN') {
-        const today = new Date(new Date().setUTCDate(new Date().getUTCDate()));
-        const todayUTC = today.setUTCHours(0, 0, 0, 0);
-        const todayRounded = Math.round(todayUTC / 1000);
-        const differenceDays = ((todayRounded - timestampMS) / 86400)
-        const daysMax = Math.round(differenceDays);
-        const testRep = JSON.parse(
-          await rp(`https://api.coingecko.com/api/v3/coins/${coingecko_id}/market_chart?vs_currency=${rateSymbol}&days=${daysMax}`),
-        );
+      const resp = JSON.parse(
+        await rp(
+          `https://min-api.cryptocompare.com/data/dayAvg?fsym=${requestSymbol}&tsym=${rateSymbol}&toTs=${timestampMS}&extraParams=giveth`,
+        ),
+      );
 
-        if (testRep) {
-          var difference = 0,
-            bestIndex = 0,
-            bestDifference = Infinity,
-            i, cur, priceTime;
-
-          const prices = testRep['prices']
-
-          for (i = 0; i < prices.length; i++) {
-              cur = prices[i];
-              const curRounded = Math.round(cur[0] / 1000);
-              priceTime = curRounded;
-              difference = Math.abs(timestampMS - priceTime);
-              if (difference < bestDifference) {
-                  bestDifference = difference;
-                  bestIndex = i;
-              }
-          }
-          const bestPrice = prices[bestIndex]
-          rates[r] = bestPrice[1];
-        } else {
-          rates[r] = 1
-        }
-      } else {
-        const resp = JSON.parse(
-          await rp(
-            `https://min-api.cryptocompare.com/data/dayAvg?fsym=${requestSymbol}&tsym=${rateSymbol}&toTs=${timestampMS}&extraParams=giveth`,
-          ),
-        );
-  
-        if (resp && resp[rateSymbol]) rates[r] = resp[rateSymbol];
-        console.log(rateSymbol)
-        console.log(resp[rateSymbol])
-      }
+      if (resp && resp[rateSymbol]) rates[r] = resp[rateSymbol];
     } else {
       rates[r] = 1;
     }
@@ -187,15 +148,6 @@ const getConversionRates = async (app, requestedDate, requestedSymbol = 'ETH') =
 
   const fiat = app.get('fiatWhitelist');
   const stableCoins = app.get('stableCoins') || [];
-  const tokens = app.get('activeTokenWhitelist')
-  var coingecko_id = ''
-  
-  for (var index in tokens) {
-    const token = tokens[index]
-    if (token.symbol == requestedSymbol) {
-      coingecko_id = token.coingeckoid 
-    }
-  }
 
   logger.debug(`request eth conversion for timestamp ${timestamp}`);
 
@@ -214,7 +166,6 @@ const getConversionRates = async (app, requestedDate, requestedSymbol = 'ETH') =
       unknownRates,
       requestedSymbol,
       stableCoins,
-      coingecko_id,
     );
     rates = { ...dbRates.rates, ...newRates };
 
