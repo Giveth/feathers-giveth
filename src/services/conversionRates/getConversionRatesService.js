@@ -50,45 +50,18 @@ const _getRatesCoinGecko = async (
   const promises = ratesToGet.map(async r => {
     const rateSymbolInner = stableCoins.includes(r) ? 'USD' : r;
     if (rateSymbolInner !== rateSymbol) {
-      const today = new Date(new Date());
-      const todayUTC = today.setUTCHours(0, 0, 0, 0);
-      const todayRounded = Math.round(todayUTC / 1000);
-      const timestampRounded = Math.round(timestampMS / 1000);
-      const differenceMillis = todayRounded - timestampRounded;
-      let differenceDays = 0;
+      const timestampTo = Math.round(timestampMS / 1000);
+      const timestampFrom = timestampTo - 3600 * 12;
       let bestPrice = 1;
-      if (differenceMillis <= 0) {
-        differenceDays = 0;
-      } else {
-        differenceDays = differenceMillis / 86400;
-      }
-
-      const daysMax = Math.round(differenceDays);
       const testRep = JSON.parse(
         await rp(
-          `https://api.coingecko.com/api/v3/coins/${coingeckoId}/market_chart?vs_currency=${rateSymbolInner}&days=${daysMax}`,
+          `https://api.coingecko.com/api/v3/coins/${coingeckoId}/market_chart/range?vs_currency=${rateSymbolInner}&from=${timestampFrom}&to=${timestampTo}`,
         ),
       );
 
       if (testRep) {
-        let difference = 0;
-        let bestIndex = 0;
-        let bestDifference = Infinity;
-        let i;
-        let cur;
-        let priceTime;
-
         const { prices } = testRep;
-        for (i = 0; i < prices.length; i += 1) {
-          cur = prices[i];
-          priceTime = Math.round(cur[0] / 1000);
-          difference = Math.abs(timestampRounded - priceTime);
-          if (difference < bestDifference) {
-            bestDifference = difference;
-            bestIndex = i;
-          }
-        }
-        const bestPrices = prices[bestIndex];
+        const bestPrices = prices[0];
         const someIndex = 1;
         bestPrice = bestPrices[someIndex];
       } else {
@@ -236,15 +209,11 @@ const getConversionRates = async (app, requestedDate, requestedSymbol = 'ETH') =
   const tokens = app.get('activeTokenWhitelist');
   let coingeckoId = '';
 
-  const keys = Object.keys(tokens);
-  const values = Object.values(tokens);
-  for (let i = 0; i < keys.length; i += 1) {
-    const token = values[i];
-
+  tokens.forEach(token => {
     if (token.symbol === requestedSymbol) {
       coingeckoId = token.coingeckoid;
     }
-  }
+  });
 
   logger.debug(`request eth conversion for timestamp ${timestamp}`);
 
@@ -274,6 +243,10 @@ const getConversionRates = async (app, requestedDate, requestedSymbol = 'ETH') =
         requestedSymbol,
         stableCoins,
       );
+    }
+
+    if (newRates === undefined || newRates === []) {
+      return { timestamp: dbRates.timestamp, rates };
     }
 
     rates = { ...dbRates.rates, ...newRates };
