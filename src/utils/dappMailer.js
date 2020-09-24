@@ -208,7 +208,6 @@ module.exports = {
         </p>
       `,
       cta: `Manage Milestone`,
-      // TODO exact link in your porposed milestone accepted
       ctaRelativeUrl: `/campaigns/${data.campaignId}/milestones/${data.milestoneId}`,
       unsubscribeType: 'proposed-milestone-accepted',
       unsubscribeReason: `You receive this email because you run a Milestone`,
@@ -234,7 +233,6 @@ module.exports = {
         </p>
       `,
       cta: `Manage Milestone`,
-      // TODO exact link in your proposed Milestone is rejected
       ctaRelativeUrl: `/campaigns/${data.campaignId}/milestones/${data.milestoneId}`,
       unsubscribeType: 'proposed-milestone-rejected',
       unsubscribeReason: `You receive this email because you proposed a Milestone`,
@@ -264,7 +262,6 @@ module.exports = {
         </p>
       `,
       cta: `Review Milestone`,
-      // TODO exact link in Time to Review
       ctaRelativeUrl: `/campaigns/${data.campaignId}/milestones/${data.milestoneId}`,
       unsubscribeType: 'milestone-request-review',
       unsubscribeReason: `You receive this email because you run a Milestone`,
@@ -291,7 +288,6 @@ module.exports = {
         </p>
       `,
       cta: `Manage Milestone`,
-      // TODO exact link Milesotne is finished
       ctaRelativeUrl: `/campaigns/${data.campaignId}/milestones/${data.milestoneId}`,
       unsubscribeType: 'milestone-review-approved',
       unsubscribeReason: `You receive this email because you run a Milestone`,
@@ -316,7 +312,6 @@ module.exports = {
         </p>
       `,
       cta: `Manage Milestone`,
-      // TODO exact link in Giveth - Milestone rejected by reveiewer
       ctaRelativeUrl: `/campaigns/${data.campaignId}/milestones/${data.milestoneId}`,
       unsubscribeType: 'milestone-review-rejected',
       unsubscribeReason: `You receive this email because you run a Milestone`,
@@ -341,7 +336,6 @@ module.exports = {
         </p>
       `,
       cta: `Manage Milestones`,
-      // TODO exact link Milestone canceled
       ctaRelativeUrl: `/campaigns/${data.campaignId}/milestones/${data.milestoneId}`,
       unsubscribeType: 'milestone-canceled',
       unsubscribeReason: `You receive this email because you run a Milestone`,
@@ -368,7 +362,6 @@ module.exports = {
         </p>
       `,
       cta: `See your Milestones`,
-      // TODO exact link in Milesotne created with you as a recipient
       ctaRelativeUrl: `/campaigns/${data.campaignId}/milestones/${data.milestoneId}`,
       unsubscribeType: 'milestone-created',
       unsubscribeReason: `You receive this email because you are the recipient of a Milestone`,
@@ -399,7 +392,6 @@ module.exports = {
         }</em> within 48 - 72 hrs.</p>
       `,
       cta: `See your Milestones`,
-      // TODO exact link Milesotne Paid
       ctaRelativeUrl: `/campaigns/${data.campaignId}/milestones/${data.milestoneId}`,
       unsubscribeType: 'milestone-paid',
       unsubscribeReason: `You receive this email because you are the recipient of a Milestone`,
