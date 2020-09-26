@@ -354,6 +354,7 @@ const fetchDonationsInfo = async () => {
           amountRemaining: new BigNumber(0),
           txHash,
           status,
+          savedStatus: status,
           mined,
           parentDonations: parentDonations.map(id => id.toString()),
           ownerId,
@@ -809,13 +810,9 @@ const handleToDonations = async ({
       logger.debug('Updating...');
       await Donations.update({ _id: toDonation._id }, { mined: true }).exec();
       toDonation.mined = true;
-    } else if (toDonation.status !== expectedStatus) {
-      logger.error(
-        `Donation ${toDonation._id} status should be ${expectedStatus} but is ${toDonation.status}`,
-      );
-      logger.debug('Updating...');
-      await Donations.update({ _id: toDonation._id }, { status: expectedStatus }).exec();
     }
+
+    toDonation.status = expectedStatus;
 
     const { parentDonations } = toDonation;
     if (
@@ -855,22 +852,6 @@ const handleToDonations = async ({
     toDonation.pledgeId = to;
     toDonation.pledgeState = toPledge.pledgeState;
     toDonation.amountRemaining = new BigNumber(amount);
-    const { PAYING, FAILED, PAID } = DonationStatus;
-    // Just update Paying, Paid and Failed donations at this stage, other status may be changed
-    // by future events
-    if (
-      [PAID, PAYING, FAILED].includes(toDonation.status) ||
-      [PAYING, PAID].includes(expectedStatus)
-    ) {
-      if (expectedStatus !== toDonation.status) {
-        logger.error(`Donation status is ${toDonation.status}, but should be ${expectedStatus}`);
-        if (fixConflicts) {
-          logger.debug('Updating...');
-          await Donations.update({ _id: toDonation._id }, { status: expectedStatus }).exec();
-          toDonation.status = expectedStatus;
-        }
-      }
-    }
 
     addChargedDonation(toDonation);
 
@@ -897,14 +878,7 @@ const revertProjectDonations = async projectId => {
   for (let i = 0; i < values.length; i += 1) {
     const donation = values[i];
     if (!donation.amountRemaining.isZero() && !revertExceptionStatus.includes(donation.status)) {
-      if (donation.status !== DonationStatus.CANCELED) {
-        logger.error(
-          `Donation ${donation._id} status should be ${DonationStatus.CANCELED} but is ${donation.status}`,
-        );
-        logger.debug('Updating...');
-        // eslint-disable-next-line no-await-in-loop
-        await Donations.update({ _id: donation._id }, { status: DonationStatus.CANCELED }).exec();
-      }
+      donation.status = DonationStatus.CANCELED;
     }
 
     // Remove all donations of same pledgeId from charged donation list that are not Paying or Paid
@@ -931,7 +905,17 @@ const cancelProject = async projectId => {
 const fixConflictInDonations = unusedDonationMap => {
   const promises = [];
   Object.values(donationMap).forEach(
-    ({ _id, amount, amountRemaining, savedAmountRemaining, status, pledgeId, txHash, token }) => {
+    ({
+      _id,
+      amount,
+      amountRemaining,
+      savedAmountRemaining,
+      status,
+      savedStatus,
+      pledgeId,
+      txHash,
+      token,
+    }) => {
       if (pledgeId === '0') return;
 
       const pledge = pledges[Number(pledgeId)];
@@ -956,38 +940,61 @@ const fixConflictInDonations = unusedDonationMap => {
           logger.debug('Deleting...');
           promises.push(Donations.findOneAndDelete({ _id }).exec());
         }
-      } else if (savedAmountRemaining && !amountRemaining.eq(savedAmountRemaining)) {
-        logger.error(
-          `Below donation should have remaining amount ${amountRemaining.toFixed()} but has ${savedAmountRemaining}\n${JSON.stringify(
-            {
-              _id,
-              amount: amount.toString(),
-              amountRemaining: amountRemaining.toFixed(),
-              status,
-              pledgeId: pledgeId.toString(),
-              txHash,
-            },
-            null,
-            2,
-          )}`,
-        );
-        if (Number(pledgeId) !== 0) {
-          logger.info(`Pledge Amount: ${pledge.amount}`);
-        }
-        if (fixConflicts) {
-          logger.debug('Updating...');
-          const { cutoff } = symbolDecimalsMap[token.symbol];
-          promises.push(
-            Donations.update(
-              { _id },
+      } else {
+        if (savedAmountRemaining && !amountRemaining.eq(savedAmountRemaining)) {
+          logger.error(
+            `Below donation should have remaining amount ${amountRemaining.toFixed()} but has ${savedAmountRemaining}\n${JSON.stringify(
               {
-                $set: {
-                  amountRemaining: amountRemaining.toFixed(),
-                  lessThanCutoff: cutoff.gt(amountRemaining),
-                },
+                _id,
+                amount: amount.toString(),
+                amountRemaining: amountRemaining.toFixed(),
+                status,
+                pledgeId: pledgeId.toString(),
+                txHash,
               },
-            ).exec(),
+              null,
+              2,
+            )}`,
           );
+          if (Number(pledgeId) !== 0) {
+            logger.info(`Pledge Amount: ${pledge.amount}`);
+          }
+          if (fixConflicts) {
+            logger.debug('Updating...');
+            const { cutoff } = symbolDecimalsMap[token.symbol];
+            promises.push(
+              Donations.update(
+                { _id },
+                {
+                  $set: {
+                    amountRemaining: amountRemaining.toFixed(),
+                    lessThanCutoff: cutoff.gt(amountRemaining),
+                  },
+                },
+              ).exec(),
+            );
+          }
+        }
+
+        if (savedStatus !== status) {
+          logger.error(
+            `Below donation status should be ${status} but is ${savedStatus}\n${JSON.stringify(
+              {
+                _id,
+                amount: amount.toString(),
+                amountRemaining: amountRemaining.toFixed(),
+                status,
+                pledgeId: pledgeId.toString(),
+                txHash,
+              },
+              null,
+              2,
+            )}`,
+          );
+          if (fixConflicts) {
+            logger.debug('Updating...');
+            promises.push(Donations.update({ _id }, { status }).exec());
+          }
         }
       }
     },
