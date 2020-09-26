@@ -12,6 +12,7 @@ const mongoose = require('mongoose');
 require('mongoose-long')(mongoose);
 require('../../src/models/mongoose-bn')(mongoose);
 const { LiquidPledging, LiquidPledgingState } = require('giveth-liquidpledging');
+const EventEmitter = require('events');
 const toFn = require('../../src/utils/to');
 const DonationUsdValueUtility = require('./DonationUsdValueUtility');
 
@@ -164,7 +165,7 @@ const txHashTransferEventMap = {};
 // Map from owner pledge admin ID to dictionary of charged donations
 const ownerPledgeAdminIdChargedDonationMap = {};
 
-const instantiateWeb3 = url => {
+const instantiateWeb3 = async url => {
   const provider =
     url && url.startsWith('ws')
       ? new Web3.providers.WebsocketProvider(url, {
@@ -174,13 +175,24 @@ const instantiateWeb3 = url => {
           },
         })
       : url;
-  return new Web3(provider);
+  return new Promise(resolve => {
+    const web3 = Object.assign(new Web3(provider), EventEmitter.prototype);
+
+    if (web3.currentProvider.on) {
+      web3.currentProvider.on('connect', () => {
+        console.log('connected');
+        resolve(web3);
+      });
+    } else {
+      resolve(web3);
+    }
+  });
 };
 
 let foreignWeb3;
-const getForeignWeb3 = () => {
+const getForeignWeb3 = async () => {
   if (!foreignWeb3) {
-    foreignWeb3 = instantiateWeb3(nodeUrl);
+    foreignWeb3 = await instantiateWeb3(nodeUrl);
   }
   return foreignWeb3;
 };
@@ -203,7 +215,7 @@ const fetchBlockchainData = async () => {
   events = fs.existsSync(eventsFile) ? JSON.parse(fs.readFileSync(eventsFile)) : [];
 
   if (updateState || updateEvents) {
-    const web3 = getForeignWeb3();
+    const web3 = await getForeignWeb3();
     let fromBlock = 0;
     let fetchBlockNum = 'latest';
     if (updateEvents) {
@@ -234,8 +246,9 @@ const fetchBlockchainData = async () => {
           logger.debug(`state.admins: ${state.admins}`);
         }
       }
+      let result;
       // eslint-disable-next-line no-await-in-loop
-      [error, [state, newEvents]] = await toFn(
+      [error, result] = await toFn(
         Promise.all([
           updateState ? liquidPledgingState.getState() : Promise.resolve(state),
           updateEvents
@@ -246,6 +259,7 @@ const fetchBlockchainData = async () => {
             : Promise.resolve([]),
         ]),
       );
+      if (result) [state, newEvents] = result;
       if (error && error instanceof Error) {
         logger.error(`Error on fetching network info\n${error.stack}`);
       }
@@ -278,7 +292,7 @@ const fetchBlockchainData = async () => {
 // @params {string} startDate
 // eslint-disable-next-line no-unused-vars
 const updateDonationsCreatedDate = async startDate => {
-  const web3 = getForeignWeb3();
+  const web3 = await getForeignWeb3();
   await Donations.find({
     createdAt: {
       $gte: startDate.toISOString(),
@@ -730,7 +744,7 @@ const handleToDonations = async ({
         return;
       }
 
-      const web3 = getForeignWeb3();
+      const web3 = await getForeignWeb3();
       const { timestamp } = await web3.eth.getBlock(blockNumber);
 
       const model = {
