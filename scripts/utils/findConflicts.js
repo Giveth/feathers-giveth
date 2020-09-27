@@ -916,9 +916,9 @@ const fixConflictInDonations = unusedDonationMap => {
       txHash,
       token,
     }) => {
-      if (pledgeId === '0') return;
+      if (status === DonationStatus.FAILED) return;
 
-      const pledge = pledges[Number(pledgeId)];
+      const pledge = pledges[Number(pledgeId)] || {};
 
       if (unusedDonationMap.has(_id.toString())) {
         logger.error(
