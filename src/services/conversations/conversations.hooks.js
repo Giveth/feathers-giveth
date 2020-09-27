@@ -39,6 +39,15 @@ const MESSAGE_CONTEXT = [
   'comment',
 ];
 
+const checkMessageLimit = () => context => {
+  const { message, messageContext } = context.data;
+  if (
+    messageContext === 'comment' &&
+    message.length > context.app.get('conversationMessageMaxLength')
+  )
+    throw new errors.NotAcceptable('Message length exceeded limit');
+};
+
 /**
  Only people involved with the milestone can create conversation
  Sets the address creating the conversation as the owner
@@ -145,7 +154,12 @@ module.exports = {
     all: [],
     find: [sanitizeAddress(['ownerAddress'])],
     get: [],
-    create: [restrictAndSetOwner(), checkMessageContext(), sanitizeHtml('message')],
+    create: [
+      restrictAndSetOwner(),
+      checkMessageContext(),
+      sanitizeHtml('message'),
+      checkMessageLimit(),
+    ],
     update: [disallow()],
     patch: [onlyInternal()],
     remove: [disallow()],

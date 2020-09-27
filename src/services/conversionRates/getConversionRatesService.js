@@ -206,6 +206,7 @@ const getConversionRates = async (app, requestedDate, requestedSymbol = 'ETH') =
 
   const fiat = app.get('fiatWhitelist');
   const stableCoins = app.get('stableCoins') || [];
+
   const tokens = app.get('activeTokenWhitelist');
   let coingeckoId = '';
 

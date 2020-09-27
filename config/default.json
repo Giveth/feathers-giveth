@@ -96,14 +96,6 @@
       "foreignAddress": "0x8F086f895deBc23473dfe507dd4BF35D6184552c",
       "symbol": "ANT",
       "decimals": 3
-    },
-    {
-      "name": "PAN Token",
-      "address": "0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab",
-      "foreignAddress": "0x8F086f895deBc23473dfe507dd4BF35D6184552c",
-      "symbol": "PAN",
-      "coingeckoid": "panvala-pan",
-      "decimals": 3
     }
   ],
   "activeTokenWhitelist": [
@@ -112,7 +104,6 @@
       "address": "0x0",
       "foreignAddress": "0x5a42ca500aB159c51312B764bb25C135026e7a31",
       "symbol": "ETH",
-      "coingeckoid": "eth",
       "decimals": 6
     },
     {
@@ -120,15 +111,6 @@
       "address": "0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab",
       "foreignAddress": "0x8F086f895deBc23473dfe507dd4BF35D6184552c",
       "symbol": "ANT",
-      "coingeckoid": "ant",
-      "decimals": 3
-    },
-    {
-      "name": "PAN Token",
-      "address": "0xD56daC73A4d6766464b38ec6D91eB45Ce7457c44",
-      "foreignAddress": "0x8F086f895deBc23473dfe507dd4BF35D6184452c",
-      "symbol": "PAN",
-      "coingeckoid": "panvala-pan",
       "decimals": 3
     }
   ],
@@ -152,5 +134,6 @@
     "SAI"
   ],
   "dappMailerUrl": "http://127.0.0.1:3050",
-  "dappMailerSecret": "xxMv8a13I3YOZSKq9XmX285N0o4m1qHyKjgQWb2g83daGtPI4VmEw7dImu8kvO2ovG4EMC1bvjO906o365BaJBZtArpnxJCoYsCJ"
+  "dappMailerSecret": "xxMv8a13I3YOZSKq9XmX285N0o4m1qHyKjgQWb2g83daGtPI4VmEw7dImu8kvO2ovG4EMC1bvjO906o365BaJBZtArpnxJCoYsCJ",
+  "conversationMessageMaxLength": 150
 }
