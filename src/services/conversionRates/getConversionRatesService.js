@@ -51,7 +51,7 @@ const _getRatesCoinGecko = async (
     const rateSymbolInner = stableCoins.includes(r) ? 'USD' : r;
     if (rateSymbolInner !== rateSymbol) {
       const timestampTo = Math.round(timestampMS / 1000);
-      const timestampFrom = timestampTo - 3600 * 12;
+      const timestampFrom = timestampTo - (3600 * 12);
       let bestPrice = 1;
       const testRep = JSON.parse(
         await rp(
@@ -60,10 +60,26 @@ const _getRatesCoinGecko = async (
       );
 
       if (testRep) {
+        let difference = 0;
+        let bestIndex = 0;
+        let bestDifference = Infinity;
+        let i;
+        let cur;
+        let priceTime;
+
         const { prices } = testRep;
-        const bestPrices = prices[0];
-        const someIndex = 1;
-        bestPrice = bestPrices[someIndex];
+        for (i = 0; i < prices.length; i += 1) {
+          cur = prices[i];
+          priceTime = Math.round(cur[0] / 1000);
+          difference = Math.abs(timestampTo - priceTime);
+          if (difference < bestDifference) {
+            bestDifference = difference;
+            bestIndex = i;
+          }
+        }
+        const bestPrices = prices[bestIndex];
+        const [timestamp, price] = bestPrices
+        bestPrice = price
       } else {
         bestPrice = 1;
       }
