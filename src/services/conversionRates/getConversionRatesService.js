@@ -25,6 +25,80 @@ const _getRatesDb = async (app, timestamp, symbol = 'ETH') => {
 };
 
 /**
+ * Get the rates from the coingecko API
+ *
+ * @throws Error if fetching the rates from coingecko API failed
+ *
+ * @param {Number} rateSymbol   The rate symbol for the token being requested to be compared to
+ * @param {Array}  timestampMS Timestamp requested for the rate
+ * @param {Array}  coingeckoId the unique coingecko id needed for the token that the api needs
+ * @param {Array}  ratestToGet Rates that are missing in the DB and should be retrieved
+ * @param {Array}  stableCoins coins whose value equal one usd
+ *
+ * @return {Object} Rates object in format { 0.241 }
+ */
+const _getRatesCoinGecko = async (
+  rateSymbol,
+  timestampMS,
+  coingeckoId,
+  ratesToGet,
+  stableCoins,
+) => {
+  const rates = {};
+  rates[rateSymbol] = 1;
+
+  const promises = ratesToGet.map(async r => {
+    const rateSymbolInner = stableCoins.includes(r) ? 'USD' : r;
+    if (rateSymbolInner !== rateSymbol) {
+      const timestampTo = Math.round(timestampMS / 1000);
+      const timestampFrom = timestampTo - 3600 * 12;
+      let bestPrice = 1;
+      const testRep = JSON.parse(
+        await rp(
+          `https://api.coingecko.com/api/v3/coins/${coingeckoId}/market_chart/range?vs_currency=${rateSymbolInner}&from=${timestampFrom}&to=${timestampTo}`,
+        ),
+      );
+
+      if (testRep) {
+        let difference = 0;
+        let bestIndex = 0;
+        let bestDifference = Infinity;
+        let i;
+        let cur;
+        let priceTime;
+
+        const { prices } = testRep;
+        for (i = 0; i < prices.length; i += 1) {
+          cur = prices[i];
+          priceTime = Math.round(cur[0] / 1000);
+          difference = Math.abs(timestampTo - priceTime);
+          if (difference < bestDifference) {
+            bestDifference = difference;
+            bestIndex = i;
+          }
+        }
+        const bestPrices = prices[bestIndex];
+        const [, price] = bestPrices;
+        bestPrice = price;
+      } else {
+        bestPrice = 1;
+      }
+      rates[r] = bestPrice;
+    } else {
+      rates[r] = 1;
+    }
+  });
+  // FIXME: This may throw some exceptions, this should probably be checked
+  try {
+    await Promise.all(promises);
+  } catch (e) {
+    logger.error(e);
+  }
+
+  return rates;
+};
+
+/**
  * Get the rates from the cryptocompare API
  *
  * @throws Error if fetching the rates from cryptocompare API failed
@@ -149,6 +223,15 @@ const getConversionRates = async (app, requestedDate, requestedSymbol = 'ETH') =
   const fiat = app.get('fiatWhitelist');
   const stableCoins = app.get('stableCoins') || [];
 
+  const tokens = app.get('activeTokenWhitelist');
+  let coingeckoId = '';
+
+  tokens.forEach(token => {
+    if (token.symbol === requestedSymbol) {
+      coingeckoId = token.coingeckoid;
+    }
+  });
+
   logger.debug(`request eth conversion for timestamp ${timestamp}`);
 
   // Check if we already have this exchange rate for this timestamp, if not we save it
@@ -161,12 +244,28 @@ const getConversionRates = async (app, requestedDate, requestedSymbol = 'ETH') =
   if (unknownRates.length !== 0) {
     logger.debug('fetching eth coversion from crypto compare');
     // Some rates have not been obtained yet, get them from cryptocompare
-    const newRates = await _getRatesCryptocompare(
-      timestamp,
-      unknownRates,
-      requestedSymbol,
-      stableCoins,
-    );
+    let newRates = [];
+    if (requestedSymbol === 'PAN') {
+      newRates = await _getRatesCoinGecko(
+        requestedSymbol,
+        timestamp,
+        coingeckoId,
+        unknownRates,
+        stableCoins,
+      );
+    } else {
+      newRates = await _getRatesCryptocompare(
+        timestamp,
+        unknownRates,
+        requestedSymbol,
+        stableCoins,
+      );
+    }
+
+    if (newRates === undefined || newRates === []) {
+      return { timestamp: dbRates.timestamp, rates };
+    }
+
     rates = { ...dbRates.rates, ...newRates };
 
     // Save the newly retrieved rates
