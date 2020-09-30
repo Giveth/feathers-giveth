@@ -206,7 +206,9 @@ const sendNotification = () => async context => {
           recipient: owner.email,
           user: owner.name,
           milestoneTitle: title,
+          milestoneId: _id,
           campaignTitle: campaign.title,
+          campaignId,
           message,
         });
       } else if (data.status === IN_PROGRESS && prevStatus === NEEDS_REVIEW) {
