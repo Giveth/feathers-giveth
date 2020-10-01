@@ -117,7 +117,9 @@ const sendNotification = () => async context => {
           recipient: owner.email,
           user: owner.name,
           milestoneTitle: title,
+          milestoneId: _id,
           campaignTitle: campaign.title,
+          campaignId,
           amount: maxAmount,
           txHash,
           message,
@@ -132,6 +134,8 @@ const sendNotification = () => async context => {
               recipient: email,
               user: name,
               milestoneTitle: data.title,
+              milestoneId: _id,
+              campaignId,
               amount: data.maxAmount,
               token: data.token,
             });
@@ -172,6 +176,8 @@ const sendNotification = () => async context => {
               recipient: user.email,
               user: user.name,
               milestoneTitle: data.title,
+              milestoneId: _id,
+              campaignId,
               amount: data.maxAmount,
               token: data.token,
             });
@@ -187,7 +193,9 @@ const sendNotification = () => async context => {
           recipient: reviewer.email,
           user: reviewer.name,
           milestoneTitle: title,
+          milestoneId: _id,
           campaignTitle: campaign.title,
+          campaignId,
           message,
         });
       } else if (status === COMPLETED && mined) {
@@ -198,7 +206,9 @@ const sendNotification = () => async context => {
           recipient: owner.email,
           user: owner.name,
           milestoneTitle: title,
+          milestoneId: _id,
           campaignTitle: campaign.title,
+          campaignId,
           message,
         });
       } else if (data.status === IN_PROGRESS && prevStatus === NEEDS_REVIEW) {
@@ -211,7 +221,9 @@ const sendNotification = () => async context => {
             recipient: reviewer.email,
             user: reviewer.name,
             milestoneTitle: title,
+            milestoneId: _id,
             campaignTitle: campaign.title,
+            campaignId,
             message,
           });
         }
@@ -223,7 +235,9 @@ const sendNotification = () => async context => {
           recipient: owner.email,
           user: owner.name,
           milestoneTitle: title,
+          milestoneId: _id,
           campaignTitle: campaign.title,
+          campaignId,
           message,
         });
       } else if (status === PAID && mined && prevStatus === PAYING) {
@@ -231,8 +245,10 @@ const sendNotification = () => async context => {
           recipient: recipient.email,
           user: recipient.name,
           milestoneTitle: title,
+          milestoneId: _id,
           donationCounters,
           address: recipientAddress,
+          campaignId,
         });
       }
     } else if (data.status === REJECTED && prevStatus === PROPOSED) {
@@ -243,7 +259,9 @@ const sendNotification = () => async context => {
         recipient: owner.email,
         user: owner.name,
         milestoneTitle: title,
+        milestoneId: _id,
         campaignTitle: campaign.title,
+        campaignId,
         message,
       });
     } else if (data.status === PROPOSED && prevStatus === REJECTED) {
