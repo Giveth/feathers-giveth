@@ -401,11 +401,15 @@ const populateSchema = () => context => {
 
   return context;
 };
-
+const aggregate = async context => {
+  if ('_aggregate' in context.params.query) {
+    context.result = context.service.Model.aggregate(context.params.query._aggregate);
+  }
+};
 module.exports = {
   before: {
     all: [commons.paramsFromClient('schema')],
-    find: [sanitizeAddress('giverAddress')],
+    find: [sanitizeAddress('giverAddress'), aggregate],
     get: [],
     create: [
       sanitizeAddress('giverAddress', {
