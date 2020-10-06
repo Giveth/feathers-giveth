@@ -43,7 +43,7 @@ function balanceMonitor(app) {
 
     // generate a request to execute to fetch each users balance
     const balRequests = usersToCheck.map(({ address }) =>
-      web3.eth.getBalance.request(address, 'pending', handleBalanceResponse(address)),
+      web3.eth.getBalance.request(address.toLowerCase(), 'pending', handleBalanceResponse(address)),
     );
 
     batchAndExecuteRequests(web3, balRequests);

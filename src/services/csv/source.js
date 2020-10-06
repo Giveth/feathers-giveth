@@ -6,8 +6,7 @@ const { EventStatus } = require('../../models/events.model');
 module.exports = app => {
   const eventService = app.service('events');
   const milestoneService = app.service('milestones');
-
-  const donationModel = app.get('donationModel');
+  const donationModel = app.service('donations').Model;
 
   // Get stream of items to be written to csv for the campaign, plus milestones of this campaign
   const getData = async campaign => {
