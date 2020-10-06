@@ -65,6 +65,7 @@ function Milestone(app) {
       mined: { type: Boolean, required: true, default: false },
       prevStatus: { type: String },
       url: { type: String },
+      customThanksMessage: { type: String },
       prevUrl: { type: String }, // To store deleted/cleared lost ipfs values
       type: {
         type: String,
