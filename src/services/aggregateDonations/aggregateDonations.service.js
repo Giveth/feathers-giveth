@@ -67,15 +67,15 @@ module.exports = function aggregateDonations() {
           }),
         ]);
 
-        item.donations = donations;
-        item.giver = giver;
-
-        return item;
+        return {
+          ...item,
+          donations,
+          giver,
+        };
       });
 
-      await Promise.all(promises);
       return {
-        data,
+        data: await Promise.all(promises),
         skip: $skip,
         limit: $limit,
         total: metadata[0].total,
