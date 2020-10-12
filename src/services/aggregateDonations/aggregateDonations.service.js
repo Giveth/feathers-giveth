@@ -15,39 +15,42 @@ module.exports = function aggregateDonations() {
 
       const donationModel = donationsService.Model;
 
-      const params = [
-        {
-          $match: {
-            status: { $in: [DonationStatus.COMMITTED, DonationStatus.WAITING] },
-            $or: [
-              { ownerTypeId: id }, // Committed ones to project
-              { intendedProjectTypeId: id }, // Delegated via DAC
-              {
-                delegateTypeId: id,
-                intendedProjectId: { $exists: false },
-              }, // Dac donations
-            ],
-            amount: { $ne: 0 },
-            isReturn: false,
-          },
-        },
-        {
-          $group: {
-            _id: '$giverAddress',
-            totalAmount: { $sum: '$usdValue' },
-            count: { $sum: 1 },
-            donations: { $push: '$_id' },
-          },
-        },
-        { $sort: { totalAmount: -1 } },
-      ];
+      const dataQuery = [{ $sort: { totalAmount: -1 } }];
+      if ($skip) dataQuery.push({ $skip: Number($skip) });
+      if ($limit) dataQuery.push({ $limit: Number($limit) });
 
-      if ($skip) params.push({ $skip: Number($skip) });
-      if ($limit) params.push({ $limit: Number($limit) });
+      const result = await donationModel
+        .aggregate()
+        .match({
+          status: { $in: [DonationStatus.COMMITTED, DonationStatus.WAITING] },
+          $or: [
+            { ownerTypeId: id }, // Committed ones to project
+            { intendedProjectTypeId: id }, // Delegated via DAC
+            {
+              delegateTypeId: id,
+              intendedProjectId: { $exists: false },
+            }, // Dac donations
+          ],
+          amount: { $ne: '0' },
+          isReturn: false,
+        })
+        .group({
+          _id: '$giverAddress',
+          totalAmount: { $sum: '$usdValue' },
+          count: { $sum: 1 },
+          donations: { $push: '$_id' },
+        })
+        .match({ totalAmount: { $gt: 0 } })
+        .facet({
+          data: dataQuery,
+          metadata: [{ $count: 'total' }],
+        })
+        .exec();
 
-      const result = await donationModel.aggregate(params);
+      const { data, metadata } = result[0];
 
-      const promises = result.map(async item => {
+      // Fetch donations
+      const promises = data.map(async item => {
         const [donations, [giver] = []] = await Promise.all([
           donationsService.find({
             paginate: false,
@@ -70,7 +73,13 @@ module.exports = function aggregateDonations() {
         return item;
       });
 
-      return Promise.all(promises);
+      await Promise.all(promises);
+      return {
+        data,
+        skip: $skip,
+        limit: $limit,
+        total: metadata[0].total,
+      };
     },
   };
   app.use('/aggregateDonations', aggregateDonationsService);
