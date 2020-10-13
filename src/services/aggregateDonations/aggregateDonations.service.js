@@ -7,7 +7,7 @@ module.exports = function aggregateDonations() {
   const usersService = app.service('users');
 
   const aggregateDonationsService = {
-    async find({ query }) {
+    async find({ query, provider }) {
       const { id, $limit, $skip } = query;
       if (!id || !ObjectId.isValid(id)) {
         return { error: 400 };
@@ -64,7 +64,7 @@ module.exports = function aggregateDonations() {
             query: {
               address: item._id,
             },
-            provider: 'provider', // In order to resolve avatar field
+            provider, // In order to resolve avatar field
           }),
         ]);
 
