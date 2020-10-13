@@ -64,6 +64,7 @@ module.exports = function aggregateDonations() {
             query: {
               address: item._id,
             },
+            provider: 'provider', // In order to resolve avatar field
           }),
         ]);
 
