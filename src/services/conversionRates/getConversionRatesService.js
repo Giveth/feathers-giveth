@@ -156,12 +156,8 @@ const _getRatesCryptocompare = async (timestamp, ratesToGet, symbol, stableCoins
  *
  * @return {Object} Rates object in format { 0.241 }
  */
-const getHourlyUSDRateCoingecko = async (
-  rateSymbol,
-  timestampMS,
-  coingeckoId,
-) => {
-  var rate = 0;
+const getHourlyUSDRateCoingecko = async (rateSymbol, timestampMS, coingeckoId) => {
+  let rate = 0;
 
   if (rateSymbol) {
     const timestampTo = Math.round(timestampMS / 1000);
@@ -337,8 +333,6 @@ const getConversionRates = async (app, requestedDate, requestedSymbol = 'ETH') =
   return { timestamp: dbRates.timestamp, rates };
 };
 
-
-
 const getHourlyUSDCryptoConversion = async (app, ts, tokenSymbol = 'ETH') => {
   if (ts > Date.now()) throw new Error('Can not fetch crypto rate for future ts');
 
@@ -359,7 +353,6 @@ const getHourlyUSDCryptoConversion = async (app, ts, tokenSymbol = 'ETH') => {
     }
   });
 
-
   // Check if we already have this exchange rate for this timestamp, if not we save it
   const dbRates = await _getRatesDb(app, requestTs, tokenSymbol);
   const retrievedRates = new Set(Object.keys(dbRates.rates || {}));
@@ -368,17 +361,13 @@ const getHourlyUSDCryptoConversion = async (app, ts, tokenSymbol = 'ETH') => {
     return { timestamp: dbRates.timestamp, rate: dbRates.rates.USD };
   }
 
-  var rate = 0
+  let rate = 0;
   if (tokenSymbol === 'PAN') {
-    rate = await getHourlyUSDRateCoingecko(
-      tokenSymbol,
-      requestTs,
-      coingeckoId
-    );
+    rate = await getHourlyUSDRateCoingecko(tokenSymbol, requestTs, coingeckoId);
   } else {
     rate = await getHourlyUSDRateCryptocompare(requestTs, tokenSymbol);
   }
-  
+
   try {
     await _saveToDB(app, requestTs, { USD: rate }, tokenSymbol);
   } catch (e) {
