@@ -53,7 +53,7 @@ class DonationUsdValueUtility {
       new BigNumber(amount.toString())
         .div(10 ** 18)
         .times(Number(rate))
-        .toFixed(2),
+        .toFixed(5),
     );
     donation.usdValue = usdValue;
   }

@@ -198,7 +198,7 @@ const getHourlyUSDRateCoingecko = async (rateSymbol, timestampMS, coingeckoId) =
     rate = 1;
   }
 
-  return rate.toFixed(2);
+  return rate.toFixed(5);
 };
 
 const getHourlyUSDRateCryptocompare = async (timestamp, tokenSymbol) => {
