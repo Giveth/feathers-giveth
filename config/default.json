@@ -133,19 +133,22 @@
     }
   ],
   "fiatWhitelist": [
+    "ETH",
+    "DAI",
+    "PAN",
+    "ANT",
+    "BTC",
+    "USDC",
+    "USD",
     "AUD",
     "BRL",
     "CAD",
     "CHF",
     "CZK",
-    "SAI",
-    "ETH",
     "EUR",
     "GBP",
     "MXN",
-    "THB",
-    "USD",
-    "DAI"
+    "THB"
   ],
   "stableCoins": [
     "DAI",
