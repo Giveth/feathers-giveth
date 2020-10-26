@@ -42,14 +42,17 @@ class DonationUsdValueUtility {
     const { createdAt, token, amount } = donation;
     const { symbol } = token;
 
-    const { rate } = await getHourlyUSDCryptoConversion(this.app, createdAt, symbol);
-    const usdValue = Number(
-      new BigNumber(amount.toString())
-        .div(10 ** 18)
-        .times(Number(rate))
-        .toFixed(2),
-    );
-    donation.usdValue = usdValue;
+    try {
+      const { rate } = await getHourlyUSDCryptoConversion(this.app, createdAt, symbol);
+      const usdValue = Number(
+        new BigNumber(amount.toString())
+          .div(10 ** 18)
+          .times(Number(rate))
+          .toFixed(2),
+      );
+      donation.usdValue = usdValue;
+      // eslint-disable-next-line no-empty
+    } catch (e) {}
   }
 }
 
