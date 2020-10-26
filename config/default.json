@@ -91,7 +91,7 @@
       "decimals": 6
     },
     {
-      "name": "PAN Token",
+      "name": "PAN",
       "address": "0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab",
       "foreignAddress": "0x8F086f895deBc23473dfe507dd4BF35D6184552c",
       "symbol": "PAN",
@@ -124,7 +124,7 @@
       "decimals": 3
     },
     {
-      "name": "PAN Token",
+      "name": "PAN",
       "address": "0xD56daC73A4d6766464b38ec6D91eB45Ce7457c44",
       "foreignAddress": "0x8F086f895deBc23473dfe507dd4BF35D6184452c",
       "symbol": "PAN",
@@ -133,19 +133,22 @@
     }
   ],
   "fiatWhitelist": [
+    "ETH",
+    "DAI",
+    "PAN",
+    "ANT",
+    "BTC",
+    "USDC",
+    "USD",
     "AUD",
     "BRL",
     "CAD",
     "CHF",
     "CZK",
-    "SAI",
-    "ETH",
     "EUR",
     "GBP",
     "MXN",
-    "THB",
-    "USD",
-    "DAI"
+    "THB"
   ],
   "stableCoins": [
     "DAI",

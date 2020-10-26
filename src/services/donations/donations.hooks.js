@@ -117,15 +117,16 @@ const setUSDValue = async (context, donation) => {
     const { rate } = await getHourlyUSDCryptoConversion(context.app, createdAt, token.symbol);
 
     if (rate) {
+      const usVar = Number(
+        new BigNumber(amount)
+          .div(10 ** 18)
+          .times(rate)
+          .toFixed(2),
+      );
       return context.app.service('donations').patch(
         _id,
         {
-          usdValue: Number(
-            new BigNumber(amount)
-              .div(10 ** 18)
-              .times(rate)
-              .toFixed(2),
-          ),
+          usdValue: usVar,
         },
         {
           skipUSDValueUpdate: true,
