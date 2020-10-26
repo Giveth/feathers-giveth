@@ -121,7 +121,7 @@ const setUSDValue = async (context, donation) => {
         new BigNumber(amount)
           .div(10 ** 18)
           .times(rate)
-          .toFixed(5),
+          .toFixed(2),
       );
       return context.app.service('donations').patch(
         _id,
