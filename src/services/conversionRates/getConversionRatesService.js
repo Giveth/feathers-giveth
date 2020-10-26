@@ -344,7 +344,7 @@ const getHourlyUSDCryptoConversion = async (app, ts, tokenSymbol = 'ETH') => {
   if (stableCoins.includes(tokenSymbol)) {
     return { timestamp: requestTs, rate: 1 };
   }
-  const tokens = app.get('activeTokenWhitelist');
+  const tokens = app.get('tokenWhitelist');
   let coingeckoId = '';
 
   tokens.forEach(token => {

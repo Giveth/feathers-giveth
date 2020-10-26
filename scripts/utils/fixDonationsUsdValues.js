@@ -26,7 +26,7 @@ app.set('mongooseClient', mongoose);
 const Donations = require('../../src/models/donations.model').createModel(app);
 const ConversationRates = require('../../src/models/conversionRates.model')(app);
 
-const donationUsdValueUtility = new DonationUsdValueUtility(ConversationRates);
+const donationUsdValueUtility = new DonationUsdValueUtility(ConversationRates, config);
 
 const terminateScript = (message = '', code = 0) =>
   process.stdout.write(`Exit message: ${message}`, () => process.exit(code));

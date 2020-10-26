@@ -2,11 +2,10 @@ const BigNumber = require('bignumber.js');
 const {
   getHourlyUSDCryptoConversion,
 } = require('../../src/services/conversionRates/getConversionRatesService');
-const { stableCoins, fiatWhitelist } = require('../../config/default.json');
 
 // Used by scripts to set usdValue of donations
 class DonationUsdValueUtility {
-  constructor(conversionRateModel) {
+  constructor(conversionRateModel, config) {
     this.services = {};
 
     const createServiceFromModel = (name, Model) => {
@@ -29,11 +28,6 @@ class DonationUsdValueUtility {
     };
 
     createServiceFromModel('conversionRates', conversionRateModel);
-
-    const config = {
-      stableCoins,
-      fiatWhitelist,
-    };
 
     // Create app instance to pass getHourlyUSDCryptoConversion method
     this.app = {

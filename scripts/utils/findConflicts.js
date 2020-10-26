@@ -147,7 +147,7 @@ const { DacStatus } = require('../../src/models/dacs.model');
 const { CampaignStatus } = require('../../src/models/campaigns.model');
 const { MilestoneStatus } = require('../../src/models/milestones.model');
 
-const donationUsdValueUtility = new DonationUsdValueUtility(ConversationRates);
+const donationUsdValueUtility = new DonationUsdValueUtility(ConversationRates, config);
 
 // Blockchain data
 let events;
