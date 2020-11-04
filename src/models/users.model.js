@@ -17,6 +17,7 @@ module.exports = function User(app) {
       linkedin: { type: String },
       url: { type: String },
       prevUrl: { type: String }, // To store deleted/cleared lost ipfs values
+      currency: { type: String }, // Users's native currency
     },
     {
       timestamps: true,
