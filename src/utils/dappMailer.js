@@ -385,7 +385,7 @@ module.exports = {
           data.milestoneTitle
         }</em>:</p>
         <p></p>
-        ${data.donationCounters.map(c => `<p>${c.currentBalance / 10 ** 18} ${c.symbol}</p>`)}
+        ${data.donationCounters.map(c => `<p>${c.totalDonated / 10 ** 18} ${c.symbol}</p>`)}
         <p></p>
         <p>You can expect to see these payment(s) to arrive in your wallet <em>${
           data.address
