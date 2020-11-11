@@ -43,7 +43,7 @@ const getWhitelist = () => context => {
       tokenWhitelist,
       activeTokenWhitelist,
       fiatWhitelist,
-      nativeCurrencyWhitelist
+      nativeCurrencyWhitelist,
     };
 
     return context;
