@@ -1,6 +1,5 @@
 const rp = require('request-promise');
 const logger = require('winston');
-const errors = require('@feathersjs/errors');
 
 const MINUTE = 1000 * 60;
 
@@ -266,7 +265,7 @@ const _saveToDB = (app, timestamp, rates, symbol, _id = undefined) => {
  *
  * @return {Promise} Promise that resolves to object {timestamp, rates: { EUR: 100, USD: 90 } }
  */
-const getConversionRates = async (app, requestedDate, symbol = 'ETH') => {
+const getConversionRates = async (app, requestedDate, requestedSymbol = 'ETH') => {
   // Get yesterday date from today respecting UTC
   const yesterday = new Date(new Date().setUTCDate(new Date().getUTCDate() - 1));
   const yesterdayUTC = yesterday.setUTCHours(0, 0, 0, 0);
@@ -282,14 +281,15 @@ const getConversionRates = async (app, requestedDate, symbol = 'ETH') => {
   const fiat = app.get('fiatWhitelist');
   const stableCoins = app.get('stableCoins') || [];
 
-  const tokens = app.get('tokenWhitelist');
-  const token = tokens.find(item => item.symbol === symbol);
-  if (!token) {
-    throw new errors.BadRequest(`Token with symbol ${symbol} is not in whitelist`);
-  }
-  // This field needed for PAN currency
-  const coingeckoId = token.coingeckoid;
-  const requestedSymbol = token.rateEqSymbol || symbol;
+  const tokens = app.get('activeTokenWhitelist');
+  let coingeckoId = '';
+
+  tokens.forEach(token => {
+    if (token.symbol === requestedSymbol) {
+      coingeckoId = token.coingeckoid;
+    }
+  });
+
   logger.debug(`request eth conversion for timestamp ${timestamp}`);
 
   // Check if we already have this exchange rate for this timestamp, if not we save it
