@@ -56,6 +56,7 @@ function Donation(app) {
       lessThanCutoff: { type: Boolean, default: false, index: true },
       usdValue: { type: Number, default: 0 },
       txNonce: { type: Number },
+      comment: { type: String },
     },
     {
       timestamps: true,
