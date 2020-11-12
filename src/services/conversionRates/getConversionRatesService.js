@@ -111,12 +111,10 @@ const _getRatesCoinGecko = async (
  * @return {Object} Rates object in format { EUR: 241, USD: 123 }
  */
 const _getRatesCryptocompare = async (timestamp, ratesToGet, symbol, stableCoins) => {
-  logger.debug("_getRatesCryptocompare ",{timestamp, ratesToGet, symbol, stableCoins})
   logger.debug(`Fetching coversion rates from crypto compare for: ${ratesToGet}`);
   const timestampMS = Math.round(timestamp / 1000);
 
   const rates = {};
-  //TODO I think this can be removed because in else statement this field will set
   rates[symbol] = 1;
 
   const requestSymbol = stableCoins.includes(symbol) ? 'USD' : symbol;
@@ -284,12 +282,12 @@ const getConversionRates = async (app, requestedDate, symbol = 'ETH') => {
   const fiat = app.get('fiatWhitelist');
   const stableCoins = app.get('stableCoins') || [];
 
-  const tokens =app.get('tokenWhitelist');
-  const token = tokens.find(token => token.symbol === symbol);
+  const tokens = app.get('tokenWhitelist');
+  const token = tokens.find(item => item.symbol === symbol);
   if (!token) {
-    throw new errors.BadRequest(`Token with symbol ${symbol} is not in whitelist`)
+    throw new errors.BadRequest(`Token with symbol ${symbol} is not in whitelist`);
   }
-  //This field needed for PAN currency
+  // This field needed for PAN currency
   const coingeckoId = token.coingeckoid;
   const requestedSymbol = token.rateEqSymbol || symbol;
   logger.debug(`request eth conversion for timestamp ${timestamp}`);
@@ -318,7 +316,7 @@ const getConversionRates = async (app, requestedDate, symbol = 'ETH') => {
         timestamp,
         unknownRates,
         requestedSymbol,
-        stableCoins
+        stableCoins,
       );
     }
 
