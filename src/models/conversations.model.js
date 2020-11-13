@@ -34,6 +34,7 @@ module.exports = function Conversations(app) {
   );
 
   conversation.index({ milestoneId: 1, txHash: 1, messageContext: 1 });
-
+  conversation.index({ updatedAt: 1 });
+  conversation.index({ createdAt: 1 });
   return mongooseClient.model('conversation', conversation);
 };

@@ -30,6 +30,7 @@ function createModel(app) {
         require: true,
         enum: Object.values(DacStatus),
         default: DacStatus.PENDING,
+        index: true,
       },
       image: { type: String },
       prevImage: { type: String }, // To store deleted/cleared lost ipfs values
@@ -49,7 +50,8 @@ function createModel(app) {
       timestamps: true,
     },
   );
-
+  dac.index({ updatedAt: 1 });
+  dac.index({ createdAt: 1 });
   return mongooseClient.model('dac', dac);
 }
 

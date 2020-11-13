@@ -27,7 +27,8 @@ function PledgeAdmin(app) {
       timestamps: true,
     },
   );
-
+  pledgeAdmin.index({ updatedAt: 1 });
+  pledgeAdmin.index({ createdAt: 1 });
   return mongooseClient.model('pledgeAdmin', pledgeAdmin);
 }
 

@@ -51,8 +51,8 @@ function createModel(app) {
     },
   );
 
-  campaign.index('createdAt', 1);
-  campaign.index('updatedAt', 1);
+  campaign.index({ updatedAt: 1 });
+  campaign.index({ createdAt: 1 });
   return mongooseClient.model('campaign', campaign);
 }
 
