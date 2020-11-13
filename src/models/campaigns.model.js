@@ -16,7 +16,7 @@ function createModel(app) {
   const { Schema } = mongooseClient;
   const campaign = new Schema(
     {
-      title: { type: String, required: true },
+      title: { type: String, required: true, index: true },
       description: { type: String, required: true },
       projectId: { type: Schema.Types.Long, index: true }, // we can use Long here b/c lp only stores adminId in pledges as uint64
       image: { type: String, required: true },
@@ -35,6 +35,7 @@ function createModel(app) {
       status: {
         type: String,
         require: true,
+        index: true,
         enum: Object.values(CampaignStatus),
         default: CampaignStatus.PENDING,
       },
@@ -50,6 +51,8 @@ function createModel(app) {
     },
   );
 
+  campaign.index('createdAt', 1);
+  campaign.index('updatedAt', 1);
   return mongooseClient.model('campaign', campaign);
 }
 
