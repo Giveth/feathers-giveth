@@ -150,13 +150,11 @@ const _getRatesCryptocompare = async (timestamp, ratesToGet, symbol, stableCoins
  *
  * @param {Number} rateSymbol   The rate symbol for the token being requested to be compared to
  * @param {Array}  timestampMS Timestamp requested for the rate
- * @param {Array}  coingeckoId the unique coingecko id needed for the token that the api needs
- * @param {Array}  ratestToGet Rates that are missing in the DB and should be retrieved
- * @param {Array}  stableCoins coins whose value equal one usd
+ * @param {string}  coingeckoId the unique coingecko id needed for the token that the api needs
  *
  * @return {Object} Rates object in format { 0.241 }
  */
-const getHourlyUSDRateCoingecko = async (rateSymbol, timestampMS, coingeckoId) => {
+const getHourlyUSDRateCoingecko = async (rateSymbol, timestampMS, coingeckoId = '') => {
   let rate = 0;
 
   if (rateSymbol) {
@@ -256,6 +254,19 @@ const _saveToDB = (app, timestamp, rates, symbol, _id = undefined) => {
   });
 };
 
+let symbolToToken;
+const getTokenBySymbol = (app, symbol) => {
+  if (!symbolToToken) {
+    symbolToToken = {};
+    const tokens = app.get('tokenWhitelist');
+    tokens.forEach(token => {
+      symbolToToken[token.symbol] = token;
+    });
+  }
+
+  return symbolToToken[symbol] || { symbol };
+};
+
 /**
  * Fetching eth conversion based on daily average from cryptocompare
  * Saves the conversion rates in the backend if we don't have it stored yet.timestamp
@@ -265,7 +276,7 @@ const _saveToDB = (app, timestamp, rates, symbol, _id = undefined) => {
  *
  * @return {Promise} Promise that resolves to object {timestamp, rates: { EUR: 100, USD: 90 } }
  */
-const getConversionRates = async (app, requestedDate, requestedSymbol = 'ETH') => {
+const getConversionRates = async (app, requestedDate, symbol = 'ETH') => {
   // Get yesterday date from today respecting UTC
   const yesterday = new Date(new Date().setUTCDate(new Date().getUTCDate() - 1));
   const yesterdayUTC = yesterday.setUTCHours(0, 0, 0, 0);
@@ -281,15 +292,11 @@ const getConversionRates = async (app, requestedDate, requestedSymbol = 'ETH') =
   const fiat = app.get('fiatWhitelist');
   const stableCoins = app.get('stableCoins') || [];
 
-  const tokens = app.get('activeTokenWhitelist');
-  let coingeckoId = '';
+  const token = getTokenBySymbol(app, symbol);
 
-  tokens.forEach(token => {
-    if (token.symbol === requestedSymbol) {
-      coingeckoId = token.coingeckoid;
-    }
-  });
-
+  // This field needed for PAN currency
+  const { coingeckoId } = token;
+  const requestedSymbol = token.rateEqSymbol || symbol;
   logger.debug(`request eth conversion for timestamp ${timestamp}`);
 
   // Check if we already have this exchange rate for this timestamp, if not we save it
@@ -344,14 +351,7 @@ const getHourlyUSDCryptoConversion = async (app, ts, tokenSymbol = 'ETH') => {
   if (stableCoins.includes(tokenSymbol)) {
     return { timestamp: requestTs, rate: 1 };
   }
-  const tokens = app.get('tokenWhitelist');
-  let coingeckoId = '';
-
-  tokens.forEach(token => {
-    if (token.symbol === tokenSymbol) {
-      coingeckoId = token.coingeckoid;
-    }
-  });
+  const token = getTokenBySymbol(app, tokenSymbol);
 
   // Check if we already have this exchange rate for this timestamp, if not we save it
   const dbRates = await _getRatesDb(app, requestTs, tokenSymbol);
@@ -363,7 +363,7 @@ const getHourlyUSDCryptoConversion = async (app, ts, tokenSymbol = 'ETH') => {
 
   let rate = 0;
   if (tokenSymbol === 'PAN') {
-    rate = await getHourlyUSDRateCoingecko(tokenSymbol, requestTs, coingeckoId);
+    rate = await getHourlyUSDRateCoingecko(tokenSymbol, requestTs, token.coingeckoId);
   } else {
     rate = await getHourlyUSDRateCryptocompare(requestTs, tokenSymbol);
   }
