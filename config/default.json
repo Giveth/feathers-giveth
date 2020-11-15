@@ -139,7 +139,72 @@
     "SAI",
     "USDC"
   ],
+  "nativeCurrencyWhitelist": [
+    {
+      "symbol": "USD",
+      "decimals": 2
+    },
+    {
+      "symbol": "EUR",
+      "decimals": 2
+    },
+    {
+      "symbol": "CAD",
+      "decimals": 2
+    },
+    {
+      "symbol": "GBP",
+      "decimals": 2
+    },
+    {
+      "symbol": "AUD",
+      "decimals": 2
+    },
+    {
+      "symbol": "ETH",
+      "decimals": 6
+    },
+    {
+      "symbol": "BTC",
+      "decimals": 8
+    },
+    {
+      "symbol": "DAI",
+      "decimals": 2
+    },
+    {
+      "symbol": "PAN",
+      "decimals": 2
+    },
+    {
+      "symbol": "ANT",
+      "decimals": 3
+    },
+    {
+      "symbol": "USDC",
+      "decimals": 3
+    },
+    {
+      "symbol": "BRL",
+      "decimals": 2
+    },
+    {
+      "symbol": "CHF",
+      "decimals": 2
+    },
+    {
+      "symbol": "CZK",
+      "decimals": 2
+    },
+    {
+      "symbol": "MXN",
+      "decimals": 2
+    },
+    {
+      "symbol": "THB",
+      "decimals": 2
+    }
+  ],
   "dappMailerUrl": "http://127.0.0.1:3050",
-  "dappMailerSecret": "xxMv8a13I3YOZSKq9XmX285N0o4m1qHyKjgQWb2g83daGtPI4VmEw7dImu8kvO2ovG4EMC1bvjO906o365BaJBZtArpnxJCoYsCJ",
-  "conversationMessageMaxLength": 150
+  "dappMailerSecret": "xxMv8a13I3YOZSKq9XmX285N0o4m1qHyKjgQWb2g83daGtPI4VmEw7dImu8kvO2ovG4EMC1bvjO906o365BaJBZtArpnxJCoYsCJ"
 }
