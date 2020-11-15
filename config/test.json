@@ -1,0 +1,97 @@
+{
+  "port": 3040,
+  "mongodb": "mongodb://localhost:28016/giveth",
+  "givethFathersBaseUrl": "http://localhost:3040",
+  "tokenWhitelist": [
+    {
+      "name": "ETH",
+      "address": "0x0",
+      "foreignAddress": "0xe3ee055346a9EfaF4AA2900847dEb04de0195398",
+      "symbol": "ETH",
+      "decimals": 6
+    },
+    {
+      "name": "DAI",
+      "address": "0x6b175474e89094c44da98b954eedeac495271d0f",
+      "foreignAddress": "0x05A075B296995AdCaEC7c1dE0E52271a4Cf6DEb8",
+      "symbol": "DAI",
+      "decimals": 3
+    },
+    {
+      "name": "PAN",
+      "address": "0xd56dac73a4d6766464b38ec6d91eb45ce7457c44",
+      "foreignAddress": "0x0aaf4acccddb40cdb6a1df3cfbc7944aa5effcc6",
+      "symbol": "PAN",
+      "coingeckoId": "panvala-pan",
+      "decimals": 2
+    },
+    {
+      "name": "WBTC",
+      "address": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+      "foreignAddress": "0x6d03800013c591611a6ee597191d9f608b833510",
+      "symbol": "WBTC",
+      "decimals": "8",
+      "rateEqSymbol": "BTC"
+    },
+    {
+      "name": "USDC",
+      "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "foreignAddress": "0xf14eCE303f190A70A2CF7C7011F75bDa658aD6EF",
+      "symbol": "USDC",
+      "decimals": "3"
+    },
+    {
+      "name": "ANT",
+      "address": "0x960b236a07cf122663c4303350609a66a7b288c0",
+      "foreignAddress": "0x7283b97f7546ba8eff68167cab2da526e7d7f88a",
+      "symbol": "ANT",
+      "decimals": "3"
+    }
+  ],
+  "activeTokenWhitelist": [
+    {
+      "name": "ETH",
+      "address": "0x0",
+      "foreignAddress": "0xe3ee055346a9EfaF4AA2900847dEb04de0195398",
+      "symbol": "ETH",
+      "decimals": 6
+    },
+    {
+      "name": "DAI",
+      "address": "0x6b175474e89094c44da98b954eedeac495271d0f",
+      "foreignAddress": "0x05A075B296995AdCaEC7c1dE0E52271a4Cf6DEb8",
+      "symbol": "DAI",
+      "decimals": 3
+    },
+    {
+      "name": "PAN",
+      "address": "0xd56dac73a4d6766464b38ec6d91eb45ce7457c44",
+      "foreignAddress": "0x0aaf4acccddb40cdb6a1df3cfbc7944aa5effcc6",
+      "symbol": "PAN",
+      "coingeckoId": "panvala-pan",
+      "decimals": 2
+    },
+    {
+      "name": "WBTC",
+      "address": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+      "foreignAddress": "0x6d03800013c591611a6ee597191d9f608b833510",
+      "symbol": "WBTC",
+      "decimals": "8"
+    },
+    {
+      "name": "USDC",
+      "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "foreignAddress": "0xf14eCE303f190A70A2CF7C7011F75bDa658aD6EF",
+      "symbol": "USDC",
+      "decimals": "3"
+    },
+    {
+      "name": "ANT",
+      "address": "0x960b236a07cf122663c4303350609a66a7b288c0",
+      "foreignAddress": "0x7283b97f7546ba8eff68167cab2da526e7d7f88a",
+      "symbol": "ANT",
+      "decimals": "3"
+    }
+  ]
+
+}

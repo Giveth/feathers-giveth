@@ -3,6 +3,7 @@ scripts/deployGiveth.js
 scripts/keys.js
 config
 !config/default.json
+!config/test.json
 ecosystem.config.js
 
 # Logs
@@ -118,3 +119,6 @@ $RECYCLE.BIN/
 /lib/
 data/
 /uploads
+
+# test result output
+.nyc_output
