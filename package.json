@@ -23,7 +23,7 @@
   },
   "scripts": {
     "test-old": "npm run eslint && npm run mocha",
-    "test": "NODE_ENV=test mocha -t 10000  test/pre-tests-script.js  src/**/*.test.js",
+    "test": "NODE_ENV=test mocha -t 20000  test/pre-tests-script.js  src/**/*.test.js",
     "test:coverage": "nyc -e '.ts' --r html -r lcov -r text npm run test",
     "eslint": "eslint src/. test/.",
     "eslint:fix": "eslint src/. test/. --fix",
@@ -116,6 +116,7 @@
     "minimetoken": "^0.2.0",
     "mocha": "^3.5.0",
     "mongodb-memory-server": "^6.9.2",
+    "mongodb-restore": "^1.6.2",
     "prettier": "^1.18.2",
     "prompt-confirm": "^2.0.4",
     "rimraf": "^2.6.2",

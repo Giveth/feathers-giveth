@@ -1,0 +1,45 @@
+{
+  "_id": "5fae20c55e09647df2731c5f",
+  "fullyFunded": false,
+  "mined": true,
+  "title": "create milestone with postman",
+  "description": "<p>If I do I am successful :d</p>",
+  "image": "",
+  "ownerAddress": "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1",
+  "reviewerAddress": "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1",
+  "dacId": 0,
+  "recipientAddress": "0x0000000000000000000000000000000000000000",
+  "campaignId": "5fa97a9c4c63425d06b8a245",
+  "status": "Pending",
+  "items": [],
+  "date": "2020-11-10T00:00:00.000Z",
+  "pluginAddress": "0x0000000000000000000000000000000000000000",
+  "token": {
+    "_id": "5faa26b7642872709976048f",
+    "name": "ANY_TOKEN",
+    "address": "0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF",
+    "foreignAddress": "0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF",
+    "symbol": "ANY_TOKEN",
+    "decimals": "18"
+  },
+  "type": "BridgedMilestone",
+  "maxAmount": null,
+  "txHash": "0x8b0abaa5f5d3cc87c3d52362ef147b8a0fd4ccb02757f5f48b6048aa2e9d86c0",
+  "donationCounters": [
+    {
+      "_id": "5fae1ecf5e09647df2731c5b",
+      "name": "ETH",
+      "address": "0x0",
+      "decimals": "6",
+      "symbol": "ETH",
+      "totalDonated": "0",
+      "currentBalance": "0",
+      "donationCount": 0
+    }
+  ],
+  "proofItems": [],
+  "createdAt": "2020-11-10T05:35:52.008Z",
+  "updatedAt": "2020-11-10T05:35:52.008Z",
+  "peopleCount": 1,
+  "__v": 0
+}

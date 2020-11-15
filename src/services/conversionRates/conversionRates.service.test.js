@@ -21,7 +21,6 @@ function getConversionRatesTestCases() {
     const response = await request(baseUrl)
       .get(relativeUrl)
       .query({ symbol: wbtcSumbol });
-    console.log("response.body", response.body);
     assert.equal(response.statusCode, 200);
     assert.exists(response.body.rates);
     assert.equal(response.body.rates[btcSymbol], 1);

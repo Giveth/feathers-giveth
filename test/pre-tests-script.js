@@ -1,5 +1,5 @@
 const { MongoMemoryServer } = require('mongodb-memory-server');
-
+const { seedData } = require('./testUtility');;
 const mongoServer = new MongoMemoryServer({
   instance: {
     port: 28016, // by default choose any free port
@@ -14,13 +14,14 @@ function sleep(ms) {
 before(async () => {
   try {
     await mongoServer.getUri();
-    // console.log('after await mongoServer.getUri()');
+    await seedData();
 
     // If we require startServer before initializing mongo the server will not responding, I dont know the reason yet
     /* eslint-disable-next-line */
     const { startServer } = require('../src/server');
     // we need to wait after setting up of mongoServer we starServer
     await startServer();
+
     // This is because it takes seconds to feather server starts
     await sleep(3000);
     // console.log('after running feather js', mongoUri);
