@@ -30,7 +30,7 @@ function seedData() {
     mongoRestore({
       uri: config.get('mongodb'), // mongodb://<dbuser>:<dbpassword>@<dbdomain>.mongolab.com:<dbport>/<dbdatabase>
       root: __dirname + '/db_seed_data/giveth',
-      parser: 'json',
+      parser: 'bson',
       callback: (err, result) => {
         if (err) {
           return reject(err);
@@ -45,6 +45,19 @@ const SAMPLE_DATA = {
   USER_ADDRESS: testAddress,
   SECOND_USER_ADDRESS: '0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0',
   MILESTONE_ID: '5faa26b7642872709976045b',
+  MILESTONE_STATUSES:{
+    PROPOSED: 'Proposed',
+    REJECTED: 'Rejected',
+    PENDING: 'Pending',
+    IN_PROGRESS: 'InProgress',
+    NEEDS_REVIEW: 'NeedsReview',
+    COMPLETED: 'Completed',
+    CANCELED: 'Canceled',
+    PAYING: 'Paying',
+    PAID: 'Paid',
+    FAILED: 'Failed',
+    ARCHIVED: 'Archived',
+  },
   CREATE_MILESTONE_DATA:{
     fullyFunded: false,
     mined: true,

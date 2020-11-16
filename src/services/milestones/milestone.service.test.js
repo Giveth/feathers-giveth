@@ -11,20 +11,17 @@ function getMilestoneTestCases() {
     const response = await request(baseUrl)
       .get(relativeUrl);
 
-    console.log('response.body.data', response.body.data);
     assert.equal(response.statusCode, 200);
     assert.exists(response.body.data);
     assert.notEqual(response.body.data.length, 0);
   });
 
-  // TODO this case get 404 instead of 200, I don't why this happen because application works fine but in test there is problem
-  // it('getMileStoneDetail', async function() {
-  //   const response = await request(baseUrl)
-  //     .get(relativeUrl + '/' + SAMPLE_DATA.MILESTONE_ID);
-  //   assert.equal(response.statusCode, 200);
-  //   assert.exists(response.body.data);
-  //   assert.equal(response.body.data.ownerAddress, SAMPLE_DATA.USER_ADDRESS);
-  // });
+  it('getMileStoneDetail', async function() {
+    const response = await request(baseUrl)
+      .get(relativeUrl + '/' + SAMPLE_DATA.MILESTONE_ID);
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.body.ownerAddress, SAMPLE_DATA.USER_ADDRESS);
+  });
 
 }
 
@@ -33,16 +30,16 @@ function postMilestoneTestCases() {
     const response = await request(baseUrl)
       .post(relativeUrl)
       .send(SAMPLE_DATA.CREATE_MILESTONE_DATA)
-      .set({Authorization: getJwt()});
+      .set({ Authorization: getJwt() });
 
-    console.log('response.body.data', response.body.data);
     assert.equal(response.statusCode, 201);
     assert.equal(response.body.ownerAddress, SAMPLE_DATA.USER_ADDRESS);
   });
 
   it('should get unAuthorized error', async function() {
     const response = await request(baseUrl)
-      .post(relativeUrl, SAMPLE_DATA.CREATE_MILESTONE_DATA);
+      .post(relativeUrl)
+      .send(SAMPLE_DATA.CREATE_MILESTONE_DATA);
 
     assert.equal(response.statusCode, 401);
     assert.equal(response.body.code, 401);
@@ -50,5 +47,50 @@ function postMilestoneTestCases() {
 
 }
 
-describe('test get ' + relativeUrl, getMilestoneTestCases);
-describe('test post ' + relativeUrl, postMilestoneTestCases);
+function patchMilestoneTestCases() {
+  it('should update milestone successfully', async function() {
+    const description = 'Description updated by test';
+    const response = await request(baseUrl)
+      .patch(relativeUrl + '/' + SAMPLE_DATA.MILESTONE_ID)
+      .send({ status: SAMPLE_DATA.MILESTONE_STATUSES.IN_PROGRESS, description })
+      .set({ Authorization: getJwt() });
+
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.body.description, description);
+  });
+
+  it('should not update milestone because status not sent in payload', async function() {
+    const description = String(new Date());
+    const response = await request(baseUrl)
+      .patch(relativeUrl + '/' + SAMPLE_DATA.MILESTONE_ID)
+      .send({  description})
+      .set({ Authorization: getJwt() });
+
+    assert.equal(response.statusCode, 200);
+    assert.notEqual(response.body.description, description);
+  });
+
+  it('should get unAuthorized error', async function() {
+    const response = await request(baseUrl)
+      .patch(relativeUrl + '/' + SAMPLE_DATA.CREATE_MILESTONE_DATA);
+
+    assert.equal(response.statusCode, 401);
+    assert.equal(response.body.code, 401);
+  });
+
+  it('should get unAuthorized error because Only the Milestone and Campaign Manager can edit milestone', async function() {
+    const description = 'Description updated by test';
+    const response = await request(baseUrl)
+      .patch(relativeUrl + '/' + SAMPLE_DATA.MILESTONE_ID)
+      .send({ status: SAMPLE_DATA.MILESTONE_STATUSES.IN_PROGRESS, description })
+      .set({ Authorization: getJwt(SAMPLE_DATA.SECOND_USER_ADDRESS) });
+
+    assert.equal(response.statusCode, 403);
+    assert.equal(response.body.code, 403);
+  });
+
+}
+
+describe('Test GET ' + relativeUrl, getMilestoneTestCases);
+describe('Test POST ' + relativeUrl, postMilestoneTestCases);
+describe('Test PATCH ' + relativeUrl, patchMilestoneTestCases);

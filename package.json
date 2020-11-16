@@ -23,7 +23,7 @@
   },
   "scripts": {
     "test-old": "npm run eslint && npm run mocha",
-    "test": "LOG_LEVEL=debug NODE_ENV=test mocha -t 20000  test/pre-tests-script.js  src/**/*.test.js",
+    "test": "LOG_LEVEL=info NODE_ENV=test mocha -t 10000  test/pre-tests-script.js  src/**/*.test.js",
     "test:coverage": "nyc -e '.ts' --r html -r lcov -r text npm run test",
     "eslint": "eslint src/. test/.",
     "eslint:fix": "eslint src/. test/. --fix",
