@@ -102,6 +102,7 @@
     "@babel/preset-env": "^7.6.3",
     "babel-polyfill": "^6.26.0",
     "babel-watch": "^2.0.8",
+    "bson": "^4.2.0",
     "chai": "^4.2.0",
     "config": "^3.3.2",
     "eslint": "^6.6.0",

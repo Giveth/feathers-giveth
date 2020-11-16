@@ -1,6 +1,8 @@
 const config = require('config');
 const jwt = require('jsonwebtoken');
+const path = require('path');
 const mongoRestore = require('mongodb-restore');
+const { ObjectID } = require('bson');
 
 const testAddress = '0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1';
 
@@ -21,21 +23,20 @@ function getJwt(address = testAddress) {
       header: jwtData.header,
     },
   );
-  return 'Bearer ' + token;
+  return `Bearer ${token}`;
 }
 
 function seedData() {
-
   return new Promise((resolve, reject) => {
     mongoRestore({
       uri: config.get('mongodb'), // mongodb://<dbuser>:<dbpassword>@<dbdomain>.mongolab.com:<dbport>/<dbdatabase>
-      root: __dirname + '/db_seed_data/giveth',
+      root: path.join(__dirname, '/db_seed_data/giveth'),
       parser: 'bson',
       callback: (err, result) => {
         if (err) {
           return reject(err);
         }
-        resolve(result);
+        return resolve(result);
       },
     });
   });
@@ -45,7 +46,9 @@ const SAMPLE_DATA = {
   USER_ADDRESS: testAddress,
   SECOND_USER_ADDRESS: '0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0',
   MILESTONE_ID: '5faa26b7642872709976045b',
-  MILESTONE_STATUSES:{
+  FAKE_USER_ADDRESS: '0xcB4E63655D7D6D52A52eD71B6B654a740346DeBf',
+  DAC_ID: '5fa9788b4c63425d06b8a272',
+  MILESTONE_STATUSES: {
     PROPOSED: 'Proposed',
     REJECTED: 'Rejected',
     PENDING: 'Pending',
@@ -58,7 +61,7 @@ const SAMPLE_DATA = {
     FAILED: 'Failed',
     ARCHIVED: 'Archived',
   },
-  CREATE_MILESTONE_DATA:{
+  CREATE_MILESTONE_DATA: {
     fullyFunded: false,
     mined: true,
     title: 'test-milestone',
@@ -77,21 +80,24 @@ const SAMPLE_DATA = {
       address: '0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF',
       foreignAddress: '0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF',
       symbol: 'ANY_TOKEN',
-      decimals: '1'
+      decimals: '1',
     },
     type: 'BridgedMilestone',
     maxAmount: null,
     txHash: '0x8b0abaa5f5d3cc87c3d52362ef147b8a0fd4ccb02757f5f48b6048aa2e9d86c0',
     proofItems: [],
     pendingRecipientAddress: '0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1',
-    peopleCount: 3
-  }
-
+    peopleCount: 3,
+  },
 };
 
+const generateRandomMongoId = () => {
+  return new ObjectID();
+};
 
 module.exports = {
   getJwt,
   seedData,
   SAMPLE_DATA,
+  generateRandomMongoId,
 };

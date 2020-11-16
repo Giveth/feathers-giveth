@@ -1,5 +1,6 @@
 const { MongoMemoryServer } = require('mongodb-memory-server');
-const { seedData } = require('./testUtility');;
+const { seedData } = require('./testUtility');
+
 const mongoServer = new MongoMemoryServer({
   instance: {
     port: 28016, // by default choose any free port
