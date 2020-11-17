@@ -1,6 +1,6 @@
 const { assert, expect } = require('chai');
 const getApprovedKeys = require('./getApprovedKeys');
-const { SAMPLE_DATA, MILESTONE_STATUSES } = require('../../../test/testUtility');
+const { SAMPLE_DATA } = require('../../../test/testUtility');
 
 function getApprovedKeysTestCases() {
   const mileStone = {
@@ -70,8 +70,8 @@ function getApprovedKeysTestCases() {
   it('should throw exception, Only the Campaign Manager can accept a milestone', function() {
     const badFunc = () => {
       getApprovedKeys(
-        { ...mileStone, status: MILESTONE_STATUSES.PROPOSED },
-        { status: MILESTONE_STATUSES.PENDING },
+        { ...mileStone, status: SAMPLE_DATA.MILESTONE_STATUSES.PROPOSED },
+        { status: SAMPLE_DATA.MILESTONE_STATUSES.PENDING },
         {
           address: SAMPLE_DATA.SECOND_USER_ADDRESS,
         },
@@ -84,8 +84,8 @@ function getApprovedKeysTestCases() {
   it('should return an array, campaignManager wants to accept milestone', function() {
     const expectedKeys = ['txHash', 'status', 'mined', 'ownerAddress', 'message', 'proofItems'];
     const approvedKeys = getApprovedKeys(
-      { ...mileStone, status: MILESTONE_STATUSES.PROPOSED },
-      { status: MILESTONE_STATUSES.PENDING },
+      { ...mileStone, status: SAMPLE_DATA.MILESTONE_STATUSES.PROPOSED },
+      { status: SAMPLE_DATA.MILESTONE_STATUSES.PENDING },
       mileStoneOwnerUser,
     );
 
@@ -95,8 +95,8 @@ function getApprovedKeysTestCases() {
   it('should throw exception, Only the Campaign Manager can reject a milestone', function() {
     const badFunc = () => {
       getApprovedKeys(
-        { ...mileStone, status: MILESTONE_STATUSES.PROPOSED },
-        { status: MILESTONE_STATUSES.REJECTED },
+        { ...mileStone, status: SAMPLE_DATA.MILESTONE_STATUSES.PROPOSED },
+        { status: SAMPLE_DATA.MILESTONE_STATUSES.REJECTED },
         {
           address: SAMPLE_DATA.SECOND_USER_ADDRESS,
         },
@@ -109,8 +109,8 @@ function getApprovedKeysTestCases() {
   it('should return an array, campaignManager wants to reject milestone', function() {
     const expectedKeys = ['status', 'message', 'proofItems'];
     const approvedKeys = getApprovedKeys(
-      { ...mileStone, status: MILESTONE_STATUSES.PROPOSED },
-      { status: MILESTONE_STATUSES.REJECTED },
+      { ...mileStone, status: SAMPLE_DATA.MILESTONE_STATUSES.PROPOSED },
+      { status: SAMPLE_DATA.MILESTONE_STATUSES.REJECTED },
       mileStoneOwnerUser,
     );
 

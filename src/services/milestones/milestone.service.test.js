@@ -119,6 +119,37 @@ function patchMilestoneTestCases() {
   });
 }
 
+function deleteMilestoneTestCases() {
+  it('should not delete because status is not Proposed or Rejected ', async function() {
+    const response = await request(baseUrl)
+      .delete(`${relativeUrl}/${SAMPLE_DATA.MILESTONE_ID}`)
+      .set({ Authorization: getJwt() });
+    assert.equal(response.statusCode, 403);
+  });
+
+  // it('should be successful for milestone with status Proposed', async function() {
+  //   const createMileStoneData = { ...SAMPLE_DATA.CREATE_MILESTONE_DATA };
+  //   createMileStoneData.status = SAMPLE_DATA.MILESTONE_STATUSES.PROPOSED;
+  //   createMileStoneData.ownerAddress = SAMPLE_DATA.USER_ADDRESS;
+  //   const milestone = await app.service('milestones').create(createMileStoneData, {
+  //     user: {
+  //       address: SAMPLE_DATA.USER_ADDRESS,
+  //     },
+  //   });
+  //   const response = await request(baseUrl)
+  //     .delete(`${relativeUrl}/${milestone._id}`)
+  //     .set({ Authorization: getJwt() });
+  //   assert.equal(response.statusCode, 403);
+  // });
+
+  it('should get unAuthorized error', async function() {
+    const response = await request(baseUrl).delete(`${relativeUrl}/${SAMPLE_DATA.MILESTONE_ID}`);
+    assert.equal(response.statusCode, 401);
+    assert.equal(response.body.code, 401);
+  });
+}
+
 describe(`Test GET  ${relativeUrl}`, getMilestoneTestCases);
 describe(`Test POST  ${relativeUrl}`, postMilestoneTestCases);
 describe(`Test PATCH  ${relativeUrl}`, patchMilestoneTestCases);
+describe(`Test DELETE  ${relativeUrl}`, deleteMilestoneTestCases);

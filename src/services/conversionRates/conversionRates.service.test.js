@@ -27,4 +27,4 @@ function getConversionRatesTestCases() {
   });
 }
 
-describe('test get /conversationsRates', getConversionRatesTestCases);
+describe('test get /conversionRates', getConversionRatesTestCases);
