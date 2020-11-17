@@ -6,6 +6,14 @@ const { getJwt, SAMPLE_DATA, generateRandomMongoId } = require('../../../test/te
 const baseUrl = config.get('givethFathersBaseUrl');
 const relativeUrl = '/milestones';
 
+async function createMilestone(data) {
+  const response = await request(baseUrl)
+    .post(relativeUrl)
+    .send(data)
+    .set({ Authorization: getJwt() });
+  return response.body;
+}
+
 function getMilestoneTestCases() {
   it('should get successful result', async function() {
     const response = await request(baseUrl).get(relativeUrl);
@@ -121,26 +129,62 @@ function patchMilestoneTestCases() {
 
 function deleteMilestoneTestCases() {
   it('should not delete because status is not Proposed or Rejected ', async function() {
-    const response = await request(baseUrl)
-      .delete(`${relativeUrl}/${SAMPLE_DATA.MILESTONE_ID}`)
-      .set({ Authorization: getJwt() });
-    assert.equal(response.statusCode, 403);
+    const statusThatCantBeDeleted =[
+      SAMPLE_DATA.MILESTONE_STATUSES.IN_PROGRESS,
+      SAMPLE_DATA.MILESTONE_STATUSES.ARCHIVED,
+      SAMPLE_DATA.MILESTONE_STATUSES.CANCELED,
+      SAMPLE_DATA.MILESTONE_STATUSES.COMPLETED,
+      SAMPLE_DATA.MILESTONE_STATUSES.FAILED,
+      SAMPLE_DATA.MILESTONE_STATUSES.NEEDS_REVIEW,
+      SAMPLE_DATA.MILESTONE_STATUSES.PAID,
+      SAMPLE_DATA.MILESTONE_STATUSES.PAYING,
+      SAMPLE_DATA.MILESTONE_STATUSES.PENDING,
+    ];
+    for (const status of statusThatCantBeDeleted) {
+      const createMileStoneData = { ...SAMPLE_DATA.CREATE_MILESTONE_DATA };
+      createMileStoneData.status = status;
+      createMileStoneData.ownerAddress = SAMPLE_DATA.USER_ADDRESS;
+      const milestone = await createMilestone(createMileStoneData);
+      const response = await request(baseUrl)
+        .delete(`${relativeUrl}/${milestone._id}`)
+        .set({ Authorization: getJwt() });
+      assert.equal(response.statusCode, 403);
+    }
   });
 
-  // it('should be successful for milestone with status Proposed', async function() {
-  //   const createMileStoneData = { ...SAMPLE_DATA.CREATE_MILESTONE_DATA };
-  //   createMileStoneData.status = SAMPLE_DATA.MILESTONE_STATUSES.PROPOSED;
-  //   createMileStoneData.ownerAddress = SAMPLE_DATA.USER_ADDRESS;
-  //   const milestone = await app.service('milestones').create(createMileStoneData, {
-  //     user: {
-  //       address: SAMPLE_DATA.USER_ADDRESS,
-  //     },
-  //   });
-  //   const response = await request(baseUrl)
-  //     .delete(`${relativeUrl}/${milestone._id}`)
-  //     .set({ Authorization: getJwt() });
-  //   assert.equal(response.statusCode, 403);
-  // });
+  it('should be successful for milestone with status Proposed', async function() {
+    const createMileStoneData = { ...SAMPLE_DATA.CREATE_MILESTONE_DATA };
+    createMileStoneData.status = SAMPLE_DATA.MILESTONE_STATUSES.PROPOSED;
+    createMileStoneData.ownerAddress = SAMPLE_DATA.USER_ADDRESS;
+    const milestone = await createMilestone(createMileStoneData);
+    const response = await request(baseUrl)
+      .delete(`${relativeUrl}/${milestone._id}`)
+      .set({ Authorization: getJwt() });
+    assert.equal(response.statusCode, 200);
+  });
+
+  it('should be successful for milestone with status Rejected', async function() {
+    const createMileStoneData = { ...SAMPLE_DATA.CREATE_MILESTONE_DATA };
+    createMileStoneData.status = SAMPLE_DATA.MILESTONE_STATUSES.REJECTED;
+    createMileStoneData.ownerAddress = SAMPLE_DATA.USER_ADDRESS;
+    const milestone = await createMilestone(createMileStoneData);
+    const response = await request(baseUrl)
+      .delete(`${relativeUrl}/${milestone._id}`)
+      .set({ Authorization: getJwt() });
+    assert.equal(response.statusCode, 200);
+  });
+
+  it('should be successful , delete Proposed milestone of another user', async function() {
+    const createMileStoneData = { ...SAMPLE_DATA.CREATE_MILESTONE_DATA };
+    createMileStoneData.status = SAMPLE_DATA.MILESTONE_STATUSES.REJECTED;
+    createMileStoneData.ownerAddress = SAMPLE_DATA.USER_ADDRESS;
+    const milestone = await createMilestone(createMileStoneData);
+    const response = await request(baseUrl)
+      .delete(`${relativeUrl}/${milestone._id}`)
+      .set({ Authorization: getJwt(SAMPLE_DATA.SECOND_USER_ADDRESS) });
+    // TODO this testCase is for a bug, when bug fixed this testCase should fix and probably the status should be 403 instead of 200
+    assert.equal(response.statusCode, 200);
+  });
 
   it('should get unAuthorized error', async function() {
     const response = await request(baseUrl).delete(`${relativeUrl}/${SAMPLE_DATA.MILESTONE_ID}`);
@@ -148,6 +192,7 @@ function deleteMilestoneTestCases() {
     assert.equal(response.body.code, 401);
   });
 }
+
 
 describe(`Test GET  ${relativeUrl}`, getMilestoneTestCases);
 describe(`Test POST  ${relativeUrl}`, postMilestoneTestCases);
