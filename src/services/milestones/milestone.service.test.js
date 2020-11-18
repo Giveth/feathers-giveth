@@ -129,7 +129,7 @@ function patchMilestoneTestCases() {
 
 function deleteMilestoneTestCases() {
   it('should not delete because status is not Proposed or Rejected ', async function() {
-    const statusThatCantBeDeleted =[
+    const statusThatCantBeDeleted = [
       SAMPLE_DATA.MILESTONE_STATUSES.IN_PROGRESS,
       SAMPLE_DATA.MILESTONE_STATUSES.ARCHIVED,
       SAMPLE_DATA.MILESTONE_STATUSES.CANCELED,
@@ -140,10 +140,12 @@ function deleteMilestoneTestCases() {
       SAMPLE_DATA.MILESTONE_STATUSES.PAYING,
       SAMPLE_DATA.MILESTONE_STATUSES.PENDING,
     ];
+    /* eslint-disable no-await-in-loop, no-restricted-syntax */
     for (const status of statusThatCantBeDeleted) {
       const createMileStoneData = { ...SAMPLE_DATA.CREATE_MILESTONE_DATA };
       createMileStoneData.status = status;
       createMileStoneData.ownerAddress = SAMPLE_DATA.USER_ADDRESS;
+
       const milestone = await createMilestone(createMileStoneData);
       const response = await request(baseUrl)
         .delete(`${relativeUrl}/${milestone._id}`)
@@ -192,7 +194,6 @@ function deleteMilestoneTestCases() {
     assert.equal(response.body.code, 401);
   });
 }
-
 
 describe(`Test GET  ${relativeUrl}`, getMilestoneTestCases);
 describe(`Test POST  ${relativeUrl}`, postMilestoneTestCases);

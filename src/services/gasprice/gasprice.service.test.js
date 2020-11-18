@@ -1,14 +1,13 @@
 const request = require('supertest');
 const config = require('config');
-const { assert, expect } = require('chai');
+const { assert } = require('chai');
 
 const baseUrl = config.get('givethFathersBaseUrl');
 const relativeUrl = '/gasprice';
 
-function getGasPriceTestCases(){
+function getGasPriceTestCases() {
   it('should return the value that is in the config', async function() {
-    const response = await request(baseUrl)
-      .get(relativeUrl);
+    const response = await request(baseUrl).get(relativeUrl);
 
     assert.equal(response.statusCode, 200);
     assert.exists('average');
@@ -18,7 +17,5 @@ function getGasPriceTestCases(){
     assert.exists('gasPriceRange');
   });
 }
-
-
 
 describe(`Test GET ${relativeUrl}`, getGasPriceTestCases);
