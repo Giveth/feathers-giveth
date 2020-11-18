@@ -61,6 +61,17 @@ const SAMPLE_DATA = {
     FAILED: 'Failed',
     ARCHIVED: 'Archived',
   },
+  DonationStatus: {
+    PENDING: 'Pending',
+    PAYING: 'Paying',
+    PAID: 'Paid',
+    TO_APPROVE: 'ToApprove',
+    WAITING: 'Waiting',
+    COMMITTED: 'Committed',
+    CANCELED: 'Canceled',
+    REJECTED: 'Rejected',
+    FAILED: 'Failed',
+  },
   CREATE_MILESTONE_DATA: {
     fullyFunded: false,
     mined: true,
