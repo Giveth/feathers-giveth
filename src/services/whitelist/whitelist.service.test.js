@@ -5,7 +5,7 @@ const { assert, expect } = require('chai');
 const baseUrl = config.get('givethFathersBaseUrl');
 const relativeUrl = '/whitelist';
 
-function getGasPriceTestCases() {
+function getWhiteListTestCases() {
   it('should return the value that some of them are in the config', async function() {
     const response = await request(baseUrl).get(relativeUrl);
 
@@ -18,4 +18,4 @@ function getGasPriceTestCases() {
   });
 }
 
-describe(`Test GET ${relativeUrl}`, getGasPriceTestCases);
+describe(`Test GET ${relativeUrl}`, getWhiteListTestCases);
