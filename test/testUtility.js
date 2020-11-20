@@ -106,9 +106,21 @@ const generateRandomMongoId = () => {
   return new ObjectID();
 };
 
+function generateRandomEtheriumAddress() {
+  const hex = '0123456789abcdef';
+  const len = 40;
+  let output = '';
+  /* eslint-disable no-plusplus */
+  for (let i = 0; i < len; i++) {
+    output += hex.charAt(Math.floor(Math.random() * hex.length));
+  }
+  return `0x${output}`;
+}
+
 module.exports = {
   getJwt,
   seedData,
   SAMPLE_DATA,
   generateRandomMongoId,
+  generateRandomEtheriumAddress,
 };
