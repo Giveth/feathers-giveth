@@ -16,8 +16,6 @@ function sleep(ms) {
 before(async () => {
   try {
     await mongoServer.getUri();
-    await sleep(2000);
-
     await seedData();
 
     // If we require startServer before initializing mongo the server will not responding, I dont know the reason yet

@@ -1,7 +1,9 @@
 const request = require('supertest');
 const config = require('config');
 const { assert } = require('chai');
+const { getFeatherAppInstance } = require('../../app');
 
+const app = getFeatherAppInstance();
 const baseUrl = config.get('givethFathersBaseUrl');
 const relativeUrl = '/conversionRates';
 
@@ -26,5 +28,10 @@ function getConversionRatesTestCases() {
     assert.equal(response.body.rates[btcSymbol], 1);
   });
 }
+
+it('should conversionRates service registration be ok', () => {
+  const userService = app.service('conversionRates');
+  assert.ok(userService, 'Registered the service');
+});
 
 describe('test get /conversionRates', getConversionRatesTestCases);

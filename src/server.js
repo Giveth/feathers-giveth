@@ -1,8 +1,9 @@
 const logger = require('winston');
 const queryGasPrice = require('./blockchain/gasPriceService');
 const { queryConversionRates } = require('./services/conversionRates/getConversionRatesService');
-const app = require('./app');
+const { initFeatherApp } = require('./app');
 
+const app = initFeatherApp();
 const startServer = async () => {
   const port = app.get('port');
   const server = await app.listen(port);

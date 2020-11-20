@@ -2,7 +2,9 @@ const request = require('supertest');
 const config = require('config');
 const { assert } = require('chai');
 const { getJwt, SAMPLE_DATA } = require('../../../test/testUtility');
+const { getFeatherAppInstance } = require('../../app');
 
+const app = getFeatherAppInstance();
 const baseUrl = config.get('givethFathersBaseUrl');
 const relativeUrl = '/conversations';
 
@@ -64,6 +66,11 @@ function putConversationsTestCases() {
     assert.equal(response.body.code, 405);
   });
 }
+
+it('should conversations service registration be ok', () => {
+  const userService = app.service('conversations');
+  assert.ok(userService, 'Registered the service');
+});
 
 describe(`Test GET ${relativeUrl}`, getConversationsTestCases);
 describe(`Test POST ${relativeUrl}`, postConversationsTestCases);

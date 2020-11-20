@@ -2,7 +2,9 @@ const request = require('supertest');
 const config = require('config');
 const { assert } = require('chai');
 const { getJwt, SAMPLE_DATA } = require('../../../test/testUtility');
+const { getFeatherAppInstance } = require('../../app');
 
+const app = getFeatherAppInstance();
 const baseUrl = config.get('givethFathersBaseUrl');
 const relativeUrl = '/users';
 
@@ -60,6 +62,11 @@ function deleteUserTestCases() {
     assert.equal(response.body.code, 405);
   });
 }
+
+it('should users service registration be ok', () => {
+  const userService = app.service('users');
+  assert.ok(userService, 'Registered the service');
+});
 
 describe(`Test GET  ${relativeUrl}`, getUserTestCases);
 describe(`Test POST  ${relativeUrl}`, postUserTestCases);

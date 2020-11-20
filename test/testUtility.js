@@ -3,6 +3,39 @@ const jwt = require('jsonwebtoken');
 const path = require('path');
 const mongoRestore = require('mongodb-restore');
 const { ObjectID } = require('bson');
+const { assert } = require('chai');
+
+const assertThrowsAsync = async (fn, errorMessage) => {
+  let f = () => {
+    // empty function
+  };
+  try {
+    await fn();
+  } catch (e) {
+    f = () => {
+      throw e;
+    };
+  } finally {
+    if (errorMessage) {
+      assert.throw(f, errorMessage);
+    } else {
+      assert.throw(f);
+    }
+  }
+};
+
+const assertNotThrowsAsync = async fn => {
+  let f;
+  try {
+    await fn();
+  } catch (e) {
+    f = () => {
+      throw e;
+    };
+  } finally {
+    assert.doesNotThrow(f);
+  }
+};
 
 const testAddress = '0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1';
 
@@ -42,11 +75,22 @@ function seedData() {
   });
 }
 
+function generateRandomEtheriumAddress() {
+  const hex = '0123456789abcdef';
+  const len = 40;
+  let output = '';
+  /* eslint-disable no-plusplus */
+  for (let i = 0; i < len; i++) {
+    output += hex.charAt(Math.floor(Math.random() * hex.length));
+  }
+  return `0x${output}`;
+}
+
 const SAMPLE_DATA = {
   USER_ADDRESS: testAddress,
   SECOND_USER_ADDRESS: '0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0',
   MILESTONE_ID: '5faa26b7642872709976045b',
-  FAKE_USER_ADDRESS: '0xcB4E63655D7D6D52A52eD71B6B654a740346DeBf',
+  FAKE_USER_ADDRESS: generateRandomEtheriumAddress(),
   DAC_ID: '5fa9788b4c63425d06b8a272',
   MILESTONE_STATUSES: {
     PROPOSED: 'Proposed',
@@ -106,21 +150,12 @@ const generateRandomMongoId = () => {
   return new ObjectID();
 };
 
-function generateRandomEtheriumAddress() {
-  const hex = '0123456789abcdef';
-  const len = 40;
-  let output = '';
-  /* eslint-disable no-plusplus */
-  for (let i = 0; i < len; i++) {
-    output += hex.charAt(Math.floor(Math.random() * hex.length));
-  }
-  return `0x${output}`;
-}
-
 module.exports = {
   getJwt,
   seedData,
   SAMPLE_DATA,
   generateRandomMongoId,
   generateRandomEtheriumAddress,
+  assertNotThrowsAsync,
+  assertThrowsAsync,
 };

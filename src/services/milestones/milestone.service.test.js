@@ -2,6 +2,9 @@ const request = require('supertest');
 const config = require('config');
 const { assert } = require('chai');
 const { getJwt, SAMPLE_DATA, generateRandomMongoId } = require('../../../test/testUtility');
+const { getFeatherAppInstance } = require('../../app');
+
+const app = getFeatherAppInstance();
 
 const baseUrl = config.get('givethFathersBaseUrl');
 const relativeUrl = '/milestones';
@@ -194,6 +197,11 @@ function deleteMilestoneTestCases() {
     assert.equal(response.body.code, 401);
   });
 }
+
+it('should milestones service registration be ok', () => {
+  const userService = app.service('milestones');
+  assert.ok(userService, 'Registered the service');
+});
 
 describe(`Test GET  ${relativeUrl}`, getMilestoneTestCases);
 describe(`Test POST  ${relativeUrl}`, postMilestoneTestCases);
