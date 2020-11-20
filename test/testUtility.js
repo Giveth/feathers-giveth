@@ -75,6 +75,10 @@ function seedData() {
   });
 }
 
+function generateRandomNumber(min, max) {
+  return Math.floor(Math.random() * (max - min)) + min;
+}
+
 function generateRandomEtheriumAddress() {
   const hex = '0123456789abcdef';
   const len = 40;
@@ -87,7 +91,10 @@ function generateRandomEtheriumAddress() {
 }
 
 const SAMPLE_DATA = {
+  // the user in seed data has these values
   USER_ADDRESS: testAddress,
+  USER_GIVER_ID: 178,
+
   SECOND_USER_ADDRESS: '0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0',
   MILESTONE_ID: '5faa26b7642872709976045b',
   FAKE_USER_ADDRESS: generateRandomEtheriumAddress(),
@@ -158,4 +165,5 @@ module.exports = {
   generateRandomEtheriumAddress,
   assertNotThrowsAsync,
   assertThrowsAsync,
+  generateRandomNumber,
 };
