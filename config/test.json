@@ -2,6 +2,7 @@
   "port": 3040,
   "mongodb": "mongodb://localhost:28016/giveth",
   "givethFathersBaseUrl": "http://localhost:3040",
+  "useProjectOwnerWhitelist": false,
   "tokenWhitelist": [
     {
       "name": "ETH",

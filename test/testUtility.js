@@ -79,15 +79,22 @@ function generateRandomNumber(min, max) {
   return Math.floor(Math.random() * (max - min)) + min;
 }
 
-function generateRandomEtheriumAddress() {
+function generateHexNumber(len) {
   const hex = '0123456789abcdef';
-  const len = 40;
   let output = '';
   /* eslint-disable no-plusplus */
   for (let i = 0; i < len; i++) {
     output += hex.charAt(Math.floor(Math.random() * hex.length));
   }
-  return `0x${output}`;
+  return output;
+}
+
+function generateRandomEtheriumAddress() {
+  return `0x${generateHexNumber(40)}`;
+}
+
+function generateRandomTransactionHash() {
+  return `0x${generateHexNumber(62)}`;
 }
 
 const SAMPLE_DATA = {
@@ -166,4 +173,5 @@ module.exports = {
   assertNotThrowsAsync,
   assertThrowsAsync,
   generateRandomNumber,
+  generateRandomTransactionHash,
 };
