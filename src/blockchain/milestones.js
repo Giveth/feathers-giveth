@@ -162,7 +162,7 @@ const milestonesFactory = app => {
         );
       }
 
-      await updateMilestoneStatus(
+      return updateMilestoneStatus(
         event.returnValues.idProject,
         MilestoneStatus.IN_PROGRESS,
         event.transactionHash,
@@ -181,7 +181,7 @@ const milestonesFactory = app => {
         );
       }
 
-      await updateMilestoneStatus(
+      return updateMilestoneStatus(
         event.returnValues.idProject,
         MilestoneStatus.COMPLETED,
         event.transactionHash,
