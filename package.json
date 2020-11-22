@@ -22,10 +22,7 @@
     "yarn": ">= 0.18.0"
   },
   "scripts": {
-    "test-old": "npm run eslint && npm run mocha",
-    "test": "LOG_LEVEL=info  NODE_ENV=test mocha -t 10000  test/pre-tests-script.js  src/**/*.test.js src/**/**/*.test.js",
-    "test:circleci": "LOG_LEVEL=info NODE_ENV=test mocha -t 10000 --reporter mocha-junit-reporter  test/pre-tests-script.js  src/**/*.test.js  src/**/**/*.test.js",
-    "test:coverage": "nyc -e '.ts' --r html -r lcov -r text npm run test",
+    "test": "npm run eslint && npm run mocha",
     "eslint": "eslint src/. test/.",
     "eslint:fix": "eslint src/. test/. --fix",
     "deploy-local": "npm run reset-db && node scripts/deploy.js",
@@ -81,7 +78,6 @@
     "mongoose": "5.1.3",
     "mongoose-long": "^0.2.1",
     "multer": "^1.3.0",
-    "nyc": "^15.1.0",
     "passport-strategy": "^1.0.0",
     "request-promise": "^4.2.2",
     "sanitize-html": "^1.14.1",
@@ -103,9 +99,6 @@
     "@babel/preset-env": "^7.6.3",
     "babel-polyfill": "^6.26.0",
     "babel-watch": "^2.0.8",
-    "bson": "^4.2.0",
-    "chai": "^4.2.0",
-    "config": "^3.3.2",
     "eslint": "^6.6.0",
     "eslint-config-airbnb-base": "^14.0.0",
     "eslint-config-prettier": "^6.5.0",
@@ -113,16 +106,11 @@
     "eslint-plugin-import": "^2.18.2",
     "eslint-plugin-prettier": "^3.1.1",
     "ganache-cli": "^6.1.2",
-    "jsonwebtoken": "^8.5.1",
     "lerna": "^2.11.0",
     "minimetoken": "^0.2.0",
     "mocha": "^3.5.0",
-    "mocha-junit-reporter": "^2.0.0",
-    "mongodb-memory-server": "^6.9.2",
-    "mongodb-restore": "^1.6.2",
     "prettier": "^1.18.2",
     "prompt-confirm": "^2.0.4",
-    "rimraf": "^2.6.2",
-    "supertest": "^6.0.1"
+    "rimraf": "^2.6.2"
   }
 }

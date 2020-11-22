@@ -211,7 +211,6 @@ const address = [
 ];
 
 const canDelete = () => context => {
-  // TODO every one can delete any Proposed and Rejected milestones
   const isDeletable = milestone => {
     if (!milestone) throw new errors.NotFound();
 
