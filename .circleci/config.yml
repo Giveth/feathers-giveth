@@ -7,7 +7,7 @@ jobs:
   build:
     docker:
       # specify the version you desire here
-      - image: circleci/node:8
+      - image: circleci/node:10
 
       # Specify service dependencies here if necessary
       # CircleCI maintains a library of pre-built images
@@ -26,8 +26,7 @@ jobs:
       #     # fallback to using the latest cache if no exact match is found
       #     - v1-dependencies-
 
-      - run: npm install
-
+      - run: npm ci
       # - save_cache:
       #     paths:
       #       - node_modules
@@ -37,6 +36,16 @@ jobs:
       # - run: yarn test
       # run linter
       - run: npm run eslint
+      - run: mkdir reports
+      - run:
+          command: npm run test:circleci
+          environment:
+            MOCHA_FILE: reports/mocha/test-results.xml
+          when: always
+      - store_test_results:
+          path: reports
+      - store_artifacts:
+          path: ./reports/mocha/test-results.xml
       - deploy:
           name: Production Deploy
           command: |

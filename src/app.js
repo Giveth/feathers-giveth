@@ -24,57 +24,64 @@ const channels = require('./channels');
 
 const app = express(feathers());
 
-// Load app configuration
-app.configure(configuration());
+function initFeatherApp() {
+  // Load app configuration
+  app.configure(configuration());
 
-app.configure(configureLogger);
+  app.configure(configureLogger);
 
-app.use(cors());
+  app.use(cors());
 
-app.use(helmet());
-app.use(compress());
-app.use(express.json({ limit: '10mb' }));
-app.use(
-  express.urlencoded({
-    limit: '10mb',
-    extended: true,
-  }),
-);
+  app.use(helmet());
+  app.use(compress());
+  app.use(express.json({ limit: '10mb' }));
+  app.use(
+    express.urlencoded({
+      limit: '10mb',
+      extended: true,
+    }),
+  );
 
-app.use(favicon(path.join(app.get('public'), 'favicon.ico')));
-// Host the public folder
-app.use('/', express.static(app.get('public')));
+  app.use(favicon(path.join(app.get('public'), 'favicon.ico')));
+  // Host the public folder
+  app.use('/', express.static(app.get('public')));
 
-app.configure(mongoose);
-app.configure(express.rest());
-app.configure(socketsConfig);
+  app.configure(mongoose);
+  app.configure(express.rest());
+  app.configure(socketsConfig);
 
-// Configure other middleware (see `middleware/index.js`)
-app.configure(middleware);
-app.configure(authentication);
-// Set up our services (see `services/index.js`)
-app.configure(services);
-app.configure(channels);
-// blockchain must be initialized after services
-app.configure(blockchain);
-app.configure(ipfsFetcher);
-app.configure(ipfsPinner);
-// Configure a middleware for 404s and the error handler
-app.use(notFound());
-app.use(
-  express.errorHandler({
-    logger: {
-      error: e => {
-        if (e.name === 'NotFound') {
-          logger.warn(`404 - NotFound - ${e.data.url}`);
-        } else {
-          logger.error(e);
-        }
+  // Configure other middleware (see `middleware/index.js`)
+  app.configure(middleware);
+  app.configure(authentication);
+  // Set up our services (see `services/index.js`)
+  app.configure(services);
+  app.configure(channels);
+  // blockchain must be initialized after services
+  app.configure(blockchain);
+  app.configure(ipfsFetcher);
+  app.configure(ipfsPinner);
+  // Configure a middleware for 404s and the error handler
+  app.use(notFound());
+  app.use(
+    express.errorHandler({
+      logger: {
+        error: e => {
+          if (e.name === 'NotFound') {
+            logger.warn(`404 - NotFound - ${e.data.url}`);
+          } else {
+            logger.error(e);
+          }
+        },
       },
-    },
-  }),
-);
+    }),
+  );
 
-app.hooks(appHooks);
+  app.hooks(appHooks);
+  return app;
+}
 
-module.exports = app;
+function getFeatherAppInstance() {
+  return app;
+}
+
+module.exports = { initFeatherApp, getFeatherAppInstance };
