@@ -22,6 +22,7 @@ const milestonesFactory = app => {
       if (data.length === 1) {
         const m = data[0];
         const { from } = await getTransaction(app, txHash);
+
         const {
           PAID,
           PAYING,
@@ -31,6 +32,7 @@ const milestonesFactory = app => {
           IN_PROGRESS,
           COMPLETED,
         } = MilestoneStatus;
+
         // bug in lpp-capped-milestone contract will allow state to be "reverted"
         // we want to ignore that
         if (
@@ -46,10 +48,10 @@ const milestonesFactory = app => {
             '-> status:',
             status,
           );
-          return null;
+          return;
         }
 
-        return milestones.patch(
+        await milestones.patch(
           m._id,
           {
             status,
@@ -61,10 +63,8 @@ const milestonesFactory = app => {
           },
         );
       }
-      return null;
     } catch (e) {
-      logger.error('updateMilestoneStatus error', e);
-      return null;
+      logger.error(e);
     }
   }
 
@@ -81,6 +81,7 @@ const milestonesFactory = app => {
       if (data.length === 1) {
         const m = data[0];
         const { from } = await getTransaction(app, txHash);
+
         await milestones.patch(
           m._id,
           {
@@ -143,7 +144,7 @@ const milestonesFactory = app => {
         );
       }
 
-      return updateMilestoneStatus(
+      await updateMilestoneStatus(
         event.returnValues.idProject,
         MilestoneStatus.NEEDS_REVIEW,
         event.transactionHash,
