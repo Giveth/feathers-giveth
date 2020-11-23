@@ -8,6 +8,7 @@ const getGasPrice = () => context => {
   return context;
 };
 
+// TODO I think the all method should be disallowed except GET method
 module.exports = {
   before: {
     all: [],
