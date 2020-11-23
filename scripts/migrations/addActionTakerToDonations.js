@@ -71,21 +71,23 @@ const addMissedDonations = async () => {
   await Promise.all(
     promises.map(async promise => {
       const tx = await promise;
-      const { hash, from } = tx;
-      console.log(
-        `Update actionTakerAddress of donation with txHash ${hash} to:\n${from}\n-----------`,
-      );
-      return Donations.update(
-        { txHash: hash },
-        {
-          $set: {
-            actionTakerAddress: from,
+      if (tx) {
+        const { hash, from } = tx;
+        console.log(
+          `Update actionTakerAddress of donation with txHash ${hash} to:\n${from}\n-----------`,
+        );
+        await Donations.update(
+          { txHash: hash },
+          {
+            $set: {
+              actionTakerAddress: from,
+            },
           },
-        },
-        {
-          multi: true,
-        },
-      );
+          {
+            multi: true,
+          },
+        );
+      }
     }),
   );
 };
@@ -118,21 +120,23 @@ const addToDirectDonations = async () => {
   await Promise.all(
     promises.map(async promise => {
       const tx = await promise;
-      const { hash, from } = tx;
-      console.log(
-        `Update actionTakerAddress of donation with txHash ${hash} to:\n${from}\n-----------`,
-      );
-      return Donations.update(
-        { homeTxHash: hash },
-        {
-          $set: {
-            actionTakerAddress: from,
+      if (tx) {
+        const { hash, from } = tx;
+        console.log(
+          `Update actionTakerAddress of donation with txHash ${hash} to:\n${from}\n-----------`,
+        );
+        await Donations.update(
+          { homeTxHash: hash },
+          {
+            $set: {
+              actionTakerAddress: from,
+            },
           },
-        },
-        {
-          multi: true,
-        },
-      );
+          {
+            multi: true,
+          },
+        );
+      }
     }),
   );
 };
