@@ -25,7 +25,9 @@ const assertThrowsAsync = async (fn, errorMessage) => {
 };
 
 const assertNotThrowsAsync = async fn => {
-  let f;
+  let f = () => {
+    // empty function
+  };
   try {
     await fn();
   } catch (e) {
