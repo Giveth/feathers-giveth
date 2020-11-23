@@ -50,7 +50,7 @@ jobs:
           name: Production Deploy
           command: |
             if [ "${CIRCLE_BRANCH}" == "develop" ]; then
-            ssh -o "StrictHostKeyChecking no" deploy@95.85.4.133 'cd feathers-giveth-develop/ && git checkout develop && git pull && nvm use 10 && npm ci && npm run serve;'
+            ssh -o "StrictHostKeyChecking no" deploy@95.85.4.133 'cd feathers-giveth-develop/ && git checkout develop && git pull && [[ -s $HOME/.nvm/nvm.sh ]] && . $HOME/.nvm/nvm.sh && nvm use 10 && npm ci && npm run serve;'
             fi
             if [ "${CIRCLE_BRANCH}" == "release" ]; then
             ssh -o "StrictHostKeyChecking no" deploy@95.85.4.133 'cd feathers-giveth-release/ && git checkout release && git pull && npm ci && npm run serve;'
