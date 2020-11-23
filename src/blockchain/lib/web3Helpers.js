@@ -157,11 +157,14 @@ const txListeners = {};
  *
  * @param {object} app application instance
  * @param {string} hash the hash to fetch the transaction of
+ * @param {boolean} isHome get transaction of home network
  */
-const getTransaction = async (app, hash) => {
-  const web3 = app.getWeb3();
+const getTransaction = async (app, hash, isHome = false) => {
+  const web3 = isHome ? app.getHomeWeb3() : app.getWeb3();
   const Transaction = app.get('transactionsModel');
-  const result = await Transaction.find({ hash }).exec();
+  const query = { hash };
+  if (isHome) query.isHome = true;
+  const result = await Transaction.find(query).exec();
   if (result.length > 0) {
     return result[0];
   }

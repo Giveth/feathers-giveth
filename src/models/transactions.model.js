@@ -5,6 +5,7 @@ function Transaction(app) {
     {
       hash: { type: String, required: true, index: true },
       from: { type: String, required: true },
+      isHome: { type: Boolean, default: false },
     },
     {
       timestamps: false,
