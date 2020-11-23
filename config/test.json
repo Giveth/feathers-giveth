@@ -1,0 +1,179 @@
+{
+  "port": 3040,
+  "mongodb": "mongodb://localhost:28016/giveth",
+  "givethFathersBaseUrl": "http://localhost:3040",
+  "useProjectOwnerWhitelist": false,
+  "tokenWhitelist": [
+    {
+      "name": "ETH",
+      "address": "0x0",
+      "foreignAddress": "0xe3ee055346a9EfaF4AA2900847dEb04de0195398",
+      "symbol": "ETH",
+      "decimals": 6
+    },
+    {
+      "name": "DAI",
+      "address": "0x6b175474e89094c44da98b954eedeac495271d0f",
+      "foreignAddress": "0x05A075B296995AdCaEC7c1dE0E52271a4Cf6DEb8",
+      "symbol": "DAI",
+      "decimals": 3
+    },
+    {
+      "name": "PAN",
+      "address": "0xd56dac73a4d6766464b38ec6d91eb45ce7457c44",
+      "foreignAddress": "0x0aaf4acccddb40cdb6a1df3cfbc7944aa5effcc6",
+      "symbol": "PAN",
+      "coingeckoId": "panvala-pan",
+      "decimals": 2
+    },
+    {
+      "name": "WBTC",
+      "address": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+      "foreignAddress": "0x6d03800013c591611a6ee597191d9f608b833510",
+      "symbol": "WBTC",
+      "decimals": "8",
+      "rateEqSymbol": "BTC"
+    },
+    {
+      "name": "USDC",
+      "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "foreignAddress": "0xf14eCE303f190A70A2CF7C7011F75bDa658aD6EF",
+      "symbol": "USDC",
+      "decimals": "3"
+    },
+    {
+      "name": "ANT",
+      "address": "0x960b236a07cf122663c4303350609a66a7b288c0",
+      "foreignAddress": "0x7283b97f7546ba8eff68167cab2da526e7d7f88a",
+      "symbol": "ANT",
+      "decimals": "3"
+    }
+  ],
+  "activeTokenWhitelist": [
+    {
+      "name": "ETH",
+      "address": "0x0",
+      "foreignAddress": "0xe3ee055346a9EfaF4AA2900847dEb04de0195398",
+      "symbol": "ETH",
+      "decimals": 6
+    },
+    {
+      "name": "DAI",
+      "address": "0x6b175474e89094c44da98b954eedeac495271d0f",
+      "foreignAddress": "0x05A075B296995AdCaEC7c1dE0E52271a4Cf6DEb8",
+      "symbol": "DAI",
+      "decimals": 3
+    },
+    {
+      "name": "PAN",
+      "address": "0xd56dac73a4d6766464b38ec6d91eb45ce7457c44",
+      "foreignAddress": "0x0aaf4acccddb40cdb6a1df3cfbc7944aa5effcc6",
+      "symbol": "PAN",
+      "coingeckoId": "panvala-pan",
+      "decimals": 2
+    },
+    {
+      "name": "WBTC",
+      "address": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+      "foreignAddress": "0x6d03800013c591611a6ee597191d9f608b833510",
+      "symbol": "WBTC",
+      "decimals": "8"
+    },
+    {
+      "name": "USDC",
+      "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
+      "foreignAddress": "0xf14eCE303f190A70A2CF7C7011F75bDa658aD6EF",
+      "symbol": "USDC",
+      "decimals": "3"
+    },
+    {
+      "name": "ANT",
+      "address": "0x960b236a07cf122663c4303350609a66a7b288c0",
+      "foreignAddress": "0x7283b97f7546ba8eff68167cab2da526e7d7f88a",
+      "symbol": "ANT",
+      "decimals": "3"
+    }
+  ],
+  "gasPrice": {
+    "fast": 950,
+    "fastest": 1000,
+    "safeLow": 790,
+    "average": 870,
+    "block_time": 11.147058823529411,
+    "blockNum": 11279950,
+    "speed": 0.9959403298768243,
+    "safeLowWait": 16.9,
+    "avgWait": 3.3,
+    "fastWait": 0.4,
+    "fastestWait": 0.4,
+    "gasPriceRange": {
+      "4": 185.8,
+      "6": 185.8,
+      "8": 185.8,
+      "10": 185.8,
+      "20": 185.8,
+      "30": 185.8,
+      "40": 185.8,
+      "50": 185.8,
+      "60": 185.8,
+      "70": 185.8,
+      "80": 185.8,
+      "90": 185.8,
+      "100": 185.8,
+      "110": 185.8,
+      "120": 185.8,
+      "130": 185.8,
+      "140": 185.8,
+      "150": 185.8,
+      "160": 185.8,
+      "170": 185.8,
+      "180": 185.8,
+      "190": 185.8,
+      "200": 185.8,
+      "220": 185.8,
+      "240": 185.8,
+      "260": 185.8,
+      "280": 185.8,
+      "300": 185.8,
+      "320": 185.8,
+      "340": 185.8,
+      "360": 185.8,
+      "380": 185.8,
+      "400": 185.8,
+      "420": 185.8,
+      "440": 185.8,
+      "460": 185.8,
+      "480": 185.8,
+      "500": 185.8,
+      "520": 185.8,
+      "540": 185.8,
+      "560": 185.8,
+      "580": 185.8,
+      "600": 185.8,
+      "620": 185.8,
+      "640": 185.8,
+      "660": 185.8,
+      "680": 185.8,
+      "700": 185.8,
+      "720": 185.8,
+      "740": 185.8,
+      "760": 23,
+      "780": 19.7,
+      "790": 16.9,
+      "800": 16.9,
+      "820": 14.4,
+      "840": 7.7,
+      "860": 4.2,
+      "870": 3.3,
+      "880": 3.3,
+      "900": 1.5,
+      "920": 1,
+      "940": 0.5,
+      "950": 0.4,
+      "960": 0.4,
+      "980": 0.4,
+      "1000": 0.4
+    }
+  }
+
+}

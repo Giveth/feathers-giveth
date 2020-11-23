@@ -51,6 +51,7 @@ const getWhitelist = () => context => {
 };
 
 module.exports = {
+  // TODO I think all method should be disallowed o not-implemented except GET
   before: {
     all: [],
     find: [],
