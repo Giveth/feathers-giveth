@@ -318,8 +318,8 @@ const updateMilestoneIfNotPledged = () => async context => {
 const addActionTakerAddress = () => async context => {
   const { txHash, actionTakerAddress, homeTxHash } = context.data;
 
-  // Has already added or txHash is not available
-  if (!txHash || actionTakerAddress) return;
+  // Has already added or txHash/homeTxHash is not available
+  if (!(txHash || homeTxHash) || actionTakerAddress) return;
 
   try {
     const { app } = context;
