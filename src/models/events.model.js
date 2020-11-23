@@ -6,30 +6,6 @@ const EventStatus = {
   PROCESSED: 'Processed',
   FAILED: 'Failed',
 };
-
-const EVENT_TYPES = {
-  TRANSFER: 'Transfer',
-  GIVER_ADDED: 'GiverAdded',
-  PROJECT_ADDED: 'ProjectAdded',
-  CANCEL_PROJECT: 'CancelProject',
-  PROJECT_UPDATED: 'ProjectUpdated',
-  GIVER_UPDATED: 'GiverUpdated',
-  DELEGATE_ADDED: 'DelegateAdded',
-  DELEGATE_UPDATED: 'DelegateUpdated',
-  MILESTONE_COMPLETE_REQUEST_APPROVED: 'MilestoneCompleteRequestApproved',
-  MILESTONE_COMPLETE_REQUESTED: 'MilestoneCompleteRequested',
-  MILESTONE_COMPLETE_REQUEST_REJECTED: 'MilestoneCompleteRequestRejected',
-  PAYMENT_COLLECTED: 'PaymentCollected',
-  CONFIRM_PAYMENT: 'ConfirmPayment',
-  AUTHORIZE_PAYMENT: 'AuthorizePayment',
-  REQUEST_REVIEW: 'RequestReview',
-  SET_APP: 'SetApp',
-  NEW_APP_PROXY: 'NewAppProxy',
-  AUTO_PAY_SET: 'AutoPaySet',
-  APPROVE_COMPLETED: 'ApproveCompleted',
-  REJECT_COMPLETED: 'RejectCompleted',
-  RECIPIENT_CHANGED: 'RecipientChanged',
-};
 //
 // See http://mongoosejs.com/docs/models.html
 // for more of what you can do here.
@@ -47,7 +23,7 @@ function createModel(app) {
       type: { type: String },
       id: { type: String, required: true },
       returnValues: { type: Object },
-      event: { type: String, index: true, enum: Object.values(EVENT_TYPES) },
+      event: { type: String, index: true },
       signature: { type: String },
       raw: { type: Object },
       topics: [String],
