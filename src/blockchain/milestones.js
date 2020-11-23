@@ -81,7 +81,7 @@ const milestonesFactory = app => {
       if (data.length === 1) {
         const m = data[0];
         const { from } = await getTransaction(app, txHash);
-        await milestones.patch(
+        return milestones.patch(
           m._id,
           {
             recipientAddress: recipient,
@@ -94,8 +94,10 @@ const milestonesFactory = app => {
           },
         );
       }
+      return null;
     } catch (e) {
       logger.error(e);
+      return null;
     }
   }
 
@@ -113,7 +115,7 @@ const milestonesFactory = app => {
         const m = data[0];
         const { from } = await getTransaction(app, txHash);
 
-        await milestones.patch(
+        return milestones.patch(
           m._id,
           {
             reviewerAddress: reviewer,
@@ -125,8 +127,10 @@ const milestonesFactory = app => {
           },
         );
       }
+      return null;
     } catch (e) {
       logger.error(e);
+      return null;
     }
   }
 
@@ -200,7 +204,7 @@ const milestonesFactory = app => {
         );
       }
 
-      await updateMilestoneReviewer(
+      return updateMilestoneReviewer(
         event.returnValues.idProject,
         event.returnValues.reviewer,
         event.transactionHash,
@@ -219,7 +223,7 @@ const milestonesFactory = app => {
         );
       }
 
-      await updateMilestoneRecipient(
+      return updateMilestoneRecipient(
         event.returnValues.idProject,
         event.returnValues.recipient,
         event.transactionHash,
@@ -246,12 +250,12 @@ const milestonesFactory = app => {
             m => m._id,
           )}`,
         );
-        return;
+        return null;
       }
 
       // if (!milestone.maxAmount || !milestone.fullyFunded) return;
       // never set uncapped or non-fullyFunded milestones as PAID
-      if (!matchingMilestones[0].maxAmount || !matchingMilestones[0].fullyFunded) return;
+      if (!matchingMilestones[0].maxAmount || !matchingMilestones[0].fullyFunded) return null;
 
       const donations = await app.service('donations').find({
         paginate: false,
@@ -263,9 +267,9 @@ const milestonesFactory = app => {
       });
 
       // if there are still committed donations, don't mark the as paid or paying
-      if (donations.length > 0) return;
+      if (donations.length > 0) return null;
 
-      await updateMilestoneStatus(projectId, MilestoneStatus.PAID, event.transactionHash);
+      return updateMilestoneStatus(projectId, MilestoneStatus.PAID, event.transactionHash);
     },
   };
 };

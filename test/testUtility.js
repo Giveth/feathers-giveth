@@ -157,7 +157,7 @@ const SAMPLE_DATA = {
       address: testAddress,
       createdAt: '2018-08-22T00:34:52.691Z',
       updatedAt: '2020-10-22T00:16:39.775Z',
-      email:'test@giveth.io'
+      email: 'test@giveth.io',
     },
     type: 'BridgedMilestone',
     maxAmount: null,
