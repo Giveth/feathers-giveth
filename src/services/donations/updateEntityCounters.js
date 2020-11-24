@@ -8,6 +8,7 @@ const { DonationStatus } = require('../../models/donations.model');
 const { MilestoneTypes } = require('../../models/milestones.model');
 const { ANY_TOKEN } = require('../../blockchain/lib/web3Helpers');
 const { donationsCollected } = require('../../utils/dappMailer');
+const { EventStatus } = require('../../models/events.model');
 
 const ENTITY_SERVICES = {
   [AdminTypes.DAC]: 'dacs',
@@ -157,10 +158,11 @@ const createPaymentConversation = async (context, donation, milestoneId) => {
         query: {
           transactionHash: donation.txHash,
           event: 'Transfer',
-          status: { $ne: 'Processed' },
+          status: { $nin: [EventStatus.PROCESSED, EventStatus.FAILED] },
         },
       })
     ).data;
+    // we should make sure all transfer events for this transactionHash settled so events should be empty
     if (events.length !== 0) {
       logger.info(
         'Dont create conversation when there is unProcessed Transfer events for a transactionHash',
