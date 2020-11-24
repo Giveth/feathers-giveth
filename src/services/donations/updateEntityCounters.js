@@ -1,13 +1,13 @@
 const { checkContext } = require('feathers-hooks-common');
 const { toBN } = require('web3-utils');
 const logger = require('winston');
-const semaphore = require('semaphore');
 
 const _groupBy = require('lodash.groupby');
 const { AdminTypes } = require('../../models/pledgeAdmins.model');
 const { DonationStatus } = require('../../models/donations.model');
 const { MilestoneTypes } = require('../../models/milestones.model');
 const { ANY_TOKEN } = require('../../blockchain/lib/web3Helpers');
+const { donationsCollected } = require('../../utils/dappMailer');
 
 const ENTITY_SERVICES = {
   [AdminTypes.DAC]: 'dacs',
@@ -147,75 +147,79 @@ const updateEntity = async (app, id, type) => {
   }
 };
 
-const conversationSem = semaphore();
-
-const createConversation = async (context, donation, milestoneId) => {
+const createPaymentConversation = async (context, donation, milestoneId) => {
   const { app, method } = context;
   // Create payment conversation
   if (method === 'create' && donation.status === DonationStatus.PAID) {
-    app
-      .service('milestones')
-      .get(milestoneId)
-      .then(milestone => {
-        const { recipient } = milestone;
-        const { txHash, amount } = donation;
-        const { symbol, decimals } = donation.token;
-        const service = app.service('conversations');
-
-        conversationSem.take(async () => {
-          try {
-            const data = await service.find({
-              paginate: false,
-              query: {
-                milestoneId,
-                messageContext: 'payment',
-                txHash,
-                $limit: 1,
-              },
-            });
-
-            if (data.length > 0) {
-              const conversation = data[0];
-              const payments = conversation.payments || [];
-              const index = payments.findIndex(p => p.symbol === symbol);
-
-              if (index !== -1) {
-                payments[index].amount = toBN(amount)
-                  .add(toBN(payments[index].amount))
-                  .toString();
-              } else {
-                payments.push({ symbol, amount, tokenDecimals: decimals });
-              }
-
-              await service.patch(conversation._id, {
-                payments,
-              });
-            } else {
-              await service.create(
-                {
-                  milestoneId,
-                  messageContext: 'payment',
-                  txHash,
-                  payments: [
-                    {
-                      amount,
-                      symbol,
-                      tokenDecimals: decimals,
-                    },
-                  ],
-                  recipientAddress: recipient.address,
-                },
-                { performedByAddress: donation.actionTakerAddress },
-              );
-            }
-          } catch (e) {
-            logger.error('could not create conversation', e);
-          } finally {
-            conversationSem.leave();
-          }
-        });
+    const { txHash } = donation;
+    const events = (
+      await app.service('events').find({
+        query: {
+          transactionHash: donation.txHash,
+          event: 'Transfer',
+          status: { $ne: 'Processed' },
+        },
       })
-      .catch(e => logger.error('Could not find milestone', e));
+    ).data;
+    if (events.length !== 0) {
+      logger.info(
+        'Dont create conversation when there is unProcessed Transfer events for a transactionHash',
+      );
+      return;
+    }
+
+    try {
+      const milestone = await app.service('milestones').get(milestoneId);
+      const { recipient } = milestone;
+      const donations = (
+        await app.service('donations').find({
+          query: {
+            ownerTypeId: milestoneId,
+            status: DonationStatus.PAID,
+            txHash,
+          },
+        })
+      ).data;
+      const payments = [];
+
+      // why our linter has problem with for..of ?
+      /* eslint-disable no-restricted-syntax */
+      for (const donationItem of donations) {
+        const { amount } = donation;
+        const { symbol, decimals } = donationItem.token;
+        payments.push({
+          amount,
+          symbol,
+          tokenDecimals: decimals,
+        });
+      }
+      const conversation = await app.service('conversations').create(
+        {
+          milestoneId,
+          messageContext: 'payment',
+          txHash,
+          payments,
+          recipientAddress: recipient.address,
+        },
+        { performedByAddress: donation.actionTakerAddress },
+      );
+      if (milestone.recipient && milestone.recipient.email) {
+        // now we dont send donations-collected email for milestones that don't have recipient
+        await donationsCollected(app, {
+          recipient: milestone.recipient.email,
+          user: milestone.recipient.name,
+          milestoneTitle: milestone.title,
+          milestoneId: milestone._id,
+          campaignId: milestone.campaignId,
+          conversation,
+        });
+      }
+      logger.info(
+        `Currently we dont send email for milestones who doesnt have recipient, milestoneId: ${milestoneId}`,
+      );
+    } catch (e) {
+      logger.error('createConversation and send collectedEmail error', e);
+    }
   }
 };
 
@@ -251,7 +255,7 @@ const updateDonationEntity = async (context, donation) => {
   } else if (donation.ownerType === AdminTypes.MILESTONE) {
     type = AdminTypes.MILESTONE;
     entityId = donation.ownerTypeId;
-    createConversation(context, donation, entityId);
+    createPaymentConversation(context, donation, entityId);
   } else {
     return;
   }
@@ -273,4 +277,5 @@ const updateDonationEntityCountersHook = () => async context => {
 module.exports = {
   updateEntity,
   updateDonationEntityCountersHook,
+  createPaymentConversation,
 };

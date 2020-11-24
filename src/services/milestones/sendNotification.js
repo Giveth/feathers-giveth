@@ -73,10 +73,10 @@ const sendNotification = () => async context => {
     ownerAddress,
     recipientAddress,
     mined,
-    donationCounters,
+    // donationCounters,
     campaign,
     reviewer,
-    recipient,
+    // recipient,
   } = result;
 
   if (context.method === 'create') {
@@ -241,15 +241,15 @@ const sendNotification = () => async context => {
           message,
         });
       } else if (status === PAID && mined && prevStatus === PAYING) {
-        Notifications.milestonePaid(app, {
-          recipient: recipient.email,
-          user: recipient.name,
-          milestoneTitle: title,
-          milestoneId: _id,
-          donationCounters,
-          address: recipientAddress,
-          campaignId,
-        });
+        // Notifications.milestonePaid(app, {
+        //   recipient: recipient.email,
+        //   user: recipient.name,
+        //   milestoneTitle: title,
+        //   milestoneId: _id,
+        //   donationCounters,
+        //   address: recipientAddress,
+        //   campaignId,
+        // });
       }
     } else if (data.status === REJECTED && prevStatus === PROPOSED) {
       _createConversion('proposedRejected');
