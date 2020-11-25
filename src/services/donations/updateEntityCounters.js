@@ -187,7 +187,7 @@ const createPaymentConversation = async (context, donation, milestoneId) => {
       // why our linter has problem with for..of ?
       /* eslint-disable no-restricted-syntax */
       for (const donationItem of donations) {
-        const { amount } = donation;
+        const { amount } = donationItem;
         const { symbol, decimals } = donationItem.token;
         payments.push({
           amount,
