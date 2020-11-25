@@ -23,7 +23,5 @@ module.exports = function User(app) {
       timestamps: true,
     },
   );
-  user.index({ updatedAt: 1 });
-  user.index({ createdAt: 1 });
   return mongooseClient.model('user', user);
 };

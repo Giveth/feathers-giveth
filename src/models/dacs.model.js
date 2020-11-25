@@ -50,7 +50,6 @@ function createModel(app) {
       timestamps: true,
     },
   );
-  dac.index({ updatedAt: 1 });
   dac.index({ createdAt: 1 });
   return mongooseClient.model('dac', dac);
 }

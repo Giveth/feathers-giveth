@@ -41,8 +41,6 @@ function createModel(app) {
       timestamps: true,
     },
   );
-  event.index({ updatedAt: 1 });
-  event.index({ createdAt: 1 });
   return mongooseClient.model('event', event);
 }
 

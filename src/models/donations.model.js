@@ -62,7 +62,6 @@ function Donation(app) {
       timestamps: true,
     },
   );
-  donation.index({ updatedAt: 1 });
   donation.index({ createdAt: 1 });
   return mongooseClient.model('donations', donation);
 }
