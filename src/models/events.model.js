@@ -18,7 +18,7 @@ function createModel(app) {
       transactionIndex: { type: Number, required: true },
       transactionHash: { type: String, required: true, index: true },
       blockHash: { type: String, required: true },
-      blockNumber: { type: Number, required: true },
+      blockNumber: { type: Number, required: true, index: true },
       address: { type: String, required: true },
       type: { type: String },
       id: { type: String, required: true },
