@@ -14,16 +14,16 @@ function createModel(app) {
   const { Schema } = mongooseClient;
   const event = new Schema(
     {
-      logIndex: { type: Number, required: true, index: true },
+      logIndex: { type: Number, required: true},
       transactionIndex: { type: Number, required: true },
-      transactionHash: { type: String, required: true, index: true },
+      transactionHash: { type: String, required: true},
       blockHash: { type: String, required: true },
-      blockNumber: { type: Number, required: true, index: true },
+      blockNumber: { type: Number, required: true},
       address: { type: String, required: true },
       type: { type: String },
       id: { type: String, required: true },
       returnValues: { type: Object },
-      event: { type: String, index: true },
+      event: { type: String},
       signature: { type: String },
       raw: { type: Object },
       topics: [String],
@@ -32,7 +32,6 @@ function createModel(app) {
         require: true,
         enum: Object.values(EventStatus),
         default: EventStatus.WAITING,
-        index: true,
       },
       processingError: { type: String },
       confirmations: { type: Number, require: true },
@@ -41,6 +40,9 @@ function createModel(app) {
       timestamps: true,
     },
   );
+  event.index({ transactionHash: 1, logIndex:1 });
+  event.index({ transactionHash: 1, event:1 });
+  event.index({ status: 1, blockNumber:1 });
   return mongooseClient.model('event', event);
 }
 

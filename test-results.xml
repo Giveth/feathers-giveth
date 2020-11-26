@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="Mocha Tests" time="11.4630" tests="46" failures="4">
+  <testsuite name="Root Suite" timestamp="2020-11-19T08:50:26" tests="0" time="0.0000" failures="0">
+  </testsuite>
+  <testsuite name="Test GET /conversations" timestamp="2020-11-19T08:50:34" tests="1" file="/Users/renjer/Documents/src/giveth/feathers-giveth/src/services/conversations/conversations.service.test.js" time="0.0370" failures="0">
+    <testcase name="Test GET /conversations should return some values" time="0.0370" classname="should return some values">
+    </testcase>
+  </testsuite>
+  <testsuite name="Test POST /conversations" timestamp="2020-11-19T08:50:34" tests="1" file="/Users/renjer/Documents/src/giveth/feathers-giveth/src/services/conversations/conversations.service.test.js" time="0.0470" failures="0">
+    <testcase name="Test POST /conversations should return create conversation successfully" time="0.0470" classname="should return create conversation successfully">
+    </testcase>
+  </testsuite>
+  <testsuite name="Test DELETE /conversations" timestamp="2020-11-19T08:50:34" tests="1" file="/Users/renjer/Documents/src/giveth/feathers-giveth/src/services/conversations/conversations.service.test.js" time="0.0080" failures="0">
+    <testcase name="Test DELETE /conversations should get 405, DEELTE method is no allowed" time="0.0080" classname="should get 405, DEELTE method is no allowed">
+    </testcase>
+  </testsuite>
+  <testsuite name="Test PUT /conversations" timestamp="2020-11-19T08:50:34" tests="1" file="/Users/renjer/Documents/src/giveth/feathers-giveth/src/services/conversations/conversations.service.test.js" time="0.0070" failures="0">
+    <testcase name="Test PUT /conversations should get 405, PUT method is no allowed" time="0.0070" classname="should get 405, PUT method is no allowed">
+    </testcase>
+  </testsuite>
+  <testsuite name="Test PATCH /conversations" timestamp="2020-11-19T08:50:34" tests="1" file="/Users/renjer/Documents/src/giveth/feathers-giveth/src/services/conversations/conversations.service.test.js" time="0.0100" failures="0">
+    <testcase name="Test PATCH /conversations should get 403, PATCH is allowed for internal calls" time="0.0100" classname="should get 403, PATCH is allowed for internal calls">
+    </testcase>
+  </testsuite>
+  <testsuite name="test get /conversionRates" timestamp="2020-11-19T08:50:34" tests="2" file="/Users/renjer/Documents/src/giveth/feathers-giveth/src/services/conversionRates/conversionRates.service.test.js" time="2.9330" failures="0">
+    <testcase name="test get /conversionRates should get successful result" time="2.9250" classname="should get successful result">
+    </testcase>
+    <testcase name="test get /conversionRates should get equal values for BTC and WBTC" time="0.0080" classname="should get equal values for BTC and WBTC">
+    </testcase>
+  </testsuite>
+  <testsuite name="Test GET /donations" timestamp="2020-11-19T08:50:37" tests="1" file="/Users/renjer/Documents/src/giveth/feathers-giveth/src/services/donations/donations.service.test.js" time="0.0230" failures="0">
+    <testcase name="Test GET /donations should return some values" time="0.0230" classname="should return some values">
+    </testcase>
+  </testsuite>
+  <testsuite name="Test POST /donations" timestamp="2020-11-19T08:50:37" tests="2" file="/Users/renjer/Documents/src/giveth/feathers-giveth/src/services/donations/donations.service.test.js" time="0.0210" failures="0">
+    <testcase name="Test POST /donations should return create donation successfully" time="0.0140" classname="should return create donation successfully">
+    </testcase>
+    <testcase name="Test POST /donations should throw exception without bearer token" time="0.0070" classname="should throw exception without bearer token">
+    </testcase>
+  </testsuite>
+  <testsuite name="Test DELETE /donations" timestamp="2020-11-19T08:50:37" tests="1" file="/Users/renjer/Documents/src/giveth/feathers-giveth/src/services/donations/donations.service.test.js" time="0.0200" failures="0">
+    <testcase name="Test DELETE /donations should get 405, DEELTE method is no allowed" time="0.0200" classname="should get 405, DEELTE method is no allowed">
+    </testcase>
+  </testsuite>
+  <testsuite name="Test PUT /donations" timestamp="2020-11-19T08:50:37" tests="1" file="/Users/renjer/Documents/src/giveth/feathers-giveth/src/services/donations/donations.service.test.js" time="0.0050" failures="0">
+    <testcase name="Test PUT /donations should get 405, PUT method is no allowed" time="0.0050" classname="should get 405, PUT method is no allowed">
+    </testcase>
+  </testsuite>
+  <testsuite name="Test PATCH /donations" timestamp="2020-11-19T08:50:37" tests="5" file="/Users/renjer/Documents/src/giveth/feathers-giveth/src/services/donations/donations.service.test.js" time="6.5580" failures="0">
+    <testcase name="Test PATCH /donations Should be successful update the status by patch method" time="1.3430" classname="Should be successful update the status by patch method">
+    </testcase>
+    <testcase name="Test PATCH /donations Should be successful update the ToApprove status to Rejected" time="1.8430" classname="Should be successful update the ToApprove status to Rejected">
+    </testcase>
+    <testcase name="Test PATCH /donations Should be successful update the ToApprove status to Commited" time="1.9520" classname="Should be successful update the ToApprove status to Commited">
+    </testcase>
+    <testcase name="Test PATCH /donations Should throw error, update another user&apos;s donation" time="0.0640" classname="Should throw error, update another user&apos;s donation">
+    </testcase>
+    <testcase name="Test PATCH /donations Should throw forbidden error, updating donation with ToApprove status " time="1.3560" classname="Should throw forbidden error, updating donation with ToApprove status ">
+    </testcase>
+  </testsuite>
+  <testsuite name="Test GET /events" timestamp="2020-11-19T08:50:43" tests="1" file="/Users/renjer/Documents/src/giveth/feathers-giveth/src/services/events/events.service.test.js" time="0.0050" failures="0">
+    <testcase name="Test GET /events should return successful result" time="0.0050" classname="should return successful result">
+    </testcase>
+  </testsuite>
+  <testsuite name="Test POST /events" timestamp="2020-11-19T08:50:43" tests="1" file="/Users/renjer/Documents/src/giveth/feathers-giveth/src/services/events/events.service.test.js" time="0.0000" failures="1">
+    <testcase name="Test POST /events should return 405, POST is disallowed" time="0.0000" classname="should return 405, POST is disallowed">
+      <failure message="getJwt is not defined" type="ReferenceError"><![CDATA[ReferenceError: getJwt is not defined
+    at Context.<anonymous> (src/services/events/events.service.test.js:21:29)]]></failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="Test PUT /events" timestamp="2020-11-19T08:50:43" tests="1" file="/Users/renjer/Documents/src/giveth/feathers-giveth/src/services/events/events.service.test.js" time="0.0000" failures="1">
+    <testcase name="Test PUT /events should return 405, PUT is disallowed" time="0.0000" classname="should return 405, PUT is disallowed">
+      <failure message="getJwt is not defined" type="ReferenceError"><![CDATA[ReferenceError: getJwt is not defined
+    at Context.<anonymous> (src/services/events/events.service.test.js:31:29)]]></failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="Test DELETE /events" timestamp="2020-11-19T08:50:43" tests="1" file="/Users/renjer/Documents/src/giveth/feathers-giveth/src/services/events/events.service.test.js" time="0.0000" failures="1">
+    <testcase name="Test DELETE /events should return 405, DELETE is disallowed" time="0.0000" classname="should return 405, DELETE is disallowed">
+      <failure message="getJwt is not defined" type="ReferenceError"><![CDATA[ReferenceError: getJwt is not defined
+    at Context.<anonymous> (src/services/events/events.service.test.js:41:29)]]></failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="Test PATCH /events" timestamp="2020-11-19T08:50:43" tests="1" file="/Users/renjer/Documents/src/giveth/feathers-giveth/src/services/events/events.service.test.js" time="0.0000" failures="1">
+    <testcase name="Test PATCH /events should return 405, PATCH is disallowed" time="0.0000" classname="should return 405, PATCH is disallowed">
+      <failure message="getJwt is not defined" type="ReferenceError"><![CDATA[ReferenceError: getJwt is not defined
+    at Context.<anonymous> (src/services/events/events.service.test.js:52:29)]]></failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="Test GET /gasprice" timestamp="2020-11-19T08:50:43" tests="1" file="/Users/renjer/Documents/src/giveth/feathers-giveth/src/services/gasprice/gasprice.service.test.js" time="0.0040" failures="0">
+    <testcase name="Test GET /gasprice should return the value that is in the config" time="0.0040" classname="should return the value that is in the config">
+    </testcase>
+  </testsuite>
+  <testsuite name="getApprovedKeys() tests" timestamp="2020-11-19T08:50:43" tests="8" file="/Users/renjer/Documents/src/giveth/feathers-giveth/src/services/milestones/getApprovedKeys.test.js" time="0.0020" failures="0">
+    <testcase name="getApprovedKeys() tests should return just pendingRecipientAddress if data included pendingRecipientAddress" time="0.0000" classname="should return just pendingRecipientAddress if data included pendingRecipientAddress">
+    </testcase>
+    <testcase name="getApprovedKeys() tests should throw exception because user is not milestone recipient" time="0.0000" classname="should throw exception because user is not milestone recipient">
+    </testcase>
+    <testcase name="getApprovedKeys() tests should throw exception because milestone has no recipientAddress and user is not milestone owner" time="0.0000" classname="should throw exception because milestone has no recipientAddress and user is not milestone owner">
+    </testcase>
+    <testcase name="getApprovedKeys() tests should throw exception because user is not milestone recipient" time="0.0010" classname="should throw exception because user is not milestone recipient">
+    </testcase>
+    <testcase name="getApprovedKeys() tests should throw exception, Only the Campaign Manager can accept a milestone" time="0.0000" classname="should throw exception, Only the Campaign Manager can accept a milestone">
+    </testcase>
+    <testcase name="getApprovedKeys() tests should return an array, campaignManager wants to accept milestone" time="0.0010" classname="should return an array, campaignManager wants to accept milestone">
+    </testcase>
+    <testcase name="getApprovedKeys() tests should throw exception, Only the Campaign Manager can reject a milestone" time="0.0000" classname="should throw exception, Only the Campaign Manager can reject a milestone">
+    </testcase>
+    <testcase name="getApprovedKeys() tests should return an array, campaignManager wants to reject milestone" time="0.0000" classname="should return an array, campaignManager wants to reject milestone">
+    </testcase>
+  </testsuite>
+  <testsuite name="Test GET  /milestones" timestamp="2020-11-19T08:50:43" tests="2" file="/Users/renjer/Documents/src/giveth/feathers-giveth/src/services/milestones/milestone.service.test.js" time="0.2430" failures="0">
+    <testcase name="Test GET  /milestones should get successful result" time="0.2040" classname="should get successful result">
+    </testcase>
+    <testcase name="Test GET  /milestones getMileStoneDetail" time="0.0390" classname="getMileStoneDetail">
+    </testcase>
+  </testsuite>
+  <testsuite name="Test POST  /milestones" timestamp="2020-11-19T08:50:43" tests="2" file="/Users/renjer/Documents/src/giveth/feathers-giveth/src/services/milestones/milestone.service.test.js" time="0.0460" failures="0">
+    <testcase name="Test POST  /milestones should create milestone successfully" time="0.0430" classname="should create milestone successfully">
+    </testcase>
+    <testcase name="Test POST  /milestones should get unAuthorized error" time="0.0030" classname="should get unAuthorized error">
+    </testcase>
+  </testsuite>
+  <testsuite name="Test PATCH  /milestones" timestamp="2020-11-19T08:50:44" tests="5" file="/Users/renjer/Documents/src/giveth/feathers-giveth/src/services/milestones/milestone.service.test.js" time="0.2080" failures="0">
+    <testcase name="Test PATCH  /milestones should update milestone successfully" time="0.0560" classname="should update milestone successfully">
+    </testcase>
+    <testcase name="Test PATCH  /milestones should not update milestone because status not sent in payload" time="0.0520" classname="should not update milestone because status not sent in payload">
+    </testcase>
+    <testcase name="Test PATCH  /milestones should not update , because data that stored on-chain cant be updated" time="0.0560" classname="should not update , because data that stored on-chain cant be updated">
+    </testcase>
+    <testcase name="Test PATCH  /milestones should get unAuthorized error" time="0.0080" classname="should get unAuthorized error">
+    </testcase>
+    <testcase name="Test PATCH  /milestones should get unAuthorized error because Only the Milestone and Campaign Manager can edit milestone" time="0.0360" classname="should get unAuthorized error because Only the Milestone and Campaign Manager can edit milestone">
+    </testcase>
+  </testsuite>
+  <testsuite name="Test DELETE  /milestones" timestamp="2020-11-19T08:50:44" tests="5" file="/Users/renjer/Documents/src/giveth/feathers-giveth/src/services/milestones/milestone.service.test.js" time="1.2750" failures="0">
+    <testcase name="Test DELETE  /milestones should not delete because status is not Proposed or Rejected " time="0.8230" classname="should not delete because status is not Proposed or Rejected ">
+    </testcase>
+    <testcase name="Test DELETE  /milestones should be successful for milestone with status Proposed" time="0.1080" classname="should be successful for milestone with status Proposed">
+    </testcase>
+    <testcase name="Test DELETE  /milestones should be successful for milestone with status Rejected" time="0.1880" classname="should be successful for milestone with status Rejected">
+    </testcase>
+    <testcase name="Test DELETE  /milestones should be successful , delete Proposed milestone of another user" time="0.1510" classname="should be successful , delete Proposed milestone of another user">
+    </testcase>
+    <testcase name="Test DELETE  /milestones should get unAuthorized error" time="0.0050" classname="should get unAuthorized error">
+    </testcase>
+  </testsuite>
+  <testsuite name="Test GET /whitelist" timestamp="2020-11-19T08:50:45" tests="1" file="/Users/renjer/Documents/src/giveth/feathers-giveth/src/services/whitelist/whitelist.service.test.js" time="0.0110" failures="0">
+    <testcase name="Test GET /whitelist should return the value that some of them are in the config" time="0.0110" classname="should return the value that some of them are in the config">
+    </testcase>
+  </testsuite>
+</testsuites>

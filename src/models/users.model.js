@@ -7,7 +7,7 @@ module.exports = function User(app) {
   const { Schema } = mongooseClient;
   const user = new Schema(
     {
-      address: { type: String, required: true, index: true, unique: true },
+      address: { type: String, required: true, unique: true },
       name: { type: String },
       email: { type: String },
       giverId: { type: Schema.Types.Long, index: true }, // we can use Long here b/c lp only stores adminId in pledges as uint64
@@ -23,5 +23,6 @@ module.exports = function User(app) {
       timestamps: true,
     },
   );
+  user.index({ address: 1, lastFunded: 1 });
   return mongooseClient.model('user', user);
 };

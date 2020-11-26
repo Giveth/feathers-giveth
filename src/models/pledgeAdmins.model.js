@@ -18,7 +18,6 @@ function PledgeAdmin(app) {
       type: {
         type: String,
         required: true,
-        index: true,
         enum: Object.values(AdminTypes),
       },
       typeId: { type: String },
