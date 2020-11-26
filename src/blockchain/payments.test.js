@@ -50,7 +50,6 @@ function authorizePaymentTestCases() {
     assert.isArray(updatedDonationsArray);
     assert.equal(updatedDonationsArray.length, 1);
     const updatedDonation = updatedDonationsArray[0];
-    console.log('updatedDonation ', updatedDonation);
     assert.equal(updatedDonation.paymentId, idPayment);
   });
 
