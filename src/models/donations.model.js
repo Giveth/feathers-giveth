@@ -83,7 +83,7 @@ function Donation(app) {
     status: 1, createdAt: 1,
   });
   donation.index({ giverAddress: 1, lessThanCutoff: 1, createdAt: 1 });
-  donation.index({ txHash: 1, pledgeId: 1, amountRemaining: 1 });
+  donation.index({ txHash: 1, pledgeId: 1, amount: 1 });
   donation.index({
     ownerTypeId: 1,
     intendedProjectTypeId: 1, amountRemaining: 1,
