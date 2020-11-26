@@ -89,7 +89,7 @@ function Donation(app) {
     intendedProjectTypeId: 1, amountRemaining: 1,
   });
   donation.index({
-    ownerTypeId: 1,
+    ownerTypeId: 1, commitTime: 1,
     intendedProjectTypeId: 1, status: 1,
   });
   donation.index({
