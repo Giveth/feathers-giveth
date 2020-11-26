@@ -1,6 +1,6 @@
 const { generateRandomEtheriumAddress } = require('../../test/testUtility');
 
-let mockGiver = {
+const mockGiver = {
   commitTime: '',
   addr: generateRandomEtheriumAddress(),
   name: '',
@@ -11,11 +11,21 @@ async function getPledgeAdmin() {
   return Promise.resolve(mockGiver);
 }
 
-module.exports = mockGiverData => {
-  if (mockGiverData) {
-    mockGiver = mockGiverData;
-  }
-  return {
-    getPledgeAdmin,
-  };
+const $contract = {
+  methods: {
+    getPledge: async from => {
+      return {
+        call: {
+          request: () => {
+            return Promise.resolve(from);
+          },
+        },
+      };
+    },
+  },
+};
+
+module.exports = {
+  getPledgeAdmin,
+  $contract,
 };
