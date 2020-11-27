@@ -37,15 +37,15 @@ function Milestone(app) {
       image: { type: String },
       prevImage: { type: String }, // To store deleted/cleared lost ipfs values
       maxAmount: { type: Schema.Types.BN },
-      ownerAddress: { type: String, required: true},
-      reviewerAddress: { type: String},
+      ownerAddress: { type: String, required: true },
+      reviewerAddress: { type: String },
       dacId: { type: Number },
-      recipientAddress: { type: String},
-      recipientId: { type: Schema.Types.Long}, // we can use Long here b/c lp only stores adminId in pledges as uint64
+      recipientAddress: { type: String },
+      recipientId: { type: Schema.Types.Long }, // we can use Long here b/c lp only stores adminId in pledges as uint64
       pendingRecipientAddress: { type: String },
-      campaignReviewerAddress: { type: String},
-      campaignId: { type: String, required: true},
-      projectId: { type: Schema.Types.Long}, // we can use Long here b/c lp only stores adminId in pledges as uint64
+      campaignReviewerAddress: { type: String },
+      campaignId: { type: String, required: true },
+      projectId: { type: Schema.Types.Long }, // we can use Long here b/c lp only stores adminId in pledges as uint64
       status: {
         type: String,
         require: true,
@@ -86,12 +86,11 @@ function Milestone(app) {
       timestamps: true,
     },
   );
-  milestone.index({campaignId:1, status:1, projectAddedAt:1});
-  milestone.index({createdAt:1, ownerAddress:1,
-    reviewerAddress:1, recipientAddress:1});
-  milestone.index({status:1, fullyFunded:1, createdAt:1});
-  milestone.index({campaignId:1, createdAt:1});
-  milestone.index({campaignId:1, projectId:1});
+  milestone.index({ campaignId: 1, status: 1, projectAddedAt: 1 });
+  milestone.index({ createdAt: 1, ownerAddress: 1, reviewerAddress: 1, recipientAddress: 1 });
+  milestone.index({ status: 1, fullyFunded: 1, createdAt: 1 });
+  milestone.index({ campaignId: 1, createdAt: 1 });
+  milestone.index({ campaignId: 1, projectId: 1 });
 
   return mongooseClient.model('milestone', milestone);
 }

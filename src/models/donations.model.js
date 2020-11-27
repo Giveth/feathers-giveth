@@ -65,39 +65,60 @@ function Donation(app) {
   // donation.index({ createdAt: 1, status: 1, amountRemaining: 1,
   //   ownerTypeId: 1,delegateTypeId:1, delegateId: 1, lessThanCutoff: 1 });
   donation.index({
-    status: 1, intendedProjectTypeId: 1, amount: 1,
-    ownerTypeId: 1, isReturn: 1, usdValue: 1, createdAt: 1,
+    status: 1,
+    intendedProjectTypeId: 1,
+    amount: 1,
+    ownerTypeId: 1,
+    isReturn: 1,
+    usdValue: 1,
+    createdAt: 1,
   });
   donation.index({
-    status: 1, delegateTypeId: 1,
-    isReturn: 1, intendedProjectId: 1, usdValue: 1, createdAt: 1,
+    status: 1,
+    delegateTypeId: 1,
+    isReturn: 1,
+    intendedProjectId: 1,
+    usdValue: 1,
+    createdAt: 1,
   });
 
   donation.index({
-    giverAddress: 1, homeTxHash: 1,
-    parentDonations: 1, canceledPledgeId: 1, lessThanCutoff: 1,
+    giverAddress: 1,
+    homeTxHash: 1,
+    parentDonations: 1,
+    canceledPledgeId: 1,
+    lessThanCutoff: 1,
   });
   donation.index({
-    lessThanCutoff: 1, delegateTypeId: 1,
-    ownerTypeId: 1, delegateId: 1,
-    status: 1, createdAt: 1,
+    lessThanCutoff: 1,
+    delegateTypeId: 1,
+    ownerTypeId: 1,
+    delegateId: 1,
+    status: 1,
+    createdAt: 1,
   });
   donation.index({ giverAddress: 1, lessThanCutoff: 1, createdAt: 1 });
   donation.index({ txHash: 1, pledgeId: 1, amount: 1 });
   donation.index({
     ownerTypeId: 1,
-    intendedProjectTypeId: 1, amountRemaining: 1,
+    intendedProjectTypeId: 1,
+    amountRemaining: 1,
   });
   donation.index({
-    ownerTypeId: 1, commitTime: 1,
-    intendedProjectTypeId: 1, status: 1,
+    ownerTypeId: 1,
+    commitTime: 1,
+    intendedProjectTypeId: 1,
+    status: 1,
   });
   donation.index({
     giverAddress: 1,
-    amount: 1, mined: 1, createdAt: 1, txHash: 1,
+    amount: 1,
+    mined: 1,
+    createdAt: 1,
+    txHash: 1,
   });
-  donation.index({ createdAt: 1, pledgeId: 1, amountRemaining: 1, amount:1 });
-  donation.index({ amountRemaining: 1, status: 1, intendedProjectId: 1, commitTime:1 });
+  donation.index({ createdAt: 1, pledgeId: 1, amountRemaining: 1, amount: 1 });
+  donation.index({ amountRemaining: 1, status: 1, intendedProjectId: 1, commitTime: 1 });
   donation.index({ amountRemaining: 1, status: 1, ownerTypeId: 1 });
   donation.index({ mined: 1, status: 1, createdAt: 1 });
   donation.index({ isReturn: 1, mined: 1, parentDonations: 1 });

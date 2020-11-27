@@ -54,7 +54,9 @@ function createModel(app) {
   campaign.index({ createdAt: 1, status: 1 });
   campaign.index({ updatedAt: 1, projectId: 1, status: 1 });
   campaign.index({
-    createdAt: 1, ownerAddress: 1, reviewerAddress: 1,
+    createdAt: 1,
+    ownerAddress: 1,
+    reviewerAddress: 1,
     coownerAddress: 1,
   });
   return mongooseClient.model('campaign', campaign);
