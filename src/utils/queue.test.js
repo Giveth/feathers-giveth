@@ -1,4 +1,4 @@
-const { assert, expect } = require('chai');
+const { assert } = require('chai');
 const queueMixin = require('./queue');
 const { generateRandomEtheriumAddress, assertThrowsAsync } = require('../../test/testUtility');
 
@@ -47,14 +47,14 @@ function queueTestCases() {
     const secondGeneratedAddress = generateRandomEtheriumAddress();
     const queue = queueMixin({});
     queue.add(() => {
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve, _reject) => {
         setTimeout(() => {
           resolve(firstGeneratedAddress);
         }, 1000);
       });
     });
     queue.add(() => {
-      return new Promise((resolve, reject) => {
+      return new Promise((resolve, _reject) => {
         setTimeout(() => {
           resolve(secondGeneratedAddress);
         }, 1000);
