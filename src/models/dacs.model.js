@@ -49,6 +49,7 @@ function createModel(app) {
       timestamps: true,
     },
   );
+  dac.index({ createdAt: 1 });
   dac.index({ status: 1, createdAt: 1 });
   dac.index({ ownerAddress: 1, createdAt: 1 });
   dac.index({ delegateId: 1, ownerAddress: 1 });

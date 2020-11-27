@@ -22,7 +22,7 @@ function Donation(app) {
   const { Schema } = mongooseClient;
   const donation = new Schema(
     {
-      giverAddress: { type: String, required: true },
+      giverAddress: { type: String, required: true, index: true },
       actionTakerAddress: { type: String },
       amount: { type: Schema.Types.BN, required: true, min: 0 },
       amountRemaining: { type: Schema.Types.BN, required: true, min: 0 },
@@ -31,7 +31,7 @@ function Donation(app) {
       paymentId: { type: Schema.Types.BN },
       canceledPledgeId: { type: Schema.Types.BN },
       ownerId: { type: Schema.Types.Long, required: true }, // we can use Long here b/c lp only stores adminId in pledges as uint64
-      ownerTypeId: { type: String, required: true },
+      ownerTypeId: { type: String, required: true, index: true },
       ownerType: { type: String, required: true },
       intendedProjectId: { type: Schema.Types.Long }, // we can use Long here b/c lp only stores adminId in pledges as uint64
       intendedProjectTypeId: { type: String },
@@ -47,10 +47,10 @@ function Donation(app) {
         default: DonationStatus.PENDING,
         index: true,
       },
-      txHash: { type: String },
+      txHash: { type: String, index: true },
       homeTxHash: { type: String },
       commitTime: { type: Date },
-      mined: { type: Boolean, default: false, required: true },
+      mined: { type: Boolean, default: false, required: true, index: true },
       parentDonations: { type: [String], default: [], required: true },
       isReturn: { type: Boolean, default: false },
       token: { type: Token, required: true },
@@ -90,12 +90,12 @@ function Donation(app) {
     lessThanCutoff: 1,
   });
   donation.index({
+    createdAt: 1,
+    status: 1,
     lessThanCutoff: 1,
     delegateTypeId: 1,
     ownerTypeId: 1,
     delegateId: 1,
-    status: 1,
-    createdAt: 1,
   });
   donation.index({ giverAddress: 1, lessThanCutoff: 1, createdAt: 1 });
   donation.index({ txHash: 1, pledgeId: 1, amount: 1 });
@@ -106,16 +106,16 @@ function Donation(app) {
   });
   donation.index({
     ownerTypeId: 1,
+    status: 1,
     commitTime: 1,
     intendedProjectTypeId: 1,
-    status: 1,
   });
   donation.index({
-    giverAddress: 1,
-    amount: 1,
+    txHash: 1,
     mined: 1,
     createdAt: 1,
-    txHash: 1,
+    giverAddress: 1,
+    amount: 1,
   });
   donation.index({ createdAt: 1, pledgeId: 1, amountRemaining: 1, amount: 1 });
   donation.index({ amountRemaining: 1, status: 1, intendedProjectId: 1, commitTime: 1 });

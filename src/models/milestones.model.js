@@ -89,8 +89,8 @@ function Milestone(app) {
   milestone.index({ campaignId: 1, status: 1, projectAddedAt: 1 });
   milestone.index({ createdAt: 1, ownerAddress: 1, reviewerAddress: 1, recipientAddress: 1 });
   milestone.index({ status: 1, fullyFunded: 1, createdAt: 1 });
-  milestone.index({ campaignId: 1, createdAt: 1 });
-  milestone.index({ campaignId: 1, projectId: 1 });
+  milestone.index({ createdAt: 1, campaignId: 1 });
+  milestone.index({ projectId: 1, campaignId: 1 });
 
   return mongooseClient.model('milestone', milestone);
 }
