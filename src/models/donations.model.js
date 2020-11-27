@@ -97,7 +97,7 @@ function Donation(app) {
     amount: 1, mined: 1, createdAt: 1, txHash: 1,
   });
   donation.index({ createdAt: 1, pledgeId: 1, amountRemaining: 1, amount:1 });
-  donation.index({ amountRemaining: 1, status: 1, intendedProjectId: 1 });
+  donation.index({ amountRemaining: 1, status: 1, intendedProjectId: 1, commitTime:1 });
   donation.index({ amountRemaining: 1, status: 1, ownerTypeId: 1 });
   donation.index({ mined: 1, status: 1, createdAt: 1 });
   donation.index({ isReturn: 1, mined: 1, parentDonations: 1 });
