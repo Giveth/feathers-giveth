@@ -43,11 +43,11 @@ const $contract = {
   },
 };
 
-function kernel(){
-  return generateRandomEtheriumAddress()
+function kernel() {
+  return generateRandomEtheriumAddress();
 }
 module.exports = {
   getPledgeAdmin,
   $contract,
-  kernel
+  kernel,
 };

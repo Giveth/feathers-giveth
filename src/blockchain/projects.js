@@ -246,7 +246,10 @@ const projects = (app, liquidPledging) => {
     }
 
     if (data.length > 1) {
-      logger.error('more then 1 campaign with the same title and ownerAddress found: ', data.length);
+      logger.error(
+        'more then 1 campaign with the same title and ownerAddress found: ',
+        data.length,
+      );
     }
 
     return data[0];

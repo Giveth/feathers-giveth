@@ -2,7 +2,11 @@ const { assert } = require('chai');
 const { getFeatherAppInstance } = require('../app');
 const projectsFactory = require('./projects');
 const mockLiquidPledging = require('../mock/mockLiquidPledging');
-const { assertThrowsAsync, generateRandomTransactionHash, SAMPLE_DATA, generateRandomNumber } = require('../../test/testUtility');
+const {
+  assertThrowsAsync,
+  generateRandomTransactionHash,
+  generateRandomNumber,
+} = require('../../test/testUtility');
 
 let projects;
 
@@ -39,20 +43,47 @@ function updateProjectTestCases() {
     await assertThrowsAsync(badFunc, 'updateProject only handles ProjectUpdated events');
   });
 
-  it('should return null , no campaign create or update because of web3 connection error'
-    , async () => {
-      const idProject = generateRandomNumber(10, 100);
-      const transactionHash = generateRandomTransactionHash();
-      const event = {
+  it('should return null , no campaign create or update because of web3 connection error', async () => {
+    const idProject = generateRandomNumber(10, 100);
+    const transactionHash = generateRandomTransactionHash();
+    const event = {
+      returnValues: {
+        idProject,
+      },
+      transactionHash,
+      event: 'ProjectUpdated',
+    };
+    const campaigns = await projects.updateProject(event);
+    assert.notOk(campaigns);
+  });
+}
+
+function cancelProjectTestCases() {
+  it('should throw exception , invalid event passed', async () => {
+    const badFunc = async () => {
+      await projects.cancelProject({
+        event: 'NotCancelProject',
         returnValues: {
-          idProject,
+          idProject: generateRandomNumber(1, 1000),
         },
-        transactionHash,
-        event: 'ProjectUpdated',
-      };
-      const campaigns = await projects.updateProject(event);
-      assert.notOk(campaigns);
-    });
+      });
+    };
+    await assertThrowsAsync(badFunc, 'cancelProject only handles CancelProject events');
+  });
+
+  it('should throw exception, connecting to web3 problem in test mode', async () => {
+    const idProject = generateRandomNumber(10, 100);
+    const transactionHash = generateRandomTransactionHash();
+    const event = {
+      returnValues: {
+        idProject,
+      },
+      transactionHash,
+      event: 'CancelProject',
+    };
+    const result = await await projects.cancelProject(event);
+    assert.isNotOk(result);
+  });
 }
 
 function setAppTestCases() {
@@ -81,6 +112,7 @@ function setAppTestCases() {
 describe('addProject() function tests', addProjectTestCases);
 describe('updateProject() function tests', updateProjectTestCases);
 describe('setApp() function tests', setAppTestCases);
+describe('cancelProject() function tests', cancelProjectTestCases);
 
 before(() => {
   const app = getFeatherAppInstance();
