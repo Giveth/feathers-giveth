@@ -40,9 +40,8 @@ function createModel(app) {
       timestamps: true,
     },
   );
-  event.index({ transactionHash: 1, logIndex:1 });
+  event.index({ transactionHash: 1, logIndex:1 ,transactionIndex:1, blockNumber:1, status:1 });
   event.index({ transactionHash: 1, event:1 });
-  event.index({ status: 1, blockNumber:1 });
   return mongooseClient.model('event', event);
 }
 
