@@ -21,8 +21,8 @@ function getGasPriceTestCases() {
 }
 
 it('should events gasprice registration be ok', () => {
-  const userService = app.service('gasprice');
-  assert.ok(userService, 'Registered the service');
+  const service = app.service('gasprice');
+  assert.ok(service, 'Registered the service');
 });
 
 describe(`Test GET ${relativeUrl}`, getGasPriceTestCases);

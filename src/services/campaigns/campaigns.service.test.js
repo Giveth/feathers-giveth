@@ -169,8 +169,8 @@ function deleteCampaignTestCases() {
 }
 
 it('should campaigns service registration be ok', () => {
-  const userService = app.service('campaigns');
-  assert.ok(userService, 'Registered the service');
+  const daceService = app.service('campaigns');
+  assert.ok(daceService, 'Registered the service');
 });
 
 describe(`Test GET  ${relativeUrl}`, getCampaignTestCases);

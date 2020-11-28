@@ -199,8 +199,8 @@ function deleteMilestoneTestCases() {
 }
 
 it('should milestones service registration be ok', () => {
-  const userService = app.service('milestones');
-  assert.ok(userService, 'Registered the service');
+  const service = app.service('milestones');
+  assert.ok(service, 'Registered the service');
 });
 
 describe(`Test GET  ${relativeUrl}`, getMilestoneTestCases);

@@ -167,6 +167,7 @@ const SAMPLE_DATA = {
     peopleCount: 3,
   },
   CAMPAIGN_ID: '5fa97a9c4c63425d06b8a245',
+  DAC_ID: '5fa9788b4c63425d06b8a272',
   CREATE_CAMPAIGN_DATA: {
     title: 'Hello I;m new Campaign',
     projectId: 10,
@@ -177,6 +178,19 @@ const SAMPLE_DATA = {
     status: 'Pending',
     txHash: generateRandomTransactionHash(),
     description: 'test description for campaign',
+  },
+  DacStatus : {
+    ACTIVE: 'Active',
+    PENDING: 'Pending',
+    CANCELED: 'Canceled',
+    FAILED: 'Failed',
+  },
+  CREATE_DAC_DATA:{
+    title:'test dac title',
+    description:'test dac description',
+    status:'Pending',
+    txHash:generateRandomTransactionHash(),
+    ownerAddress:testAddress,
   },
   CAMPAIGN_STATUSES: {
     ACTIVE: 'Active',
