@@ -4,7 +4,7 @@ const { assert } = require('chai');
 const { getJwt, SAMPLE_DATA, generateRandomMongoId } = require('../../../test/testUtility');
 const { getFeatherAppInstance } = require('../../app');
 
-const app = getFeatherAppInstance();
+let app;
 
 const baseUrl = config.get('givethFathersBaseUrl');
 const relativeUrl = '/milestones';
@@ -207,3 +207,7 @@ describe(`Test GET  ${relativeUrl}`, getMilestoneTestCases);
 describe(`Test POST  ${relativeUrl}`, postMilestoneTestCases);
 describe(`Test PATCH  ${relativeUrl}`, patchMilestoneTestCases);
 describe(`Test DELETE  ${relativeUrl}`, deleteMilestoneTestCases);
+
+before(() => {
+  app = getFeatherAppInstance();
+});

@@ -166,6 +166,24 @@ const SAMPLE_DATA = {
     pendingRecipientAddress: '0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1',
     peopleCount: 3,
   },
+  CAMPAIGN_ID: '5fa97a9c4c63425d06b8a245',
+  CREATE_CAMPAIGN_DATA: {
+    title: 'Hello I;m new Campaign',
+    projectId: 10,
+    image: 'This should be image :))',
+    mined: false,
+    reviewerAddress: testAddress,
+    ownerAddress: testAddress,
+    status: 'Pending',
+    txHash: generateRandomTransactionHash(),
+    description: 'test description for campaign',
+  },
+  CAMPAIGN_STATUSES: {
+    ACTIVE: 'Active',
+    PENDING: 'Pending',
+    CANCELED: 'Canceled',
+    FAILED: 'Failed',
+  },
 };
 
 const generateRandomMongoId = () => {
