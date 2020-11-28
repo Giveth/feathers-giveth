@@ -86,7 +86,6 @@ function patchDacTestCases() {
     assert.notEqual(response.txHash, txHash);
   });
 
-
   it('should get unAuthorized error', async function() {
     const response = await request(baseUrl)
       .patch(`${relativeUrl}/${SAMPLE_DATA.DAC_ID}`)

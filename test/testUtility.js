@@ -107,7 +107,6 @@ const SAMPLE_DATA = {
   SECOND_USER_ADDRESS: '0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0',
   MILESTONE_ID: '5faa26b7642872709976045b',
   FAKE_USER_ADDRESS: generateRandomEtheriumAddress(),
-  DAC_ID: '5fa9788b4c63425d06b8a272',
   MILESTONE_STATUSES: {
     PROPOSED: 'Proposed',
     REJECTED: 'Rejected',
@@ -179,18 +178,18 @@ const SAMPLE_DATA = {
     txHash: generateRandomTransactionHash(),
     description: 'test description for campaign',
   },
-  DacStatus : {
+  DacStatus: {
     ACTIVE: 'Active',
     PENDING: 'Pending',
     CANCELED: 'Canceled',
     FAILED: 'Failed',
   },
-  CREATE_DAC_DATA:{
-    title:'test dac title',
-    description:'test dac description',
-    status:'Pending',
-    txHash:generateRandomTransactionHash(),
-    ownerAddress:testAddress,
+  CREATE_DAC_DATA: {
+    title: 'test dac title',
+    description: 'test dac description',
+    status: 'Pending',
+    txHash: generateRandomTransactionHash(),
+    ownerAddress: testAddress,
   },
   CAMPAIGN_STATUSES: {
     ACTIVE: 'Active',
