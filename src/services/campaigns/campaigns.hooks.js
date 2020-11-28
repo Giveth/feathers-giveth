@@ -1,6 +1,5 @@
 const commons = require('feathers-hooks-common');
 const errors = require('@feathersjs/errors');
-const logger = require('winston');
 
 const sanitizeAddress = require('../../hooks/sanitizeAddress');
 const setAddress = require('../../hooks/setAddress');
@@ -47,12 +46,7 @@ const restrict = () => context => {
 
   const canUpdate = campaign => {
     if (!campaign) throw new errors.Forbidden();
-    logger.info('canUpdate', {
-      data,
-      userAddress: user && user.address,
-      reviewerAddress: campaign && campaign.reviewerAddress,
-      ownerAddress: campaign && campaign.ownerAddress,
-    });
+
     // reviewer Canceled
     if (data.status === CampaignStatus.CANCELED && data.mined === false) {
       if (user.address !== campaign.reviewerAddress && user.address !== campaign.ownerAddress)

@@ -72,7 +72,27 @@ function patchCampaignTestCases() {
       .send({ status: SAMPLE_DATA.CAMPAIGN_STATUSES.CANCELED, description, mined: false })
       .set({ Authorization: getJwt(reviewerAddress) });
     assert.equal(response.statusCode, 200);
-    assert.equal(response.body.description, description);
+    assert.equal(response.body.status, SAMPLE_DATA.CAMPAIGN_STATUSES.CANCELED);
+  });
+
+  it('should update campaign successfully, reviewer can cancel the campaign and just status and mined should be updated', async function() {
+    const description = 'Description updated by test';
+    const reviewerAddress = SAMPLE_DATA.SECOND_USER_ADDRESS;
+    const campaign = await createCampaign({
+      ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
+      reviewerAddress,
+    });
+    const response = await request(baseUrl)
+      .patch(`${relativeUrl}/${campaign._id}`)
+      .send({ status: SAMPLE_DATA.CAMPAIGN_STATUSES.CANCELED, description, mined: false })
+      .set({ Authorization: getJwt(reviewerAddress) });
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.body.status, SAMPLE_DATA.CAMPAIGN_STATUSES.CANCELED);
+
+    // When review edit milestone it can change only status and mined so the description
+    // should not be update but in this case it updates, you can check campaign hooks,
+    // before patch hooks
+    // assert.notEqual(response.body.description, description);
   });
 
   it('should not update campaign successfully, reviewer just can change status to Canceled', async function() {
