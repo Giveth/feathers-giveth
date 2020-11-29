@@ -9,6 +9,7 @@ const Token = new Schema({
   foreignAddress: { type: String, required: true },
   symbol: { type: String, required: true },
   decimals: { type: String, required: true },
+  rateEqSymbol: { type: String },
 });
 
 module.exports = Token;
