@@ -36,6 +36,7 @@ function logTransferInfo(transferInfo) {
 
 const lpDecoders = eventDecodersFromArtifact(LiquidPledgingArtifact);
 const transferTopics = topicsFromArtifacts([LiquidPledgingArtifact], ['Transfer']);
+
 /**
  * Check if a 'Transfer' is an initial transfer. That is, is this
  * 'Transfer' originate from the original donation call?
@@ -250,7 +251,6 @@ const pledges = (app, liquidPledging) => {
 
     // find token
     const token = _retreiveTokenFromPledge(app, fromPledge);
-
     const [{ comment, giverAddress, ownerType, status, txNonce }] = donations;
 
     const mutation = {
@@ -372,7 +372,7 @@ const pledges = (app, liquidPledging) => {
       giverAddress: mutation.giverAddress,
       amount: mutation.amount,
       mined: false,
-      'token.symbol': mutation.token.symbol,
+      tokenSymbol: mutation.token.symbol,
     };
     orStatements.push([{ pledgeId: '0' }, { pledgeId: mutation.pledgeId }]);
     if (initialTransfer) {
@@ -403,7 +403,6 @@ const pledges = (app, liquidPledging) => {
       paginate: false,
       query,
     });
-
     if (donations.length === 0) {
       // if this is the second attempt, then create a donation object
       // otherwise, try and process the event later, giving time for
@@ -455,9 +454,8 @@ const pledges = (app, liquidPledging) => {
    */
   async function createToDonation(transferInfo) {
     const mutation = await createToDonationMutation(transferInfo);
-
     // if tx is older then 1 min, set retry = true to instantly create the donation if necessary
-    const r = createDonation(
+    const r = await createDonation(
       mutation,
       transferInfo.initialTransfer,
       isOlderThenAMin(transferInfo.ts),

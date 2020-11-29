@@ -1,5 +1,6 @@
 const { DonationStatus } = require('../models/donations.model');
 const { AdminTypes } = require('../models/pledgeAdmins.model');
+const logger = require('winston');
 
 const Notifications = require('./dappMailer');
 
@@ -24,6 +25,8 @@ const sendNotification = async (app, pledge) => {
     }
     return app.service('users').get(id);
   };
+
+  await app.service('milestones').get(pledge.delegateTypeId || pledge.ownerTypeId);
 
   const pledgeAdmin = await getAdmin(
     pledge.delegateType || pledge.ownerType,
@@ -89,8 +92,10 @@ const sendNotification = async (app, pledge) => {
       amount: pledge.amount,
       token: pledge.token,
     });
+
   } else {
     // if this is a milestone then no action is required
+
     Notifications.donationReceived(app, {
       recipient: pledgeAdmin.owner.email,
       user: pledgeAdmin.owner.name,

@@ -18,7 +18,7 @@ const ENTITY_SERVICES = {
 const updateEntity = async (app, id, type) => {
   const serviceName = ENTITY_SERVICES[type];
   const donationQuery = {
-    $select: ['amount', 'giverAddress', 'amountRemaining', 'token', 'status', 'isReturn'],
+    $select: ['amount', 'giverAddress', 'amountRemaining', 'tokenSymbol', 'status', 'isReturn'],
     mined: true,
     status: { $nin: [DonationStatus.FAILED] },
   };
@@ -62,7 +62,7 @@ const updateEntity = async (app, id, type) => {
     const returnedDonations = await app.service('donations').find({
       paginate: false,
       query: {
-        $select: ['amount', 'token', 'status'],
+        $select: ['amount', 'tokenSymbol', 'status'],
         isReturn: true,
         mined: true,
         parentDonations: { $in: donations.map(d => d._id) },
@@ -113,7 +113,6 @@ const updateEntity = async (app, id, type) => {
       // find the first donation in the group that has a token object
       // b/c there are other donation objects coming through as well
       const tokenDonation = tokenDonations.find(d => typeof d.token === 'object');
-
       return {
         name: tokenDonation.token.name,
         address: tokenDonation.token.address,
@@ -234,7 +233,7 @@ const updateDonationEntity = async (context, donation) => {
       })
       .then(donations =>
         donations
-          // set isReturn = false b/c so we don't recursively update parent donations
+        // set isReturn = false b/c so we don't recursively update parent donations
           .map(d => ({ ...d, isReturn: false }))
           .forEach(d => updateDonationEntity(context, d)),
       );

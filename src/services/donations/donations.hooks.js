@@ -92,6 +92,30 @@ const poSchemas = {
   },
 };
 
+
+const donationResolvers = {
+
+  joins: {
+    token: () => async (donation, context) => {
+      const { tokenSymbol } = donation;
+      const tokens = (await context.app.service('tokens')
+        .find({ query: { symbol: tokenSymbol } })).data;
+      if (tokens && tokens.length === 1) {
+        donation.token = tokens[0];
+      }
+    },
+  },
+};
+
+const convertTokenToTokenSymbol = () => context => {
+  const { data } = context;
+  if (data.token) {
+    data.tokenSymbol = data.token.symbol;
+  }
+  return context;
+};
+
+
 const setUSDValue = async (context, donation) => {
   if (donation.status === DonationStatus.PENDING) return donation;
 
@@ -271,8 +295,8 @@ const joinDonationRecipient = (item, context) => {
     .then(c =>
       item.intendedProjectId > 0 && item.intendedProjectType
         ? commons.populate({
-            schema: poSchemas[`po-${item.intendedProjectType.toLowerCase()}-intended`],
-          })(c)
+          schema: poSchemas[`po-${item.intendedProjectType.toLowerCase()}-intended`],
+        })(c)
         : c,
     )
     .then(c => c.result);
@@ -415,18 +439,20 @@ module.exports = {
       }),
       updateMilestoneIfNotPledged(),
       addActionTakerAddress(),
+      convertTokenToTokenSymbol(),
     ],
     update: [commons.disallow()],
     patch: [
       restrict(),
       sanitizeAddress('giverAddress', { validate: true }),
       addActionTakerAddress(),
+      convertTokenToTokenSymbol(),
     ],
     remove: [commons.disallow()],
   },
 
   after: {
-    all: [populateSchema()],
+    all: [commons.fastJoin(donationResolvers), populateSchema()],
     find: [addConfirmations()],
     get: [addConfirmations()],
     create: [

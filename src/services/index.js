@@ -14,8 +14,8 @@ const transactions = require('./transactions/transactions.service.js');
 const whitelist = require('./whitelist/whitelist.service.js');
 const gasprice = require('./gasprice/gasprice.service.js');
 const conversionRates = require('./conversionRates/conversionRates.service.js');
-
 const conversations = require('./conversations/conversations.service.js');
+const tokens = require('./tokens/tokens.service');
 
 module.exports = function configure() {
   const app = this;
@@ -35,4 +35,5 @@ module.exports = function configure() {
   app.configure(events);
   app.configure(conversations);
   app.configure(campaigncsv);
+  app.configure(tokens);
 };
