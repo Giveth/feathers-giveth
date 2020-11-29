@@ -22,7 +22,7 @@ function postUploadsTestCases() {
   it('should be successful, upload an image', async function() {
     const response = await request(baseUrl)
       .post(relativeUrl)
-      .attach('uri', path.resolve(__dirname, '../../../test/data/giveth-landing-page.png'))
+      .attach('uri', path.resolve(__dirname, '../../../test/resources/giveth-landing-page.png'))
       .set({ Authorization: getJwt() });
     assert.equal(response.statusCode, 201);
     assert.exists(response.body.url);
