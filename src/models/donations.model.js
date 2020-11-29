@@ -31,7 +31,7 @@ function Donation(app) {
       paymentId: { type: Schema.Types.BN },
       canceledPledgeId: { type: Schema.Types.BN },
       ownerId: { type: Schema.Types.Long, required: true }, // we can use Long here b/c lp only stores adminId in pledges as uint64
-      ownerTypeId: { type: String, required: true },
+      ownerTypeId: { type: String, required: true, index: true },
       ownerType: { type: String, required: true },
       intendedProjectId: { type: Schema.Types.Long }, // we can use Long here b/c lp only stores adminId in pledges as uint64
       intendedProjectTypeId: { type: String },
@@ -45,15 +45,16 @@ function Donation(app) {
         require: true,
         enum: Object.values(DonationStatus),
         default: DonationStatus.PENDING,
+        index: true,
       },
       txHash: { type: String, index: true },
       homeTxHash: { type: String },
       commitTime: { type: Date },
-      mined: { type: Boolean, default: false, required: true },
+      mined: { type: Boolean, default: false, required: true, index: true },
       parentDonations: { type: [String], default: [], required: true },
       isReturn: { type: Boolean, default: false },
       token: { type: Token, required: true },
-      lessThanCutoff: { type: Boolean, default: false, index: true },
+      lessThanCutoff: { type: Boolean, default: false },
       usdValue: { type: Number, default: 0 },
       txNonce: { type: Number },
       comment: { type: String },
@@ -62,7 +63,66 @@ function Donation(app) {
       timestamps: true,
     },
   );
+  // donation.index({ createdAt: 1, status: 1, amountRemaining: 1,
+  //   ownerTypeId: 1,delegateTypeId:1, delegateId: 1, lessThanCutoff: 1 });
+  donation.index({
+    status: 1,
+    intendedProjectTypeId: 1,
+    amount: 1,
+    ownerTypeId: 1,
+    isReturn: 1,
+    usdValue: 1,
+    createdAt: 1,
+  });
+  donation.index({
+    status: 1,
+    delegateTypeId: 1,
+    isReturn: 1,
+    intendedProjectId: 1,
+    usdValue: 1,
+    createdAt: 1,
+  });
 
+  donation.index({
+    giverAddress: 1,
+    homeTxHash: 1,
+    parentDonations: 1,
+    canceledPledgeId: 1,
+    lessThanCutoff: 1,
+  });
+  donation.index({
+    createdAt: 1,
+    status: 1,
+    lessThanCutoff: 1,
+    delegateTypeId: 1,
+    ownerTypeId: 1,
+    delegateId: 1,
+  });
+  donation.index({ giverAddress: 1, lessThanCutoff: 1, createdAt: 1 });
+  donation.index({ txHash: 1, pledgeId: 1, amount: 1 });
+  donation.index({
+    ownerTypeId: 1,
+    intendedProjectTypeId: 1,
+    amountRemaining: 1,
+  });
+  donation.index({
+    ownerTypeId: 1,
+    status: 1,
+    commitTime: 1,
+    intendedProjectTypeId: 1,
+  });
+  donation.index({
+    txHash: 1,
+    mined: 1,
+    createdAt: 1,
+    giverAddress: 1,
+    amount: 1,
+  });
+  donation.index({ createdAt: 1, pledgeId: 1, amountRemaining: 1, amount: 1 });
+  donation.index({ amountRemaining: 1, status: 1, intendedProjectId: 1, commitTime: 1 });
+  donation.index({ amountRemaining: 1, status: 1, ownerTypeId: 1 });
+  donation.index({ mined: 1, status: 1, createdAt: 1 });
+  donation.index({ isReturn: 1, mined: 1, parentDonations: 1 });
   return mongooseClient.model('donations', donation);
 }
 
