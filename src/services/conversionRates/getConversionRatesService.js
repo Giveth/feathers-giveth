@@ -208,7 +208,7 @@ const getHourlyUSDRateCryptocompare = async (timestamp, tokenSymbol) => {
     ),
   );
 
-  const tsData = resp && resp.data && resp.Data.find(d => d.time === timestampMS);
+  const tsData = resp && resp.Data && resp.Data.find(d => d.time === timestampMS);
 
   if (!tsData) throw new Error(`Failed to retrieve cryptocompare rate for ts: ${timestampMS}`);
 
