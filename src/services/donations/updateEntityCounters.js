@@ -154,21 +154,24 @@ function getDonationPaymentsByToken(donations) {
     const { amount, token } = donation;
     const { symbol, decimals } = token;
     if (tokens[symbol]) {
-      tokens[symbol].amount = toBN(tokens[symbol].amount).add(toBN(amount)).toString();
+      tokens[symbol].amount = toBN(tokens[symbol].amount)
+        .add(toBN(amount))
+        .toString();
     } else {
       tokens[symbol] = {
-        amount, decimals,
+        amount,
+        decimals,
       };
     }
-
   });
   const payments = Object.keys(tokens).map(symbol => {
     return {
-      symbol, amount: tokens[symbol].amount,
+      symbol,
+      amount: tokens[symbol].amount,
       decimals: tokens[symbol].decimals,
     };
   });
-  return payments
+  return payments;
 }
 
 const createPaymentConversation = async (context, donation, milestoneId) => {
@@ -250,7 +253,7 @@ const updateDonationEntity = async (context, donation) => {
       })
       .then(donations =>
         donations
-        // set isReturn = false b/c so we don't recursively update parent donations
+          // set isReturn = false b/c so we don't recursively update parent donations
           .map(d => ({ ...d, isReturn: false }))
           .forEach(d => updateDonationEntity(context, d)),
       );
@@ -290,5 +293,5 @@ module.exports = {
   updateEntity,
   updateDonationEntityCountersHook,
   createPaymentConversation,
-  getDonationPaymentsByToken
+  getDonationPaymentsByToken,
 };
