@@ -1,5 +1,5 @@
-const { assert } = require('chai');
-const { createPaymentConversation } = require('./updateEntityCounters');
+const { assert, expect } = require('chai');
+const { createPaymentConversation, getDonationPaymentsByToken } = require('./updateEntityCounters');
 const { getFeatherAppInstance } = require('../../app');
 const {
   SAMPLE_DATA,
@@ -221,7 +221,51 @@ function createPaymentConversationTestCases() {
   });
 }
 
+function getDonationPaymentsByTokenTestCases() {
+  it('should return correct value for sum of donations with different tokens'
+    , () => {
+      const donations = [
+        {
+          amount: '20000000000000',
+          token: {
+            symbol: 'ETH',
+            decimals: '6',
+          },
+        },
+        {
+          amount: '70000000000000',
+          token: {
+            symbol: 'ETH',
+            decimals: '6',
+          },
+        },
+        {
+          amount: '30000000000000',
+          token: {
+            symbol: 'ANT',
+            decimals: '3',
+          },
+        },
+      ];
+      const payments = getDonationPaymentsByToken(donations);
+      assert.isOk(payments);
+      assert.isArray(payments);
+      assert.equal(payments.length, 2);
+      expect(payments[0]).to.be.deep.equal({
+        amount: '90000000000000',
+        symbol: 'ETH',
+        decimals: '6',
+      });
+      expect(payments[1]).to.be.deep.equal({
+        amount: '30000000000000',
+        symbol: 'ANT',
+        decimals: '3',
+      });
+    });
+}
+
 describe('createPaymentConversation() tests', createPaymentConversationTestCases);
+describe('getDonationPaymentsByToken() tests', getDonationPaymentsByTokenTestCases);
 
 before(() => {
   app = getFeatherAppInstance();

@@ -457,7 +457,7 @@ const pledges = (app, liquidPledging) => {
     const mutation = await createToDonationMutation(transferInfo);
 
     // if tx is older then 1 min, set retry = true to instantly create the donation if necessary
-    const r = createDonation(
+    const r = await createDonation(
       mutation,
       transferInfo.initialTransfer,
       isOlderThenAMin(transferInfo.ts),

@@ -148,24 +148,46 @@ const updateEntity = async (app, id, type) => {
   }
 };
 
+function getDonationPaymentsByToken(donations) {
+  const tokens = {};
+  donations.forEach(donation => {
+    const { amount, token } = donation;
+    const { symbol, decimals } = token;
+    if (tokens[symbol]) {
+      tokens[symbol].amount = toBN(tokens[symbol].amount).add(toBN(amount)).toString();
+    } else {
+      tokens[symbol] = {
+        amount, decimals,
+      };
+    }
+
+  });
+  const payments = Object.keys(tokens).map(symbol => {
+    return {
+      symbol, amount: tokens[symbol].amount,
+      decimals: tokens[symbol].decimals,
+    };
+  });
+  return payments
+}
+
 const createPaymentConversation = async (context, donation, milestoneId) => {
   const { app, method } = context;
   // Create payment conversation
   if (method === 'create' && donation.status === DonationStatus.PAID) {
     const { txHash } = donation;
-    const events = (
-      await app.service('events').find({
-        query: {
-          transactionHash: donation.txHash,
-          event: 'Transfer',
-          status: { $nin: [EventStatus.PROCESSED, EventStatus.FAILED] },
-        },
-      })
-    ).data;
-    // we should make sure all transfer events for this transactionHash settled so events should be empty
-    if (events.length !== 0) {
+    const events = await app.service('events').find({
+      paginate: false,
+      query: {
+        transactionHash: donation.txHash,
+        event: 'Transfer',
+        status: { $nin: [EventStatus.PROCESSED, EventStatus.FAILED] },
+      },
+    });
+    // we should make sure all transfer events for this transactionHash settled except the last one so the length should be one
+    if (events.length !== 1) {
       logger.info(
-        'Dont create conversation when there is unProcessed Transfer events for a transactionHash',
+        'Dont create conversation when there is another unProcessed Transfer events except the last one',
       );
       return;
     }
@@ -173,28 +195,16 @@ const createPaymentConversation = async (context, donation, milestoneId) => {
     try {
       const milestone = await app.service('milestones').get(milestoneId);
       const { recipient } = milestone;
-      const donations = (
-        await app.service('donations').find({
-          query: {
-            ownerTypeId: milestoneId,
-            status: DonationStatus.PAID,
-            txHash,
-          },
-        })
-      ).data;
-      const payments = [];
+      const donations = await app.service('donations').find({
+        paginate: false,
+        query: {
+          ownerTypeId: milestoneId,
+          status: DonationStatus.PAID,
+          txHash,
+        },
+      });
 
-      // why our linter has problem with for..of ?
-      /* eslint-disable no-restricted-syntax */
-      for (const donationItem of donations) {
-        const { amount } = donationItem;
-        const { symbol, decimals } = donationItem.token;
-        payments.push({
-          amount,
-          symbol,
-          tokenDecimals: decimals,
-        });
-      }
+      const payments = getDonationPaymentsByToken(donations);
       const conversation = await app.service('conversations').create(
         {
           milestoneId,
@@ -240,7 +250,7 @@ const updateDonationEntity = async (context, donation) => {
       })
       .then(donations =>
         donations
-          // set isReturn = false b/c so we don't recursively update parent donations
+        // set isReturn = false b/c so we don't recursively update parent donations
           .map(d => ({ ...d, isReturn: false }))
           .forEach(d => updateDonationEntity(context, d)),
       );
@@ -280,4 +290,5 @@ module.exports = {
   updateEntity,
   updateDonationEntityCountersHook,
   createPaymentConversation,
+  getDonationPaymentsByToken
 };
