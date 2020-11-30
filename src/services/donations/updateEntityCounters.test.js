@@ -17,6 +17,18 @@ function createPaymentConversationTestCases() {
     const amount = '40000000000000';
     const symbol = 'ETH';
     const userAddress = SAMPLE_DATA.USER_ADDRESS;
+    await app.service('events').create({
+      status: SAMPLE_DATA.EventStatus.WAITING,
+      event: 'Transfer',
+      address: generateRandomEtheriumAddress(),
+      transactionHash: txHash,
+      logIndex: 1,
+      transactionIndex: 1,
+      blockNumber: 1,
+      id: 1,
+      confirmations: 1,
+      blockHash: generateRandomTransactionHash(),
+    });
     const milestone = await app.service('milestones').create({
       ...SAMPLE_DATA.CREATE_MILESTONE_DATA,
       ownerAddress: userAddress,
@@ -65,6 +77,18 @@ function createPaymentConversationTestCases() {
     const amount2 = '30000000000000';
     const symbol2 = 'DAI';
     const userAddress = SAMPLE_DATA.USER_ADDRESS;
+    await app.service('events').create({
+      status: SAMPLE_DATA.EventStatus.WAITING,
+      event: 'Transfer',
+      address: generateRandomEtheriumAddress(),
+      transactionHash: txHash,
+      logIndex: 1,
+      transactionIndex: 1,
+      blockNumber: 1,
+      id: 1,
+      confirmations: 1,
+      blockHash: generateRandomTransactionHash(),
+    });
     const milestone = await app.service('milestones').create({
       ...SAMPLE_DATA.CREATE_MILESTONE_DATA,
       ownerAddress: userAddress,
@@ -176,45 +200,30 @@ function createPaymentConversationTestCases() {
       await createPaymentConversation(context, donation, milestone._id);
     }
 
-    it('should not create payment conversation beucase there is Pending transfer event', async () => {
+    it('should not create payment conversation because there is no non-Processed transfer event', async () => {
       const txHash = generateRandomTransactionHash();
-      await createMilestoneAndEvent(txHash, SAMPLE_DATA.EventStatus.PENDING);
-      const conversations = (
-        await app.service('conversations').find({
-          query: {
-            txHash,
-            messageContext: 'payment',
-          },
-        })
-      ).data;
+      await createMilestoneAndEvent(txHash, SAMPLE_DATA.EventStatus.PROCESSED);
+      const conversations = await app.service('conversations').find({
+        paginate: false,
+        query: {
+          txHash,
+          messageContext: 'payment',
+        },
+      });
       assert.ok(conversations);
       assert.equal(conversations.length, 0);
     });
-    it('should not create payment conversation beucase there is Waiting transfer event', async () => {
+    it('should not create payment conversation because there is more than 1 Waiting/Pending transfer event', async () => {
       const txHash = generateRandomTransactionHash();
       await createMilestoneAndEvent(txHash, SAMPLE_DATA.EventStatus.WAITING);
-      const conversations = (
-        await app.service('conversations').find({
-          query: {
-            txHash,
-            messageContext: 'payment',
-          },
-        })
-      ).data;
-      assert.ok(conversations);
-      assert.equal(conversations.length, 0);
-    });
-    it('should not create payment conversation beucase there is Processing transfer event', async () => {
-      const txHash = generateRandomTransactionHash();
-      await createMilestoneAndEvent(txHash, SAMPLE_DATA.EventStatus.PROCESSING);
-      const conversations = (
-        await app.service('conversations').find({
-          query: {
-            txHash,
-            messageContext: 'payment',
-          },
-        })
-      ).data;
+      await createMilestoneAndEvent(txHash, SAMPLE_DATA.EventStatus.PENDING);
+      const conversations = await app.service('conversations').find({
+        paginate: false,
+        query: {
+          txHash,
+          messageContext: 'payment',
+        },
+      });
       assert.ok(conversations);
       assert.equal(conversations.length, 0);
     });
