@@ -3,7 +3,6 @@ const config = require('config');
 const { assert, expect } = require('chai');
 const { getJwt, SAMPLE_DATA } = require('../../../test/testUtility');
 const { getFeatherAppInstance } = require('../../app');
-const { getTokenBySymbol } = require('../../utils/tokenHelper');
 
 const app = getFeatherAppInstance();
 const baseUrl = config.get('givethFathersBaseUrl');
@@ -55,20 +54,21 @@ function postDonationsTestCases() {
   });
 
   it('should return create donation successfully, and and add token to donation', async function() {
+    const ethToken = config.get('tokenWhitelist').find(token => token.symbol === 'ETH');
     const response = await request(baseUrl)
       .post(relativeUrl)
       .set({ Authorization: getJwt() })
       .send({
         ...createDonationPayload,
         token: {
-          symbol: 'ETH',
+          address: ethToken.address,
         },
       });
     assert.equal(response.statusCode, 201);
     assert.exists(response.body.token);
     assert.exists(response.body.token.foreignAddress);
     assert.exists(response.body.token.decimals);
-    expect(response.body.token).to.be.deep.equal(getTokenBySymbol('ETH'));
+    expect(response.body.token).to.be.deep.equal(ethToken);
   });
 
   it('should throw exception without bearer token', async function() {
