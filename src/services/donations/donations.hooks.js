@@ -11,7 +11,7 @@ const { AdminTypes } = require('../../models/pledgeAdmins.model');
 const { MilestoneStatus } = require('../../models/milestones.model');
 const { getHourlyUSDCryptoConversion } = require('../conversionRates/getConversionRatesService');
 const { ZERO_ADDRESS, getTransaction } = require('../../blockchain/lib/web3Helpers');
-
+const { getTokenBySymbol } = require('../../utils/tokenHelper');
 const { updateDonationEntityCountersHook } = require('./updateEntityCounters');
 
 const poSchemas = {
@@ -98,10 +98,9 @@ const donationResolvers = {
   joins: {
     token: () => async (donation, context) => {
       const { tokenSymbol } = donation;
-      const tokens = (await context.app.service('tokens')
-        .find({ query: { symbol: tokenSymbol } })).data;
-      if (tokens && tokens.length === 1) {
-        donation.token = tokens[0];
+      const token = getTokenBySymbol(tokenSymbol);
+      if (token) {
+        donation.token = token;
       }
     },
   },

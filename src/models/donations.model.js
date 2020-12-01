@@ -1,5 +1,3 @@
-const Token = require('./token.model');
-
 // donations-model.js - A mongoose model
 //
 // See http://mongoosejs.com/docs/models.html

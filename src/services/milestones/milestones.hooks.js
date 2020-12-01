@@ -18,6 +18,7 @@ const checkConversionRates = require('./checkConversionRates');
 const sendNotification = require('./sendNotification');
 const checkMilestoneDates = require('./checkMilestoneDates');
 const { getBlockTimestamp, ZERO_ADDRESS } = require('../../blockchain/lib/web3Helpers');
+const { getTokenBySymbol } = require('../../utils/tokenHelper');
 
 const milestoneResolvers = {
   before: context => {
@@ -138,10 +139,9 @@ const milestoneResolvers = {
 
     token: () => async (milestone, context) => {
       const { tokenSymbol } = milestone;
-      const tokens = (await context.app.service('tokens')
-        .find({ query: { symbol: tokenSymbol } })).data;
-      if (tokens && tokens.length === 1) {
-        milestone.token = tokens[0];
+      const token = getTokenBySymbol(tokenSymbol)
+      if (token) {
+        milestone.token = token
       }
     },
   },
