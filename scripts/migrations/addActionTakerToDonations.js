@@ -125,8 +125,10 @@ const addToDirectDonations = async () => {
         console.log(
           `Update actionTakerAddress of donation with txHash ${hash} to:\n${from}\n-----------`,
         );
+
+        const { txHash } = await Donations.findOne({ homeTxHash: hash });
         await Donations.update(
-          { homeTxHash: hash },
+          { txHash },
           {
             $set: {
               actionTakerAddress: from,

@@ -36,15 +36,15 @@ function Milestone(app) {
       image: { type: String },
       prevImage: { type: String }, // To store deleted/cleared lost ipfs values
       maxAmount: { type: Schema.Types.BN },
-      ownerAddress: { type: String, required: true, index: true },
-      reviewerAddress: { type: String, index: true },
-      dacId: { type: Number, index: true },
-      recipientAddress: { type: String, index: true },
-      recipientId: { type: Schema.Types.Long, index: true }, // we can use Long here b/c lp only stores adminId in pledges as uint64
+      ownerAddress: { type: String, required: true },
+      reviewerAddress: { type: String },
+      dacId: { type: Number },
+      recipientAddress: { type: String },
+      recipientId: { type: Schema.Types.Long }, // we can use Long here b/c lp only stores adminId in pledges as uint64
       pendingRecipientAddress: { type: String },
-      campaignReviewerAddress: { type: String, index: true },
-      campaignId: { type: String, required: true, index: true },
-      projectId: { type: Schema.Types.Long, index: true }, // we can use Long here b/c lp only stores adminId in pledges as uint64
+      campaignReviewerAddress: { type: String },
+      campaignId: { type: String, required: true },
+      projectId: { type: Schema.Types.Long }, // we can use Long here b/c lp only stores adminId in pledges as uint64
       status: {
         type: String,
         require: true,
@@ -56,7 +56,7 @@ function Milestone(app) {
       date: { type: Date, required: true },
       fiatAmount: { type: Number },
       conversionRate: { type: Number },
-      txHash: { type: String, index: true },
+      txHash: { type: String },
       pluginAddress: { type: String },
       fullyFunded: { type: Boolean, default: false },
       donationCounters: [DonationCounter],
@@ -85,6 +85,11 @@ function Milestone(app) {
       timestamps: true,
     },
   );
+  milestone.index({ campaignId: 1, status: 1, projectAddedAt: 1 });
+  milestone.index({ createdAt: 1, ownerAddress: 1, reviewerAddress: 1, recipientAddress: 1 });
+  milestone.index({ status: 1, fullyFunded: 1, createdAt: 1 });
+  milestone.index({ createdAt: 1, campaignId: 1 });
+  milestone.index({ projectId: 1, campaignId: 1 });
 
   return mongooseClient.model('milestone', milestone);
 }
