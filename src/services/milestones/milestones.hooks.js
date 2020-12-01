@@ -18,7 +18,7 @@ const checkConversionRates = require('./checkConversionRates');
 const sendNotification = require('./sendNotification');
 const checkMilestoneDates = require('./checkMilestoneDates');
 const { getBlockTimestamp, ZERO_ADDRESS } = require('../../blockchain/lib/web3Helpers');
-const { getTokenBySymbol } = require('../../utils/tokenHelper');
+const { getTokenByAddress } = require('../../utils/tokenHelper');
 
 const milestoneResolvers = {
   before: context => {
@@ -138,8 +138,8 @@ const milestoneResolvers = {
     },
 
     token: () => async (milestone, _context) => {
-      const { tokenSymbol } = milestone;
-      const token = getTokenBySymbol(tokenSymbol);
+      const { tokenAddress } = milestone;
+      const token = getTokenByAddress(tokenAddress);
       if (token) {
         milestone.token = token;
       }
@@ -189,7 +189,7 @@ const restrict = () => context => {
       'selectedFiatType',
       'date',
       'token',
-      'tokenSymbol',
+      'tokenAddress',
       'type',
     ];
     keysToRemove.forEach(key => delete data[key]);
@@ -251,10 +251,10 @@ const storePrevState = () => context => {
   return context;
 };
 
-const convertTokenToTokenSymbol = () => context => {
+const convertTokenToTokenAddress = () => context => {
   const { data } = context;
   if (data.token) {
-    data.tokenSymbol = data.token.symbol;
+    data.tokenAddress = data.token.address;
   }
   return context;
 };
@@ -334,14 +334,14 @@ module.exports = {
       isProjectAllowed(),
       isTokenAllowed(),
       sanitizeHtml('description'),
-      convertTokenToTokenSymbol(),
+      convertTokenToTokenAddress(),
     ],
     update: [
       restrict(),
       checkMilestoneDates(),
       ...address,
       sanitizeHtml('description'),
-      convertTokenToTokenSymbol(),
+      convertTokenToTokenAddress(),
     ],
     patch: [
       restrict(),
@@ -352,7 +352,7 @@ module.exports = {
       sanitizeHtml('description'),
       storePrevState(),
       performedBy(),
-      convertTokenToTokenSymbol(),
+      convertTokenToTokenAddress(),
     ],
     remove: [canDelete()],
   },

@@ -373,7 +373,7 @@ const pledges = (app, liquidPledging) => {
       giverAddress: mutation.giverAddress,
       amount: mutation.amount,
       mined: false,
-      tokenSymbol: mutation.token.symbol,
+      tokenAddress: mutation.token.address,
     };
     orStatements.push([{ pledgeId: '0' }, { pledgeId: mutation.pledgeId }]);
     if (initialTransfer) {

@@ -65,7 +65,6 @@ function postDonationsTestCases() {
         },
       });
     assert.equal(response.statusCode, 201);
-    assert.equal(response.body.tokenSymbol, 'ETH');
     assert.exists(response.body.token);
     assert.exists(response.body.token.foreignAddress);
     assert.exists(response.body.token.decimals);

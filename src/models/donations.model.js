@@ -51,7 +51,7 @@ function Donation(app) {
       mined: { type: Boolean, default: false, required: true, index: true },
       parentDonations: { type: [String], default: [], required: true },
       isReturn: { type: Boolean, default: false },
-      tokenSymbol: { type: String, required: true },
+      tokenAddress: { type: String, required: true },
       lessThanCutoff: { type: Boolean, default: false },
       usdValue: { type: Number, default: 0 },
       txNonce: { type: Number },

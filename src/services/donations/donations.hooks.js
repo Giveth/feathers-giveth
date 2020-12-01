@@ -11,7 +11,7 @@ const { AdminTypes } = require('../../models/pledgeAdmins.model');
 const { MilestoneStatus } = require('../../models/milestones.model');
 const { getHourlyUSDCryptoConversion } = require('../conversionRates/getConversionRatesService');
 const { ZERO_ADDRESS, getTransaction } = require('../../blockchain/lib/web3Helpers');
-const { getTokenBySymbol } = require('../../utils/tokenHelper');
+const { getTokenByAddress } = require('../../utils/tokenHelper');
 const { updateDonationEntityCountersHook } = require('./updateEntityCounters');
 
 const poSchemas = {
@@ -95,8 +95,8 @@ const poSchemas = {
 const donationResolvers = {
   joins: {
     token: () => async (donation, context) => {
-      const { tokenSymbol } = donation;
-      const token = getTokenBySymbol(tokenSymbol);
+      const { tokenAddress } = donation;
+      const token = getTokenByAddress(tokenAddress);
       if (token) {
         donation.token = token;
       }
@@ -107,7 +107,7 @@ const donationResolvers = {
 const convertTokenToTokenSymbol = () => context => {
   const { data } = context;
   if (data.token) {
-    data.tokenSymbol = data.token.symbol;
+    data.tokenAddress = data.token.address;
   }
   return context;
 };
