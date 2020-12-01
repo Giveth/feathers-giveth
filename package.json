@@ -22,7 +22,9 @@
     "yarn": ">= 0.18.0"
   },
   "husky": {
-    "pre-push": "npm run eslint"
+    "hooks": {
+      "pre-push": "npm run eslint"
+    }
   },
   "scripts": {
     "test-old": "npm run eslint && npm run mocha",
