@@ -21,6 +21,11 @@
     "node": ">= 6.0.0",
     "yarn": ">= 0.18.0"
   },
+  "husky": {
+    "hooks": {
+      "pre-push": "npm run eslint"
+    }
+  },
   "scripts": {
     "test-old": "npm run eslint && npm run mocha",
     "test": "LOG_LEVEL=info  NODE_ENV=test mocha -t 10000  test/pre-tests-script.js  src/**/*.test.js src/**/**/*.test.js",
