@@ -233,7 +233,7 @@ const updateDonationEntity = async (context, donation) => {
       })
       .then(donations =>
         donations
-        // set isReturn = false b/c so we don't recursively update parent donations
+          // set isReturn = false b/c so we don't recursively update parent donations
           .map(d => ({ ...d, isReturn: false }))
           .forEach(d => updateDonationEntity(context, d)),
       );

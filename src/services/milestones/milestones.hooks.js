@@ -137,11 +137,11 @@ const milestoneResolvers = {
       milestone.campaign = await context._loaders.campaign.id.load(campaignId);
     },
 
-    token: () => async (milestone, context) => {
+    token: () => async (milestone, _context) => {
       const { tokenSymbol } = milestone;
-      const token = getTokenBySymbol(tokenSymbol)
+      const token = getTokenBySymbol(tokenSymbol);
       if (token) {
-        milestone.token = token
+        milestone.token = token;
       }
     },
   },
@@ -257,7 +257,6 @@ const convertTokenToTokenSymbol = () => context => {
     data.tokenSymbol = data.token.symbol;
   }
   return context;
-
 };
 
 /**
@@ -337,7 +336,8 @@ module.exports = {
       sanitizeHtml('description'),
       convertTokenToTokenSymbol(),
     ],
-    update: [restrict(),
+    update: [
+      restrict(),
       checkMilestoneDates(),
       ...address,
       sanitizeHtml('description'),

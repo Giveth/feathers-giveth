@@ -92,9 +92,7 @@ const poSchemas = {
   },
 };
 
-
 const donationResolvers = {
-
   joins: {
     token: () => async (donation, context) => {
       const { tokenSymbol } = donation;
@@ -113,7 +111,6 @@ const convertTokenToTokenSymbol = () => context => {
   }
   return context;
 };
-
 
 const setUSDValue = async (context, donation) => {
   if (donation.status === DonationStatus.PENDING) return donation;
@@ -294,8 +291,8 @@ const joinDonationRecipient = (item, context) => {
     .then(c =>
       item.intendedProjectId > 0 && item.intendedProjectType
         ? commons.populate({
-          schema: poSchemas[`po-${item.intendedProjectType.toLowerCase()}-intended`],
-        })(c)
+            schema: poSchemas[`po-${item.intendedProjectType.toLowerCase()}-intended`],
+          })(c)
         : c,
     )
     .then(c => c.result);

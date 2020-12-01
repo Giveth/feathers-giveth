@@ -1,7 +1,5 @@
 const { DonationStatus } = require('../models/donations.model');
 const { AdminTypes } = require('../models/pledgeAdmins.model');
-const logger = require('winston');
-
 const Notifications = require('./dappMailer');
 
 /**
@@ -92,7 +90,6 @@ const sendNotification = async (app, pledge) => {
       amount: pledge.amount,
       token: pledge.token,
     });
-
   } else {
     // if this is a milestone then no action is required
 
