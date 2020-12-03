@@ -104,7 +104,7 @@ const donationResolvers = {
   },
 };
 
-const convertTokenToTokenSymbol = () => context => {
+const convertTokenToTokenAddress = () => context => {
   const { data } = context;
   if (data.token) {
     data.tokenAddress = data.token.address;
@@ -435,14 +435,14 @@ module.exports = {
       }),
       updateMilestoneIfNotPledged(),
       addActionTakerAddress(),
-      convertTokenToTokenSymbol(),
+      convertTokenToTokenAddress(),
     ],
     update: [commons.disallow()],
     patch: [
       restrict(),
       sanitizeAddress('giverAddress', { validate: true }),
       addActionTakerAddress(),
-      convertTokenToTokenSymbol(),
+      convertTokenToTokenAddress(),
     ],
     remove: [commons.disallow()],
   },
