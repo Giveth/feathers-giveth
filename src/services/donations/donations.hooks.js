@@ -9,7 +9,7 @@ const addConfirmations = require('../../hooks/addConfirmations');
 const { DonationStatus } = require('../../models/donations.model');
 const { AdminTypes } = require('../../models/pledgeAdmins.model');
 const { MilestoneStatus } = require('../../models/milestones.model');
-const { getHourlyUSDCryptoConversion } = require('../conversionRates/getConversionRatesService');
+const { getHourlyCryptoConversion } = require('../conversionRates/getConversionRatesService');
 const { ZERO_ADDRESS, getTransaction } = require('../../blockchain/lib/web3Helpers');
 
 const { updateDonationEntityCountersHook } = require('./updateEntityCounters');
@@ -114,7 +114,7 @@ const setUSDValue = async (context, donation) => {
 
   const { _id, createdAt, token, amount } = donation;
   try {
-    const { rate } = await getHourlyUSDCryptoConversion(context.app, createdAt, token.symbol);
+    const { rate } = await getHourlyCryptoConversion(context.app, createdAt, token.symbol, 'USD');
 
     if (rate) {
       const usVar = Number(
