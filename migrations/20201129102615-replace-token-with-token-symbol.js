@@ -1,7 +1,6 @@
 const config = require('config')
 module.exports = {
   async up(db, client) {
-    const tokenSymbols = ['ETH', 'DAI', 'PAN', 'WBTC', 'ANT'];
     const tokenAddresses= config.get('tokenWhitelist').map(token => token.address)
     for (const address of tokenAddresses) {
       // we can unset the token field as well
