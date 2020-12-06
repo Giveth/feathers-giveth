@@ -101,7 +101,8 @@
     "web3-utils": "^1.2.2",
     "winston": "^3.2.1",
     "winston-daily-rotate-file": "^4.2.1",
-    "yargs": "^15.3.1"
+    "yargs": "^15.3.1",
+    "config": "^3.3.2"
   },
   "devDependencies": {
     "@babel/core": "^7.6.4",
@@ -110,7 +111,6 @@
     "babel-watch": "^2.0.8",
     "bson": "^4.2.0",
     "chai": "^4.2.0",
-    "config": "^3.3.2",
     "eslint": "^6.6.0",
     "eslint-config-airbnb-base": "^14.0.0",
     "eslint-config-prettier": "^6.5.0",
@@ -120,6 +120,7 @@
     "ganache-cli": "^6.1.2",
     "jsonwebtoken": "^8.5.1",
     "lerna": "^2.11.0",
+    "migrate-mongo": "^8.1.4",
     "minimetoken": "^0.2.0",
     "mocha": "^3.5.0",
     "mocha-junit-reporter": "^2.0.0",
