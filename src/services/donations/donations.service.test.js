@@ -1,6 +1,6 @@
 const request = require('supertest');
 const config = require('config');
-const { assert } = require('chai');
+const { assert, expect } = require('chai');
 const { getJwt, SAMPLE_DATA } = require('../../../test/testUtility');
 const { getFeatherAppInstance } = require('../../app');
 
@@ -51,6 +51,24 @@ function postDonationsTestCases() {
 
     // When dont sending status, ,status automatically will be Pending
     assert.equal(response.body.status, SAMPLE_DATA.DonationStatus.PENDING);
+  });
+
+  it('should return create donation successfully, and and add token to donation', async function() {
+    const ethToken = config.get('tokenWhitelist').find(token => token.symbol === 'ETH');
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .set({ Authorization: getJwt() })
+      .send({
+        ...createDonationPayload,
+        token: {
+          address: ethToken.address,
+        },
+      });
+    assert.equal(response.statusCode, 201);
+    assert.exists(response.body.token);
+    assert.exists(response.body.token.foreignAddress);
+    assert.exists(response.body.token.decimals);
+    expect(response.body.token).to.be.deep.equal(ethToken);
   });
 
   it('should throw exception without bearer token', async function() {

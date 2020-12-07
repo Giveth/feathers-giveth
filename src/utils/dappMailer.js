@@ -70,7 +70,6 @@ module.exports = {
 
   donationReceived: (app, data) => {
     data.amount = Number(data.amount) / 10 ** 18;
-
     Object.assign(data, {
       template: 'notification',
       subject: "Giveth - You've received a donation!",
