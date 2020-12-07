@@ -27,7 +27,6 @@ module.exports = app => {
 
   const donationService = app.service('donations');
   const dacService = app.service('dacs');
-  const campaignService = app.service('campaigns');
 
   const newEventTransform = ({ campaign, milestones, pledgeIds }) => {
     const campaignId = campaign._id.toString();
@@ -514,31 +513,43 @@ module.exports = app => {
                 let actionTaker;
                 let giver;
 
+                let capitalizedParentOwnerType;
+                let delegateActorName;
+                if (isDelegate) {
+                  capitalizedParentOwnerType = capitalizeAdminType(parentOwnerType);
+                  delegateActorName = `${capitalizedParentOwnerType} Manager`;
+                }
+
                 if (resolvedActionTakerAddress === giverAddress) {
-                  actionTaker = await getUser(resolvedActionTakerAddress);
-                  giver = actionTaker;
+                  giver = await getUser(resolvedActionTakerAddress);
+                  actionTaker = isDelegate ? delegateActorName : giver;
                 } else {
                   [giver, actionTaker] = await Promise.all([
                     getUser(resolvedActionTakerAddress),
-                    getUser(giverAddress),
+                    isDelegate
+                      ? Promise.resolve({ name: delegateActorName })
+                      : getUser(giverAddress),
                   ]);
                 }
 
-                if (!actionTaker || !actionTaker.name)
-                  actionTaker = { name: resolvedActionTakerAddress };
+                if (!actionTaker || !actionTaker.name) {
+                  actionTaker = {
+                    name: isDelegate ? delegateActorName : resolvedActionTakerAddress,
+                  };
+                }
+
+                actor = actionTaker.name;
 
                 if (!giver || !giver.name) giver = { name: giverAddress };
 
                 // Action and Actor
                 if (isDelegate) {
-                  const capitalizedParentOwnerType = capitalizeAdminType(parentOwnerType);
                   action = `${capitalizedParentOwnerType} Delegated to ${capitalizeOwnerType}`;
                 } else if (ownerType === AdminTypes.CAMPAIGN) {
                   action = 'Campaign Received Donation';
                 } else {
                   action = 'Direct Donation to Milestone';
                 }
-                actor = actionTaker.name;
 
                 resolvedActionTakerAddress = isDelegate ? actionTakerAddress : giverAddress;
                 if (status === DonationStatus.CANCELED) {
@@ -547,15 +558,8 @@ module.exports = app => {
 
                 if (!isDelegate) {
                   actionOnBehalfOf = giver.name;
-                } else {
-                  let service;
-                  if (parentOwnerType === AdminTypes.DAC) {
-                    service = dacService;
-                  } else {
-                    // Campaignn
-                    service = campaignService;
-                  }
-                  const [parentOwner] = await service.find({
+                } else if (parentOwnerType === AdminTypes.DAC) {
+                  const [parentOwner] = await dacService.find({
                     query: {
                       _id: parentOwnerTypeId,
                       $select: ['title'],
@@ -563,6 +567,8 @@ module.exports = app => {
                     paginate: false,
                   });
                   actionOnBehalfOf = parentOwner && parentOwner.title;
+                } else {
+                  actionOnBehalfOf = campaign.title;
                 }
 
                 recipientName = ownerEntity.title;
