@@ -2,6 +2,8 @@ const logger = require('winston');
 const { MilestoneStatus } = require('../models/milestones.model');
 const { DonationStatus } = require('../models/donations.model');
 const { getTransaction } = require('./lib/web3Helpers');
+const { toBN } = require('web3-utils');
+const { donationsCollected } = require('../utils/dappMailer');
 
 /**
  * object factory to keep feathers cache in sync with milestone contracts
@@ -248,26 +250,104 @@ const milestonesFactory = app => {
         );
         return;
       }
+      const matchedMilestone = matchingMilestones[0];
 
-      // if (!milestone.maxAmount || !milestone.fullyFunded) return;
-      // never set uncapped or non-fullyFunded milestones as PAID
-      if (!matchingMilestones[0].maxAmount || !matchingMilestones[0].fullyFunded) return;
 
       const donations = await app.service('donations').find({
         paginate: false,
         query: {
           status: { $in: [DonationStatus.COMMITTED, DonationStatus.PAYING] },
           amountRemaining: { $ne: '0' },
-          ownerTypeId: matchingMilestones[0]._id,
+          ownerTypeId: matchedMilestone._id,
         },
       });
+      logger.info("before create paymentConversation",{donations})
 
       // if there are still committed donations, don't mark the as paid or paying
       if (donations.length > 0) return;
 
+      logger.info("before create paymentConversation")
+      await createPaymentConversationAndSendEmail({ app, milestone: matchedMilestone,
+      txHash: event.transactionHash});
+      logger.info("after create paymentConversation")
+
+
+      // if (!milestone.maxAmount || !milestone.fullyFunded) return;
+      // never set uncapped or non-fullyFunded milestones as PAID
+      if (!matchedMilestone.maxAmount || !matchedMilestone.fullyFunded) return;
       await updateMilestoneStatus(projectId, MilestoneStatus.PAID, event.transactionHash);
+
     },
   };
 };
+
+const createPaymentConversationAndSendEmail = async ({ app, milestone, txHash }) => {
+  try {
+    const milestoneId = milestone._id;
+    const { recipient, campaignId, title } = milestone;
+    const donations = await app.service('donations').find({
+      paginate: false,
+      query: {
+        ownerTypeId: milestoneId,
+        status: DonationStatus.PAID,
+        txHash,
+      },
+    });
+
+    const payments = getDonationPaymentsByToken(donations);
+    const conversation = await app.service('conversations').create(
+      {
+        milestoneId, messageContext: 'payment',
+        txHash,payments,
+        recipientAddress: recipient.address,
+      },
+      { performedByAddress: donation.actionTakerAddress },
+    );
+    if (recipient && recipient.email) {
+      // now we dont send donations-collected email for milestones that don't have recipient
+      await donationsCollected(app, {
+        recipient: recipient.email,
+        user: recipient.name,
+        milestoneTitle: title,
+        milestoneId,
+        campaignId:,
+        conversation,
+      });
+    }
+    logger.info(
+      `Currently we dont send email for milestones who doesnt have recipient, milestoneId: ${milestoneId}`,
+    );
+  } catch (e) {
+    logger.error('createConversation and send collectedEmail error', e);
+  }
+
+};
+
+function getDonationPaymentsByToken(donations) {
+  const tokens = {};
+  donations.forEach(donation => {
+    const { amount, token } = donation;
+    const { symbol, decimals } = token;
+    if (tokens[symbol]) {
+      tokens[symbol].amount = toBN(tokens[symbol].amount)
+        .add(toBN(amount))
+        .toString();
+    } else {
+      tokens[symbol] = {
+        amount,
+        decimals,
+      };
+    }
+  });
+  const payments = Object.keys(tokens).map(symbol => {
+    return {
+      symbol,
+      amount: tokens[symbol].amount,
+      decimals: tokens[symbol].decimals,
+    };
+  });
+  return payments;
+}
+
 
 module.exports = milestonesFactory;
