@@ -240,16 +240,6 @@ const sendNotification = () => async context => {
           campaignId,
           message,
         });
-      } else if (status === PAID && mined && prevStatus === PAYING) {
-        // Notifications.milestonePaid(app, {
-        //   recipient: recipient.email,
-        //   user: recipient.name,
-        //   milestoneTitle: title,
-        //   milestoneId: _id,
-        //   donationCounters,
-        //   address: recipientAddress,
-        //   campaignId,
-        // });
       }
     } else if (data.status === REJECTED && prevStatus === PROPOSED) {
       _createConversion('proposedRejected');
