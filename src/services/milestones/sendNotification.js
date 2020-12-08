@@ -52,8 +52,6 @@ const sendNotification = () => async context => {
     REJECTED,
     COMPLETED,
     CANCELED,
-    PAYING,
-    PAID,
     NEEDS_REVIEW,
     IN_PROGRESS,
     PROPOSED,
