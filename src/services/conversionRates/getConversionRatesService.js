@@ -154,7 +154,12 @@ const _getRatesCryptocompare = async (timestamp, ratesToGet, symbol, stableCoins
  *
  * @return {Object} Rates object in format { 0.241 }
  */
-const getHourlyRateCoingecko = async (rateSymbol, timestampMS, coingeckoId = '', toSymbol = 'USD') => {
+const getHourlyRateCoingecko = async (
+  rateSymbol,
+  timestampMS,
+  coingeckoId = '',
+  toSymbol = 'USD',
+) => {
   let rate = 0;
 
   if (rateSymbol) {
@@ -210,9 +215,9 @@ const getHourlyRateCryptocompare = async (timestamp, fromToken, toToken) => {
   const tsData = resp && resp.data && resp.data.find(d => d.time === timestampMS);
 
   if (!tsData) throw new Error(`Failed to retrieve cryptocompare rate for ts: ${timestampMS}`);
-  let decimals = toToken && toToken.decimals ? toToken.decimals : 2;
+  const decimals = toToken && toToken.decimals ? toToken.decimals : 2;
   return ((tsData.high + tsData.low) / 2).toFixed(decimals);
-}
+};
 
 /**
  * Save the rates to the DB by either creating new record or updating existing one
@@ -232,7 +237,11 @@ const _saveToDB = (app, timestamp, rates, symbol, _id = undefined) => {
   return new Promise((resolve, reject) => {
     app
       .service('conversionRates')
-      .patch(null, { timestamp, rates, symbol }, {query: {timestamp, symbol}, mongoose: {upsert: true, writeResult: true}})
+      .patch(
+        null,
+        { timestamp, rates, symbol },
+        { query: { timestamp, symbol }, mongoose: { upsert: true, writeResult: true } },
+      )
       .then(r => resolve(r))
       .catch(e => {
         // Token may exists in db
@@ -365,13 +374,13 @@ const getHourlyCryptoConversion = async (app, ts, fromSymbol = 'ETH', toSymbol =
 
   let rate = 0;
   if (fromSymbol === 'PAN') {
-    rate = await getHourlyRateCoingecko(fromSymbol, requestTs, token.coingeckoId, toSymbol);
+    rate = await getHourlyRateCoingecko(fromSymbol, requestTs, fromToken.coingeckoId, toSymbol);
   } else {
     rate = await getHourlyRateCryptocompare(requestTs, fromToken, toToken);
   }
 
   try {
-    let ratesToSave = {...dbRates.rates};
+    const ratesToSave = { ...dbRates.rates };
     ratesToSave[toSymbol] = rate;
     await _saveToDB(app, requestTs, ratesToSave, fromSymbol);
   } catch (e) {
@@ -381,23 +390,28 @@ const getHourlyCryptoConversion = async (app, ts, fromSymbol = 'ETH', toSymbol =
 
   return { timestamp: requestTs, rate };
 };
-const getHourlyMultipleCryptoConversion = async (app, ts, fromSymbol = 'ETH', toSymbols = ['USD']) => {
-  let rates = {};
+const getHourlyMultipleCryptoConversion = async (
+  app,
+  ts,
+  fromSymbol = 'ETH',
+  toSymbols = ['USD'],
+) => {
+  const rates = {};
   let timestamp = null;
-  return await Promise.all(toSymbols.map(toSymbol => {
-    return getHourlyCryptoConversion(app, ts, fromSymbol, toSymbol)
-    .then(result => {
-      rates[toSymbol] = result.rate;
-      timestamp = result.timestamp;
-    })
-  }))
-  .then(() => {
-    return {timestamp, rates};
-  })
-}
-const getHourlyUSDCryptoConversion = async (app, ts, tokenSymbol = 'ETH') => {
+  return Promise.all(
+    toSymbols.map(toSymbol => {
+      return getHourlyCryptoConversion(app, ts, fromSymbol, toSymbol).then(result => {
+        rates[toSymbol] = result.rate;
+        timestamp = result.timestamp;
+      });
+    }),
+  ).then(() => {
+    return { timestamp, rates };
+  });
+};
+const getHourlyUSDCryptoConversion = async (app, ts, fromSymbol = 'ETH') => {
   return getHourlyCryptoConversion(app, ts, fromSymbol, 'USD');
-}
+};
 // Query the conversion rate every minute
 const queryConversionRates = app => {
   getConversionRates(app);
@@ -408,24 +422,10 @@ const queryConversionRates = app => {
   }, MINUTE);
 };
 
-/**
- * Fetching eth conversion based on latest hourly rate from cryptocompare
- * Saves the conversion rates in the backend if we don't have it stored yet.timestamp
- *
- * @param {Object} app             Feathers app object
- * @param {String} fromSymbol   symbol to convert from
- * @param {String} toSymbol   symbol to convert to
- *
- * @return {Promise} Promise that resolves to object {timestamp, rates: { EUR: 100, USD: 90 } }
- */
-const getHourlyConversionRate = async (app, fromSymbol = 'ETH', toSymbol = 'ETH') => {
-  getHourlyConversionRate(app, fromSymbol, toSymbol)
-}
-
 module.exports = {
   getConversionRates,
   queryConversionRates,
   getHourlyUSDCryptoConversion,
   getHourlyCryptoConversion,
-  getHourlyMultipleCryptoConversion
+  getHourlyMultipleCryptoConversion,
 };
