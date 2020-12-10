@@ -1,7 +1,6 @@
 const { checkContext } = require('feathers-hooks-common');
 const { toBN } = require('web3-utils');
 const logger = require('winston');
-const semaphore = require('semaphore');
 
 const _groupBy = require('lodash.groupby');
 const { AdminTypes } = require('../../models/pledgeAdmins.model');
@@ -146,78 +145,6 @@ const updateEntity = async (app, id, type) => {
   }
 };
 
-const conversationSem = semaphore();
-
-const createConversation = async (context, donation, milestoneId) => {
-  const { app, method } = context;
-  // Create payment conversation
-  if (method === 'create' && donation.status === DonationStatus.PAID) {
-    app
-      .service('milestones')
-      .get(milestoneId)
-      .then(milestone => {
-        const { recipient } = milestone;
-        const { txHash, amount } = donation;
-        const { symbol, decimals } = donation.token;
-        const service = app.service('conversations');
-
-        conversationSem.take(async () => {
-          try {
-            const data = await service.find({
-              paginate: false,
-              query: {
-                milestoneId,
-                messageContext: 'payment',
-                txHash,
-                $limit: 1,
-              },
-            });
-
-            if (data.length > 0) {
-              const conversation = data[0];
-              const payments = conversation.payments || [];
-              const index = payments.findIndex(p => p.symbol === symbol);
-
-              if (index !== -1) {
-                payments[index].amount = toBN(amount)
-                  .add(toBN(payments[index].amount))
-                  .toString();
-              } else {
-                payments.push({ symbol, amount, tokenDecimals: decimals });
-              }
-
-              await service.patch(conversation._id, {
-                payments,
-              });
-            } else {
-              await service.create(
-                {
-                  milestoneId,
-                  messageContext: 'payment',
-                  txHash,
-                  payments: [
-                    {
-                      amount,
-                      symbol,
-                      tokenDecimals: decimals,
-                    },
-                  ],
-                  recipientAddress: recipient.address,
-                },
-                { performedByAddress: donation.actionTakerAddress },
-              );
-            }
-          } catch (e) {
-            logger.error('could not create conversation', e);
-          } finally {
-            conversationSem.leave();
-          }
-        });
-      })
-      .catch(e => logger.error('Could not find milestone', e));
-  }
-};
-
 const updateDonationEntity = async (context, donation) => {
   if (!donation.mined) return;
   const { app } = context;
@@ -250,7 +177,6 @@ const updateDonationEntity = async (context, donation) => {
   } else if (donation.ownerType === AdminTypes.MILESTONE) {
     type = AdminTypes.MILESTONE;
     entityId = donation.ownerTypeId;
-    createConversation(context, donation, entityId);
   } else {
     return;
   }
