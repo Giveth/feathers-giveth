@@ -12,7 +12,7 @@ jobs:
       # Specify service dependencies here if necessary
       # CircleCI maintains a library of pre-built images
       # documented at https://circleci.com/docs/2.0/circleci-images/
-      # - image: circleci/mongo:3.4.4
+      - image: circleci/mongo:4.4.2
 
     working_directory: ~/repo
 
@@ -27,6 +27,7 @@ jobs:
       #     - v1-dependencies-
 
       - run: npm install
+      - run: npm run test
 
       # - save_cache:
       #     paths:
