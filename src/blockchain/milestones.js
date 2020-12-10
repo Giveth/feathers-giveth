@@ -361,8 +361,8 @@ const milestonesFactory = app => {
 
       // if (!milestone.maxAmount || !milestone.fullyFunded) return;
       // never set uncapped or non-fullyFunded milestones as PAID
-      if (!matchedMilestone.maxAmount || !matchedMilestone.fullyFunded) return;
-      await updateMilestoneStatus(projectId, MilestoneStatus.PAID, event.transactionHash);
+      if (!matchedMilestone.maxAmount || !matchedMilestone.fullyFunded) return null;
+      return updateMilestoneStatus(projectId, MilestoneStatus.PAID, event.transactionHash);
     },
   };
 };
