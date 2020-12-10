@@ -207,7 +207,7 @@ const getHourlyRateCryptocompare = async (timestamp, fromToken, toToken) => {
     ),
   );
 
-  const tsData = resp && resp.Data && resp.Data.find(d => d.time === timestampMS);
+  const tsData = resp && resp.data && resp.data.find(d => d.time === timestampMS);
 
   if (!tsData) throw new Error(`Failed to retrieve cryptocompare rate for ts: ${timestampMS}`);
   let decimals = toToken && toToken.decimals ? toToken.decimals : 2;
@@ -291,14 +291,11 @@ const getConversionRates = async (app, requestedDate, symbol = 'ETH') => {
   const fiat = app.get('fiatWhitelist');
   const stableCoins = app.get('stableCoins') || [];
 
-  let token = getTokenBySymbol(app, symbol);
-  if (token.rateEqSymbol) {
-    token = getTokenBySymbol(app, token.rateEqSymbol);
-  }
+  const token = getTokenBySymbol(app, symbol);
 
   // This field needed for PAN currency
   const { coingeckoId } = token;
-  const requestedSymbol = token.symbol;
+  const requestedSymbol = token.rateEqSymbol || symbol;
   logger.debug(`request eth conversion for timestamp ${timestamp}`);
 
   // Check if we already have this exchange rate for this timestamp, if not we save it
@@ -351,11 +348,6 @@ const getHourlyCryptoConversion = async (app, ts, fromSymbol = 'ETH', toSymbol =
   // set the date to the top of the hour
   const requestTs = ts ? new Date(ts).setUTCMinutes(0, 0, 0) : lastHourUTC;
 
-  let token = getTokenBySymbol(app, tokenSymbol);
-  if (token.rateEqSymbol) {
-    token = getTokenBySymbol(app, token.rateEqSymbol);
-  }
-  const requestedSymbol = token.symbol;
   // Return 1 for stable coins
   const stableCoins = app.get('stableCoins') || [];
   if (stableCoins.includes(fromSymbol)) {

@@ -132,6 +132,13 @@ const SAMPLE_DATA = {
     REJECTED: 'Rejected',
     FAILED: 'Failed',
   },
+  EventStatus: {
+    PENDING: 'Pending', // PENDING events were p/u by the ws subscription, but have yet to contain >= requiredConfirmations
+    WAITING: 'Waiting', // WAITING events have been p/u by polling, have >= requiredConfirmations, & are ready to process
+    PROCESSING: 'Processing',
+    PROCESSED: 'Processed',
+    FAILED: 'Failed',
+  },
   CREATE_MILESTONE_DATA: {
     fullyFunded: false,
     mined: true,
