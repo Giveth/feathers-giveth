@@ -24,7 +24,7 @@ function createModel(app) {
       description: { type: String, required: true },
       communityUrl: { type: String },
       // FIXME: Should be unique but since we are using 0 for new DACs there can be more than one pending... Should instead be undefined
-      delegateId: { type: Schema.Types.Long, index: true }, // we can use Long here b/c lp only stores adminId in pledges as uint64
+      delegateId: { type: Schema.Types.Long }, // we can use Long here b/c lp only stores adminId in pledges as uint64
       status: {
         type: String,
         require: true,
@@ -33,10 +33,10 @@ function createModel(app) {
       },
       image: { type: String },
       prevImage: { type: String }, // To store deleted/cleared lost ipfs values
-      txHash: { type: String, index: true, required: true },
+      txHash: { type: String, required: true },
       donationCounters: [DonationCounter],
       peopleCount: { type: Number },
-      ownerAddress: { type: String, required: true, index: true },
+      ownerAddress: { type: String, required: true },
       pluginAddress: { type: String },
       tokenAddress: { type: String },
       commitTime: { type: Number },
@@ -49,7 +49,10 @@ function createModel(app) {
       timestamps: true,
     },
   );
-
+  dac.index({ createdAt: 1 });
+  dac.index({ status: 1, createdAt: 1 });
+  dac.index({ ownerAddress: 1, createdAt: 1 });
+  dac.index({ delegateId: 1, ownerAddress: 1 });
   return mongooseClient.model('dac', dac);
 }
 

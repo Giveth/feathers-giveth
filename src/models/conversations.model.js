@@ -10,7 +10,7 @@ module.exports = function Conversations(app) {
 
   const conversation = new Schema(
     {
-      milestoneId: { type: String, required: true, index: true },
+      milestoneId: { type: String, required: true },
       messageContext: { type: String, required: true },
       message: { type: String },
       replyToId: { type: String },
@@ -34,6 +34,6 @@ module.exports = function Conversations(app) {
   );
 
   conversation.index({ milestoneId: 1, txHash: 1, messageContext: 1 });
-
+  conversation.index({ milestoneId: 1, createdAt: 1 });
   return mongooseClient.model('conversation', conversation);
 };

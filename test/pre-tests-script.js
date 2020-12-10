@@ -1,13 +1,4 @@
-const { MongoMemoryServer } = require('mongodb-memory-server');
 const { seedData } = require('./testUtility');
-
-const mongoServer = new MongoMemoryServer({
-  instance: {
-    port: 28016, // by default choose any free port
-    dbName: 'giveth', // by default generate random dbName
-  },
-  // autoStart:true
-});
 
 function sleep(ms) {
   return new Promise(resolve => setTimeout(resolve, ms));
@@ -15,7 +6,7 @@ function sleep(ms) {
 
 before(async () => {
   try {
-    await mongoServer.getUri();
+    // await mongoServer.getUri();
     await seedData();
 
     // If we require startServer before initializing mongo the server will not responding, I dont know the reason yet
