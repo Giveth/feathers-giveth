@@ -85,14 +85,15 @@ function findNewestDataTestCases() {
         },
       ],
     };
-    const result = findNewestData(data);
+    const result = findNewestData(data, new Date().getTime());
     assert.equal(result.time, 1607742005);
   });
+
   it('should return falsy value', function() {
     const data = {
       Data: {},
     };
-    const result = findNewestData(data);
+    const result = findNewestData(data, new Date().getTime());
     assert.isNotOk(result);
   });
 }

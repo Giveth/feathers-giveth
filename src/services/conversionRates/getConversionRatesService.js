@@ -212,6 +212,8 @@ const findNewestData = tokenCompareHistoryResponse => {
     Array.isArray(tokenCompareHistoryResponse.Data) &&
     tokenCompareHistoryResponse.Data.length > 0 &&
     tokenCompareHistoryResponse.Data.sort((a, b) => {
+      // every data has a time lower than timestampMS so every object with
+      // bigger time is nearest to timestampMS
       return b.time - a.time;
     })[0]
   );
@@ -391,12 +393,14 @@ const getHourlyCryptoConversion = async (app, ts, fromSymbol = 'ETH', toSymbol =
   }
 
   let rate = 0;
-  if (fromSymbol === 'PAN') {
+  if ((fromToken.rateEqSymbol || fromToken.symbol) === (toToken.rateEqSymbol || toToken.symbol)) {
+    // getHourlyRateCryptocompare() return string so I set "1" instead of number 1
+    rate = '1';
+  } else if (fromSymbol === 'PAN') {
     rate = await getHourlyRateCoingecko(fromSymbol, requestTs, fromToken.coingeckoId, toSymbol);
   } else {
     rate = await getHourlyRateCryptocompare(requestTs, fromToken, toToken);
   }
-
   try {
     const ratesToSave = { ...dbRates.rates };
     ratesToSave[toSymbol] = rate;
