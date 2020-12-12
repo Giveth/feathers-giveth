@@ -50,7 +50,6 @@ function getConversionRatesTestCases() {
   });
 
   it('should multiple hourly get successful result', async function() {
-    const btcSymbol = 'BTC';
     const usdSymbol = 'USD';
     const eurSymbol = 'EUR';
     const hourlyInterval = 'hourly';
