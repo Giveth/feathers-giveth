@@ -212,9 +212,12 @@ const getHourlyRateCryptocompare = async (timestamp, fromToken, toToken) => {
     ),
   );
 
-  const tsData = resp && resp.data && resp.data.find(d => d.time === timestampMS);
+  const tsData = resp && resp.Data && resp.Data.find(d => d.time === timestampMS);
 
-  if (!tsData) throw new Error(`Failed to retrieve cryptocompare rate for ts: ${timestampMS}`);
+  if (!tsData){
+    logger.error('getHourlyRateCryptocompare error', {tsData, fromToken, toToken})
+    throw new Error(`Failed to retrieve cryptocompare rate for ts: ${timestampMS}`)
+  };
   const decimals = toToken && toToken.decimals ? toToken.decimals : 2;
   return ((tsData.high + tsData.low) / 2).toFixed(decimals);
 };
