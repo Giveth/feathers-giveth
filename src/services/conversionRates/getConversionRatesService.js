@@ -203,21 +203,36 @@ const getHourlyRateCoingecko = async (
 
   return rate;
 };
+
+const findNewestData = tokenCompareHistoryResponse => {
+  return (
+    tokenCompareHistoryResponse &&
+    tokenCompareHistoryResponse.Data &&
+    // when there is no result and token is invalid, the resp.Data is {} not an array
+    Array.isArray(tokenCompareHistoryResponse.Data) &&
+    tokenCompareHistoryResponse.Data.length > 0 &&
+    tokenCompareHistoryResponse.Data.sort((a, b) => {
+      return b.time - a.time;
+    })[0]
+  );
+};
 const getHourlyRateCryptocompare = async (timestamp, fromToken, toToken) => {
   const timestampMS = Math.round(timestamp / 1000);
 
   const resp = JSON.parse(
     await rp(
-      `https://min-api.cryptocompare.com/data/histohour?fsym=${fromToken.symbol}&tsym=${toToken.symbol}&toTs=${timestampMS}&limit=1`,
+      `https://min-api.cryptocompare.com/data/histohour?fsym=${fromToken.rateEqSymbol ||
+        fromToken.symbol}&tsym=${toToken.rateEqSymbol ||
+        toToken.symbol}&toTs=${timestampMS}&limit=1`,
     ),
   );
 
-  const tsData = resp && resp.Data && resp.Data.find(d => d.time === timestampMS);
+  const tsData = findNewestData(resp);
 
-  if (!tsData){
-    logger.error('getHourlyRateCryptocompare error', {tsData, fromToken, toToken})
-    throw new Error(`Failed to retrieve cryptocompare rate for ts: ${timestampMS}`)
-  };
+  if (!tsData) {
+    logger.error('getHourlyRateCryptocompare error', { timestampMS, resp, fromToken, toToken });
+    throw new Error(`Failed to retrieve cryptocompare rate for ts: ${timestampMS}`);
+  }
   const decimals = toToken && toToken.decimals ? toToken.decimals : 2;
   return ((tsData.high + tsData.low) / 2).toFixed(decimals);
 };
@@ -426,6 +441,10 @@ const queryConversionRates = app => {
 };
 
 module.exports = {
+  // its just exported to can write test for it
+  getHourlyRateCryptocompare,
+  findNewestData,
+
   getConversionRates,
   queryConversionRates,
   getHourlyUSDCryptoConversion,
