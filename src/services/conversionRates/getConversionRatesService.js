@@ -204,6 +204,21 @@ const getHourlyRateCoingecko = async (
   return rate;
 };
 
+const findNewestData = tokenCompareHistoryResponse => {	
+  return (	
+    tokenCompareHistoryResponse &&	
+    tokenCompareHistoryResponse.Data &&	
+    // when there is no result and token is invalid, the resp.Data is {} not an array	
+    Array.isArray(tokenCompareHistoryResponse.Data) &&	
+    tokenCompareHistoryResponse.Data.length > 0 &&	
+    tokenCompareHistoryResponse.Data.sort((a, b) => {	
+      // every data has a time lower than timestampMS so every object with	
+      // bigger time is nearest to timestampMS	
+      return b.time - a.time;	
+    })[0]	
+  );	
+};
+
 const getHourlyRateCryptocompare = async (timestamp, fromToken, toToken) => {
   const timestampMS = Math.round(timestamp / 1000);
 
