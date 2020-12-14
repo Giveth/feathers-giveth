@@ -55,12 +55,14 @@
     },
     {
       "name": "ANT",
-      "address": "0x960b236a07cf122663c4303350609a66a7b288c0",
+      "address": "0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab",
+      "foreignAddress": "0x8F086f895deBc23473dfe507dd4BF35D6184552c",
       "foreignAddress": "0x7283b97f7546ba8eff68167cab2da526e7d7f88a",
       "symbol": "ANT",
       "coingeckoId": "aragon",
       "decimals": "3"
     }
+
   ],
   "activeTokenWhitelist": [
     "ETH",
