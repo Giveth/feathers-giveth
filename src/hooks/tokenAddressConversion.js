@@ -1,7 +1,11 @@
 const { getTokenBySymbol } = require('../utils/tokenHelper');
 
 module.exports = () => async context => {
-  if (context.params.query && context.params.query.$select && context.params.query.$select.includes('token')) {
+  if (
+    context.params.query &&
+    context.params.query.$select &&
+    context.params.query.$select.includes('token')
+  ) {
     const index = context.params.query.$select.indexOf('token');
     context.params.query.$select[index] = 'tokenAddress';
   }
