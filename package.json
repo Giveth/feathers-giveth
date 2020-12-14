@@ -29,6 +29,7 @@
   "scripts": {
     "test-old": "npm run eslint && npm run mocha",
     "test": "LOG_LEVEL=info  NODE_ENV=test mocha -t 10000  test/pre-tests-script.js  src/**/*.test.js  src/**/**/*.test.js  test/post-tests-script.js",
+    "test:conversionRate": "LOG_LEVEL=info  NODE_ENV=test mocha -t 10000  test/pre-tests-script.js  src/services/conversionRates/*.test.js  test/post-tests-script.js",
     "test:circleci": "LOG_LEVEL=info NODE_ENV=test mocha -t 10000 --reporter mocha-junit-reporter  test/pre-tests-script.js  src/**/*.test.js  src/**/**/*.test.js test/post-tests-script.js",
     "test:coverage": "nyc -e '.ts' --r html -r lcov -r text npm run test",
     "eslint": "eslint src/. test/.",
