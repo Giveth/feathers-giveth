@@ -168,7 +168,7 @@ const milestonesFactory = app => {
       if (data.length === 1) {
         const m = data[0];
         const { from } = await getTransaction(app, txHash);
-        return milestones.patch(
+        const milestone = await milestones.patch(
           m._id,
           {
             recipientAddress: recipient,
@@ -180,6 +180,7 @@ const milestonesFactory = app => {
             performedByAddress: from,
           },
         );
+        return milestone;
       }
       return null;
     } catch (e) {
@@ -202,7 +203,7 @@ const milestonesFactory = app => {
         const m = data[0];
         const { from } = await getTransaction(app, txHash);
 
-        return milestones.patch(
+        const milestone = await milestones.patch(
           m._id,
           {
             reviewerAddress: reviewer,
@@ -213,6 +214,7 @@ const milestonesFactory = app => {
             performedByAddress: from,
           },
         );
+        return milestone;
       }
       return null;
     } catch (e) {
