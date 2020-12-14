@@ -6,6 +6,7 @@ const logger = require('winston');
 
 const sanitizeAddress = require('../../hooks/sanitizeAddress');
 const addConfirmations = require('../../hooks/addConfirmations');
+const tokenAddressConversion = require('../../hooks/tokenAddressConversion');
 const { DonationStatus } = require('../../models/donations.model');
 const { AdminTypes } = require('../../models/pledgeAdmins.model');
 const { MilestoneStatus } = require('../../models/milestones.model');
@@ -425,7 +426,7 @@ const populateSchema = () => context => {
 
 module.exports = {
   before: {
-    all: [commons.paramsFromClient('schema')],
+    all: [tokenAddressConversion(), commons.paramsFromClient('schema')],
     find: [sanitizeAddress('giverAddress')],
     get: [],
     create: [
