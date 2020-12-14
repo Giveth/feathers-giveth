@@ -20,7 +20,7 @@ module.exports = app => {
           'migratedProjectId',
           'createdAt',
           'ownerAddress',
-          'tokenSymbol',
+          'tokenAddress',
           'title',
           'pluginAddress',
           'campaignId',
