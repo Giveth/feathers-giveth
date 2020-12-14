@@ -18,7 +18,6 @@ const queueMixin = target => {
      * Get the queue
      */
     get() {
-      // it can be just return queue; there is no difference in functionality
       return queue.slice();
     },
 
