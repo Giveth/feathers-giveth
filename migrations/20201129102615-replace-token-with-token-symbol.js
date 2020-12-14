@@ -2,6 +2,9 @@ const config = require('config')
 module.exports = {
   async up(db, client) {
     const tokenAddresses= config.get('tokenWhitelist').map(token => token.address)
+
+    // Add any token manually because it's not in config
+    tokenAddresses.push('0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF')
     for (const address of tokenAddresses) {
       // we can unset the token field as well
       await db.collection('milestones')
