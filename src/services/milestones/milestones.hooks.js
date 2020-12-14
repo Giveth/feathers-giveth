@@ -8,6 +8,7 @@ const { getResultsByKey, getUniqueKeys } = BatchLoader;
 const sanitizeAddress = require('../../hooks/sanitizeAddress');
 const setAddress = require('../../hooks/setAddress');
 const sanitizeHtml = require('../../hooks/sanitizeHtml');
+const tokenAddressConversion = require('../../hooks/tokenAddressConversion');
 const resolveFiles = require('../../hooks/resolveFiles');
 const { isProjectAllowed } = require('../../hooks/isProjectAllowed');
 const { isTokenAllowed } = require('../../hooks/isTokenAllowed');
@@ -315,7 +316,7 @@ const updateCampaign = () => context => {
 
 module.exports = {
   before: {
-    all: [],
+    all: [tokenAddressConversion()],
     find: [
       sanitizeAddress([
         'ownerAddress',
