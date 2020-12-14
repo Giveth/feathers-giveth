@@ -31,7 +31,7 @@ const payments = app => ({
       }
 
       const donation = await donations.patch(null, { paymentId }, { query });
-      return  donation;
+      return donation;
     } catch (error) {
       logger.error('authorizePayment error ->', error);
       return null;

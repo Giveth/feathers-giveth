@@ -1,7 +1,11 @@
 const { disallow } = require('feathers-hooks-common');
 
 const onlyInternal = require('../../hooks/onlyInternal');
-const { getConversionRates } = require('./getConversionRatesService');
+const {
+  getConversionRates,
+  getHourlyCryptoConversion,
+  getHourlyMultipleCryptoConversion,
+} = require('./getConversionRatesService');
 
 const findConversionRates = () => context => {
   const { app, params } = context;
@@ -10,6 +14,30 @@ const findConversionRates = () => context => {
   // getConversionRates also calls this hook
   if (params.internal) return context;
 
+  if (params.query.interval === 'hourly') {
+    if (Array.isArray(params.query.to)) {
+      return getHourlyMultipleCryptoConversion(
+        app,
+        params.query.date,
+        params.query.from,
+        params.query.to,
+      ).then(res => {
+        context.result = res;
+        return context;
+      });
+    }
+
+    return getHourlyCryptoConversion(
+      app,
+      params.query.date,
+      params.query.from,
+      params.query.to,
+    ).then(res => {
+      context.result = res;
+      return context;
+    });
+  }
+  // daily
   return getConversionRates(app, params.query.date, params.query.symbol).then(res => {
     context.result = res;
     return context;

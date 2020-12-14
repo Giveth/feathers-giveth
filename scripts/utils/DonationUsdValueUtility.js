@@ -1,6 +1,6 @@
 const BigNumber = require('bignumber.js');
 const {
-  getHourlyUSDCryptoConversion,
+  getHourlyCryptoConversion,
 } = require('../../src/services/conversionRates/getConversionRatesService');
 
 // Used by scripts to set usdValue of donations
@@ -29,7 +29,7 @@ class DonationUsdValueUtility {
 
     createServiceFromModel('conversionRates', conversionRateModel);
 
-    // Create app instance to pass getHourlyUSDCryptoConversion method
+    // Create app instance to pass getHourlyCryptoConversion method
     this.app = {
       get: key => config[key],
       service: serviceName => {
@@ -43,7 +43,7 @@ class DonationUsdValueUtility {
     const { symbol } = token;
 
     try {
-      const { rate } = await getHourlyUSDCryptoConversion(this.app, createdAt, symbol);
+      const { rate } = await getHourlyCryptoConversion(this.app, createdAt, symbol, 'USD');
       const usdValue = Number(
         new BigNumber(amount.toString())
           .div(10 ** 18)
