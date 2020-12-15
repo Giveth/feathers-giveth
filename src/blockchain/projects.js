@@ -140,7 +140,10 @@ const projects = (app, liquidPledging) => {
     }
 
     if (data.length > 1) {
-      logger.info('more then 1 campaign with the same projectId found: ', data.length);
+      logger.info(
+        'more then 1 campaign with the same projectId found: ',
+        data.map(({ _id, title }) => ({ _id, projectId, title })),
+      );
     }
 
     return data[0];
@@ -164,7 +167,10 @@ const projects = (app, liquidPledging) => {
     }
 
     if (data.length > 1) {
-      logger.error('more then 1 milestone with the same txHash found: ', data.length);
+      logger.error(
+        'more then 1 milestone with the same txHash found: ',
+        data.map(({ _id, title, projectId }) => ({ _id, projectId, title })),
+      );
     }
 
     return data[0];
@@ -403,7 +409,10 @@ const projects = (app, liquidPledging) => {
     if (data.length === 0) return;
 
     if (data.length > 1) {
-      logger.info('more then 1 milestone with the same projectId found: ', data.length);
+      logger.info(
+        'more then 1 milestone with the same projectId found: ',
+        data.map(({ _id, title }) => ({ _id, projectId, title })),
+      );
     }
 
     return data[0];
