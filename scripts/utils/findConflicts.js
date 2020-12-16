@@ -226,11 +226,8 @@ const fetchBlockchainData = async () => {
   if (!updateState) state = fs.existsSync(stateFile) ? JSON.parse(fs.readFileSync(stateFile)) : {};
   events = fs.existsSync(eventsFile) ? JSON.parse(fs.readFileSync(eventsFile)) : [];
 
-  console.log('fetchBlockchainData step2', { updateEvents, updateState });
   if (updateState || updateEvents) {
     const web3 = await getForeignWeb3();
-    console.log('fetchBlockchainData step3 initialize web3');
-
     let fromBlock = 0;
     let fetchBlockNum = 'latest';
     if (updateEvents) {
@@ -1056,14 +1053,10 @@ const syncEventWithDb = async ({ event, transactionHash, logIndex, returnValues,
   }
 };
 
-const syncBatchEvents = async inputEvents => {
-  const promises = inputEvents.map(event => syncEventWithDb(event));
-  return Promise.all(promises);
-};
-
 const syncDonationsWithNetwork = async () => {
   // Map from pledge id to list of donations belonged to the pledge and are not used yet!
   await fetchDonationsInfo();
+  console.log('start syncing donations ', events.length);
 
   // create new progress bar
   const progressBar = new cliProgress.SingleBar({
@@ -1078,18 +1071,14 @@ const syncDonationsWithNetwork = async () => {
 
   // update values
   // Simulate transactions by events
-
-  // If we set batchSize 50 we should've speedup about 50, but the winston logger emit error when using batch and promise.all
-  // so I set 1 currently
-  const batchSize = 1;
-  for (let i = 0; i < events.length; i += batchSize) {
+  for (let i = 0; i < events.length; i += 1) {
     progressBar.update(i);
-    // const { event, transactionHash, logIndex, returnValues, blockNumber } = events[i];
-    // logger.debug(
-    //   `-----\nProcessing event ${i}:\nLog Index: ${logIndex}\nEvent: ${event}\nTransaction hash: ${transactionHash}`,
-    // );
+    const { event, transactionHash, logIndex, returnValues, blockNumber } = events[i];
+    logger.debug(
+      `-----\nProcessing event ${i}:\nLog Index: ${logIndex}\nEvent: ${event}\nTransaction hash: ${transactionHash}`,
+    );
     // eslint-disable-next-line no-await-in-loop
-    await syncBatchEvents(events.slice(i, i + batchSize));
+    await syncEventWithDb({ event, transactionHash, logIndex, returnValues, blockNumber });
   }
   progressBar.update(events.length);
   progressBar.stop();
