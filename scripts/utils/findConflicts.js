@@ -749,6 +749,7 @@ const handleToDonations = async ({
       const model = {
         ...expectedToDonation,
         tokenAddress: token.address,
+        token,
         amountRemaining: expectedToDonation.amountRemaining.toFixed(),
         mined: true,
         createdAt: new Date(timestamp * 1000),
@@ -760,7 +761,7 @@ const handleToDonations = async ({
       const donation = new Donations(model);
 
       await donationUsdValueUtility.setDonationUsdValue(donation);
-
+      delete donation.token;
       await donation.save();
 
       const _id = donation._id.toString();
