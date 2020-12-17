@@ -4,11 +4,11 @@ const Web3 = require('web3');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const config = require('config')
 const winston = require('winston');
 const DailyRotateFile = require('winston-daily-rotate-file');
 const yargs = require('yargs');
 const BigNumber = require('bignumber.js');
-const config = require('config');
 const mongoose = require('mongoose');
 const cliProgress = require('cli-progress');
 const _colors = require('colors');
@@ -18,18 +18,7 @@ const { LiquidPledging, LiquidPledgingState } = require('giveth-liquidpledging')
 const EventEmitter = require('events');
 const toFn = require('../../src/utils/to');
 const DonationUsdValueUtility = require('./DonationUsdValueUtility');
-
-let tokensByAddress;
-
-function getTokenByAddress(address) {
-  if (!tokensByAddress) {
-    tokensByAddress = {};
-    config.get('tokenWhitelist').forEach(token => {
-      tokensByAddress[token.address] = token;
-    });
-  }
-  return tokensByAddress[address];
-}
+const {getTokenByAddress} = require('./tokenUtility')
 
 const { argv } = yargs
   .option('dry-run', {
@@ -749,7 +738,6 @@ const handleToDonations = async ({
       const model = {
         ...expectedToDonation,
         tokenAddress: token.address,
-        token,
         amountRemaining: expectedToDonation.amountRemaining.toFixed(),
         mined: true,
         createdAt: new Date(timestamp * 1000),
@@ -761,7 +749,6 @@ const handleToDonations = async ({
       const donation = new Donations(model);
 
       await donationUsdValueUtility.setDonationUsdValue(donation);
-      delete donation.token;
       await donation.save();
 
       const _id = donation._id.toString();

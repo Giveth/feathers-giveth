@@ -2,6 +2,7 @@ const BigNumber = require('bignumber.js');
 const {
   getHourlyCryptoConversion,
 } = require('../../src/services/conversionRates/getConversionRatesService');
+const {getTokenByAddress} = require('./tokenUtility')
 
 // Used by scripts to set usdValue of donations
 class DonationUsdValueUtility {
@@ -39,7 +40,8 @@ class DonationUsdValueUtility {
   }
 
   async setDonationUsdValue(donation) {
-    const { createdAt, token, amount } = donation;
+    const { createdAt, tokenAddress, amount } = donation;
+    const token = getTokenByAddress(tokenAddress);
     const { symbol } = token;
 
     try {
