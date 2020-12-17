@@ -188,23 +188,25 @@ const updateEntity = async (model, type) => {
         donationCounters.forEach(dc => {
           const oldDC = oldDonationCounters.find(item => item.symbol === dc.symbol);
           if (
-            oldDC &&
-            (oldDC.totalDonated.toString() !== dc.totalDonated.toString() ||
-              oldDC.currentBalance.toString() !== dc.currentBalance.toString() ||
-              oldDC.donationCount !== dc.donationCount)
+            oldDC === undefined ||
+            oldDC.totalDonated.toString() !== dc.totalDonated.toString() ||
+            oldDC.currentBalance.toString() !== dc.currentBalance.toString() ||
+            oldDC.donationCount !== dc.donationCount
           ) {
             message += `${typeName} ${entity._id.toString()} (${
               entity.status
             }) donation counter should be updated\n`;
-            message += `Old:\n${JSON.stringify(
-              {
-                symbol: oldDC.symbol,
-                totalDonated: oldDC.totalDonated.toString(),
-                currentBalance: oldDC.currentBalance.toString(),
-              },
-              null,
-              2,
-            )}\n`;
+            if (oldDC) {
+              message += `Old:\n${JSON.stringify(
+                {
+                  symbol: oldDC.symbol,
+                  totalDonated: oldDC.totalDonated.toString(),
+                  currentBalance: oldDC.currentBalance.toString(),
+                },
+                null,
+                2,
+              )}\n`;
+            }
             message += `New:\n${JSON.stringify(
               {
                 symbol: dc.symbol,

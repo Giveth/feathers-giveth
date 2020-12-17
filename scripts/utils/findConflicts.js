@@ -42,11 +42,6 @@ const { argv } = yargs
     type: 'boolean',
     default: false,
   })
-  // .option('config', {
-  //   describe: 'basename of a json config file name. e.g. default, production, develop',
-  //   type: 'string',
-  //   demand: true,
-  // })
   .option('cache-dir', {
     describe: 'directory to create cache file inside',
     type: 'string',
@@ -60,10 +55,6 @@ const { argv } = yargs
     describe: 'produce debugging log',
     type: 'boolean',
   })
-  // .demandOption(
-  //   ['config'],
-  //   'Please provide config file holds network gateway and DB connection URI',
-  // )
   .version(false)
   .help();
 
@@ -105,10 +96,6 @@ const terminateScript = (message = '', code = 0) => {
 
   logger.end();
 };
-
-// if (!argv.config) {
-//   terminateScript('config file name cannot be empty ');
-// }
 
 const { ignoredTransactions } = require('./eventProcessingHelper.json');
 
