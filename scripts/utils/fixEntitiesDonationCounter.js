@@ -9,7 +9,7 @@ require('../../src/models/mongoose-bn')(mongoose);
 const _groupBy = require('lodash.groupby');
 const { toBN } = require('web3-utils');
 const config = require('config');
-const {getTokenByAddress} = require('./tokenUtility')
+const { getTokenByAddress } = require('./tokenUtility');
 
 const appFactory = () => {
   const data = {};
