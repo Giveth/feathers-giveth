@@ -169,7 +169,7 @@ const projects = (app, liquidPledging) => {
     if (data.length > 1) {
       logger.error(
         'more then 1 milestone with the same txHash found: ',
-        data.map(({ _id, title, projectId }) => ({ _id, projectId, title })),
+        data.map(({ _id, title, projectId }) => ({ _id, projectId, title, txHash })),
       );
     }
 
@@ -253,8 +253,8 @@ const projects = (app, liquidPledging) => {
 
     if (data.length > 1) {
       logger.error(
-        'more then 1 campaign with the same title and ownerAddress found: ',
-        data.length,
+        'more then 1 campaign with the same pluginAddress or txHash found: ',
+        data.map(({ _id, title, projectId }) => ({ _id, projectId, title })),
       );
     }
 
