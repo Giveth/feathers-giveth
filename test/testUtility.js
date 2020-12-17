@@ -162,6 +162,12 @@ const SAMPLE_DATA = {
       symbol: 'ANY_TOKEN',
       decimals: '1',
     },
+    owner: {
+      address: testAddress,
+      createdAt: '2018-08-22T00:34:52.691Z',
+      updatedAt: '2020-10-22T00:16:39.775Z',
+      email: 'test@giveth.io',
+    },
     type: 'BridgedMilestone',
     maxAmount: null,
     txHash: '0x8b0abaa5f5d3cc87c3d52362ef147b8a0fd4ccb02757f5f48b6048aa2e9d86c0',
@@ -169,11 +175,49 @@ const SAMPLE_DATA = {
     pendingRecipientAddress: '0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1',
     peopleCount: 3,
   },
+  CREATE_CAMPAIGN_DATA: {
+    title: 'Hello I;m new Campaign',
+    projectId: 10,
+    image: 'This should be image :))',
+    mined: false,
+    reviewerAddress: testAddress,
+    ownerAddress: testAddress,
+    status: 'Pending',
+    txHash: generateRandomTransactionHash(),
+    description: 'test description for campaign',
+  },
+  DacStatus: {
+    ACTIVE: 'Active',
+    PENDING: 'Pending',
+    CANCELED: 'Canceled',
+    FAILED: 'Failed',
+  },
+  CREATE_DAC_DATA: {
+    title: 'test dac title',
+    description: 'test dac description',
+    status: 'Pending',
+    txHash: generateRandomTransactionHash(),
+    ownerAddress: testAddress,
+  },
+  CAMPAIGN_STATUSES: {
+    ACTIVE: 'Active',
+    PENDING: 'Pending',
+    CANCELED: 'Canceled',
+    FAILED: 'Failed',
+  },
 };
 
 const generateRandomMongoId = () => {
   return new ObjectID();
 };
+
+function padWithZero(number, size) {
+  let s = String(number);
+  while (s.length < (size || 2)) {
+    s = `0${s}`;
+  }
+  return s;
+}
 
 module.exports = {
   getJwt,
@@ -185,4 +229,5 @@ module.exports = {
   assertThrowsAsync,
   generateRandomNumber,
   generateRandomTransactionHash,
+  padWithZero,
 };
