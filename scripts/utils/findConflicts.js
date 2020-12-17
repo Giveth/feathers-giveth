@@ -4,7 +4,7 @@ const Web3 = require('web3');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const config = require('config')
+const config = require('config');
 const winston = require('winston');
 const DailyRotateFile = require('winston-daily-rotate-file');
 const yargs = require('yargs');
@@ -18,7 +18,7 @@ const { LiquidPledging, LiquidPledgingState } = require('giveth-liquidpledging')
 const EventEmitter = require('events');
 const toFn = require('../../src/utils/to');
 const DonationUsdValueUtility = require('./DonationUsdValueUtility');
-const {getTokenByAddress} = require('./tokenUtility')
+const { getTokenByAddress } = require('./tokenUtility');
 
 const { argv } = yargs
   .option('dry-run', {

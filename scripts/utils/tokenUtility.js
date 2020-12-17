@@ -22,4 +22,4 @@ function getTokenByAddress(address) {
 
 module.exports = {
   getTokenByAddress,
-}
+};
