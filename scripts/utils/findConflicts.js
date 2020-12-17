@@ -351,7 +351,7 @@ const fetchDonationsInfo = async () => {
           intendedProjectId,
           giverAddress,
           pledgeId: pledgeId.toString(),
-          token: getTokenByAddress(tokenAddress),
+          tokenAddress,
           isReturn,
           usdValue,
           createdAt,
@@ -683,7 +683,7 @@ const handleToDonations = async ({
         terminateScript(`No token found for address ${toPledge.token}`);
         return;
       }
-
+      expectedToDonation.tokenAddress = token.address;
       const delegationInfo = {};
       // It's delegated to a DAC
       if (toPledge.delegates.length > 0) {
@@ -754,7 +754,7 @@ const handleToDonations = async ({
       const _id = donation._id.toString();
       expectedToDonation._id = _id;
       expectedToDonation.savedAmountRemaining = model.amountRemaining;
-      donationMap[_id] = { ...expectedToDonation, token };
+      donationMap[_id] = { ...expectedToDonation };
       logger.info(
         `donation created: ${JSON.stringify(
           {
@@ -901,7 +901,7 @@ const fixConflictInDonations = unusedDonationMap => {
       savedStatus,
       pledgeId,
       txHash,
-      token,
+      tokenAddress,
     }) => {
       if (status === DonationStatus.FAILED) return;
 
@@ -948,7 +948,7 @@ const fixConflictInDonations = unusedDonationMap => {
           }
           if (fixConflicts) {
             logger.debug('Updating...');
-            const { cutoff } = symbolDecimalsMap[token.symbol];
+            const { cutoff } = symbolDecimalsMap[getTokenByAddress(tokenAddress).symbol];
             promises.push(
               Donations.update(
                 { _id },
