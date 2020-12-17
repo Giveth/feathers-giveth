@@ -40,9 +40,9 @@ class DonationUsdValueUtility {
 
   async setDonationUsdValue(donation) {
     const { createdAt, token, amount } = donation;
+    const { symbol } = token;
 
     try {
-      const { symbol } = token;
       const { rate } = await getHourlyCryptoConversion(this.app, createdAt, symbol, 'USD');
       const usdValue = Number(
         new BigNumber(amount.toString())
