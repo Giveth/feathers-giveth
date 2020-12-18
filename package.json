@@ -44,7 +44,9 @@
     "mocha": "mocha test/ --recursive",
     "prettify": "prettier --write 'src/**/*.js*'",
     "reset-db": "node scripts/resetDataBase.js",
-    "mongo": "mongod --fork --syslog"
+    "mongo": "mongod --fork --syslog",
+    "simulation:findConflicts": "NODE_ENV=simulation node scripts/utils/findConflicts.js --update-network-cache --log-dir simulation-script-data/log --cache-dir simulation-script-data/cache",
+    "smulation:fixEntitiesDonationCounter": " NODE_ENV=simulation node scripts/utils/fixEntitiesDonationCounter.js"
   },
   "dependencies": {
     "@feathers-plus/batch-loader": "^0.3.6",
