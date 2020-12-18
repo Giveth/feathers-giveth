@@ -1,7 +1,7 @@
 const { assert } = require('chai');
 const { getFeatherAppInstance } = require('../app');
 const giversFactory = require('./givers');
-const mockLiquidPledging = require('../mock/mockLiquidPledging')();
+const mockLiquidPledging = require('../mock/mockLiquidPledging');
 const { assertThrowsAsync, SAMPLE_DATA } = require('../../test/testUtility');
 
 let giver;

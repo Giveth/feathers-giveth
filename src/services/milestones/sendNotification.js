@@ -76,7 +76,7 @@ const sendNotification = () => async context => {
     reviewer,
     // recipient,
   } = result;
-
+  logger.info('sendNotification', { owner, status, prevStatus });
   if (context.method === 'create') {
     if (status === PROPOSED) {
       try {
