@@ -186,7 +186,10 @@ const getForeignWeb3 = async () => {
 
 // Gets status of liquidpledging storage
 const fetchBlockchainData = async () => {
-  console.log('fetchBlockchainData ....');
+  console.log('fetchBlockchainData ....',{
+    updateEvents,
+    updateState,
+  });
   try {
     if (!fs.existsSync(cacheDir)) {
       fs.mkdirSync(cacheDir);
@@ -254,6 +257,13 @@ const fetchBlockchainData = async () => {
       firstTry = false;
     }
 
+    state.pledges = state.pledges.map(pledge => {
+      // the first Item of pledge is always null so I have to check
+      if (pledge) {
+        delete pledge.amount;
+      }
+      return pledge;
+    });
     if (updateState) fs.writeFileSync(stateFile, JSON.stringify(state, null, 2));
     if (updateEvents && newEvents) {
       events = [...events, ...newEvents];
