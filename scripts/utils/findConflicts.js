@@ -1225,7 +1225,7 @@ const main = async () => {
 
     db.once('open', async () => {
       logger.info('Connected to Mongo');
-      // await syncPledgeAdmins();
+      await syncPledgeAdmins();
       await syncDonationsWithNetwork();
       terminateScript(null, 0);
     });
