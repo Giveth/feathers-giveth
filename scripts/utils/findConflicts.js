@@ -1,5 +1,6 @@
 /* eslint-disable no-continue */
 /* eslint-disable no-console */
+/*  eslint-disable no-await-in-loop */
 const Web3 = require('web3');
 const fs = require('fs');
 const path = require('path');
@@ -15,10 +16,12 @@ const _colors = require('colors');
 require('mongoose-long')(mongoose);
 require('../../src/models/mongoose-bn')(mongoose);
 const { LiquidPledging, LiquidPledgingState } = require('giveth-liquidpledging');
+const { Kernel, AppProxyUpgradeable } = require('giveth-liquidpledging/build/contracts');
 const EventEmitter = require('events');
 const toFn = require('../../src/utils/to');
 const DonationUsdValueUtility = require('./DonationUsdValueUtility');
 const { getTokenByAddress } = require('./tokenUtility');
+const { createProjectHelper } = require('../../src/common-utils/createProjectHelper');
 
 const { argv } = yargs
   .option('dry-run', {
@@ -105,6 +108,40 @@ config.tokenWhitelist.forEach(({ symbol, decimals }) => {
 });
 
 const { nodeUrl, liquidPledgingAddress } = config.blockchain;
+let foreignWeb3;
+let liquidPledging;
+const instantiateWeb3 = async url => {
+  const provider =
+    url && url.startsWith('ws')
+      ? new Web3.providers.WebsocketProvider(url, {
+          clientConfig: {
+            maxReceivedFrameSize: 100000000,
+            maxReceivedMessageSize: 100000000,
+          },
+        })
+      : url;
+  return new Promise(resolve => {
+    const web3 = Object.assign(new Web3(provider), EventEmitter.prototype);
+
+    if (web3.currentProvider.on) {
+      web3.currentProvider.on('connect', () => {
+        console.log('connected');
+        foreignWeb3 = web3;
+        liquidPledging = new LiquidPledging(web3, liquidPledgingAddress);
+        resolve(web3);
+      });
+    } else {
+      foreignWeb3 = web3;
+      liquidPledging = new LiquidPledging(web3, liquidPledgingAddress);
+      resolve(web3);
+    }
+  });
+};
+
+async function getKernel() {
+  const kernelAddress = await liquidPledging.kernel();
+  return new Kernel(foreignWeb3, kernelAddress);
+}
 
 const appFactory = () => {
   const data = {};
@@ -121,18 +158,17 @@ const appFactory = () => {
 const app = appFactory();
 app.set('mongooseClient', mongoose);
 
-const Milestones = require('../../src/models/milestones.model').createModel(app);
+const { MilestoneStatus, createModel } = require('../../src/models/milestones.model');
+
+const Milestones = createModel(app);
 const Campaigns = require('../../src/models/campaigns.model').createModel(app);
-const DACs = require('../../src/models/dacs.model').createModel(app);
 const Donations = require('../../src/models/donations.model').createModel(app);
 const PledgeAdmins = require('../../src/models/pledgeAdmins.model').createModel(app);
 const ConversationRates = require('../../src/models/conversionRates.model')(app);
 
 const { DonationStatus } = require('../../src/models/donations.model');
 const { AdminTypes } = require('../../src/models/pledgeAdmins.model');
-const { DacStatus } = require('../../src/models/dacs.model');
 const { CampaignStatus } = require('../../src/models/campaigns.model');
-const { MilestoneStatus } = require('../../src/models/milestones.model');
 
 const donationUsdValueUtility = new DonationUsdValueUtility(ConversationRates, config);
 
@@ -152,40 +188,9 @@ const txHashTransferEventMap = {};
 // Map from owner pledge admin ID to dictionary of charged donations
 const ownerPledgeAdminIdChargedDonationMap = {};
 
-const instantiateWeb3 = async url => {
-  const provider =
-    url && url.startsWith('ws')
-      ? new Web3.providers.WebsocketProvider(url, {
-          clientConfig: {
-            maxReceivedFrameSize: 100000000,
-            maxReceivedMessageSize: 100000000,
-          },
-        })
-      : url;
-  return new Promise(resolve => {
-    const web3 = Object.assign(new Web3(provider), EventEmitter.prototype);
-
-    if (web3.currentProvider.on) {
-      web3.currentProvider.on('connect', () => {
-        console.log('connected');
-        resolve(web3);
-      });
-    } else {
-      resolve(web3);
-    }
-  });
-};
-
-let foreignWeb3;
-const getForeignWeb3 = async () => {
-  if (!foreignWeb3) {
-    foreignWeb3 = await instantiateWeb3(nodeUrl);
-  }
-  return foreignWeb3;
-};
-
 // Gets status of liquidpledging storage
 const fetchBlockchainData = async () => {
+  await instantiateWeb3(nodeUrl);
   console.log('fetchBlockchainData ....');
   try {
     if (!fs.existsSync(cacheDir)) {
@@ -203,15 +208,14 @@ const fetchBlockchainData = async () => {
   events = fs.existsSync(eventsFile) ? JSON.parse(fs.readFileSync(eventsFile)) : [];
 
   if (updateState || updateEvents) {
-    const web3 = await getForeignWeb3();
     let fromBlock = 0;
     let fetchBlockNum = 'latest';
     if (updateEvents) {
       fromBlock = events.length > 0 ? events[events.length - 1].blockNumber + 1 : 0;
-      fetchBlockNum = (await web3.eth.getBlockNumber()) - config.blockchain.requiredConfirmations;
+      fetchBlockNum =
+        (await foreignWeb3.eth.getBlockNumber()) - config.blockchain.requiredConfirmations;
     }
 
-    const liquidPledging = new LiquidPledging(web3, liquidPledgingAddress);
     const liquidPledgingState = new LiquidPledgingState(liquidPledging);
 
     let newEvents = [];
@@ -280,7 +284,7 @@ const fetchBlockchainData = async () => {
 // @params {string} startDate
 // eslint-disable-next-line no-unused-vars
 const updateDonationsCreatedDate = async startDate => {
-  const web3 = await getForeignWeb3();
+  const web3 = foreignWeb3;
   await Donations.find({
     createdAt: {
       $gte: startDate.toISOString(),
@@ -565,10 +569,12 @@ const handleFromDonations = async (from, to, amount, transactionHash) => {
         candidateChargedParents.forEach(candidate =>
           logger.debug(JSON.stringify(candidate, null, 2)),
         );
-        terminateScript();
+        // terminateScript();
       }
     } else {
-      terminateScript(`There is no donation for transfer from ${from} to ${to}`);
+      // I think we should not terminate script
+      // terminateScript(`There is no donation for transfer from ${from} to ${to}`);
+      logger.error(`There is no donation for transfer from ${from} to ${to}`);
     }
   }
 
@@ -648,7 +654,14 @@ const handleToDonations = async ({
       let [toPledgeAdmin] = await PledgeAdmins.find({ id: Number(toOwnerId) }).exec();
       if (toPledgeAdmin === undefined) {
         if (toOwnerAdmin.type !== 'Giver') {
-          terminateScript(
+          // terminateScript(
+          //   `No PledgeAdmin record exists for non user admin ${JSON.stringify(
+          //     toOwnerAdmin,
+          //     null,
+          //     2,
+          //   )}`,
+          // );
+          logger.error(
             `No PledgeAdmin record exists for non user admin ${JSON.stringify(
               toOwnerAdmin,
               null,
@@ -680,7 +693,8 @@ const handleToDonations = async ({
         t => t.foreignAddress.toLowerCase() === toPledge.token.toLowerCase(),
       );
       if (token === undefined) {
-        terminateScript(`No token found for address ${toPledge.token}`);
+        logger.error(`No token found for address ${toPledge.token}`);
+        // terminateScript(`No token found for address ${toPledge.token}`);
         return;
       }
       expectedToDonation.tokenAddress = token.address;
@@ -690,7 +704,9 @@ const handleToDonations = async ({
         const [delegate] = toPledge.delegates;
         const [dacPledgeAdmin] = await PledgeAdmins.find({ id: Number(delegate.id) }).exec();
         if (dacPledgeAdmin === undefined) {
-          terminateScript(`No dac found for id: ${delegate.id}`);
+          // This is wrong, why should we terminate if there is no dacPledgeAdmin
+          logger.error(`No dac found for id: ${delegate.id}`);
+          // terminateScript(`No dac found for id: ${delegate.id}`);
           return;
         }
         delegationInfo.delegateId = dacPledgeAdmin.id;
@@ -720,7 +736,8 @@ const handleToDonations = async ({
       // Set giverAddress to owner address if is a Giver
       if (giverAddress === undefined) {
         if (toOwnerAdmin.type !== 'Giver') {
-          terminateScript(`Cannot set giverAddress`);
+          logger.error('Cannot set giverAddress');
+          // terminateScript(`Cannot set giverAddress`);
           return;
         }
         giverAddress = toPledgeAdmin.typeId;
@@ -728,12 +745,12 @@ const handleToDonations = async ({
       }
 
       if (status === null) {
-        terminateScript(`Pledge status ${toPledge.pledgeState} is unknown`);
+        logger.error(`Pledge status ${toPledge.pledgeState} is unknown`);
+        // terminateScript(`Pledge status ${toPledge.pledgeState} is unknown`);
         return;
       }
 
-      const web3 = await getForeignWeb3();
-      const { timestamp } = await web3.eth.getBlock(blockNumber);
+      const { timestamp } = await foreignWeb3.eth.getBlock(blockNumber);
 
       const model = {
         ...expectedToDonation,
@@ -788,7 +805,8 @@ const handleToDonations = async ({
     // Check toDonation has correct status and mined flag
     const expectedStatus = convertPledgeStateToStatus(toPledge, toOwnerAdmin);
     if (expectedStatus === null) {
-      terminateScript(`Pledge status ${toPledge.pledgeState} is unknown`);
+      logger.error(`Pledge status ${toPledge.pledgeState} is unknown`);
+      // terminateScript(`Pledge status ${toPledge.pledgeState} is unknown`);
       return;
     }
 
@@ -1044,7 +1062,6 @@ const syncDonationsWithNetwork = async () => {
   });
   progressBar.start(events.length, 0);
 
-  // update values
   // Simulate transactions by events
   for (let i = 0; i < events.length; i += 1) {
     progressBar.update(i);
@@ -1101,91 +1118,93 @@ const syncDonationsWithNetwork = async () => {
 // Requires corresponding project entity has been saved holding correct value of txHash
 // eslint-disable-next-line no-unused-vars
 const syncPledgeAdmins = async () => {
+  console.log('syncPledgeAdmins called', { fixConflicts });
   if (!fixConflicts) return;
+  const {
+    getMilestoneTypeByProjectId,
+    getCampaignDataForCreate,
+    getMilestoneDataForCreate,
+  } = await createProjectHelper({
+    web3: foreignWeb3,
+    liquidPledging,
+    kernel: await getKernel(),
+    AppProxyUpgradeable,
+  });
+  // create new progress bar
+  const progressBar = new cliProgress.SingleBar({
+    format: `Syncing PledgeAdmins with events |${_colors.cyan(
+      '{bar}',
+    )}| {percentage}% || {value}/{total} events`,
+    barCompleteChar: '\u2588',
+    barIncompleteChar: '\u2591',
+    hideCursor: true,
+  });
+  progressBar.start(events.length, 0);
+  for (let i = 0; i < events.length; i += 1) {
+    progressBar.update(i);
+    try {
+      const { event, transactionHash, returnValues } = events[i];
+      if (event !== 'ProjectAdded') continue;
+      const { idProject } = returnValues;
+      const pledgeAdmin = await PledgeAdmins.findOne({ id: Number(idProject) }).exec();
 
-  for (let i = 9000; i < events.length; i += 1) {
-    const { event, transactionHash, returnValues } = events[i];
-
-    if (event !== 'ProjectAdded') continue;
-
-    const { idProject } = returnValues;
-
-    // eslint-disable-next-line no-await-in-loop
-    const [pledgeAdmin] = await PledgeAdmins.find({ id: Number(idProject) }).exec();
-
-    if (pledgeAdmin === undefined) {
+      if (pledgeAdmin) {
+        continue;
+      }
       logger.error(`No pledge admin exists for ${idProject}`);
       logger.info('Transaction Hash:', transactionHash);
 
-      const projectModelTypeField = [
-        {
-          type: AdminTypes.DAC,
-          model: DACs,
-          idFieldName: 'delegateId',
-          expectedStatus: DacStatus.ACTIVE,
-        },
-        {
-          type: AdminTypes.CAMPAIGN,
-          model: Campaigns,
-          idFieldName: 'projectId',
-          expectedStatus: CampaignStatus.ACTIVE,
-        },
-        {
-          type: AdminTypes.MILESTONE,
-          model: Milestones,
-          idFieldName: 'projectId',
-          expectedStatus: MilestoneStatus.IN_PROGRESS,
-        },
-      ];
-
-      let entityFound = false;
-      for (let j = 0; j < projectModelTypeField.length; j += 1) {
-        const { type, model, idFieldName, expectedStatus } = projectModelTypeField[j];
-        // eslint-disable-next-line no-await-in-loop
-        const [entity] = await model.find({ txHash: transactionHash }).exec();
-
-        // Not found any
-        if (entity === undefined) continue;
-
-        logger.info(`a ${type} found with id ${entity._id.toString()} and status ${entity.status}`);
-        logger.info(`Title: ${entity.title}`);
-        const newPledgeAdmin = new PledgeAdmins({
-          id: Number(idProject),
-          type,
-          typeId: entity._id.toString(),
+      const { project, milestoneType, isCampaign } = await getMilestoneTypeByProjectId(idProject);
+      let entity = isCampaign
+        ? await Campaigns.findOne({ txHash: transactionHash })
+        : await Milestones.findOne({ txHash: transactionHash });
+      // Not found any
+      if (!entity && !isCampaign) {
+        const campaign = await Campaigns.findOne({ projectId: project.parentProject });
+        if (!campaign) {
+          logger.error(`Campaign doesn't exist -> projectId:${idProject}`);
+          continue;
+        }
+        const createMilestoneData = await getMilestoneDataForCreate({
+          milestoneType,
+          project,
+          projectId: idProject,
+          txHash: transactionHash,
         });
-        // eslint-disable-next-line no-await-in-loop
-        await newPledgeAdmin.save();
-        logger.info(`pledgeAdmin crated: ${newPledgeAdmin._id.toString()}`);
-
-        const mutation = {};
-        mutation[idFieldName] = Number(idProject);
-
-        // eslint-disable-next-line no-await-in-loop
-        await model
-          .update(
-            { _id: entity.id },
-            {
-              status: expectedStatus,
-              prevStatus: entity.status,
-              $set: {
-                ...mutation,
-              },
-            },
-          )
-          .exec();
-
-        entityFound = true;
-        break;
+        entity = await new Milestones({
+          ...createMilestoneData,
+          status: MilestoneStatus.CANCELED,
+          campaignId: campaign._id,
+        }).save();
+      } else if (!entity && isCampaign) {
+        const createCampaignData = await getCampaignDataForCreate({
+          project,
+          projectId: idProject,
+          txHash: transactionHash,
+        });
+        entity = await new Campaigns({
+          ...createCampaignData,
+          status: CampaignStatus.CANCELED,
+        }).save();
       }
-
-      if (!entityFound) {
-        logger.error("Couldn't found appropriate entity");
-      }
+      logger.info('created entity ', entity);
+      const type = isCampaign ? AdminTypes.CAMPAIGN : AdminTypes.MILESTONE;
+      logger.info(`a ${type} found with id ${entity._id.toString()} and status ${entity.status}`);
+      logger.info(`Title: ${entity.title}`);
+      const newPledgeAdmin = new PledgeAdmins({
+        id: Number(idProject),
+        type,
+        typeId: entity._id.toString(),
+      });
+      const result = await newPledgeAdmin.save();
+      logger.info('pledgeAdmin saved', result);
+    } catch (e) {
+      logger.error('error in creating pledgeAdmin', e);
     }
   }
+  progressBar.update(events.length);
+  progressBar.stop();
 };
-
 const main = async () => {
   try {
     await fetchBlockchainData();
@@ -1196,22 +1215,19 @@ const main = async () => {
     }
 
     /*
-     Find conflicts in milestone donation counter
-    */
+       Find conflicts in milestone donation counter
+      */
     const mongoUrl = config.mongodb;
     mongoose.connect(mongoUrl);
     const db = mongoose.connection;
 
     db.on('error', err => logger.error(`Could not connect to Mongo:\n${err.stack}`));
 
-    db.once('open', () => {
+    db.once('open', async () => {
       logger.info('Connected to Mongo');
-
-      Promise.all([
-        syncDonationsWithNetwork(),
-        // syncPledgeAdmins(),
-        // updateDonationsCreatedDate(new Date('2020-02-01')),
-      ]).then(() => terminateScript(null, 0));
+      // await syncPledgeAdmins();
+      await syncDonationsWithNetwork();
+      terminateScript(null, 0);
     });
   } catch (e) {
     logger.error(e);
