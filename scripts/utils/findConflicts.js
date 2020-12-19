@@ -396,7 +396,9 @@ const convertPledgeStateToStatus = (pledge, pledgeAdmin) => {
 async function isReturnTransfer(transferInfo) {
   const { fromPledge, fromPledgeAdmin, toPledgeId, txHash, fromPledgeId } = transferInfo;
   // currently only milestones will can be over-funded
-  if (fromPledgeId === '0' || fromPledgeAdmin.type !== AdminTypes.MILESTONE) return false;
+  if (fromPledgeId === '0' || !fromPledgeAdmin || fromPledgeAdmin.type !== AdminTypes.MILESTONE) {
+    return false;
+  }
 
   const transferEventsInTx = txHashTransferEventMap[txHash];
 
@@ -1049,8 +1051,7 @@ const syncEventWithDb = async ({ event, transactionHash, logIndex, returnValues,
 const syncDonationsWithNetwork = async () => {
   // Map from pledge id to list of donations belonged to the pledge and are not used yet!
   await fetchDonationsInfo();
-  console.log('start syncing donations ', events.length);
-
+  const startTime = new Date();
   // create new progress bar
   const progressBar = new cliProgress.SingleBar({
     format: `Syncing donations with events |${_colors.cyan(
@@ -1074,7 +1075,8 @@ const syncDonationsWithNetwork = async () => {
   }
   progressBar.update(events.length);
   progressBar.stop();
-  console.log('events donations synced end.');
+  const spentTime = (new Date().getTime() - startTime.getTime()) / 1000;
+  console.log(`events donations synced end.\n spentTime :${spentTime} seconds`);
 
   // Find conflicts in donations and pledges!
   Object.keys(chargedDonationListMap).forEach(pledgeId => {
@@ -1130,7 +1132,8 @@ const syncPledgeAdmins = async () => {
     kernel: await getKernel(),
     AppProxyUpgradeable,
   });
-  // create new progress bar
+
+  const startTime = new Date();
   const progressBar = new cliProgress.SingleBar({
     format: `Syncing PledgeAdmins with events |${_colors.cyan(
       '{bar}',
@@ -1204,6 +1207,8 @@ const syncPledgeAdmins = async () => {
   }
   progressBar.update(events.length);
   progressBar.stop();
+  const spentTime = (new Date().getTime() - startTime.getTime()) / 1000;
+  console.log(`pledgeAdmin events synced end.\n spentTime :${spentTime} seconds`);
 };
 const main = async () => {
   try {
