@@ -7,7 +7,7 @@ export const AdminTypes = {
 };
 
 
-interface PledgeAdminMongooseDocument extends Document {
+export interface PledgeAdminMongooseDocument extends Document {
   type:string,
   typeId:string
 }

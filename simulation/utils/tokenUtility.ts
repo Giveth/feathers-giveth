@@ -2,7 +2,7 @@ const config = require('config');
 
 let tokensByAddress;
 
-export function getTokenByAddress(address) {
+export function getTokenByAddress(address:string) {
   const ANY_TOKEN = {
     name: 'ANY_TOKEN',
     address: '0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF',

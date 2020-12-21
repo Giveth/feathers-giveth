@@ -139,7 +139,7 @@ function createProjectHelper({ web3, liquidPledging, kernel, AppProxyUpgradeable
       return {
         title: project.name,
         description: 'Missing Description... Added outside of UI',
-        fiatAmount: maxAmount === '0' ? undefined : maxAmount,
+        fiatAmount: maxAmount === '0' ? undefined : Number(maxAmount) / 10 ** 18,
         selectedFiatType: token.symbol === ANY_TOKEN.symbol ? undefined : token.symbol,
         date,
         conversionRateTimestamp: maxAmount === '0' ? undefined : new Date(),

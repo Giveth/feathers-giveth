@@ -2,7 +2,7 @@ const BigNumber = require('bignumber.js');
 import {
   getHourlyCryptoConversion,
 } from '../src/services/conversionRates/getConversionRatesService';
-import { getTokenByAddress } from './tokenUtility';
+import { getTokenByAddress } from './utils/tokenUtility';
 
 // Used by scripts to set usdValue of donations
 export class DonationUsdValueUtility {

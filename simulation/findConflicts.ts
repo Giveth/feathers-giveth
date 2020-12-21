@@ -2,28 +2,39 @@
 /* eslint-disable no-console */
 /*  eslint-disable no-await-in-loop */
 // import  Web3 from 'web3';
+import {
+  AdminInterface,
+  DelegateInfoInterface,
+  DonationListObjectInterface, DonationObjectInterface, EventInterface, extendedDonation,
+  PledgeInterface, TransferInfoInterface,
+} from './utils/interfaces';
+// import  Web3 from 'web3';
 const Web3 = require('web3');
-
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import * as config from 'config';
-import * as winston from 'winston';
-import * as DailyRotateFile from 'winston-daily-rotate-file';
 import * as yargs from 'yargs';
 import BigNumber from 'bignumber.js';
 import * as mongoose from 'mongoose';
 import * as cliProgress from 'cli-progress';
 import * as _colors from 'colors';
-require('mongoose-long')(mongoose);
-require('../src/models/mongoose-bn')(mongoose);
+
 const { LiquidPledging, LiquidPledgingState } = require('giveth-liquidpledging');
 const { Kernel, AppProxyUpgradeable } = require('giveth-liquidpledging/build/contracts');
 const EventEmitter = require('events');
 const toFn = require('../src/utils/to');
-import  { DonationUsdValueUtility }from  './DonationUsdValueUtility';
-import { getTokenByAddress } from  './tokenUtility';
-import { createProjectHelper } from  '../src/common-utils/createProjectHelper';
+import { DonationUsdValueUtility } from './DonationUsdValueUtility';
+import { getTokenByAddress } from './utils/tokenUtility';
+import { createProjectHelper } from '../src/common-utils/createProjectHelper';
+import { converionRateModel } from './models/conversionRates.model';
+import { donationModel, DonationMongooseDocument, DonationStatus } from './models/donations.model';
+import { milestoneModel, MilestoneStatus } from './models/milestones.model';
+import { campaignModel, CampaignStatus } from './models/campaigns.model';
+import { pledgeAdminModel, AdminTypes, PledgeAdminMongooseDocument } from './models/pledgeAdmins.model';
+import { Logger } from 'winston';
+import { getLogger } from './utils/logger';
+
 
 const { argv } = yargs
   .option('dry-run', {
@@ -50,7 +61,7 @@ const { argv } = yargs
     type: 'boolean',
   })
   .version(false)
-  .help()
+  .help();
 const cacheDir = argv['cache-dir'];
 const logDir = argv['log-dir'];
 const updateState = argv['update-network-cache'];
@@ -58,27 +69,31 @@ const updateEvents = argv['update-network-cache'];
 const findConflicts = !argv['dry-run'];
 const fixConflicts = !argv['dry-run'];
 // const ignoredTransactions  = require('./eventProcessingHelper.json');
-const ignoredTransactions  = [];
+const ignoredTransactions = [];
+
+// Blockchain data
+let events: EventInterface[];
+let pledges: PledgeInterface[];
+let admins: AdminInterface[];
+
+// Map from pledge id to list of donations which are charged and can be used to move money from
+const chargedDonationListMap: DonationListObjectInterface = {};
+// Map from pledge id to list of donations belonged to the pledge and are not used yet!
+const pledgeNotUsedDonationListMap = {};
+// Map from _id to list of donations
+const donationMap: DonationObjectInterface = {};
+// Map from txHash to list of included events
+const txHashTransferEventMap = {};
+// Map from owner pledge admin ID to dictionary of charged donations
+const ownerPledgeAdminIdChargedDonationMap = {};
+
+const { nodeUrl, liquidPledgingAddress } = config.blockchain;
+let foreignWeb3;
+let liquidPledging;
 
 console.log(cacheDir);
-const winstonTransports = [];
-if (logDir) {
-  winstonTransports.push(
-    new DailyRotateFile({
-      dirname: logDir,
-      filename: 'simulation-error-%DATE%.log',
-      maxFiles: '30d',
-    }),
-  );
-} else {
-  winstonTransports.push(new winston.transports.Console());
-}
-
-const logger = winston.createLogger({
-  level: argv.debug ? 'debug' : 'error',
-  format: winston.format.simple(),
-  transports: winstonTransports,
-});
+const logger: Logger = getLogger(logDir, 'debug');
+// const logger: Logger = getLogger(logDir, argv.debug ?'debug':'error')
 
 const terminateScript = (message = '', code = 0) => {
   logger.error(`Exit message: ${message}`);
@@ -93,15 +108,6 @@ const terminateScript = (message = '', code = 0) => {
   logger.end();
 };
 
-
-// Create output log file
-
-// Map token symbol to foreign address
-const tokenSymbolToForeignAddress = {};
-config.tokenWhitelist.forEach(token => {
-  tokenSymbolToForeignAddress[token.symbol] = token.foreignAddress.toLowerCase();
-});
-
 const symbolDecimalsMap = {};
 
 config.tokenWhitelist.forEach(({ symbol, decimals }) => {
@@ -110,13 +116,9 @@ config.tokenWhitelist.forEach(({ symbol, decimals }) => {
   };
 });
 
-const { nodeUrl, liquidPledgingAddress } = config.blockchain;
-let foreignWeb3;
-let liquidPledging;
 const instantiateWeb3 = async url => {
   const provider =
     url && url.startsWith('ws')
-      // @ts-ignore
       ? new Web3.providers.WebsocketProvider(url, {
         clientConfig: {
           maxReceivedFrameSize: 100000000,
@@ -147,44 +149,9 @@ async function getKernel() {
   return new Kernel(foreignWeb3, kernelAddress);
 }
 
-const appFactory = () => {
-  const data = {};
-  return {
-    get(key) {
-      return data[key];
-    },
-    set(key, val) {
-      data[key] = val;
-    },
-  };
-};
-
-// const PledgeAdmins = require('../src/models/pledgeAdmins.model').createModel(app);
-import {converionRateModel} from './models/conversionRates.model';
-import {donationModel, DonationStatus} from "./models/donations.model"
-import {milestoneModel, MilestoneStatus} from "./models/milestones.model"
-import {campaignModel, CampaignStatus} from "./models/campaigns.model"
-import {pledgeAdminModel, AdminTypes} from "./models/pledgeAdmins.model"
-
 const donationUsdValueUtility = new DonationUsdValueUtility(converionRateModel, config);
 
-// Blockchain data
-let events;
-let pledges;
-let admins;
-
-// Map from pledge id to list of donations which are charged and can be used to move money from
-const chargedDonationListMap = {};
-// Map from pledge id to list of donations belonged to the pledge and are not used yet!
-const pledgeNotUsedDonationListMap = {};
-// Map from _id to list of donations
-const donationMap = {};
-// Map from txHash to list of included events
-const txHashTransferEventMap = {};
-// Map from owner pledge admin ID to dictionary of charged donations
-const ownerPledgeAdminIdChargedDonationMap = {};
-
-const createProgressBar = ({title}) =>{
+const createProgressBar = ({ title }) => {
   return new cliProgress.SingleBar({
     format: `${title} |${_colors.cyan(
       '{bar}',
@@ -193,12 +160,12 @@ const createProgressBar = ({title}) =>{
     barIncompleteChar: '\u2591',
     hideCursor: true,
   });
-}
+};
 
 // Gets status of liquidpledging storage
 const fetchBlockchainData = async () => {
   await instantiateWeb3(nodeUrl);
-  console.log('fetchBlockchainData ....',{
+  console.log('fetchBlockchainData ....', {
     updateEvents,
     updateState,
   });
@@ -212,7 +179,13 @@ const fetchBlockchainData = async () => {
   const stateFile = path.join(cacheDir, `./liquidPledgingState_${process.env.NODE_ENV}.json`);
   const eventsFile = path.join(cacheDir, `./liquidPledgingEvents_${process.env.NODE_ENV}.json`);
 
-  let state :any = {};
+  let state: {
+    pledges: PledgeInterface[],
+    admins: AdminInterface [],
+  } = <{
+    pledges: PledgeInterface[],
+    admins: AdminInterface [],
+  }>{};
 
   if (!updateState) {
     state = fs.existsSync(stateFile) ? JSON.parse(String(fs.readFileSync(stateFile))) : {};
@@ -221,11 +194,11 @@ const fetchBlockchainData = async () => {
 
   if (updateState || updateEvents) {
     let fromBlock = 0;
-    let fetchBlockNum:string |number = 'latest';
+    let fetchBlockNum: string | number = 'latest';
     if (updateEvents) {
       fromBlock = events.length > 0 ? events[events.length - 1].blockNumber + 1 : 0;
       fetchBlockNum =
-       (await foreignWeb3.eth.getBlockNumber()) - config.blockchain.requiredConfirmations;
+        (await foreignWeb3.eth.getBlockNumber()) - config.blockchain.requiredConfirmations;
     }
 
     const liquidPledgingState = new LiquidPledgingState(liquidPledging);
@@ -287,7 +260,7 @@ const fetchBlockchainData = async () => {
   events.forEach(e => {
     if (e.event === 'Transfer') {
       const { transactionHash } = e;
-      const list = txHashTransferEventMap[transactionHash] || [];
+      const list: EventInterface[] = txHashTransferEventMap[transactionHash] || [];
       if (list.length === 0) {
         txHashTransferEventMap[transactionHash] = list;
       }
@@ -302,14 +275,15 @@ const fetchBlockchainData = async () => {
 // Update createdAt date of donations based on transaction date
 // @params {string} startDate
 // eslint-disable-next-line no-unused-vars
-const updateDonationsCreatedDate = async startDate => {
+const updateDonationsCreatedDate = async (startDate: Date) => {
   const web3 = foreignWeb3;
-  const donations =await donationModel.find({
+  const donations = await donationModel.find({
     createdAt: {
-      $gte: startDate.toISOString(),
+      // $gte: startDate.toISOString(),
+      $gte: startDate,
     },
   });
-  for (const donation of donations){
+  for (const donation of donations) {
     const { _id, txHash, createdAt } = donation;
     const { blockNumber } = await web3.eth.getTransaction(txHash);
     const { timestamp } = await web3.eth.getBlock(blockNumber);
@@ -333,7 +307,7 @@ const fetchDonationsInfo = async () => {
   // TODO: pendingAmountRemaining is not considered in updating, it should be removed for successful transactions
 
   const donations = await donationModel.find({});
-  for (const donation of donations){
+  for (const donation of donations) {
     const {
       _id,
       amount,
@@ -382,12 +356,13 @@ const fetchDonationsInfo = async () => {
     };
 
     list.push(item);
-    donationMap[_id.toString()] = item;
+    donationMap[_id.toString()] = item as unknown as extendedDonation;
   }
 
 };
 
-const convertPledgeStateToStatus = (pledge, pledgeAdmin) => {
+const convertPledgeStateToStatus = (pledge: PledgeInterface,
+                                    pledgeAdmin: AdminInterface | PledgeAdminMongooseDocument) => {
   const { pledgeState, delegates, intendedProject } = pledge;
   switch (pledgeState) {
     case 'Paying':
@@ -413,7 +388,7 @@ const convertPledgeStateToStatus = (pledge, pledgeAdmin) => {
  * Determine if this transfer was a return of excess funds of an over-funded milestone
  * @param {object} transferInfo
  */
-async function isReturnTransfer(transferInfo) {
+async function isReturnTransfer(transferInfo: TransferInfoInterface) {
   const { fromPledge, fromPledgeAdmin, toPledgeId, txHash, fromPledgeId } = transferInfo;
   // currently only milestones will can be over-funded
   if (fromPledgeId === '0' || !fromPledgeAdmin || fromPledgeAdmin.type !== AdminTypes.MILESTONE) {
@@ -426,7 +401,7 @@ async function isReturnTransfer(transferInfo) {
   // Transfer(from: 1, to: 2, amount: 1000)
   // Transfer(from: 2, to: 1, amount: < 1000)
   return transferEventsInTx.some(
-    e =>
+    (e: EventInterface) =>
       // it may go directly to fromPledge.oldPledge if this was delegated funds
       // being returned b/c the intermediary pledge is the pledge w/ the intendedProject
       [e.returnValues.from, fromPledge.oldPledge].includes(toPledgeId) &&
@@ -434,12 +409,15 @@ async function isReturnTransfer(transferInfo) {
   );
 }
 
-const isRejectedDelegation = ({ fromPledge, toPledge }) =>
-  !!fromPledge &&
-  Number(fromPledge.intendedProject) > 0 &&
-  fromPledge.intendedProject !== toPledge.owner;
+const isRejectedDelegation = (data: { fromPledge: PledgeInterface, toPledge: PledgeInterface }) => {
+  const { fromPledge, toPledge } = data;
+  return !!fromPledge &&
+    Number(fromPledge.intendedProject) > 0 &&
+    fromPledge.intendedProject !== toPledge.owner;
+};
 
-const addChargedDonation = donation => {
+
+const addChargedDonation = (donation: DonationMongooseDocument) => {
   const candidates = chargedDonationListMap[donation.pledgeId] || [];
   if (candidates.length === 0) {
     chargedDonationListMap[donation.pledgeId] = candidates;
@@ -453,7 +431,35 @@ const addChargedDonation = donation => {
   ownerEntityDonations[donation._id] = donation;
 };
 
-const handleFromDonations = async (from, to, amount, transactionHash) => {
+async function correctFailedDonation(failedDonationList, matchingFailedDonationIndex, toPledge, toOwnerAdmin, to: string, toUnusedDonationList, candidateToDonationList) {
+  const toFixDonation = failedDonationList[matchingFailedDonationIndex];
+  logger.error(`Donation ${toFixDonation._id} hasn't failed, it should be updated`);
+
+  // Remove from failed donations
+  failedDonationList.splice(matchingFailedDonationIndex, 1);
+
+  toFixDonation.status = convertPledgeStateToStatus(toPledge, toOwnerAdmin);
+  toFixDonation.pledgeId = to;
+  toFixDonation.mined = true;
+  toUnusedDonationList.push(toFixDonation);
+
+  candidateToDonationList = [toFixDonation];
+
+  logger.debug('Will update to:');
+  logger.debug(JSON.stringify(toFixDonation, null, 2));
+
+  if (fixConflicts) {
+    logger.debug('Updating...');
+    await donationModel.updateOne(
+      { _id: toFixDonation._id },
+      { status: toFixDonation.status, pledgeId: to },
+    );
+  }
+  return candidateToDonationList;
+}
+
+const handleFromDonations = async (from: string, to: string,
+                                   amount: string, transactionHash: string) => {
   const usedFromDonations = []; // List of donations which could be parent of the donation
   let giverAddress;
 
@@ -493,29 +499,7 @@ const handleFromDonations = async (from, to, amount, transactionHash) => {
 
       // A matching failed donation found, it's not failed and should be updated with correct value
       if (matchingFailedDonationIndex !== -1) {
-        const toFixDonation = failedDonationList[matchingFailedDonationIndex];
-        logger.error(`Donation ${toFixDonation._id} hasn't failed, it should be updated`);
-
-        // Remove from failed donations
-        failedDonationList.splice(matchingFailedDonationIndex, 1);
-
-        toFixDonation.status = convertPledgeStateToStatus(toPledge, toOwnerAdmin);
-        toFixDonation.pledgeId = to;
-        toFixDonation.mined = true;
-        toUnusedDonationList.push(toFixDonation);
-
-        candidateToDonationList = [toFixDonation];
-
-        logger.debug('Will update to:');
-        logger.debug(JSON.stringify(toFixDonation, null, 2));
-
-        if (fixConflicts) {
-          logger.debug('Updating...');
-          await donationModel.updateOne(
-            { _id: toFixDonation._id },
-            { status: toFixDonation.status, pledgeId: to },
-          );
-        }
+        candidateToDonationList = await correctFailedDonation(failedDonationList, matchingFailedDonationIndex, toPledge, toOwnerAdmin, to, toUnusedDonationList, candidateToDonationList);
       }
     }
 
@@ -529,17 +513,17 @@ const handleFromDonations = async (from, to, amount, transactionHash) => {
       const lastInsertedCandidate = candidateChargedParents[candidateChargedParents.length - 1];
       if (
         lastInsertedCandidate.txHash === transactionHash &&
-        lastInsertedCandidate.amountRemaining.gte(amount)
+        new BigNumber(lastInsertedCandidate.amountRemaining).gte(new BigNumber(amount))
       ) {
         giverAddress = lastInsertedCandidate.giverAddress;
-        lastInsertedCandidate.amountRemaining = lastInsertedCandidate.amountRemaining.minus(amount);
+        lastInsertedCandidate.amountRemaining = new BigNumber(lastInsertedCandidate.amountRemaining).minus(amount).toFixed();
 
         fromAmount = new BigNumber(0);
         logger.debug(
           `Amount ${amount} is reduced from ${JSON.stringify(
             {
               ...lastInsertedCandidate,
-              amountRemaining: lastInsertedCandidate.amountRemaining.toFixed(),
+              amountRemaining: new BigNumber(lastInsertedCandidate.amountRemaining).toFixed(),
             },
             null,
             2,
@@ -550,7 +534,7 @@ const handleFromDonations = async (from, to, amount, transactionHash) => {
           usedFromDonations.push(lastInsertedCandidate._id);
         }
 
-        if (lastInsertedCandidate.amountRemaining.isZero()) {
+        if (new BigNumber(lastInsertedCandidate.amountRemaining).isZero()) {
           candidateChargedParents.pop();
         }
       } else {
@@ -563,14 +547,14 @@ const handleFromDonations = async (from, to, amount, transactionHash) => {
           }
 
           const min = BigNumber.min(item.amountRemaining, fromAmount);
-          item.amountRemaining = item.amountRemaining.minus(min);
-          if (item.amountRemaining.isZero()) {
+          item.amountRemaining = new BigNumber(item.amountRemaining).minus(min).toFixed();
+          if (new BigNumber(item.amountRemaining).isZero()) {
             consumedCandidates += 1;
           }
           fromAmount = fromAmount.minus(min);
           logger.debug(
             `Amount ${min.toFixed()} is reduced from ${JSON.stringify(
-              { ...item, amountRemaining: item.amountRemaining.toFixed() },
+              { ...item, amountRemaining: item.amountRemaining },
               null,
               2,
             )}`,
@@ -658,7 +642,7 @@ const handleToDonations = async ({
   if (toDonation === undefined) {
     // If parent is cancelled, this donation is not needed anymore
     const status = convertPledgeStateToStatus(toPledge, toOwnerAdmin);
-    let expectedToDonation :any = {
+    let expectedToDonation: any = {
       txHash: transactionHash,
       parentDonations: usedFromDonations,
       from,
@@ -673,7 +657,7 @@ const handleToDonations = async ({
     };
 
     if (fixConflicts) {
-      let toPledgeAdmin:any = (await pledgeAdminModel.find({ id: Number(toOwnerId) }))[0];
+      let toPledgeAdmin: any = (await pledgeAdminModel.find({ id: Number(toOwnerId) }))[0];
       if (toPledgeAdmin === undefined) {
         if (toOwnerAdmin.type !== 'Giver') {
           terminateScript(
@@ -720,12 +704,12 @@ const handleToDonations = async ({
         return;
       }
       expectedToDonation.tokenAddress = token.address;
-      const delegationInfo: any = {};
+      const delegationInfo: DelegateInfoInterface = <DelegateInfoInterface>{};
       // It's delegated to a DAC
       if (toPledge.delegates.length > 0) {
         const [delegate] = toPledge.delegates;
-        const [dacPledgeAdmin] = await pledgeAdminModel.find({ id: Number(delegate.id) });
-        if (dacPledgeAdmin === undefined) {
+        const dacPledgeAdmin = await pledgeAdminModel.findOne({ id: Number(delegate.id) });
+        if (!dacPledgeAdmin) {
           // This is wrong, why should we terminate if there is no dacPledgeAdmin
           logger.error(`No dac found for id: ${delegate.id}`);
           terminateScript(`No dac found for id: ${delegate.id}`);
@@ -774,7 +758,7 @@ const handleToDonations = async ({
 
       const { timestamp } = await foreignWeb3.eth.getBlock(blockNumber);
 
-      const model :any = {
+      const model: any = {
         ...expectedToDonation,
         tokenAddress: token.address,
         amountRemaining: expectedToDonation.amountRemaining.toFixed(),
@@ -898,12 +882,12 @@ const handleToDonations = async ({
 };
 
 const revertProjectDonations = async projectId => {
-  const donations :any= ownerPledgeAdminIdChargedDonationMap[projectId] || {};
+  const donations: any = ownerPledgeAdminIdChargedDonationMap[projectId] || {};
   const values = Object.values(donations);
   const revertExceptionStatus = [DonationStatus.PAYING, DonationStatus.PAID];
 
   for (let i = 0; i < values.length; i += 1) {
-    const donation:any = values[i];
+    const donation: any = values[i];
     if (!donation.amountRemaining.isZero() && !revertExceptionStatus.includes(donation.status)) {
       donation.status = DonationStatus.CANCELED;
     }
@@ -913,7 +897,7 @@ const revertProjectDonations = async projectId => {
   }
 };
 
-const cancelProject = async projectId => {
+const cancelProject = async (projectId: string) => {
   admins[projectId].isCanceled = true;
   await revertProjectDonations(projectId);
 
@@ -945,7 +929,7 @@ const fixConflictInDonations = unusedDonationMap => {
      }) => {
       if (status === DonationStatus.FAILED) return;
 
-      const pledge = pledges[Number(pledgeId)] || {};
+      const pledge: PledgeInterface = pledges[Number(pledgeId)] || <PledgeInterface>{};
 
       if (unusedDonationMap.has(_id.toString())) {
         logger.error(
@@ -953,7 +937,7 @@ const fixConflictInDonations = unusedDonationMap => {
             {
               _id,
               amount: amount.toString(),
-              amountRemaining: amountRemaining.toString(),
+              amountRemaining,
               status,
               pledgeId: pledgeId.toString(),
               pledgeOwner: pledge.owner,
@@ -968,15 +952,15 @@ const fixConflictInDonations = unusedDonationMap => {
           promises.push(donationModel.findOneAndDelete({ _id }));
         }
       } else {
-        if (savedAmountRemaining && !amountRemaining.eq(savedAmountRemaining)) {
+        if (savedAmountRemaining && amountRemaining !== savedAmountRemaining) {
           logger.error(
-            `Below donation should have remaining amount ${amountRemaining.toFixed()} but has ${savedAmountRemaining}\n${JSON.stringify(
+            `Below donation should have remaining amount ${amountRemaining} but has ${savedAmountRemaining}\n${JSON.stringify(
               {
                 _id,
-                amount: amount.toString(),
-                amountRemaining: amountRemaining.toFixed(),
+                amount,
+                amountRemaining,
                 status,
-                pledgeId: pledgeId.toString(),
+                pledgeId,
                 txHash,
               },
               null,
@@ -994,7 +978,7 @@ const fixConflictInDonations = unusedDonationMap => {
                 { _id },
                 {
                   $set: {
-                    amountRemaining: amountRemaining.toFixed(),
+                    amountRemaining,
                     lessThanCutoff: cutoff.gt(amountRemaining),
                   },
                 },
@@ -1009,7 +993,7 @@ const fixConflictInDonations = unusedDonationMap => {
               {
                 _id,
                 amount: amount.toString(),
-                amountRemaining: amountRemaining.toFixed(),
+                amountRemaining,
                 status,
                 pledgeId: pledgeId.toString(),
                 txHash,
@@ -1029,7 +1013,8 @@ const fixConflictInDonations = unusedDonationMap => {
   return Promise.all(promises);
 };
 
-const syncEventWithDb = async ({ event, transactionHash, logIndex, returnValues, blockNumber }) => {
+const syncEventWithDb = async (eventData: EventInterface) => {
+  const { event, transactionHash, logIndex, returnValues, blockNumber } = eventData;
   if (ignoredTransactions.some(it => it.txHash === transactionHash && it.logIndex === logIndex)) {
     logger.debug('Event ignored.');
     return;
@@ -1072,7 +1057,7 @@ const syncDonationsWithNetwork = async () => {
   await fetchDonationsInfo();
   const startTime = new Date();
   // create new progress bar
-  const progressBar = createProgressBar({title: 'Syncing donations with events.'});;
+  const progressBar = createProgressBar({ title: 'Syncing donations with events.' });
   progressBar.start(events.length, 0);
 
   // Simulate transactions by events
@@ -1122,14 +1107,16 @@ const syncDonationsWithNetwork = async () => {
   });
 
   const unusedDonationMap = new Map();
-  Object.values(pledgeNotUsedDonationListMap).forEach((list:any = []) =>
+  Object.values(pledgeNotUsedDonationListMap).forEach((list: any = []) =>
     list.forEach(item => unusedDonationMap.set(item._id, item)),
   );
   await fixConflictInDonations(unusedDonationMap);
 };
 
-const createMilestoneForPledgeAdmin = async ({ project,getMilestoneDataForCreate,
-                                               idProject, milestoneType, transactionHash }) => {
+const createMilestoneForPledgeAdmin = async ({
+                                               project, getMilestoneDataForCreate,
+                                               idProject, milestoneType, transactionHash,
+                                             }) => {
   const campaign = await campaignModel.findOne({ projectId: project.parentProject });
   if (!campaign) {
     logger.error(`Campaign doesn't exist -> projectId:${idProject}`);
@@ -1147,21 +1134,21 @@ const createMilestoneForPledgeAdmin = async ({ project,getMilestoneDataForCreate
     campaignId: campaign._id,
   }).save();
 };
-const createCampaignForPledgeAdmin= async ({project, idProject, transactionHash, getCampaignDataForCreate})=>{
+const createCampaignForPledgeAdmin = async ({ project, idProject, transactionHash, getCampaignDataForCreate }) => {
   const createCampaignData = await getCampaignDataForCreate({
     project,
     projectId: idProject,
     txHash: transactionHash,
   });
-  return  new campaignModel({
+  return new campaignModel({
     ...createCampaignData,
     status: CampaignStatus.CANCELED,
   }).save();
-}
+};
 
-const syncPledgeAdmin = async  ()=>{
+const syncPledgeAdmin = async () => {
 
-}
+};
 
 // Creates PledgeAdmins entity for a project entity
 // Requires corresponding project entity has been saved holding correct value of txHash
@@ -1181,7 +1168,7 @@ const syncPledgeAdmins = async () => {
   });
 
   const startTime = new Date();
-  const progressBar =createProgressBar({title: 'Syncing PledgeAdmins with events'});
+  const progressBar = createProgressBar({ title: 'Syncing PledgeAdmins with events' });
   progressBar.start(events.length, 0);
   for (let i = 0; i < events.length; i += 1) {
     progressBar.update(i);
@@ -1203,11 +1190,17 @@ const syncPledgeAdmins = async () => {
         : await milestoneModel.findOne({ txHash: transactionHash });
       // Not found any
       if (!entity && !isCampaign) {
-        entity = await createMilestoneForPledgeAdmin({ project, idProject, milestoneType, transactionHash, getMilestoneDataForCreate })
+        entity = await createMilestoneForPledgeAdmin({
+          project,
+          idProject,
+          milestoneType,
+          transactionHash,
+          getMilestoneDataForCreate,
+        });
       } else if (!entity && isCampaign) {
-        entity = await createCampaignForPledgeAdmin({ project, idProject, transactionHash , getCampaignDataForCreate})
+        entity = await createCampaignForPledgeAdmin({ project, idProject, transactionHash, getCampaignDataForCreate });
       }
-      if (!entity){
+      if (!entity) {
         continue;
       }
 
@@ -1231,6 +1224,7 @@ const syncPledgeAdmins = async () => {
   const spentTime = (new Date().getTime() - startTime.getTime()) / 1000;
   console.log(`pledgeAdmin events synced end.\n spentTime :${spentTime} seconds`);
 };
+
 const main = async () => {
   try {
     await fetchBlockchainData();
