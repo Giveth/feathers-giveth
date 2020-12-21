@@ -82,3 +82,10 @@ export interface TransferInfoInterface {
   txHash:string,
   fromPledgeId :string
 }
+
+export interface ProjectInterface {
+  plugin :string,
+  url:string,
+  name:string,
+  commitTime:string
+}
