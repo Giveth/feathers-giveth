@@ -7,11 +7,12 @@ import {
   removeHexPrefix,
   executeRequestsAsBatch,
   getBlockTimestamp,
-  ANY_TOKEN,
+  ANY_TOKEN, getTransaction,
 } from './web3Helpers';
 import { MilestoneTypes } from '../models/milestones.model';
 import { getTokenByForeignAddress } from './tokenUtility';
 import { ProjectInterface } from './interfaces';
+import { DacStatus } from '../models/dacs.model';
 
 export function createProjectHelper({ web3, liquidPledging, kernel, AppProxyUpgradeable }) {
   let baseCodeData;
@@ -70,6 +71,12 @@ export function createProjectHelper({ web3, liquidPledging, kernel, AppProxyUpgr
     }
   };
 
+
+  const getTransactionDate = async (blockNumber:number):Promise<Date> => {
+    const { timestamp } = await web3.eth.getBlock(blockNumber);
+    return  new Date(timestamp * 1000);
+  }
+
   return {
     getMilestoneTypeByProjectId: async (projectId: string) => {
       const project = await liquidPledging.getPledgeAdmin(projectId);
@@ -117,6 +124,7 @@ export function createProjectHelper({ web3, liquidPledging, kernel, AppProxyUpgr
       project: ProjectInterface,
       projectId: string,
       txHash: string
+      blockNumber:number,
     }) => {
       const { milestoneType, project, projectId, txHash } = options;
       const milestoneContract = getMilestoneContract({
@@ -146,14 +154,15 @@ export function createProjectHelper({ web3, liquidPledging, kernel, AppProxyUpgr
       ] = responses;
       const token = getTokenByForeignAddress(acceptedToken);
       if (!token) throw new Error(`Un-whitelisted token: ${acceptedToken}`);
-      const date = await getBlockTimestamp(web3, tx.blockNumber);
-
+      // const date = await getBlockTimestamp(web3, tx.blockNumber);
+      const createdAt = await getTransactionDate(tx.blockNumber);
       return {
         title: project.name,
         description: 'Missing Description... Added outside of UI',
         fiatAmount: maxAmount === '0' ? undefined : Number(maxAmount) / 10 ** 18,
         selectedFiatType: token.symbol === ANY_TOKEN.symbol ? undefined : token.symbol,
-        date,
+        date: createdAt,
+        createdAt,
         conversionRateTimestamp: maxAmount === '0' ? undefined : new Date(),
         conversionRate: maxAmount === '0' ? undefined : 1,
         projectId,
@@ -175,8 +184,42 @@ export function createProjectHelper({ web3, liquidPledging, kernel, AppProxyUpgr
       };
     },
 
+    getDacDataForCreate : async (options:{
+      from:string,
+      txHash:string,
+      delegateId: string,
+      blockNumber:number,
+    })=>{
+      const {
+        txHash,
+        delegateId,
+        blockNumber,
+      }= options;
+      const {from} = await getTransaction(web3, txHash)
+      const delegate = await liquidPledging.getPledgeAdmin(delegateId)
+      const createdAt = await getTransactionDate(blockNumber);
+      return {
+        createdAt,
+        ownerAddress: from,
+        pluginAddress: delegate.plugin,
+        title: delegate.name,
+        commitTime: delegate.commitTime,
+        url: delegate.url,
+        txHash,
+        delegateId,
+        mined:true,
+        status: DacStatus.ACTIVE,
+        totalDonated: '0',
+        currentBalance: '0',
+        donationCount: 0,
+        description: 'Missing Description... Added outside of UI',
+      }
+    },
+
     getCampaignDataForCreate: async (options: {
-      project: ProjectInterface, projectId: string, txHash: string
+      project: ProjectInterface,
+      projectId: string,
+      txHash: string
     }) => {
       const { project, projectId, txHash } = options;
       const lppCampaign = new LPPCampaign(web3, project.plugin);
@@ -184,8 +227,10 @@ export function createProjectHelper({ web3, liquidPledging, kernel, AppProxyUpgr
       const [reviewerAddress] = await executeRequestsAsBatch(web3, [
         lppCampaign.$contract.methods.reviewer().call.request,
       ]);
-      const { from } = await web3.eth.getTransaction(txHash);
+      const { from, blockNumber } = await web3.eth.getTransaction(txHash);
+      const createdAt = await getTransactionDate(blockNumber);
       return {
+        createdAt,
         projectId,
         ownerAddress: from,
         coownerAddress: '0x0',

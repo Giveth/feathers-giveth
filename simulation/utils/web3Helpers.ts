@@ -3,6 +3,8 @@
  *
  * @param {string} hex
  */
+import { transactionModel } from '../models/transactions.model';
+
 export const removeHexPrefix = hex => {
   if (hex && typeof hex === 'string' && hex.toLowerCase().startsWith('0x')) {
     return hex.substring(2);
@@ -126,6 +128,13 @@ export const getBlockTimestamp = async (web3, blockNumber) => {
 
   return ts;
 };
+
+export const getTransaction = async (web3:any ,hash:string) => {
+  const transaction = await web3.eth.getTransaction(hash);
+  return transaction;
+};
+
+
 
 export const ANY_TOKEN = {
   name: 'ANY_TOKEN',

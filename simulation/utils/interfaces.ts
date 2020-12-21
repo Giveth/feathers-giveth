@@ -8,6 +8,7 @@ export interface EventReturnValues {
   0: string,
   1: string,
   idProject: string,
+  idDelegate: string,
   url: string
   amount?: string
 }

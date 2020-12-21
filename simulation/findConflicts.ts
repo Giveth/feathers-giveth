@@ -26,7 +26,7 @@ const EventEmitter = require('events');
 const toFn = require('../src/utils/to');
 import { DonationUsdValueUtility } from './DonationUsdValueUtility';
 import { getTokenByAddress } from './utils/tokenUtility';
-import { createProjectHelper } from '../src/common-utils/createProjectHelper';
+import { createProjectHelper } from './utils/createProjectHelper';
 import { converionRateModel } from './models/conversionRates.model';
 import { donationModel, DonationMongooseDocument, DonationStatus } from './models/donations.model';
 import { milestoneModel, MilestoneStatus } from './models/milestones.model';
@@ -34,6 +34,22 @@ import { campaignModel, CampaignStatus } from './models/campaigns.model';
 import { pledgeAdminModel, AdminTypes, PledgeAdminMongooseDocument } from './models/pledgeAdmins.model';
 import { Logger } from 'winston';
 import { getLogger } from './utils/logger';
+import { dacModel, DacStatus } from './models/dacs.model';
+import { getTransaction } from './utils/web3Helpers';
+import { transactionModel } from './models/transactions.model';
+
+const report = {
+  syncDelegatesSpentTime: 0,
+  syncProjectsSpentTime: 0,
+  syncDonationsSpentTime: 0,
+  createdDacs: 0,
+  createdCampaigns: 0,
+  createdMilestones: 0,
+  createdDonations: 0,
+  createdPledgeAdmins: 0,
+  processedEvents: 0,
+  correctFailedDonations :0,
+};
 
 
 const { argv } = yargs
@@ -115,6 +131,7 @@ config.tokenWhitelist.forEach(({ symbol, decimals }) => {
     cutoff: new BigNumber(10 ** (18 - Number(decimals))),
   };
 });
+
 
 const instantiateWeb3 = async url => {
   const provider =
@@ -296,6 +313,7 @@ const updateDonationsCreatedDate = async (startDate: Date) => {
       const [d] = await donationModel.find({ _id });
       d.createdAt = newCreatedAt;
       await d.save();
+      report.createdDonations ++;
     }
   }
 
@@ -454,6 +472,7 @@ async function correctFailedDonation(failedDonationList, matchingFailedDonationI
       { _id: toFixDonation._id },
       { status: toFixDonation.status, pledgeId: to },
     );
+    report.correctFailedDonations ++
   }
   return candidateToDonationList;
 }
@@ -684,6 +703,7 @@ const handleToDonations = async ({
           typeId: toOwnerAdmin.addr,
         });
         await toPledgeAdmin.save();
+        report.createdPledgeAdmins ++;
         logger.info(`pledgeAdmin crated: ${toPledgeAdmin._id.toString()}`);
       }
 
@@ -761,18 +781,19 @@ const handleToDonations = async ({
       const model: any = {
         ...expectedToDonation,
         tokenAddress: token.address,
-        amountRemaining: expectedToDonation.amountRemaining.toFixed(),
+        amountRemaining: new BigNumber(expectedToDonation.amountRemaining).toFixed(),
         mined: true,
         createdAt: new Date(timestamp * 1000),
       };
 
       const { cutoff } = symbolDecimalsMap[token.symbol];
-      model.lessThanCutoff = cutoff.gt(model.amountRemaining);
+      model.lessThanCutoff = cutoff.gt(new BigNumber(model.amountRemaining));
 
       const donation = new donationModel(model);
 
       await donationUsdValueUtility.setDonationUsdValue(donation);
       await donation.save();
+      report.createdDonations ++;
 
       const _id = donation._id.toString();
       expectedToDonation._id = _id;
@@ -782,7 +803,7 @@ const handleToDonations = async ({
         `donation created: ${JSON.stringify(
           {
             ...expectedToDonation,
-            amountRemaining: expectedToDonation.amountRemaining.toFixed(),
+            amountRemaining: new BigNumber(expectedToDonation.amountRemaining).toFixed(),
           },
           null,
           2,
@@ -793,7 +814,7 @@ const handleToDonations = async ({
         `this donation should be created: ${JSON.stringify(
           {
             ...expectedToDonation,
-            amountRemaining: expectedToDonation.amountRemaining.toFixed(),
+            amountRemaining: new BigNumber(expectedToDonation.amountRemaining).toFixed(),
           },
           null,
           2,
@@ -836,8 +857,9 @@ const handleToDonations = async ({
         toDonation.parentDonations = usedFromDonations;
         await donationModel.update(
           { _id: toDonation._id },
-          { parentDonations: usedFromDonations },
+          { parentDonations: usedFromDonations }
         );
+
       }
     }
 
@@ -856,13 +878,14 @@ const handleToDonations = async ({
       );
       logger.debug('Updating...');
       await donationModel.updateOne({ _id: toDonation._id }, { usdValue: toDonation.usdValue });
+
     }
 
     toDonation.txHash = transactionHash;
     toDonation.from = from;
     toDonation.pledgeId = to;
     toDonation.pledgeState = toPledge.pledgeState;
-    toDonation.amountRemaining = new BigNumber(amount);
+    toDonation.amountRemaining = amount;
 
     addChargedDonation(toDonation);
 
@@ -870,7 +893,7 @@ const handleToDonations = async ({
       `Amount added to ${JSON.stringify(
         {
           _id: toDonation._id,
-          amountRemaining: toDonation.amountRemaining.toFixed(),
+          amountRemaining: toDonation.amountRemaining,
           amount: toDonation.amount,
           status: toDonation.status,
         },
@@ -888,7 +911,7 @@ const revertProjectDonations = async projectId => {
 
   for (let i = 0; i < values.length; i += 1) {
     const donation: any = values[i];
-    if (!donation.amountRemaining.isZero() && !revertExceptionStatus.includes(donation.status)) {
+    if (!new BigNumber(donation.amountRemaining).isZero() && !revertExceptionStatus.includes(donation.status)) {
       donation.status = DonationStatus.CANCELED;
     }
 
@@ -950,6 +973,7 @@ const fixConflictInDonations = unusedDonationMap => {
         if (fixConflicts) {
           logger.debug('Deleting...');
           promises.push(donationModel.findOneAndDelete({ _id }));
+
         }
       } else {
         if (savedAmountRemaining && amountRemaining !== savedAmountRemaining) {
@@ -1073,22 +1097,23 @@ const syncDonationsWithNetwork = async () => {
   progressBar.update(events.length);
   progressBar.stop();
   const spentTime = (new Date().getTime() - startTime.getTime()) / 1000;
+  report.syncDonationsSpentTime ++;
   console.log(`events donations synced end.\n spentTime :${spentTime} seconds`);
 
   // Find conflicts in donations and pledges!
   Object.keys(chargedDonationListMap).forEach(pledgeId => {
     const list = chargedDonationListMap[pledgeId];
     const reducer = (totalAmountRemaining, chargedDonation) => {
-      return totalAmountRemaining.plus(chargedDonation.amountRemaining);
+      return new BigNumber(totalAmountRemaining).plus(new BigNumber(chargedDonation.amountRemaining));
     };
-    const totalAmountRemaining = list.reduce(reducer, new BigNumber(0));
+    const totalAmountRemaining = list.reduce(reducer, new BigNumber(0)).toFixed();
     const { amount: pledgeAmount, owner, oldPledge, pledgeState } = pledges[Number(pledgeId)];
     const admin = admins[Number(owner)];
     const { isCanceled, canceled } = admin;
 
-    if (!totalAmountRemaining.eq(pledgeAmount)) {
+    if (totalAmountRemaining !== pledgeAmount) {
       logger.error(
-        `Pledge ${pledgeId} amount ${pledgeAmount} does not equal total amount remaining ${totalAmountRemaining.toFixed()}`,
+        `Pledge ${pledgeId} amount ${pledgeAmount} does not equal total amount remaining ${totalAmountRemaining}`,
       );
       logger.debug(
         JSON.stringify(
@@ -1197,8 +1222,10 @@ const syncPledgeAdmins = async () => {
           transactionHash,
           getMilestoneDataForCreate,
         });
+        report.createdMilestones++;
       } else if (!entity && isCampaign) {
         entity = await createCampaignForPledgeAdmin({ project, idProject, transactionHash, getCampaignDataForCreate });
+        report.createdCampaigns++;
       }
       if (!entity) {
         continue;
@@ -1214,6 +1241,7 @@ const syncPledgeAdmins = async () => {
         typeId: entity._id.toString(),
       });
       const result = await newPledgeAdmin.save();
+      report.createdPledgeAdmins++;
       logger.info('pledgeAdmin saved', result);
     } catch (e) {
       logger.error('error in creating pledgeAdmin', e);
@@ -1222,8 +1250,65 @@ const syncPledgeAdmins = async () => {
   progressBar.update(events.length);
   progressBar.stop();
   const spentTime = (new Date().getTime() - startTime.getTime()) / 1000;
+  report.syncProjectsSpentTime = spentTime;
   console.log(`pledgeAdmin events synced end.\n spentTime :${spentTime} seconds`);
 };
+
+
+const syncDacs = async () => {
+  console.log('syncDacs called', { fixConflicts });
+  if (!fixConflicts) return;
+  const {
+    getDacDataForCreate,
+  } = await createProjectHelper({
+    web3: foreignWeb3,
+    liquidPledging,
+    kernel: await getKernel(),
+    AppProxyUpgradeable,
+  });
+
+  const startTime = new Date();
+  const progressBar = createProgressBar({ title: 'Syncing Dacs with events' });
+  progressBar.start(events.length, 0);
+  for (let i = 0; i < events.length; i += 1) {
+    progressBar.update(i);
+    try {
+      const { event, transactionHash, returnValues } = events[i];
+      if (event !== 'DelegateAdded') continue;
+      const { idDelegate } = returnValues;
+      const pledgeAdmin = await pledgeAdminModel.findOne({ id: Number(idDelegate) });
+      if (pledgeAdmin) {
+        continue;
+      }
+      const { from, blockNumber } = await getTransaction(foreignWeb3, transactionHash);
+      const delegateId = idDelegate;
+      let dac = await dacModel.findOne({ delegateId});
+      if (!dac) {
+        const dacData = await getDacDataForCreate({
+          from,
+          txHash: transactionHash,
+          delegateId,
+          blockNumber
+        });
+        dac = await new dacModel(dacData).save();
+        report.createdDacs++;
+        logger.info('created dac ', dac);
+      }
+      await new pledgeAdminModel(
+        { id: Number(delegateId), type: 'dac', typeId: dac._id }).save();
+      report.createdPledgeAdmins++;
+
+    } catch (e) {
+      logger.error('error in creating dac', e);
+    }
+  }
+  progressBar.update(events.length);
+  progressBar.stop();
+  const spentTime = (new Date().getTime() - startTime.getTime()) / 1000;
+  report.syncDelegatesSpentTime = spentTime;
+  console.log(`dac/delegate events synced end.\n spentTime :${spentTime} seconds`);
+};
+
 
 const main = async () => {
   try {
@@ -1245,8 +1330,11 @@ const main = async () => {
 
     db.once('open', async () => {
       logger.info('Connected to Mongo');
+      await syncDacs();
       await syncPledgeAdmins();
       await syncDonationsWithNetwork();
+      report.processedEvents = events.length;
+      console.log('report summery', report);
       terminateScript(null, 0);
     });
   } catch (e) {
