@@ -38,6 +38,7 @@ import { dacModel, DacStatus } from './models/dacs.model';
 import { getTransaction } from './utils/web3Helpers';
 import { transactionModel } from './models/transactions.model';
 import { sendReportEmail } from './utils/emailService';
+import { getAdminBatch, getPledgeBatch } from './utils/liquidPledgingHelper';
 
 const report = {
   syncDelegatesSpentTime: 0,
@@ -49,7 +50,10 @@ const report = {
   createdDonations: 0,
   createdPledgeAdmins: 0,
   processedEvents: 0,
-  correctFailedDonations :0,
+  correctFailedDonations: 0,
+  fetchedNewEventsCount: 0,
+  fetchedNewPledgeAdminCount: 0,
+  fetchedNewPledgeCount: 0,
 };
 
 
@@ -191,103 +195,114 @@ const fetchBlockchainData = async () => {
     if (!fs.existsSync(cacheDir)) {
       fs.mkdirSync(cacheDir);
     }
+    const stateFile = path.join(cacheDir, `./liquidPledgingState_${process.env.NODE_ENV}.json`);
+    const eventsFile = path.join(cacheDir, `./liquidPledgingEvents_${process.env.NODE_ENV}.json`);
+
+    let state: {
+      pledges: PledgeInterface[],
+      admins: AdminInterface [],
+    } = <{
+      pledges: PledgeInterface[],
+      admins: AdminInterface [],
+    }>{
+      pledges: [null],
+      admins: [null],
+    };
+    if (fs.existsSync(stateFile)){
+      state = JSON.parse(String(fs.readFileSync(stateFile)))
+    }
+    events = fs.existsSync(eventsFile) ? JSON.parse(String(fs.readFileSync(eventsFile))) : [];
+
+    if (updateState || updateEvents) {
+      let fromBlock = 0;
+      let fetchBlockNum: string | number = 'latest';
+      if (updateEvents) {
+        fromBlock = events.length > 0 ? events[events.length - 1].blockNumber + 1 : 0;
+        fetchBlockNum =
+          (await foreignWeb3.eth.getBlockNumber()) - config.blockchain.requiredConfirmations;
+      }
+
+      const fromPledgeIndex = state.pledges.length > 1 ? state.pledges.length : 1;
+      const fromPledgeAdminIndex = state.admins.length > 1 ? state.admins.length : 1;
+
+      let newEvents = [];
+      let newPledges = [];
+      let newAdmins = [];
+      let dataFetched = false;
+      let firstTry = true;
+      while (
+        !dataFetched
+        // error ||
+        // state.pledges.length <= 1 ||
+        // state.admins.length <= 1
+        ) {
+        if (!firstTry) {
+          logger.error('Some problem on fetching network info... Trying again!');
+          if (!Array.isArray(state.pledges) || state.pledges.length <= 1) {
+            logger.debug(`state.pledges: ${state.pledges}`);
+          }
+          if (!Array.isArray(state.admins) || state.admins.length <= 1) {
+            logger.debug(`state.admins: ${state.admins}`);
+          }
+        }
+        let [error, result] = await toFn(
+          Promise.all([
+            updateState ? getPledgeBatch(liquidPledging, fromPledgeIndex) : Promise.resolve(state.pledges),
+            updateState ? getAdminBatch(liquidPledging, fromPledgeAdminIndex) : Promise.resolve(state.admins),
+            updateEvents
+              ? liquidPledging.$contract.getPastEvents('allEvents', {
+                fromBlock,
+                toBlock: fetchBlockNum,
+              })
+              : Promise.resolve([]),
+          ]),
+        );
+        if (result) {
+          [newPledges, newAdmins, newEvents] = result;
+          dataFetched = true;
+        }
+
+        report.fetchedNewEventsCount = newEvents.length;
+        report.fetchedNewPledgeCount = newPledges.length;
+        report.fetchedNewPledgeAdminCount = newAdmins.length;
+
+        if (error && error instanceof Error) {
+          logger.error(`Error on fetching network info\n${error.stack}`);
+        }
+        firstTry = false;
+      }
+
+
+      if (updateState) {
+        state.pledges = [...state.pledges, ...newPledges];
+        state.admins = [...state.admins, ...newAdmins];
+        fs.writeFileSync(stateFile, JSON.stringify(state, null, 2));
+      }
+      if (updateEvents && newEvents) {
+        events = [...events, ...newEvents];
+        fs.writeFileSync(eventsFile, JSON.stringify(events, null, 2));
+      }
+    }
+
+    events.forEach(e => {
+      if (e.event === 'Transfer') {
+        const { transactionHash } = e;
+        const list: EventInterface[] = txHashTransferEventMap[transactionHash] || [];
+        if (list.length === 0) {
+          txHashTransferEventMap[transactionHash] = list;
+        }
+        list.push(e);
+      }
+    });
+
+    pledges = state.pledges;
+    admins = state.admins;
   } catch (e) {
+    logger.error('fetchBlockchainData error', e);
+    console.error('fetchBlockchainData error', e);
     terminateScript(e.stack);
   }
-  const stateFile = path.join(cacheDir, `./liquidPledgingState_${process.env.NODE_ENV}.json`);
-  const eventsFile = path.join(cacheDir, `./liquidPledgingEvents_${process.env.NODE_ENV}.json`);
 
-  let state: {
-    pledges: PledgeInterface[],
-    admins: AdminInterface [],
-  } = <{
-    pledges: PledgeInterface[],
-    admins: AdminInterface [],
-  }>{};
-
-  if (!updateState) {
-    state = fs.existsSync(stateFile) ? JSON.parse(String(fs.readFileSync(stateFile))) : {};
-  }
-  events = fs.existsSync(eventsFile) ? JSON.parse(String(fs.readFileSync(eventsFile))) : [];
-
-  if (updateState || updateEvents) {
-    let fromBlock = 0;
-    let fetchBlockNum: string | number = 'latest';
-    if (updateEvents) {
-      fromBlock = events.length > 0 ? events[events.length - 1].blockNumber + 1 : 0;
-      fetchBlockNum =
-        (await foreignWeb3.eth.getBlockNumber()) - config.blockchain.requiredConfirmations;
-    }
-
-    const liquidPledgingState = new LiquidPledgingState(liquidPledging);
-
-    let newEvents = [];
-    let error = null;
-    let firstTry = true;
-    while (
-      error ||
-      !Array.isArray(state.pledges) ||
-      state.pledges.length <= 1 ||
-      !Array.isArray(state.admins) ||
-      state.admins.length <= 1 ||
-      !Array.isArray(newEvents)
-      ) {
-      if (!firstTry) {
-        logger.error('Some problem on fetching network info... Trying again!');
-        if (!Array.isArray(state.pledges) || state.pledges.length <= 1) {
-          logger.debug(`state.pledges: ${state.pledges}`);
-        }
-        if (!Array.isArray(state.admins) || state.admins.length <= 1) {
-          logger.debug(`state.admins: ${state.admins}`);
-        }
-      }
-      let result;
-      // eslint-disable-next-line no-await-in-loop
-      [error, result] = await toFn(
-        Promise.all([
-          updateState ? liquidPledgingState.getState() : Promise.resolve(state),
-          updateEvents
-            ? liquidPledging.$contract.getPastEvents('allEvents', {
-              fromBlock,
-              toBlock: fetchBlockNum,
-            })
-            : Promise.resolve([]),
-        ]),
-      );
-      if (result) [state, newEvents] = result;
-      if (error && error instanceof Error) {
-        logger.error(`Error on fetching network info\n${error.stack}`);
-      }
-      firstTry = false;
-    }
-
-    state.pledges = state.pledges.map(pledge => {
-      // the first Item of pledge is always null so I have to check
-      if (pledge) {
-        delete pledge.amount;
-      }
-      return pledge;
-    });
-    if (updateState) fs.writeFileSync(stateFile, JSON.stringify(state, null, 2));
-    if (updateEvents && newEvents) {
-      events = [...events, ...newEvents];
-      fs.writeFileSync(eventsFile, JSON.stringify(events, null, 2));
-    }
-  }
-
-  events.forEach(e => {
-    if (e.event === 'Transfer') {
-      const { transactionHash } = e;
-      const list: EventInterface[] = txHashTransferEventMap[transactionHash] || [];
-      if (list.length === 0) {
-        txHashTransferEventMap[transactionHash] = list;
-      }
-      list.push(e);
-    }
-  });
-
-  pledges = state.pledges;
-  admins = state.admins;
 };
 
 // Update createdAt date of donations based on transaction date
@@ -314,7 +329,7 @@ const updateDonationsCreatedDate = async (startDate: Date) => {
       const [d] = await donationModel.find({ _id });
       d.createdAt = newCreatedAt;
       await d.save();
-      report.createdDonations ++;
+      report.createdDonations++;
     }
   }
 
@@ -451,31 +466,8 @@ const addChargedDonation = (donation: DonationMongooseDocument) => {
 };
 
 async function correctFailedDonation(failedDonationList, matchingFailedDonationIndex, toPledge, toOwnerAdmin, to: string, toUnusedDonationList, candidateToDonationList) {
-  const toFixDonation = failedDonationList[matchingFailedDonationIndex];
-  logger.error(`Donation ${toFixDonation._id} hasn't failed, it should be updated`);
 
-  // Remove from failed donations
-  failedDonationList.splice(matchingFailedDonationIndex, 1);
-
-  toFixDonation.status = convertPledgeStateToStatus(toPledge, toOwnerAdmin);
-  toFixDonation.pledgeId = to;
-  toFixDonation.mined = true;
-  toUnusedDonationList.push(toFixDonation);
-
-  candidateToDonationList = [toFixDonation];
-
-  logger.debug('Will update to:');
-  logger.debug(JSON.stringify(toFixDonation, null, 2));
-
-  if (fixConflicts) {
-    logger.debug('Updating...');
-    await donationModel.updateOne(
-      { _id: toFixDonation._id },
-      { status: toFixDonation.status, pledgeId: to },
-    );
-    report.correctFailedDonations ++
-  }
-  return candidateToDonationList;
+  return {candidateToDonationList , failedDonationList};
 }
 
 const handleFromDonations = async (from: string, to: string,
@@ -487,9 +479,7 @@ const handleFromDonations = async (from: string, to: string,
 
   const toPledge = pledges[Number(to)];
   const toOwnerId = toPledge.owner;
-
   const toOwnerAdmin = admins[Number(toOwnerId)];
-
   if (from !== '0') {
     const candidateChargedParents = chargedDonationListMap[from] || [];
 
@@ -519,7 +509,28 @@ const handleFromDonations = async (from: string, to: string,
 
       // A matching failed donation found, it's not failed and should be updated with correct value
       if (matchingFailedDonationIndex !== -1) {
-        candidateToDonationList = await correctFailedDonation(failedDonationList, matchingFailedDonationIndex, toPledge, toOwnerAdmin, to, toUnusedDonationList, candidateToDonationList);
+        const toFixDonation = failedDonationList[matchingFailedDonationIndex];
+        logger.error(`Donation ${toFixDonation._id} hasn't failed, it should be updated`);
+
+        // Remove from failed donations
+        failedDonationList.splice(matchingFailedDonationIndex, 1);
+
+        toFixDonation.status = convertPledgeStateToStatus(toPledge, toOwnerAdmin);
+        toFixDonation.pledgeId = to;
+        toFixDonation.mined = true;
+        toUnusedDonationList.push(toFixDonation);
+        candidateToDonationList = [toFixDonation];
+        logger.debug('Will update to:');
+        logger.debug(JSON.stringify(toFixDonation, null, 2));
+
+        if (fixConflicts) {
+          logger.debug('Updating...');
+          await donationModel.updateOne(
+            { _id: toFixDonation._id },
+            { status: toFixDonation.status, pledgeId: to },
+          );
+          report.correctFailedDonations++;
+        }
       }
     }
 
@@ -704,7 +715,7 @@ const handleToDonations = async ({
           typeId: toOwnerAdmin.addr,
         });
         await toPledgeAdmin.save();
-        report.createdPledgeAdmins ++;
+        report.createdPledgeAdmins++;
         logger.info(`pledgeAdmin crated: ${toPledgeAdmin._id.toString()}`);
       }
 
@@ -794,7 +805,7 @@ const handleToDonations = async ({
 
       await donationUsdValueUtility.setDonationUsdValue(donation);
       await donation.save();
-      report.createdDonations ++;
+      report.createdDonations++;
 
       const _id = donation._id.toString();
       expectedToDonation._id = _id;
@@ -858,7 +869,7 @@ const handleToDonations = async ({
         toDonation.parentDonations = usedFromDonations;
         await donationModel.update(
           { _id: toDonation._id },
-          { parentDonations: usedFromDonations }
+          { parentDonations: usedFromDonations },
         );
 
       }
@@ -1283,13 +1294,13 @@ const syncDacs = async () => {
       }
       const { from, blockNumber } = await getTransaction(foreignWeb3, transactionHash);
       const delegateId = idDelegate;
-      let dac = await dacModel.findOne({ delegateId});
+      let dac = await dacModel.findOne({ delegateId });
       if (!dac) {
         const dacData = await getDacDataForCreate({
           from,
           txHash: transactionHash,
           delegateId,
-          blockNumber
+          blockNumber,
         });
         dac = await new dacModel(dacData).save();
         report.createdDacs++;
@@ -1331,13 +1342,18 @@ const main = async () => {
 
     db.once('open', async () => {
       logger.info('Connected to Mongo');
-      await syncDacs();
-      await syncPledgeAdmins();
-      await syncDonationsWithNetwork();
-      report.processedEvents = events.length;
-      await sendReportEmail(report)
-      console.log('report summery', report);
-      terminateScript(null, 0);
+      try {
+        await syncDacs();
+        await syncPledgeAdmins();
+        await syncDonationsWithNetwork();
+        report.processedEvents = events.length;
+        // await sendReportEmail(report);
+        console.table(report);
+        terminateScript(null, 0);
+      } catch (e) {
+        console.log('error syncing ... ', e)
+      }
+
     });
   } catch (e) {
     logger.error(e);

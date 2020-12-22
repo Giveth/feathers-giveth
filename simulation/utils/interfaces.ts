@@ -102,4 +102,7 @@ export interface ReportInterface {
   createdPledgeAdmins: number,
   processedEvents: number,
   correctFailedDonations: number,
+  fetchedNewPledgeCount: number,
+  fetchedNewPledgeAdminCount: number,
+  fetchedNewEventsCount: number,
 }

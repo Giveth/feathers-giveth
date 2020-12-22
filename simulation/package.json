@@ -4,13 +4,17 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "findConflicts": "NODE_ENV=simulation ./node_modules/.bin/ts-node findConflicts.ts --update-network-cache  --log-dir simulation-script-data/log --cache-dir simulation-script-data/cache"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
     "@types/mongoose": "^5.10.3",
     "@types/node": "^14.14.14",
-    "@types/web3": "^1.2.2"
+    "@types/web3": "^1.2.2",
+    "config": "^3.3.3",
+    "ts-node": "^9.1.1",
+    "typescript": "^4.1.3"
   }
 }
