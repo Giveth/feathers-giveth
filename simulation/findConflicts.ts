@@ -23,7 +23,7 @@ import * as _colors from 'colors';
 const { LiquidPledging, LiquidPledgingState } = require('giveth-liquidpledging');
 const { Kernel, AppProxyUpgradeable } = require('giveth-liquidpledging/build/contracts');
 const EventEmitter = require('events');
-const toFn = require('../src/utils/to');
+import {toFn} from './utils/to'
 import { DonationUsdValueUtility } from './DonationUsdValueUtility';
 import { getTokenByAddress } from './utils/tokenUtility';
 import { createProjectHelper } from './utils/createProjectHelper';
