@@ -56,12 +56,14 @@ module.exports = function csv() {
 
   const csvService = async (req, res, next) => {
     const { campaign } = req;
-    const { id } = campaign;
+    const id = campaign._id.toString();
     res.type('csv');
     res.setHeader('Content-disposition', `attachment; filename=${id}.csv`);
-
     const { eventsStream, milestones, pledgeIds, canceledPledgeIds } = await getData(campaign);
     const chunks = [];
+    const writeToCache = () => {
+      MemoryCache.put(id, { updatedAt: campaign.updatedAt, body: chunks.join('') });
+    };
     eventsStream
       .on('error', next)
       .pipe(newEventTransform({ campaign, milestones, pledgeIds, canceledPledgeIds }))
@@ -72,16 +74,16 @@ module.exports = function csv() {
         chunks.push(chunk);
       })
       .on('finish', () => {
-        res.send(chunks.join(''));
-      });
+        writeToCache();
+      })
+      .pipe(res);
   };
-
-  const cacheListeners = {};
 
   const cacheMiddleWare = (req, res, next) => {
     const { error, campaign } = res.data;
 
     const { _id, updatedAt } = campaign;
+    req.campaign = campaign;
     const id = _id.toString();
     if (error) {
       res.status(error).end();
@@ -96,27 +98,6 @@ module.exports = function csv() {
       res.send(value.body);
       return;
     }
-
-    if (cacheListeners[id]) {
-      cacheListeners[id].push(body => {
-        res.type('csv');
-        res.setHeader('Content-disposition', `attachment; filename=${id}.csv`);
-        res.send(body);
-      });
-      return;
-    }
-    cacheListeners[id] = [];
-
-    res.sendResponse = res.send;
-    res.send = body => {
-      MemoryCache.put(id, { updatedAt, body });
-      res.sendResponse(body);
-      cacheListeners[id].forEach(cb => cb(body));
-      delete cacheListeners[id];
-      res.end();
-    };
-
-    req.campaign = campaign;
 
     next();
   };
