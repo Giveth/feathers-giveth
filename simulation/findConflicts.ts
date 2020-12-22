@@ -37,6 +37,7 @@ import { getLogger } from './utils/logger';
 import { dacModel, DacStatus } from './models/dacs.model';
 import { getTransaction } from './utils/web3Helpers';
 import { transactionModel } from './models/transactions.model';
+import { sendReportEmail } from './utils/emailService';
 
 const report = {
   syncDelegatesSpentTime: 0,
@@ -1097,7 +1098,7 @@ const syncDonationsWithNetwork = async () => {
   progressBar.update(events.length);
   progressBar.stop();
   const spentTime = (new Date().getTime() - startTime.getTime()) / 1000;
-  report.syncDonationsSpentTime ++;
+  report.syncDonationsSpentTime = spentTime;
   console.log(`events donations synced end.\n spentTime :${spentTime} seconds`);
 
   // Find conflicts in donations and pledges!
@@ -1334,6 +1335,7 @@ const main = async () => {
       await syncPledgeAdmins();
       await syncDonationsWithNetwork();
       report.processedEvents = events.length;
+      await sendReportEmail(report)
       console.log('report summery', report);
       terminateScript(null, 0);
     });

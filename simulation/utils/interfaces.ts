@@ -23,19 +23,19 @@ export interface EventInterface {
   // removed: boolean,
   id?: string,
   returnValues: EventReturnValues,
-  event:string,
+  event: string,
 }
 
 
 export interface PledgeInterface {
-  delegates:{id:string} [],
+  delegates: { id: string } [],
   owner: string,
   token: string,
   intendedProject: string,
   commmitTime: string,
   oldPledge: string,
   pledgeState: string,
-  amount?:string
+  amount?: string
 }
 
 export interface AdminInterface {
@@ -45,25 +45,25 @@ export interface AdminInterface {
   url: string,
   commitTime: string,
   plugin: string
-  parentProject:string,
-  canceled:boolean,
+  parentProject: string,
+  canceled: boolean,
 
-  isCanceled ?:boolean,
+  isCanceled?: boolean,
 
 }
 
 export interface DelegateInfoInterface {
-  delegateId:string,
-  delegateTypeId:string,
-  delegateType:string,
-  intendedProjectType:string,
-  intendedProjectTypeId:string,
-  intendedProjectId:string,
+  delegateId: string,
+  delegateTypeId: string,
+  delegateType: string,
+  intendedProjectType: string,
+  intendedProjectTypeId: string,
+  intendedProjectId: string,
 }
 
 
 export interface extendedDonation extends DonationMongooseDocument {
-  savedStatus ?: string,
+  savedStatus?: string,
   savedAmountRemaining?: string,
 }
 
@@ -77,16 +77,29 @@ export interface DonationObjectInterface {
 }
 
 export interface TransferInfoInterface {
-  fromPledge:PledgeInterface,
-  fromPledgeAdmin:PledgeAdminMongooseDocument,
-  toPledgeId:string,
-  txHash:string,
-  fromPledgeId :string
+  fromPledge: PledgeInterface,
+  fromPledgeAdmin: PledgeAdminMongooseDocument,
+  toPledgeId: string,
+  txHash: string,
+  fromPledgeId: string
 }
 
 export interface ProjectInterface {
-  plugin :string,
-  url:string,
-  name:string,
-  commitTime:string
+  plugin: string,
+  url: string,
+  name: string,
+  commitTime: string
+}
+
+export interface ReportInterface {
+  syncDelegatesSpentTime: number,
+  syncProjectsSpentTime: number,
+  syncDonationsSpentTime: number,
+  createdDacs: number,
+  createdCampaigns: number,
+  createdMilestones: number,
+  createdDonations: number,
+  createdPledgeAdmins: number,
+  processedEvents: number,
+  correctFailedDonations: number,
 }
