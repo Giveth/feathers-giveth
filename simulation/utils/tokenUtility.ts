@@ -33,3 +33,7 @@ export function getTokenByForeignAddress(foreignAddress:string) {
   }
   return tokensByForeignAddress[foreignAddress];
 }
+
+export function getTokenSymbolByAddress(address:string):string{
+  return address &&  getTokenByAddress(address) && getTokenByAddress(address).symbol
+}
