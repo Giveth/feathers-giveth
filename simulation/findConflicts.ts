@@ -29,17 +29,19 @@ import { getTokenByAddress, getTokenSymbolByAddress } from './utils/tokenUtility
 import { createProjectHelper } from './utils/createProjectHelper';
 import { converionRateModel } from './models/conversionRates.model';
 import { donationModel, DonationMongooseDocument, DonationStatus } from './models/donations.model';
-import { milestoneModel, MilestoneStatus } from './models/milestones.model';
+import { milestoneModel, MilestoneMongooseDocument, MilestoneStatus } from './models/milestones.model';
 import { campaignModel, CampaignStatus } from './models/campaigns.model';
 import { pledgeAdminModel, AdminTypes, PledgeAdminMongooseDocument } from './models/pledgeAdmins.model';
 import { Logger } from 'winston';
 import { getLogger } from './utils/logger';
 import { dacModel, DacStatus } from './models/dacs.model';
-import { ANY_TOKEN, getTransaction } from './utils/web3Helpers';
+import { ANY_TOKEN, getTransaction, ZERO_ADDRESS } from './utils/web3Helpers';
 import { transactionModel } from './models/transactions.model';
 import { sendReportEmail } from './utils/emailService';
 import { getAdminBatch, getPledgeBatch } from './utils/liquidPledgingHelper';
 import { toBN } from 'web3-utils';
+import * as Events from 'events';
+import { eventModel, EventStatus } from './models/events.model';
 const _groupBy = require('lodash.groupby');
 
 const report = {
@@ -179,7 +181,7 @@ const createProgressBar = ({ title }) => {
   return new cliProgress.SingleBar({
     format: `${title} |${_colors.cyan(
       '{bar}',
-    )}| {percentage}% || {value}/{total} events`,
+    )}| {percentage}% || {value}/{total}`,
     barCompleteChar: '\u2588',
     barIncompleteChar: '\u2591',
     hideCursor: true,
@@ -299,6 +301,8 @@ const fetchBlockchainData = async () => {
 
     pledges = state.pledges;
     admins = state.admins;
+    report.processedEvents = events.length;
+
   } catch (e) {
     logger.error('fetchBlockchainData error', e);
     console.error('fetchBlockchainData error', e);
@@ -481,7 +485,7 @@ export const updateEntity = async (model, type) => {
       token.foreignAddress !== ANY_TOKEN.foreignAddress &&
       maxAmount &&
       foundDonationCounter &&
-      maxAmount
+      toBN(maxAmount)
         .sub(foundDonationCounter.totalDonated)
         .lt(toBN(10 ** (18 - Number(token.decimals))))
     ); // Difference less than this number is negligible
@@ -490,7 +494,7 @@ export const updateEntity = async (model, type) => {
       (fullyFunded === true || entity.fullyFunded !== undefined) &&
       entity.fullyFunded !== fullyFunded && foundDonationCounter
     ) {
-      message += `Diff: ${entity.maxAmount.sub(foundDonationCounter.totalDonated)}\n`;
+      message += `Diff: ${toBN(entity.maxAmount).sub(foundDonationCounter.totalDonated)}\n`;
       message += `${typeName} ${entity._id.toString()} (${
         entity.status
       }) fullyFunded status changed from ${entity.fullyFunded} to ${fullyFunded}\n`;
@@ -511,7 +515,7 @@ export const updateEntity = async (model, type) => {
     }
 
     if (shouldUpdateEntity) {
-      console.log(`----------------------------\n${message}\nUpdating...`);
+      logger.debug(`----------------------------\n${message}\nUpdating...`);
       await model.findOneAndUpdate({ _id: entity._id }, mutations);
     }
 
@@ -1385,7 +1389,7 @@ const createMilestoneForPledgeAdmin = async ({
   });
   return new milestoneModel({
     ...createMilestoneData,
-    status: MilestoneStatus.CANCELED,
+    status: MilestoneStatus.PENDING,
     campaignId: campaign._id,
   }).save();
 };
@@ -1540,6 +1544,59 @@ const syncDacs = async () => {
 };
 
 
+const getExpectedStatus = (events:EventInterface[], milestone:MilestoneMongooseDocument) => {
+  const eventToStatus = {
+    ApproveCompleted: MilestoneStatus.COMPLETED,
+    CancelProject: MilestoneStatus.CANCELED,
+    MilestoneCompleteRequestApproved: MilestoneStatus.COMPLETED,
+    MilestoneCompleteRequestRejected: MilestoneStatus.IN_PROGRESS,
+    MilestoneCompleteRequested: MilestoneStatus.NEEDS_REVIEW,
+    // "PaymentCollected", // expected status depends on milestone
+    ProjectAdded: MilestoneStatus.IN_PROGRESS,
+    // "ProjectUpdated", // Does not affect milestone status
+    // "RecipientChanged", // Does not affect milestone status
+    RejectCompleted: MilestoneStatus.REJECTED,
+    RequestReview: MilestoneStatus.NEEDS_REVIEW,
+  };
+
+  const lastEvent = events.pop();
+  if (lastEvent.event === 'PaymentCollected') {
+    const { maxAmount, donationCounters, fullyFunded, reviewerAddress } = milestone;
+    const hasReviewer = reviewerAddress && reviewerAddress !== ZERO_ADDRESS;
+    if (
+      maxAmount &&
+      (fullyFunded || hasReviewer) &&
+      donationCounters[0].currentBalance.toString() === '0'
+    ) {
+      return MilestoneStatus.PAID;
+    }
+    return getExpectedStatus(events, milestone);
+  }
+  return eventToStatus[lastEvent.event];
+};
+
+const updateMilestonesFinalStatus = async () => {
+  const milestones = await milestoneModel.find({ projectId: { $gt: 0 } });
+  const progressBar = createProgressBar({title :'Updating milestone status'});
+  progressBar.start(milestones.length)
+  for (const milestone of milestones){
+    progressBar.increment();
+    const matchedEvents = events.filter(event => event.returnValues && event.returnValues.idProject === String(milestone.projectId) )
+    const { status, projectId } = milestone;
+    if ([MilestoneStatus.ARCHIVED, MilestoneStatus.CANCELED].includes(status)) return;
+
+    let message = '';
+    message += `Project ID: ${projectId}\n`;
+    message += `Events: ${events.toString()}\n`;
+    const expectedStatus = getExpectedStatus(matchedEvents, milestone);
+    await milestoneModel.updateOne({ _id :milestone._id}, { status: expectedStatus, mined:true });
+  }
+  progressBar.update(milestones.length);
+  progressBar.stop();
+  console.log("Updating milestone status ends.")
+};
+
+
 const main = async () => {
   try {
     await fetchBlockchainData();
@@ -1567,7 +1624,8 @@ const main = async () => {
         await updateEntity(dacModel, AdminTypes.DAC);
         await updateEntity(campaignModel, AdminTypes.CAMPAIGN);
         await updateEntity(milestoneModel, AdminTypes.MILESTONE);
-        report.processedEvents = events.length;
+        await updateMilestonesFinalStatus();
+
         // await sendReportEmail(report);
         console.table(report);
         terminateScript(null, 0);

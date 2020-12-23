@@ -4,6 +4,7 @@
  * @param {string} hex
  */
 import { transactionModel } from '../models/transactions.model';
+export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 export const removeHexPrefix = hex => {
   if (hex && typeof hex === 'string' && hex.toLowerCase().startsWith('0x')) {

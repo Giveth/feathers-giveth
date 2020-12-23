@@ -27,9 +27,15 @@ export const MilestoneTypes = {
 };
 
 
-interface MilestoneMongooseDocument extends  Document {
+export interface MilestoneMongooseDocument extends  Document {
   title:string,
-  status:string
+  status:string,
+  projectId:number,
+  donationCounters:any,
+  reviewerAddress:string,
+  maxAmount:string,
+  fullyFunded:boolean,
+
 }
 
 const milestone = new Schema(
