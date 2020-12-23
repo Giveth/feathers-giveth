@@ -41,7 +41,7 @@ import { sendReportEmail } from './utils/emailService';
 import { getAdminBatch, getPledgeBatch } from './utils/liquidPledgingHelper';
 import { toBN } from 'web3-utils';
 import * as Events from 'events';
-import { eventModel, EventStatus } from './models/events.model';
+
 const _groupBy = require('lodash.groupby');
 
 const report = {
@@ -349,11 +349,11 @@ export const updateEntity = async (model, type) => {
 
   const entities = await model.find({});
   const progressBar = createProgressBar({
-    title : `Syncing donationCounter for ${type}`
-  })
-  progressBar.start(entities.length)
-  for(const entity of entities){
-    progressBar.increment()
+    title: `Syncing donationCounter for ${type}`,
+  });
+  progressBar.start(entities.length);
+  for (const entity of entities) {
+    progressBar.increment();
     const oldDonationCounters = entity.donationCounters;
     const query = { ...donationQuery };
     query[idFieldName] = entity._id;
@@ -423,7 +423,7 @@ export const updateEntity = async (model, type) => {
     });
 
     let shouldUpdateEntity = false;
-    const mutations:any = {};
+    const mutations: any = {};
     let message = '';
 
     const typeName = type[0].toUpperCase() + type.slice(1);
@@ -522,7 +522,7 @@ export const updateEntity = async (model, type) => {
   }
   progressBar.update(entities.length);
   progressBar.stop();
-  console.log(`Syncing donationCounter for ${type} ends.`)
+  console.log(`Syncing donationCounter for ${type} ends.`);
 
 };
 
@@ -1412,6 +1412,67 @@ const syncPledgeAdmin = async () => {
 // Creates PledgeAdmins entity for a project entity
 // Requires corresponding project entity has been saved holding correct value of txHash
 // eslint-disable-next-line no-unused-vars
+
+const createOnePledgeAdmins = async (options:
+                                       {
+                                         getMilestoneTypeByProjectId,
+                                         getMilestoneDataForCreate,
+                                         getCampaignDataForCreate,
+                                         event: string,
+                                         transactionHash: string,
+                                         returnValues: {
+                                           idProject: string
+                                         }
+                                       }) => {
+  const {
+    event, transactionHash, returnValues, getCampaignDataForCreate,
+    getMilestoneTypeByProjectId, getMilestoneDataForCreate,
+  } = options;
+  if (event !== 'ProjectAdded') return;
+  const { idProject } = returnValues;
+  const pledgeAdmin = await pledgeAdminModel.findOne({ id: Number(idProject) });
+  if (pledgeAdmin) {
+    return;
+  }
+  logger.error(`No pledge admin exists for ${idProject}`);
+  logger.info('Transaction Hash:', transactionHash);
+
+  const { project, milestoneType, isCampaign } = await getMilestoneTypeByProjectId(idProject);
+  let entity = isCampaign
+    ? await campaignModel.findOne({ txHash: transactionHash })
+    : await milestoneModel.findOne({ txHash: transactionHash });
+  // Not found any
+  if (!entity && !isCampaign) {
+    entity = await createMilestoneForPledgeAdmin({
+      project,
+      idProject,
+      milestoneType,
+      transactionHash,
+      getMilestoneDataForCreate,
+    });
+    report.createdMilestones++;
+  } else if (!entity && isCampaign) {
+    entity = await createCampaignForPledgeAdmin({ project, idProject, transactionHash, getCampaignDataForCreate });
+    report.createdCampaigns++;
+  }
+  if (!entity) {
+    return;
+  }
+
+  logger.info('created entity ', entity);
+  const type = isCampaign ? AdminTypes.CAMPAIGN : AdminTypes.MILESTONE;
+  logger.info(`a ${type} found with id ${entity._id.toString()} and status ${entity.status}`);
+  logger.info(`Title: ${entity.title}`);
+  const newPledgeAdmin = new pledgeAdminModel({
+    id: Number(idProject),
+    type,
+    typeId: entity._id.toString(),
+  });
+  const result = await newPledgeAdmin.save();
+  report.createdPledgeAdmins++;
+  logger.info('pledgeAdmin saved', result);
+};
+
 const syncPledgeAdmins = async () => {
   console.log('syncPledgeAdmins called', { fixConflicts });
   if (!fixConflicts) return;
@@ -1427,62 +1488,31 @@ const syncPledgeAdmins = async () => {
   });
 
   const startTime = new Date();
+  console.log("Syncing PledgeAdmins with events ....  => (this job doesn't have progressbar)");
   const progressBar = createProgressBar({ title: 'Syncing PledgeAdmins with events' });
   progressBar.start(events.length, 0);
+
+  const promises =[];
   for (let i = 0; i < events.length; i += 1) {
-    progressBar.update(i);
-    try {
+    // progressBar.update(i);
+    // try {
       const { event, transactionHash, returnValues } = events[i];
-      if (event !== 'ProjectAdded') continue;
-      const { idProject } = returnValues;
-      const pledgeAdmin = await pledgeAdminModel.findOne({ id: Number(idProject) });
-
-      if (pledgeAdmin) {
-        continue;
-      }
-      logger.error(`No pledge admin exists for ${idProject}`);
-      logger.info('Transaction Hash:', transactionHash);
-
-      const { project, milestoneType, isCampaign } = await getMilestoneTypeByProjectId(idProject);
-      let entity = isCampaign
-        ? await campaignModel.findOne({ txHash: transactionHash })
-        : await milestoneModel.findOne({ txHash: transactionHash });
-      // Not found any
-      if (!entity && !isCampaign) {
-        entity = await createMilestoneForPledgeAdmin({
-          project,
-          idProject,
-          milestoneType,
-          transactionHash,
-          getMilestoneDataForCreate,
-        });
-        report.createdMilestones++;
-      } else if (!entity && isCampaign) {
-        entity = await createCampaignForPledgeAdmin({ project, idProject, transactionHash, getCampaignDataForCreate });
-        report.createdCampaigns++;
-      }
-      if (!entity) {
-        continue;
-      }
-
-      logger.info('created entity ', entity);
-      const type = isCampaign ? AdminTypes.CAMPAIGN : AdminTypes.MILESTONE;
-      logger.info(`a ${type} found with id ${entity._id.toString()} and status ${entity.status}`);
-      logger.info(`Title: ${entity.title}`);
-      const newPledgeAdmin = new pledgeAdminModel({
-        id: Number(idProject),
-        type,
-        typeId: entity._id.toString(),
-      });
-      const result = await newPledgeAdmin.save();
-      report.createdPledgeAdmins++;
-      logger.info('pledgeAdmin saved', result);
-    } catch (e) {
-      logger.error('error in creating pledgeAdmin', e);
-    }
+      promises.push(createOnePledgeAdmins({
+        getCampaignDataForCreate,
+        getMilestoneDataForCreate,
+        getMilestoneTypeByProjectId, event, transactionHash, returnValues,
+      }));
+    // } catch (e) {
+    //   logger.error('error in creating pledgeAdmin', e);
+    // }
   }
-  progressBar.update(events.length);
-  progressBar.stop();
+  try {
+    await Promise.all(promises)
+  } catch (e) {
+    logger.error('error in creating pledgeAdmin', e);
+  }
+  // progressBar.update(events.length);
+  // progressBar.stop();
   const spentTime = (new Date().getTime() - startTime.getTime()) / 1000;
   report.syncProjectsSpentTime = spentTime;
   console.log(`pledgeAdmin events synced end.\n spentTime :${spentTime} seconds`);
@@ -1544,7 +1574,7 @@ const syncDacs = async () => {
 };
 
 
-const getExpectedStatus = (events:EventInterface[], milestone:MilestoneMongooseDocument) => {
+const getExpectedStatus = (events: EventInterface[], milestone: MilestoneMongooseDocument) => {
   const eventToStatus = {
     ApproveCompleted: MilestoneStatus.COMPLETED,
     CancelProject: MilestoneStatus.CANCELED,
@@ -1577,11 +1607,11 @@ const getExpectedStatus = (events:EventInterface[], milestone:MilestoneMongooseD
 
 const updateMilestonesFinalStatus = async () => {
   const milestones = await milestoneModel.find({ projectId: { $gt: 0 } });
-  const progressBar = createProgressBar({title :'Updating milestone status'});
-  progressBar.start(milestones.length)
-  for (const milestone of milestones){
+  const progressBar = createProgressBar({ title: 'Updating milestone status' });
+  progressBar.start(milestones.length);
+  for (const milestone of milestones) {
     progressBar.increment();
-    const matchedEvents = events.filter(event => event.returnValues && event.returnValues.idProject === String(milestone.projectId) )
+    const matchedEvents = events.filter(event => event.returnValues && event.returnValues.idProject === String(milestone.projectId));
     const { status, projectId } = milestone;
     if ([MilestoneStatus.ARCHIVED, MilestoneStatus.CANCELED].includes(status)) return;
 
@@ -1589,11 +1619,11 @@ const updateMilestonesFinalStatus = async () => {
     message += `Project ID: ${projectId}\n`;
     message += `Events: ${events.toString()}\n`;
     const expectedStatus = getExpectedStatus(matchedEvents, milestone);
-    await milestoneModel.updateOne({ _id :milestone._id}, { status: expectedStatus, mined:true });
+    await milestoneModel.updateOne({ _id: milestone._id }, { status: expectedStatus, mined: true });
   }
   progressBar.update(milestones.length);
   progressBar.stop();
-  console.log("Updating milestone status ends.")
+  console.log('Updating milestone status ends.');
 };
 
 
