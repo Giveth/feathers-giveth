@@ -9,7 +9,7 @@ require('../../src/models/mongoose-bn')(mongoose);
 const _groupBy = require('lodash.groupby');
 const { toBN } = require('web3-utils');
 const config = require('config');
-const { getTokenByAddress } = require('./tokenUtility');
+const { getTokenByAddress, getTokenSymbolByAddress } = require('./tokenUtility');
 
 const appFactory = () => {
   const data = {};
@@ -97,10 +97,13 @@ const updateEntity = async (model, type) => {
       }).exec();
 
       // first group by token (symbol)
-      const groupedDonations = _groupBy(donations, d => (d.token && d.token.symbol) || 'ETH');
+      const groupedDonations = _groupBy(
+        donations,
+        d => getTokenSymbolByAddress(d.tokenAddress) || 'ETH',
+      );
       const groupedReturnedDonations = _groupBy(
         returnedDonations,
-        d => (d.token && d.token.symbol) || 'ETH',
+        d => getTokenSymbolByAddress(d.tokenAddress) || 'ETH',
       );
 
       // and calculate cumulative token balances for each donated token
