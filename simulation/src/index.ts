@@ -91,7 +91,7 @@ const cacheDir = argv['cache-dir'];
 const logDir = argv['log-dir'];
 const updateState = argv['update-network-cache'];
 const updateEvents = argv['update-network-cache'];
-const findConflicts = !argv['dry-run'];
+const index = !argv['dry-run'];
 const fixConflicts = !argv['dry-run'];
 // const ignoredTransactions  = require('./eventProcessingHelper.json');
 const ignoredTransactions = [];
@@ -112,7 +112,7 @@ const txHashTransferEventMap = {};
 // Map from owner pledge admin ID to dictionary of charged donations
 const ownerPledgeAdminIdChargedDonationMap = {};
 
-const { nodeUrl, liquidPledgingAddress } = config.blockchain;
+const { nodeUrl, liquidPledgingAddress } = config.get("blockchain");
 let foreignWeb3;
 let liquidPledging;
 
@@ -135,7 +135,7 @@ const terminateScript = (message = '', code = 0) => {
 
 const symbolDecimalsMap = {};
 
-config.tokenWhitelist.forEach(({ symbol, decimals }) => {
+config.get("tokenWhitelist").forEach(({ symbol, decimals }) => {
   symbolDecimalsMap[symbol] = {
     cutoff: new BigNumber(10 ** (18 - Number(decimals))),
   };
@@ -223,7 +223,7 @@ const fetchBlockchainData = async () => {
       if (updateEvents) {
         fromBlock = events.length > 0 ? events[events.length - 1].blockNumber + 1 : 0;
         fetchBlockNum =
-          (await foreignWeb3.eth.getBlockNumber()) - config.blockchain.requiredConfirmations;
+          (await foreignWeb3.eth.getBlockNumber()) - config.get("blockchain.requiredConfirmations");
       }
 
       const fromPledgeIndex = state.pledges.length > 1 ? state.pledges.length : 1;
@@ -949,7 +949,7 @@ const handleToDonations = async ({
       };
 
       // Create donation
-      const token = config.tokenWhitelist.find(
+      const token = config.get("tokenWhitelist").find(
         t => t.foreignAddress.toLowerCase() === toPledge.token.toLowerCase(),
       );
       if (token === undefined) {
@@ -1623,7 +1623,7 @@ const main = async () => {
   try {
     await fetchBlockchainData();
 
-    if (!findConflicts && !fixConflicts) {
+    if (!index && !fixConflicts) {
       terminateScript(null, 0);
       return;
     }
@@ -1631,7 +1631,7 @@ const main = async () => {
     /*
        Find conflicts in milestone donation counter
       */
-    const mongoUrl = config.mongodb;
+    const mongoUrl = config.get("mongodb");
     mongoose.connect(mongoUrl);
     const db = mongoose.connection;
 

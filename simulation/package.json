@@ -5,16 +5,23 @@
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "findConflicts": "NODE_ENV=simulation ./node_modules/.bin/ts-node findConflicts.ts --update-network-cache  --log-dir simulation-script-data/log --cache-dir simulation-script-data/cache"
+    "build": "./node_modules/.bin/webpack",
+    "start": "NODE_ENV=simulation ./node_modules/.bin/ts-node src/index.ts --update-network-cache  --log-dir simulation-script-data/log --cache-dir simulation-script-data/cache"
   },
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@types/mongoose": "^5.10.3",
-    "@types/node": "^14.14.14",
-    "@types/web3": "^1.2.2",
-    "config": "^3.3.3",
+    "@types/mongoose": "5.10.3",
+    "@types/node": "14.14.14",
+    "@types/web3": "1.2.2",
+    "config": "3.3.3",
+    "ts-loader": "8.0.12",
     "ts-node": "^9.1.1",
-    "typescript": "^4.1.3"
+    "typescript": "4.1.3"
+  },
+  "dependencies": {
+    "mongodb": "^3.6.3",
+    "mongoose": "^5.11.8",
+    "yargs": "^16.2.0"
   }
 }
