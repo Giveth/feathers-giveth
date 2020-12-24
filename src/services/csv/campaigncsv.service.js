@@ -75,9 +75,11 @@ module.exports = function csv() {
       })
       .on('finish', () => {
         writeToCache();
-      })
-      .pipe(res);
+        res.send(chunks.join(''));
+      });
   };
+
+  const cacheListeners = {};
 
   const cacheMiddleWare = (req, res, next) => {
     const { error, campaign } = res.data;
@@ -98,6 +100,27 @@ module.exports = function csv() {
       res.send(value.body);
       return;
     }
+
+    if (cacheListeners[id]) {
+      cacheListeners[id].push(body => {
+        res.type('csv');
+        res.setHeader('Content-disposition', `attachment; filename=${id}.csv`);
+        res.send(body);
+      });
+      return;
+    }
+    cacheListeners[id] = [];
+
+    res.sendResponse = res.send;
+    res.send = body => {
+      MemoryCache.put(id, { updatedAt, body });
+      res.sendResponse(body);
+      cacheListeners[id].forEach(cb => cb(body));
+      delete cacheListeners[id];
+      res.end();
+    };
+
+    req.campaign = campaign;
 
     next();
   };
