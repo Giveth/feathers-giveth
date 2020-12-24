@@ -64,14 +64,14 @@ module.exports = app => {
 
   // Get stream of items to be written to csv for the campaign, plus milestones of this campaign
   const getData = async campaign => {
-    const { _id: id } = campaign;
+    const { _id: id, projectId } = campaign;
     const milestones = await getCampaignMilesones(id);
     const pledgeIds = await getAllPledgeIdsByOwners([id, ...milestones.map(m => m._id)]);
     const canceledPledgeIds = await getCanceledPledgeIdsByOwners([
       id,
       ...milestones.map(m => m._id),
     ]);
-    const projectIds = await getProjectIdsOfCampaignAndItsMilestone(id, milestones);
+    const projectIds = await getProjectIdsOfCampaignAndItsMilestone(projectId, milestones);
     const transformer = new Stream.Transform({ objectMode: true });
     transformer._transform = async (fetchedEvent, encoding, callback) => {
       const { event } = fetchedEvent;
