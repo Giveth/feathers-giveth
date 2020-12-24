@@ -20,6 +20,11 @@ function getTokenByAddress(address) {
   return tokensByAddress[address];
 }
 
+function getTokenSymbolByAddress(tokenAddress) {
+  return tokenAddress && getTokenByAddress(tokenAddress) && getTokenByAddress(tokenAddress).symbol;
+}
+
 module.exports = {
   getTokenByAddress,
+  getTokenSymbolByAddress,
 };
