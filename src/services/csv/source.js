@@ -61,7 +61,6 @@ module.exports = app => {
     });
     return projectIds;
   };
-
   // Get stream of items to be written to csv for the campaign, plus milestones of this campaign
   const getData = async campaign => {
     const { _id: id, projectId } = campaign;
