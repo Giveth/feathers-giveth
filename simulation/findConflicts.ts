@@ -190,11 +190,11 @@ const createProgressBar = ({ title }) => {
 
 // Gets status of liquidpledging storage
 const fetchBlockchainData = async () => {
-  await instantiateWeb3(nodeUrl);
   console.log('fetchBlockchainData ....', {
     updateEvents,
     updateState,
   });
+  await instantiateWeb3(nodeUrl);
   try {
     if (!fs.existsSync(cacheDir)) {
       fs.mkdirSync(cacheDir);
@@ -1413,7 +1413,7 @@ const syncPledgeAdmin = async () => {
 // Requires corresponding project entity has been saved holding correct value of txHash
 // eslint-disable-next-line no-unused-vars
 
-const createOnePledgeAdmins = async (options:
+const createPledgeAdminAndProjectsIfNeeded = async (options:
                                        {
                                          getMilestoneTypeByProjectId,
                                          getMilestoneDataForCreate,
@@ -1471,10 +1471,11 @@ const createOnePledgeAdmins = async (options:
   const result = await newPledgeAdmin.save();
   report.createdPledgeAdmins++;
   logger.info('pledgeAdmin saved', result);
+  process.stdout.write(".");
 };
 
-const syncPledgeAdmins = async () => {
-  console.log('syncPledgeAdmins called', { fixConflicts });
+const syncPledgeAdminsAndProjects = async () => {
+  console.log('syncPledgeAdminsAndProjects called', { fixConflicts });
   if (!fixConflicts) return;
   const {
     getMilestoneTypeByProjectId,
@@ -1488,34 +1489,25 @@ const syncPledgeAdmins = async () => {
   });
 
   const startTime = new Date();
-  console.log("Syncing PledgeAdmins with events ....  => (this job doesn't have progressbar)");
-  const progressBar = createProgressBar({ title: 'Syncing PledgeAdmins with events' });
-  progressBar.start(events.length, 0);
-
+  console.log("Syncing PledgeAdmins with events .... ");
   const promises =[];
   for (let i = 0; i < events.length; i += 1) {
-    // progressBar.update(i);
-    // try {
       const { event, transactionHash, returnValues } = events[i];
-      promises.push(createOnePledgeAdmins({
+      promises.push(createPledgeAdminAndProjectsIfNeeded({
         getCampaignDataForCreate,
         getMilestoneDataForCreate,
         getMilestoneTypeByProjectId, event, transactionHash, returnValues,
       }));
-    // } catch (e) {
-    //   logger.error('error in creating pledgeAdmin', e);
-    // }
   }
   try {
     await Promise.all(promises)
+    const spentTime = (new Date().getTime() - startTime.getTime()) / 1000;
+    report.syncProjectsSpentTime = spentTime;
+    console.log(`pledgeAdmin events synced end.\n spentTime :${spentTime} seconds`);
   } catch (e) {
     logger.error('error in creating pledgeAdmin', e);
   }
-  // progressBar.update(events.length);
-  // progressBar.stop();
-  const spentTime = (new Date().getTime() - startTime.getTime()) / 1000;
-  report.syncProjectsSpentTime = spentTime;
-  console.log(`pledgeAdmin events synced end.\n spentTime :${spentTime} seconds`);
+
 };
 
 
@@ -1649,7 +1641,7 @@ const main = async () => {
       logger.info('Connected to Mongo');
       try {
         await syncDacs();
-        await syncPledgeAdmins();
+        await syncPledgeAdminsAndProjects();
         await syncDonationsWithNetwork();
         await updateEntity(dacModel, AdminTypes.DAC);
         await updateEntity(campaignModel, AdminTypes.CAMPAIGN);
