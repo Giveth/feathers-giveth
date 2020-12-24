@@ -16,6 +16,13 @@ function getHourlyCryptoConversionTestCases() {
     assert.equal(result.rate, 1, 'Stable coin rate should equal USD');
   });
 
+  it('XDAI is not stableCoin but rateEqSymbol of XDAI is a stableCoin', async () => {
+    const now = new Date();
+    const result = await getHourlyCryptoConversion(app, now.getTime(), 'XDAI', 'USD');
+    assert.isOk(result);
+    assert.equal(result.rate, 1, 'XDAI coin rate should equal USD');
+  });
+
   it('USD to Stable coin', async () => {
     const now = new Date();
     const result = await getHourlyCryptoConversion(app, now.getTime(), 'USD', 'DAI');
