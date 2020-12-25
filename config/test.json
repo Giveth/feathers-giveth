@@ -86,6 +86,13 @@
       "symbol": "ANT",
       "coingeckoId": "aragon",
       "decimals": "3"
+    },
+    { "name": "MiniMe Test Token",
+      "address": "0xE690E380740a682E2b8CEAEa33584Ea2cb59849E",
+      "foreignAddress": "0xe1DA0672bDBdBc469E82cCACCe9e4c7C79dAF6cf",
+      "symbol": "XDAI",
+      "rateEqSymbol": "DAI",
+      "decimals": 3
     }
 
   ],

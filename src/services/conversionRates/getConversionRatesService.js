@@ -308,13 +308,19 @@ const getHourlyCryptoConversion = async (app, ts, fromSymbol = 'ETH', toSymbol =
 
   // Return 1 for stable coins
   const stableCoins = app.get('stableCoins') || [];
-  const normalizedFromSymbol = stableCoins.includes(fromSymbol) ? 'USD' : fromSymbol;
-  const normalizedToSymbol = stableCoins.includes(toSymbol) ? 'USD' : toSymbol;
+  let fromToken = getTokenBySymbol(app, fromSymbol);
+  let toToken = getTokenBySymbol(app, toSymbol);
+  const isFromTokenStableCoin =
+    stableCoins.includes(fromToken.rateEqSymbol) || stableCoins.includes(fromToken.symbol);
+  const isToTokenStableCoin =
+    stableCoins.includes(toToken.rateEqSymbol) || stableCoins.includes(toToken.symbol);
+  const normalizedFromSymbol = isFromTokenStableCoin ? 'USD' : fromSymbol;
+  const normalizedToSymbol = isToTokenStableCoin ? 'USD' : toSymbol;
 
   if (normalizedFromSymbol === normalizedToSymbol) return { timestamp: requestTs, rate: 1 };
 
-  const fromToken = getTokenBySymbol(app, normalizedFromSymbol);
-  const toToken = getTokenBySymbol(app, normalizedToSymbol);
+  fromToken = getTokenBySymbol(app, normalizedFromSymbol);
+  toToken = getTokenBySymbol(app, normalizedToSymbol);
 
   // Check if we already have this exchange rate for this timestamp, if not we save it
   const dbRates = await _getRatesDb(app, requestTs, fromToken.symbol);
