@@ -99,6 +99,22 @@
       "foreignAddress": "0x8F086f895deBc23473dfe507dd4BF35D6184552c",
       "symbol": "ANT",
       "decimals": 3
+    },
+    {
+      "name": "WBTC",
+      "address": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
+      "foreignAddress": "0x6d03800013c591611a6ee597191d9f608b833510",
+      "symbol": "WBTC",
+      "decimals": "8",
+      "coingeckoId": "bitcoin",
+      "rateEqSymbol": "BTC"
+    },
+    { "name": "MiniMe Test Token",
+      "address": "0xE690E380740a682E2b8CEAEa33584Ea2cb59849E",
+      "foreignAddress": "0xe1DA0672bDBdBc469E82cCACCe9e4c7C79dAF6cf",
+      "symbol": "XDAI",
+      "rateEqSymbol": "DAI",
+      "decimals": 3
     }
   ],
   "activeTokenWhitelist": [

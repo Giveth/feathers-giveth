@@ -142,6 +142,41 @@ config.get("tokenWhitelist").forEach(({ symbol, decimals }) => {
 });
 
 
+const RECONNECT_EVENT='disconnect';
+const DISCONNECT_EVENT='reconnect';
+const THIRTY_SECONDS = 30*1000;
+// if the websocket connection drops, attempt to re-connect
+// upon successful re-connection, we re-start all listeners
+const reconnectOnEnd = () => {
+  foreignWeb3.currentProvider.on('end', e => {
+    if (foreignWeb3.reconnectInterval) return;
+
+    foreignWeb3.emit(DISCONNECT_EVENT);
+    logger.error(`connection closed reason: ${e.reason}, code: ${e.code}`);
+
+    foreignWeb3.pingInterval = undefined;
+
+    foreignWeb3.reconnectInterval = setInterval(() => {
+      logger.info('attempting to reconnect');
+
+      const newProvider = new foreignWeb3.providers.WebsocketProvider(nodeUrl);
+
+      newProvider.on('connect', () => {
+        logger.info('successfully connected');
+        clearInterval(foreignWeb3.reconnectInterval);
+        foreignWeb3.reconnectInterval = undefined;
+        // note: "connection not open on send()" will appear in the logs when setProvider is called
+        // This is because foreignWeb3.setProvider will attempt to clear any subscriptions on the currentProvider
+        // before setting the newProvider. Our currentProvider has been disconnected, so thus the not open
+        // error is logged
+        foreignWeb3.setProvider(newProvider);
+        // attach reconnection logic to newProvider
+        reconnectOnEnd();
+        foreignWeb3.emit(RECONNECT_EVENT);
+      });
+    }, THIRTY_SECONDS);
+  });
+};
 const instantiateWeb3 = async url => {
   const provider =
     url && url.startsWith('ws')
@@ -153,19 +188,20 @@ const instantiateWeb3 = async url => {
       })
       : url;
   return new Promise(resolve => {
-    const web3 = Object.assign(new Web3(provider), EventEmitter.prototype);
+     foreignWeb3 = Object.assign(new Web3(provider), EventEmitter.prototype);
 
-    if (web3.currentProvider.on) {
-      web3.currentProvider.on('connect', () => {
+    if (foreignWeb3.currentProvider.on) {
+      foreignWeb3.currentProvider.on('connect', () => {
         console.log('connected');
-        foreignWeb3 = web3;
-        liquidPledging = new LiquidPledging(web3, liquidPledgingAddress);
-        resolve(web3);
+        liquidPledging = new LiquidPledging(foreignWeb3, liquidPledgingAddress);
+        reconnectOnEnd();
+        foreignWeb3.emit(RECONNECT_EVENT);
+        resolve(foreignWeb3);
+
       });
     } else {
-      foreignWeb3 = web3;
-      liquidPledging = new LiquidPledging(web3, liquidPledgingAddress);
-      resolve(web3);
+      liquidPledging = new LiquidPledging(foreignWeb3, liquidPledgingAddress);
+      resolve(foreignWeb3);
     }
   });
 };
