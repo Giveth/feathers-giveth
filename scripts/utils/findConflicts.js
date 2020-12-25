@@ -13,16 +13,16 @@ const BigNumber = require('bignumber.js');
 const mongoose = require('mongoose');
 const cliProgress = require('cli-progress');
 const _colors = require('colors');
+const Web3WsProvider = require('web3-providers-ws');
 require('mongoose-long')(mongoose);
 require('../../src/models/mongoose-bn')(mongoose);
 const { LiquidPledging, LiquidPledgingState } = require('giveth-liquidpledging');
 const { Kernel, AppProxyUpgradeable } = require('giveth-liquidpledging/build/contracts');
-const EventEmitter = require('events');
 const toFn = require('../../src/utils/to');
 const DonationUsdValueUtility = require('./DonationUsdValueUtility');
 const { getTokenByAddress } = require('./tokenUtility');
 const { createProjectHelper } = require('../../src/common-utils/createProjectHelper');
-const { reconnectOnEnd } = require('../../src/blockchain/lib/web3Helpers');
+// const { getTransaction } = require('../../src/blockchain/lib/web3Helpers');
 
 const { argv } = yargs
   .option('dry-run', {
@@ -79,7 +79,6 @@ const logger = winston.createLogger({
 });
 
 const terminateScript = (message = '', code = 0) => {
-  logger.error(`Exit message: ${message}`);
   if (message) {
     logger.error(`Exit message: ${message}`);
   }
@@ -114,27 +113,36 @@ let foreignWeb3;
 let liquidPledging;
 
 const instantiateWeb3 = async url => {
-  const provider =
-    url && url.startsWith('ws')
-      ? new Web3.providers.WebsocketProvider(url, {
-          clientConfig: {
-            maxReceivedFrameSize: 100000000,
-            maxReceivedMessageSize: 100000000,
-          },
-        })
-      : url;
+  const options = {
+    timeout: 30000, // ms
+
+    clientConfig: {
+      // Useful if requests are large
+      maxReceivedFrameSize: 100000000, // bytes - default: 1MiB
+      maxReceivedMessageSize: 100000000, // bytes - default: 8MiB
+
+      // Useful to keep a connection alive
+      keepalive: true,
+      keepaliveInterval: 45000, // ms
+    },
+
+    // Enable auto reconnection
+    reconnect: {
+      auto: true,
+      delay: 5000, // ms
+      maxAttempts: 5,
+      onTimeout: false,
+    },
+  };
+
+  const provider = url && url.startsWith('ws') ? new Web3WsProvider(url, options) : url;
   return new Promise(resolve => {
-    foreignWeb3 = Object.assign(new Web3(provider), EventEmitter.prototype);
-    if (foreignWeb3.currentProvider.on) {
-      foreignWeb3.currentProvider.on('connect', () => {
+    // foreignWeb3 = Object.assign(new Web3(provider), EventEmitter.prototype);
+    foreignWeb3 = new Web3(provider);
+    if (provider.on) {
+      provider.on('connect', () => {
         console.log('connected');
         liquidPledging = new LiquidPledging(foreignWeb3, liquidPledgingAddress);
-        reconnectOnEnd(foreignWeb3, url);
-        Object.assign(foreignWeb3, {
-          DISCONNECT_EVENT: 'disconnect',
-          RECONNECT_EVENT: 'reconnect',
-        });
-        foreignWeb3.emit(foreignWeb3.RECONNECT_EVENT);
         resolve();
       });
     } else {
@@ -171,6 +179,7 @@ const Campaigns = require('../../src/models/campaigns.model').createModel(app);
 const Donations = require('../../src/models/donations.model').createModel(app);
 const PledgeAdmins = require('../../src/models/pledgeAdmins.model').createModel(app);
 const ConversationRates = require('../../src/models/conversionRates.model')(app);
+// const Transaction = require('../../src/models/transactions.model').createModel(app);
 
 const { DonationStatus } = require('../../src/models/donations.model');
 const { AdminTypes } = require('../../src/models/pledgeAdmins.model');
@@ -321,6 +330,17 @@ const updateDonationsCreatedDate = async startDate => {
       }
     });
 };
+//
+// const getTransactionTimeStamp = async txHash => {
+//   const mockApp = {
+//     get: key => {
+//       if (key === 'transactionsModel') return Transaction;
+//       return null;
+//     },
+//   };
+//   const { timestamp } = getTransaction(mockApp, txHash, false);
+//   return timestamp;
+// };
 
 // Fills pledgeNotUsedDonationListMap map to contain donation items for each pledge
 // Fills donationMap to map id to donation item
@@ -586,7 +606,7 @@ const handleFromDonations = async (from, to, amount, transactionHash) => {
         candidateChargedParents.forEach(candidate =>
           logger.debug(JSON.stringify(candidate, null, 2)),
         );
-        terminateScript();
+        terminateScript(`from delegate ${from} donations don't have enough amountRemaining!`);
       }
     } else {
       logger.error(`There is no donation for transfer from ${from} to ${to}`);
