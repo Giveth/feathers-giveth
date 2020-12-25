@@ -22,6 +22,7 @@ const toFn = require('../../src/utils/to');
 const DonationUsdValueUtility = require('./DonationUsdValueUtility');
 const { getTokenByAddress } = require('./tokenUtility');
 const { createProjectHelper } = require('../../src/common-utils/createProjectHelper');
+const { reconnectOnEnd } = require('../../src/blockchain/lib/web3Helpers');
 
 const { argv } = yargs
   .option('dry-run', {
@@ -111,30 +112,34 @@ config.tokenWhitelist.forEach(({ symbol, decimals }) => {
 const { nodeUrl, liquidPledgingAddress } = config.blockchain;
 let foreignWeb3;
 let liquidPledging;
+
 const instantiateWeb3 = async url => {
   const provider =
     url && url.startsWith('ws')
       ? new Web3.providers.WebsocketProvider(url, {
-        clientConfig: {
-          maxReceivedFrameSize: 100000000,
-          maxReceivedMessageSize: 100000000,
-        },
-      })
+          clientConfig: {
+            maxReceivedFrameSize: 100000000,
+            maxReceivedMessageSize: 100000000,
+          },
+        })
       : url;
   return new Promise(resolve => {
-    const web3 = Object.assign(new Web3(provider), EventEmitter.prototype);
-
-    if (web3.currentProvider.on) {
-      web3.currentProvider.on('connect', () => {
+    foreignWeb3 = Object.assign(new Web3(provider), EventEmitter.prototype);
+    if (foreignWeb3.currentProvider.on) {
+      foreignWeb3.currentProvider.on('connect', () => {
         console.log('connected');
-        foreignWeb3 = web3;
-        liquidPledging = new LiquidPledging(web3, liquidPledgingAddress);
-        resolve(web3);
+        liquidPledging = new LiquidPledging(foreignWeb3, liquidPledgingAddress);
+        reconnectOnEnd(foreignWeb3, url);
+        Object.assign(foreignWeb3, {
+          DISCONNECT_EVENT: 'disconnect',
+          RECONNECT_EVENT: 'reconnect',
+        });
+        foreignWeb3.emit(foreignWeb3.RECONNECT_EVENT);
+        resolve();
       });
     } else {
-      foreignWeb3 = web3;
-      liquidPledging = new LiquidPledging(web3, liquidPledgingAddress);
-      resolve(web3);
+      liquidPledging = new LiquidPledging(foreignWeb3, liquidPledgingAddress);
+      resolve();
     }
   });
 };
@@ -189,16 +194,14 @@ const txHashTransferEventMap = {};
 // Map from owner pledge admin ID to dictionary of charged donations
 const ownerPledgeAdminIdChargedDonationMap = {};
 
-const createProgressBar = ({title}) =>{
+const createProgressBar = ({ title }) => {
   return new cliProgress.SingleBar({
-    format: `${title} |${_colors.cyan(
-      '{bar}',
-    )}| {percentage}% || {value}/{total} events`,
+    format: `${title} |${_colors.cyan('{bar}')}| {percentage}% || {value}/{total} events`,
     barCompleteChar: '\u2588',
     barIncompleteChar: '\u2591',
     hideCursor: true,
   });
-}
+};
 
 // Gets status of liquidpledging storage
 const fetchBlockchainData = async () => {
@@ -243,7 +246,7 @@ const fetchBlockchainData = async () => {
       !Array.isArray(state.admins) ||
       state.admins.length <= 1 ||
       !Array.isArray(newEvents)
-      ) {
+    ) {
       if (!firstTry) {
         logger.error('Some problem on fetching network info... Trying again!');
         if (!Array.isArray(state.pledges) || state.pledges.length <= 1) {
@@ -260,9 +263,9 @@ const fetchBlockchainData = async () => {
           updateState ? liquidPledgingState.getState() : Promise.resolve(state),
           updateEvents
             ? liquidPledging.$contract.getPastEvents('allEvents', {
-              fromBlock,
-              toBlock: fetchBlockNum,
-            })
+                fromBlock,
+                toBlock: fetchBlockNum,
+              })
             : Promise.resolve([]),
         ]),
       );
@@ -338,24 +341,24 @@ const fetchDonationsInfo = async () => {
     .cursor()
     .eachAsync(
       ({
-         _id,
-         amount,
-         amountRemaining,
-         pledgeId,
-         status,
-         mined,
-         txHash,
-         parentDonations,
-         ownerId,
-         ownerType,
-         ownerTypeId,
-         intendedProjectId,
-         giverAddress,
-         tokenAddress,
-         isReturn,
-         usdValue,
-         createdAt,
-       }) => {
+        _id,
+        amount,
+        amountRemaining,
+        pledgeId,
+        status,
+        mined,
+        txHash,
+        parentDonations,
+        ownerId,
+        ownerType,
+        ownerTypeId,
+        intendedProjectId,
+        giverAddress,
+        tokenAddress,
+        isReturn,
+        usdValue,
+        createdAt,
+      }) => {
         const list = pledgeNotUsedDonationListMap[pledgeId.toString()] || [];
         if (list.length === 0) {
           pledgeNotUsedDonationListMap[pledgeId.toString()] = list;
@@ -606,15 +609,15 @@ const handleFromDonations = async (from, to, amount, transactionHash) => {
 };
 
 const handleToDonations = async ({
-                                   from,
-                                   to,
-                                   amount,
-                                   transactionHash,
-                                   blockNumber,
-                                   usedFromDonations,
-                                   giverAddress,
-                                   isReverted = false,
-                                 }) => {
+  from,
+  to,
+  amount,
+  transactionHash,
+  blockNumber,
+  usedFromDonations,
+  giverAddress,
+  isReverted = false,
+}) => {
   const toNotFilledDonationList = pledgeNotUsedDonationListMap[to] || []; // List of donations which are candidates to be charged
 
   const toIndex = toNotFilledDonationList.findIndex(
@@ -935,16 +938,16 @@ const fixConflictInDonations = unusedDonationMap => {
   const promises = [];
   Object.values(donationMap).forEach(
     ({
-       _id,
-       amount,
-       amountRemaining,
-       savedAmountRemaining,
-       status,
-       savedStatus,
-       pledgeId,
-       txHash,
-       tokenAddress,
-     }) => {
+      _id,
+      amount,
+      amountRemaining,
+      savedAmountRemaining,
+      status,
+      savedStatus,
+      pledgeId,
+      txHash,
+      tokenAddress,
+    }) => {
       if (status === DonationStatus.FAILED) return;
 
       const pledge = pledges[Number(pledgeId)] || {};
@@ -1075,7 +1078,7 @@ const syncDonationsWithNetwork = async () => {
   await fetchDonationsInfo();
   const startTime = new Date();
   // create new progress bar
-  const progressBar = createProgressBar({title: 'Syncing donations with events.'});;
+  const progressBar = createProgressBar({ title: 'Syncing donations with events.' });
   progressBar.start(events.length, 0);
 
   // Simulate transactions by events
@@ -1131,8 +1134,13 @@ const syncDonationsWithNetwork = async () => {
   await fixConflictInDonations(unusedDonationMap);
 };
 
-const createMilestoneForPledgeAdmin = async ({ project,getMilestoneDataForCreate,
-                                               idProject, milestoneType, transactionHash }) => {
+const createMilestoneForPledgeAdmin = async ({
+  project,
+  getMilestoneDataForCreate,
+  idProject,
+  milestoneType,
+  transactionHash,
+}) => {
   const campaign = await Campaigns.findOne({ projectId: project.parentProject });
   if (!campaign) {
     logger.error(`Campaign doesn't exist -> projectId:${idProject}`);
@@ -1150,21 +1158,22 @@ const createMilestoneForPledgeAdmin = async ({ project,getMilestoneDataForCreate
     campaignId: campaign._id,
   }).save();
 };
-const createCampaignForPledgeAdmin= async ({project, idProject, transactionHash, getCampaignDataForCreate})=>{
+const createCampaignForPledgeAdmin = async ({
+  project,
+  idProject,
+  transactionHash,
+  getCampaignDataForCreate,
+}) => {
   const createCampaignData = await getCampaignDataForCreate({
     project,
     projectId: idProject,
     txHash: transactionHash,
   });
-  return  new Campaigns({
+  return new Campaigns({
     ...createCampaignData,
     status: CampaignStatus.CANCELED,
   }).save();
-}
-
-const syncPledgeAdmin = async  ()=>{
-
-}
+};
 
 // Creates PledgeAdmins entity for a project entity
 // Requires corresponding project entity has been saved holding correct value of txHash
@@ -1184,7 +1193,7 @@ const syncPledgeAdmins = async () => {
   });
 
   const startTime = new Date();
-  const progressBar =createProgressBar({title: 'Syncing PledgeAdmins with events'});
+  const progressBar = createProgressBar({ title: 'Syncing PledgeAdmins with events' });
   progressBar.start(events.length, 0);
   for (let i = 0; i < events.length; i += 1) {
     progressBar.update(i);
@@ -1206,11 +1215,22 @@ const syncPledgeAdmins = async () => {
         : await Milestones.findOne({ txHash: transactionHash });
       // Not found any
       if (!entity && !isCampaign) {
-        entity = await createMilestoneForPledgeAdmin({ project, idProject, milestoneType, transactionHash, getMilestoneDataForCreate })
+        entity = await createMilestoneForPledgeAdmin({
+          project,
+          idProject,
+          milestoneType,
+          transactionHash,
+          getMilestoneDataForCreate,
+        });
       } else if (!entity && isCampaign) {
-        entity = await createCampaignForPledgeAdmin({ project, idProject, transactionHash , getCampaignDataForCreate})
+        entity = await createCampaignForPledgeAdmin({
+          project,
+          idProject,
+          transactionHash,
+          getCampaignDataForCreate,
+        });
       }
-      if (!entity){
+      if (!entity) {
         continue;
       }
 
@@ -1265,6 +1285,5 @@ const main = async () => {
 };
 
 main()
-  .then(() => {
-  })
+  .then(() => {})
   .catch(e => terminateScript(e, 1));
