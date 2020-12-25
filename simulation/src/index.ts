@@ -112,7 +112,7 @@ const txHashTransferEventMap = {};
 // Map from owner pledge admin ID to dictionary of charged donations
 const ownerPledgeAdminIdChargedDonationMap = {};
 
-const { nodeUrl, liquidPledgingAddress } = config.get("blockchain");
+const { nodeUrl, liquidPledgingAddress } = config.get('blockchain');
 let foreignWeb3;
 let liquidPledging;
 
@@ -135,16 +135,16 @@ const terminateScript = (message = '', code = 0) => {
 
 const symbolDecimalsMap = {};
 
-config.get("tokenWhitelist").forEach(({ symbol, decimals }) => {
+config.get('tokenWhitelist').forEach(({ symbol, decimals }) => {
   symbolDecimalsMap[symbol] = {
     cutoff: new BigNumber(10 ** (18 - Number(decimals))),
   };
 });
 
 
-const RECONNECT_EVENT='disconnect';
-const DISCONNECT_EVENT='reconnect';
-const THIRTY_SECONDS = 30*1000;
+const RECONNECT_EVENT = 'disconnect';
+const DISCONNECT_EVENT = 'reconnect';
+const THIRTY_SECONDS = 30 * 1000;
 // if the websocket connection drops, attempt to re-connect
 // upon successful re-connection, we re-start all listeners
 const reconnectOnEnd = () => {
@@ -188,7 +188,7 @@ const instantiateWeb3 = async url => {
       })
       : url;
   return new Promise(resolve => {
-     foreignWeb3 = Object.assign(new Web3(provider), EventEmitter.prototype);
+    foreignWeb3 = Object.assign(new Web3(provider), EventEmitter.prototype);
 
     if (foreignWeb3.currentProvider.on) {
       foreignWeb3.currentProvider.on('connect', () => {
@@ -259,7 +259,7 @@ const fetchBlockchainData = async () => {
       if (updateEvents) {
         fromBlock = events.length > 0 ? events[events.length - 1].blockNumber + 1 : 0;
         fetchBlockNum =
-          (await foreignWeb3.eth.getBlockNumber()) - config.get("blockchain.requiredConfirmations");
+          (await foreignWeb3.eth.getBlockNumber()) - config.get('blockchain.requiredConfirmations');
       }
 
       const fromPledgeIndex = state.pledges.length > 1 ? state.pledges.length : 1;
@@ -985,7 +985,7 @@ const handleToDonations = async ({
       };
 
       // Create donation
-      const token = config.get("tokenWhitelist").find(
+      const token = config.get('tokenWhitelist').find(
         t => t.foreignAddress.toLowerCase() === toPledge.token.toLowerCase(),
       );
       if (token === undefined) {
@@ -1047,10 +1047,11 @@ const handleToDonations = async ({
       }
 
       const { timestamp } = await foreignWeb3.eth.getBlock(blockNumber);
-
+      const { from } = await foreignWeb3.eth.getTransaction(transactionHash);
       const model: any = {
         ...expectedToDonation,
         tokenAddress: token.address,
+        actionTakerAddress: from,
         amountRemaining: new BigNumber(expectedToDonation.amountRemaining).toFixed(),
         mined: true,
         createdAt: new Date(timestamp * 1000),
@@ -1450,16 +1451,16 @@ const syncPledgeAdmin = async () => {
 // eslint-disable-next-line no-unused-vars
 
 const createPledgeAdminAndProjectsIfNeeded = async (options:
-                                       {
-                                         getMilestoneTypeByProjectId,
-                                         getMilestoneDataForCreate,
-                                         getCampaignDataForCreate,
-                                         event: string,
-                                         transactionHash: string,
-                                         returnValues: {
-                                           idProject: string
-                                         }
-                                       }) => {
+                                                      {
+                                                        getMilestoneTypeByProjectId,
+                                                        getMilestoneDataForCreate,
+                                                        getCampaignDataForCreate,
+                                                        event: string,
+                                                        transactionHash: string,
+                                                        returnValues: {
+                                                          idProject: string
+                                                        }
+                                                      }) => {
   const {
     event, transactionHash, returnValues, getCampaignDataForCreate,
     getMilestoneTypeByProjectId, getMilestoneDataForCreate,
@@ -1507,7 +1508,7 @@ const createPledgeAdminAndProjectsIfNeeded = async (options:
   const result = await newPledgeAdmin.save();
   report.createdPledgeAdmins++;
   logger.info('pledgeAdmin saved', result);
-  process.stdout.write(".");
+  process.stdout.write('.');
 };
 
 const syncPledgeAdminsAndProjects = async () => {
@@ -1525,18 +1526,18 @@ const syncPledgeAdminsAndProjects = async () => {
   });
 
   const startTime = new Date();
-  console.log("Syncing PledgeAdmins with events .... ");
-  const promises =[];
+  console.log('Syncing PledgeAdmins with events .... ');
+  const promises = [];
   for (let i = 0; i < events.length; i += 1) {
-      const { event, transactionHash, returnValues } = events[i];
-      promises.push(createPledgeAdminAndProjectsIfNeeded({
-        getCampaignDataForCreate,
-        getMilestoneDataForCreate,
-        getMilestoneTypeByProjectId, event, transactionHash, returnValues,
-      }));
+    const { event, transactionHash, returnValues } = events[i];
+    promises.push(createPledgeAdminAndProjectsIfNeeded({
+      getCampaignDataForCreate,
+      getMilestoneDataForCreate,
+      getMilestoneTypeByProjectId, event, transactionHash, returnValues,
+    }));
   }
   try {
-    await Promise.all(promises)
+    await Promise.all(promises);
     const spentTime = (new Date().getTime() - startTime.getTime()) / 1000;
     report.syncProjectsSpentTime = spentTime;
     console.log(`pledgeAdmin events synced end.\n spentTime :${spentTime} seconds`);
@@ -1667,7 +1668,7 @@ const main = async () => {
     /*
        Find conflicts in milestone donation counter
       */
-    const mongoUrl = config.get("mongodb");
+    const mongoUrl = config.get('mongodb');
     mongoose.connect(mongoUrl);
     const db = mongoose.connection;
 

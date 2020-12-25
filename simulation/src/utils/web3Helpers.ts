@@ -135,8 +135,6 @@ export const getTransaction = async (web3:any ,hash:string) => {
   return transaction;
 };
 
-
-
 export const ANY_TOKEN = {
   name: 'ANY_TOKEN',
   address: '0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF',

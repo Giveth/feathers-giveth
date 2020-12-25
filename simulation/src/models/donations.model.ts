@@ -35,6 +35,7 @@ export interface DonationMongooseDocument extends  Document {
   tokenAddress:string,
   isReturn :boolean,
   usdValue:number,
+  actionTakerAddress:string,
 }
 
 
