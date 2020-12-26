@@ -651,7 +651,7 @@ const handleToDonations = async ({
   const toOwnerAdmin = admins[Number(toOwnerId)];
   const fromOwnerAdmin = from !== '0' ? admins[Number(fromOwnerId)] : {};
 
-  const [fromPledgeAdmin] = await PledgeAdmins.find({ id: Number(fromOwnerId) }).exec();
+  const fromPledgeAdmin = await PledgeAdmins.findOne({ id: Number(fromOwnerId) }).exec();
 
   let isReturn = isReverted;
   if (!isReturn) {
@@ -688,7 +688,7 @@ const handleToDonations = async ({
     };
 
     if (fixConflicts) {
-      let [toPledgeAdmin] = await PledgeAdmins.find({ id: Number(toOwnerId) }).exec();
+      let toPledgeAdmin = await PledgeAdmins.findOne({ id: Number(toOwnerId) }).exec();
       if (toPledgeAdmin === undefined) {
         if (toOwnerAdmin.type !== 'Giver') {
           terminateScript(
@@ -739,7 +739,7 @@ const handleToDonations = async ({
       // It's delegated to a DAC
       if (toPledge.delegates.length > 0) {
         const [delegate] = toPledge.delegates;
-        const [dacPledgeAdmin] = await PledgeAdmins.find({ id: Number(delegate.id) }).exec();
+        const dacPledgeAdmin = await PledgeAdmins.findOne({ id: Number(delegate.id) }).exec();
         if (dacPledgeAdmin === undefined) {
           // This is wrong, why should we terminate if there is no dacPledgeAdmin
           logger.error(`No dac found for id: ${delegate.id}`);
@@ -753,7 +753,7 @@ const handleToDonations = async ({
         // Has intended project
         const { intendedProject } = toPledge;
         if (intendedProject !== '0') {
-          const [intendedProjectPledgeAdmin] = await PledgeAdmins.find({
+          const intendedProjectPledgeAdmin = await PledgeAdmins.findOne({
             id: Number(intendedProject),
           });
           if (intendedProjectPledgeAdmin === undefined) {
