@@ -1,9 +1,10 @@
 const config = require('config');
 const jwt = require('jsonwebtoken');
 const path = require('path');
-const mongoRestore = require('mongodb-restore');
+const restore = require('mongodb-restore-dump');
 const { ObjectID } = require('bson');
 const { assert } = require('chai');
+const mongoose = require('mongoose');
 
 const assertThrowsAsync = async (fn, errorMessage) => {
   let f = () => {
@@ -62,19 +63,35 @@ function getJwt(address = testAddress) {
   return `Bearer ${token}`;
 }
 
-function seedData() {
+async function dropDb() {
   return new Promise((resolve, reject) => {
-    mongoRestore({
-      uri: config.get('mongodb'), // mongodb://<dbuser>:<dbpassword>@<dbdomain>.mongolab.com:<dbport>/<dbdatabase>
-      root: path.join(__dirname, '/db_seed_data/giveth'),
-      parser: 'bson',
-      callback: (err, result) => {
-        if (err) {
-          return reject(err);
-        }
-        return resolve(result);
-      },
+    mongoose.connect(config.get('mongodb'), error => {
+      if (error) {
+        return reject(error);
+      }
+      mongoose.connection.db.dropDatabase();
+      resolve();
     });
+  });
+}
+async function seedData() {
+  await dropDb();
+  const dbName = config.get('mongodb').split('/')[config.get('mongodb').split('/').length - 1];
+  await restore.database({
+    uri: config.get('mongodb').replace(dbName, ''),
+    // URI to the Server to use.
+    // Either this or "con" must be provided.
+    from: path.join(__dirname, '/db_seed_data/dump/giveth-test'),
+    // path to the server dump, contains sub-directories
+    // that themselves contain individual database
+    // dumps
+
+    // database: config.get('mongodb').split('/')[config.get('mongodb').split('/').length - 1],
+    database: dbName,
+    // name of the database that will be created
+    // on the mongodb server from the dump
+
+    clean: true,
   });
 }
 
