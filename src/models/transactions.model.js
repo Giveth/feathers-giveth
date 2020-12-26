@@ -7,6 +7,7 @@ function Transaction(app) {
       from: { type: String },
       blockNumber: { type: Number },
       isHome: { type: Boolean },
+      timestamp: { type: Date },
     },
     {
       timestamps: false,

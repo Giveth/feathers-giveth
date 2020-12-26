@@ -186,7 +186,13 @@ const getTransaction = async (app, hash, isHome = false) => {
   const { from, blockNumber } = tx;
   const { timestamp } = await web3.eth.getBlock(blockNumber);
 
-  const transaction = new Transaction({ hash, from, blockNumber, timestamp, isHome: !!isHome });
+  const transaction = new Transaction({
+    hash,
+    from,
+    blockNumber,
+    timestamp: new Date(timestamp * 1000),
+    isHome: !!isHome,
+  });
   await transaction.save();
 
   // execute any listeners for the block
