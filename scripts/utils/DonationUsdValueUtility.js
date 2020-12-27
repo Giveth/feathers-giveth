@@ -60,7 +60,7 @@ class DonationUsdValueUtility {
         tokenAddress,
         token: getTokenByAddress(tokenAddress),
       });
-      throw e;
+      // throw e;
     }
   }
 }
