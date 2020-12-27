@@ -1225,13 +1225,22 @@ const syncPledgeAdmins = async () => {
         : await Milestones.findOne({ txHash: transactionHash });
       // Not found any
       if (!entity && !isCampaign) {
-        entity = await createMilestoneForPledgeAdmin({
-          project,
-          idProject,
-          milestoneType,
-          transactionHash,
-          getMilestoneDataForCreate,
-        });
+        try {
+          entity = await createMilestoneForPledgeAdmin({
+            project,
+            idProject,
+            milestoneType,
+            transactionHash,
+            getMilestoneDataForCreate,
+          });
+        } catch (e) {
+          logger.error('createMilestoneForPledgeAdmin error', { idProject, e });
+          new PledgeAdmins({
+            id: Number(idProject),
+            type: AdminTypes.MILESTONE,
+          }).save();
+          logger.error('create pledgeAdmin without creating milestone', { idProject });
+        }
       } else if (!entity && isCampaign) {
         entity = await createCampaignForPledgeAdmin({
           project,
