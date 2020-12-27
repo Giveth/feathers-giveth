@@ -578,9 +578,6 @@ module.exports = app => {
                 if (ownerType === AdminTypes.MILESTONE) {
                   insertMilestoneId = ownerEntity._id;
                 }
-              } else {
-                console.log("transfer event doesn't fit in assumed conditions!");
-                console.log(JSON.stringify(eventObject, null, 2));
               }
               result = {
                 ...result,
