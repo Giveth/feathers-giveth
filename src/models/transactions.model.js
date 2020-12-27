@@ -6,7 +6,7 @@ function Transaction(app) {
       hash: { type: String, required: true, index: true },
       from: { type: String },
       blockNumber: { type: Number },
-      isHome: { type: Boolean },
+      isHome: { type: Boolean, default: false },
       timestamp: { type: Date },
     },
     {

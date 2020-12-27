@@ -162,7 +162,7 @@ const txListeners = {};
  */
 const getTransaction = async (app, hash, isHome = false) => {
   const Transaction = app.get('transactionsModel');
-  const query = { hash, isHome: !!isHome };
+  const query = { hash, isHome };
   const result = await Transaction.find(query).exec();
   if (result.length > 0) {
     return result[0];
