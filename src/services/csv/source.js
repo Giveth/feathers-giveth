@@ -4,7 +4,6 @@ const { DonationStatus } = require('../../models/donations.model');
 const { EventStatus } = require('../../models/events.model');
 
 module.exports = app => {
-  const eventService = app.service('events');
   const milestoneService = app.service('milestones');
   const donationModel = app.service('donations').Model;
   const eventModel = app.service('events').Model;
@@ -80,19 +79,15 @@ module.exports = app => {
       const { returnValues, transactionHash } = fetchedEvent;
       const { from, to, amount } = returnValues;
 
-      const result = await eventService.find({
-        query: {
-          transactionHash,
-          event,
-          'returnValues.from': to,
-          'returnValues.to': from,
-          'returnValues.amount': amount,
-          $limit: 1,
-        },
+      const data = await eventModel.findOne({
+        transactionHash,
+        event,
+        'returnValues.from': to,
+        'returnValues.to': from,
+        'returnValues.amount': amount,
       });
-      const { data } = result;
       // Transfer is not returned immediately
-      if (data.length === 0) {
+      if (!data) {
         callback(null, fetchedEvent);
       } else {
         callback();
