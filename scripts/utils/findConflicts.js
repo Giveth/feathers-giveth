@@ -18,10 +18,16 @@ require('mongoose-long')(mongoose);
 require('../../src/models/mongoose-bn')(mongoose);
 const { LiquidPledging, LiquidPledgingState } = require('giveth-liquidpledging');
 const { Kernel, AppProxyUpgradeable } = require('giveth-liquidpledging/build/contracts');
+const ForeignGivethBridgeArtifact = require('giveth-bridge/build/ForeignGivethBridge.json');
 const toFn = require('../../src/utils/to');
 const DonationUsdValueUtility = require('./DonationUsdValueUtility');
 const { getTokenByAddress } = require('./tokenUtility');
 const { createProjectHelper } = require('../../src/common-utils/createProjectHelper');
+const topicsFromArtifacts = require('../../src/blockchain/lib/topicsFromArtifacts');
+const eventDecodersFromArtifact = require('../../src/blockchain/lib/eventDecodersFromArtifact');
+const toWrapper = require('../../src/utils/to');
+const {Types} = require('mongoose')
+
 // const { getTransaction } = require('../../src/blockchain/lib/web3Helpers');
 
 const { argv } = yargs
@@ -304,6 +310,48 @@ const fetchBlockchainData = async () => {
   admins = state.admins;
 };
 
+async function getHomeTxHash(txHash) {
+  const decoders = eventDecodersFromArtifact(ForeignGivethBridgeArtifact);
+
+  const [err, receipt] = await toWrapper(foreignWeb3.eth.getTransactionReceipt(txHash));
+
+  if (err || !receipt) {
+    logger.error('Error fetching transaction, or no tx receipt found ->', err, receipt);
+    return undefined;
+  }
+
+  const topics = topicsFromArtifacts([ForeignGivethBridgeArtifact], ['Deposit']);
+
+  // get logs we're interested in.
+  const logs = receipt.logs.filter(log => topics.some(t => t.hash === log.topics[0]));
+
+  if (logs.length === 0) return undefined;
+
+  const log = logs[0];
+
+  const topic = topics.find(t => t.hash === log.topics[0]);
+  const event = decoders[topic.name](log);
+
+  return event.returnValues.homeTx;
+}
+
+async function getHomeTxHashForDonation({ txHash, parentDonations, from }) {
+  if (from === '0') {
+    return getHomeTxHash(txHash);
+  }
+  if (parentDonations && parentDonations.length === 1) {
+    const parentDonationWithHomeTxHash = await Donations.findOne({
+      _id: Types.ObjectId(parentDonations[0]),
+      txHash,
+      homeTxHash: { $exists: true },
+    });
+    if (parentDonationWithHomeTxHash) {
+      return parentDonationWithHomeTxHash.homeTxHash;
+    }
+  }
+  return null;
+}
+
 // Update createdAt date of donations based on transaction date
 // @params {string} startDate
 // eslint-disable-next-line no-unused-vars
@@ -324,7 +372,7 @@ const updateDonationsCreatedDate = async startDate => {
           `Donation ${_id.toString()} createdAt is changed from ${createdAt.toISOString()} to ${newCreatedAt.toISOString()}`,
         );
         logger.info('Updating...');
-        const [d] = await Donations.find({ _id }).exec();
+        const d = await Donations.findOne({ _id });
         d.createdAt = newCreatedAt;
         await d.save();
       }
@@ -686,6 +734,14 @@ const handleToDonations = async ({
       giverAddress,
       isReturn,
     };
+    const homeTxHash = await getHomeTxHashForDonation({
+      txHash: transactionHash,
+      parentDonations: usedFromDonations,
+      from,
+    });
+    if (homeTxHash) {
+      expectedToDonation.homeTxHash = homeTxHash;
+    }
 
     if (fixConflicts) {
       let toPledgeAdmin = await PledgeAdmins.findOne({ id: Number(toOwnerId) }).exec();
