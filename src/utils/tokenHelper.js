@@ -25,7 +25,7 @@ function getTokenBySymbol(symbol) {
     });
     tokensByAddress[ANY_TOKEN.symbol] = ANY_TOKEN;
   }
-  return tokensBySymbols[symbol];
+  return tokensBySymbols[symbol] || { symbol };
 }
 
 module.exports = {
