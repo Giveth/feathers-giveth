@@ -67,10 +67,11 @@ async function dropDb() {
   return new Promise((resolve, reject) => {
     mongoose.connect(config.get('mongodb'), error => {
       if (error) {
-        return reject(error);
+        reject(error);
+      } else {
+        mongoose.connection.db.dropDatabase();
+        resolve();
       }
-      mongoose.connection.db.dropDatabase();
-      resolve();
     });
   });
 }
