@@ -16,22 +16,6 @@ function getWhiteListTestCases() {
     expect(response.body.fiatWhitelist).to.deep.equal(config.get('fiatWhitelist'));
     expect(response.body.tokenWhitelist).to.deep.equal(config.get('tokenWhitelist'));
   });
-
-  it('should fill activeTokenWhitelist with tokenInfo ', async function() {
-    const response = await request(baseUrl).get(relativeUrl);
-    assert.equal(response.statusCode, 200);
-    const { activeTokenWhitelist } = response.body;
-    assert.isArray(activeTokenWhitelist);
-    const activeTokenWhitelistSymbols = config.get('activeTokenWhitelist');
-    assert.equal(activeTokenWhitelist.length, activeTokenWhitelistSymbols.length);
-    activeTokenWhitelistSymbols.forEach(symbol => {
-      const token = activeTokenWhitelist.find(item => item.symbol === symbol);
-      assert.isOk(token);
-      assert.isOk(token.symbol);
-      assert.isOk(token.address);
-      assert.isOk(token.name);
-    });
-  });
 }
 
 describe(`Test GET ${relativeUrl}`, getWhiteListTestCases);

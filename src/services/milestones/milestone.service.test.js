@@ -1,10 +1,11 @@
 const request = require('supertest');
 const config = require('config');
-const { assert, expect } = require('chai');
+const { assert } = require('chai');
 const { getJwt, SAMPLE_DATA, generateRandomMongoId } = require('../../../test/testUtility');
 const { getFeatherAppInstance } = require('../../app');
 
-let app;
+const app = getFeatherAppInstance();
+
 const baseUrl = config.get('givethFathersBaseUrl');
 const relativeUrl = '/milestones';
 
@@ -39,31 +40,6 @@ function postMilestoneTestCases() {
     assert.equal(response.statusCode, 201);
     assert.equal(response.body.ownerAddress, SAMPLE_DATA.USER_ADDRESS);
   });
-
-  it('should create milestone , token must be returned', async function() {
-    // In milestone hooks based on token.symbol set a tokenSymbol field
-    // in milestone, and after all http methods hook when returning milestone
-    // add token to milestone based on tokenSymbol
-    const ethToken = config.get('tokenWhitelist').find(token => token.symbol === 'ETH');
-
-    const response = await request(baseUrl)
-      .post(relativeUrl)
-      .send({
-        ...SAMPLE_DATA.CREATE_MILESTONE_DATA,
-        token: {
-          address: ethToken.address,
-        },
-      })
-      .set({ Authorization: getJwt() });
-    assert.equal(response.statusCode, 201);
-    assert.equal(response.body.ownerAddress, SAMPLE_DATA.USER_ADDRESS);
-    assert.equal(response.body.tokenAddress, ethToken.address);
-    assert.exists(response.body.token);
-    assert.exists(response.body.token.foreignAddress);
-    assert.exists(response.body.token.decimals);
-    expect(response.body.token).to.be.deep.equal(ethToken);
-  });
-
   it('should get unAuthorized error', async function() {
     const response = await request(baseUrl)
       .post(relativeUrl)
@@ -223,15 +199,11 @@ function deleteMilestoneTestCases() {
 }
 
 it('should milestones service registration be ok', () => {
-  const service = app.service('milestones');
-  assert.ok(service, 'Registered the service');
+  const userService = app.service('milestones');
+  assert.ok(userService, 'Registered the service');
 });
 
 describe(`Test GET  ${relativeUrl}`, getMilestoneTestCases);
 describe(`Test POST  ${relativeUrl}`, postMilestoneTestCases);
 describe(`Test PATCH  ${relativeUrl}`, patchMilestoneTestCases);
 describe(`Test DELETE  ${relativeUrl}`, deleteMilestoneTestCases);
-
-before(() => {
-  app = getFeatherAppInstance();
-});

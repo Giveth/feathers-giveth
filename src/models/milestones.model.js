@@ -1,4 +1,5 @@
 const Item = require('./item.model');
+const Token = require('./token.model');
 const DonationCounter = require('./donationCounter.model');
 
 // milestones-model.js - A mongoose model
@@ -78,7 +79,7 @@ function Milestone(app) {
       message: { type: String },
       proofItems: [Item],
       messageContext: { type: String },
-      tokenAddress: { type: String, required: true },
+      token: { type: Token, required: true },
       projectAddedAt: { type: Date }, // Store the time milestone is accepted or added by campaign owner
     },
     {

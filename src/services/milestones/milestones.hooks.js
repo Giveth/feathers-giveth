@@ -8,7 +8,6 @@ const { getResultsByKey, getUniqueKeys } = BatchLoader;
 const sanitizeAddress = require('../../hooks/sanitizeAddress');
 const setAddress = require('../../hooks/setAddress');
 const sanitizeHtml = require('../../hooks/sanitizeHtml');
-const tokenAddressConversion = require('../../hooks/tokenAddressConversion');
 const resolveFiles = require('../../hooks/resolveFiles');
 const { isProjectAllowed } = require('../../hooks/isProjectAllowed');
 const { isTokenAllowed } = require('../../hooks/isTokenAllowed');
@@ -19,7 +18,6 @@ const checkConversionRates = require('./checkConversionRates');
 const sendNotification = require('./sendNotification');
 const checkMilestoneDates = require('./checkMilestoneDates');
 const { getBlockTimestamp, ZERO_ADDRESS } = require('../../blockchain/lib/web3Helpers');
-const { getTokenByAddress } = require('../../utils/tokenHelper');
 
 const milestoneResolvers = {
   before: context => {
@@ -137,14 +135,6 @@ const milestoneResolvers = {
       // eslint-disable-next-line no-param-reassign
       milestone.campaign = await context._loaders.campaign.id.load(campaignId);
     },
-
-    token: () => async (milestone, _context) => {
-      const { tokenAddress } = milestone;
-      const token = getTokenByAddress(tokenAddress);
-      if (token) {
-        milestone.token = token;
-      }
-    },
   },
 };
 
@@ -190,7 +180,6 @@ const restrict = () => context => {
       'selectedFiatType',
       'date',
       'token',
-      'tokenAddress',
       'type',
     ];
     keysToRemove.forEach(key => delete data[key]);
@@ -252,14 +241,6 @@ const storePrevState = () => context => {
   return context;
 };
 
-const convertTokenToTokenAddress = () => context => {
-  const { data } = context;
-  if (data.token) {
-    data.tokenAddress = data.token.address;
-  }
-  return context;
-};
-
 /**
  * Capture the address of the user who patched (= performed action on) the milestone
  * */
@@ -316,7 +297,7 @@ const updateCampaign = () => context => {
 
 module.exports = {
   before: {
-    all: [tokenAddressConversion()],
+    all: [],
     find: [
       sanitizeAddress([
         'ownerAddress',
@@ -335,15 +316,8 @@ module.exports = {
       isProjectAllowed(),
       isTokenAllowed(),
       sanitizeHtml('description'),
-      convertTokenToTokenAddress(),
     ],
-    update: [
-      restrict(),
-      checkMilestoneDates(),
-      ...address,
-      sanitizeHtml('description'),
-      convertTokenToTokenAddress(),
-    ],
+    update: [restrict(), checkMilestoneDates(), ...address, sanitizeHtml('description')],
     patch: [
       restrict(),
       sanitizeAddress(
@@ -353,7 +327,6 @@ module.exports = {
       sanitizeHtml('description'),
       storePrevState(),
       performedBy(),
-      convertTokenToTokenAddress(),
     ],
     remove: [canDelete()],
   },

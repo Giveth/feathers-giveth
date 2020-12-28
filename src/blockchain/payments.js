@@ -27,14 +27,12 @@ const payments = app => ({
 
       if (data.length === 0) {
         logger.error('AuthorizePayment: no donations found with pledgeId ->', pledgeId);
-        return null;
+        return;
       }
 
-      const donation = await donations.patch(null, { paymentId }, { query });
-      return donation;
+      await donations.patch(null, { paymentId }, { query });
     } catch (error) {
       logger.error('authorizePayment error ->', error);
-      return null;
     }
   },
 });
