@@ -36,9 +36,9 @@ function getTokenBySymbol(symbol) {
     getWhiteListTokens().forEach(token => {
       tokensBySymbols[token.symbol] = token;
     });
-    tokensByAddress[ANY_TOKEN.symbol] = ANY_TOKEN;
+    tokensBySymbols[ANY_TOKEN.symbol] = ANY_TOKEN;
   }
-  return tokensBySymbols[symbol];
+  return tokensBySymbols[symbol] || { symbol };
 }
 
 module.exports = {

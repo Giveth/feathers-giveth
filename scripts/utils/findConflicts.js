@@ -13,16 +13,22 @@ const BigNumber = require('bignumber.js');
 const mongoose = require('mongoose');
 const cliProgress = require('cli-progress');
 const _colors = require('colors');
+const Web3WsProvider = require('web3-providers-ws');
 require('mongoose-long')(mongoose);
 require('../../src/models/mongoose-bn')(mongoose);
 const { LiquidPledging, LiquidPledgingState } = require('giveth-liquidpledging');
 const { Kernel, AppProxyUpgradeable } = require('giveth-liquidpledging/build/contracts');
-const EventEmitter = require('events');
+const ForeignGivethBridgeArtifact = require('giveth-bridge/build/ForeignGivethBridge.json');
+const { Types } = require('mongoose');
 const toFn = require('../../src/utils/to');
 const DonationUsdValueUtility = require('./DonationUsdValueUtility');
 const { getTokenByAddress } = require('./tokenUtility');
 const { createProjectHelper } = require('../../src/common-utils/createProjectHelper');
-const { reconnectOnEnd } = require('../../src/blockchain/lib/web3Helpers');
+const topicsFromArtifacts = require('../../src/blockchain/lib/topicsFromArtifacts');
+const eventDecodersFromArtifact = require('../../src/blockchain/lib/eventDecodersFromArtifact');
+const toWrapper = require('../../src/utils/to');
+
+// const { getTransaction } = require('../../src/blockchain/lib/web3Helpers');
 
 const { argv } = yargs
   .option('dry-run', {
@@ -79,7 +85,6 @@ const logger = winston.createLogger({
 });
 
 const terminateScript = (message = '', code = 0) => {
-  logger.error(`Exit message: ${message}`);
   if (message) {
     logger.error(`Exit message: ${message}`);
   }
@@ -114,27 +119,36 @@ let foreignWeb3;
 let liquidPledging;
 
 const instantiateWeb3 = async url => {
-  const provider =
-    url && url.startsWith('ws')
-      ? new Web3.providers.WebsocketProvider(url, {
-          clientConfig: {
-            maxReceivedFrameSize: 100000000,
-            maxReceivedMessageSize: 100000000,
-          },
-        })
-      : url;
+  const options = {
+    timeout: 30000, // ms
+
+    clientConfig: {
+      // Useful if requests are large
+      maxReceivedFrameSize: 100000000, // bytes - default: 1MiB
+      maxReceivedMessageSize: 100000000, // bytes - default: 8MiB
+
+      // Useful to keep a connection alive
+      keepalive: true,
+      keepaliveInterval: 45000, // ms
+    },
+
+    // Enable auto reconnection
+    reconnect: {
+      auto: true,
+      delay: 5000, // ms
+      maxAttempts: 5,
+      onTimeout: false,
+    },
+  };
+
+  const provider = url && url.startsWith('ws') ? new Web3WsProvider(url, options) : url;
   return new Promise(resolve => {
-    foreignWeb3 = Object.assign(new Web3(provider), EventEmitter.prototype);
-    if (foreignWeb3.currentProvider.on) {
-      foreignWeb3.currentProvider.on('connect', () => {
+    // foreignWeb3 = Object.assign(new Web3(provider), EventEmitter.prototype);
+    foreignWeb3 = new Web3(provider);
+    if (provider.on) {
+      provider.on('connect', () => {
         console.log('connected');
         liquidPledging = new LiquidPledging(foreignWeb3, liquidPledgingAddress);
-        reconnectOnEnd(foreignWeb3, url);
-        Object.assign(foreignWeb3, {
-          DISCONNECT_EVENT: 'disconnect',
-          RECONNECT_EVENT: 'reconnect',
-        });
-        foreignWeb3.emit(foreignWeb3.RECONNECT_EVENT);
         resolve();
       });
     } else {
@@ -170,7 +184,9 @@ const Milestones = createModel(app);
 const Campaigns = require('../../src/models/campaigns.model').createModel(app);
 const Donations = require('../../src/models/donations.model').createModel(app);
 const PledgeAdmins = require('../../src/models/pledgeAdmins.model').createModel(app);
+const Dacs = require('../../src/models/dacs.model').createModel(app);
 const ConversationRates = require('../../src/models/conversionRates.model')(app);
+// const Transaction = require('../../src/models/transactions.model').createModel(app);
 
 const { DonationStatus } = require('../../src/models/donations.model');
 const { AdminTypes } = require('../../src/models/pledgeAdmins.model');
@@ -305,6 +321,48 @@ const fetchBlockchainData = async () => {
   admins = state.admins;
 };
 
+async function getHomeTxHash(txHash) {
+  const decoders = eventDecodersFromArtifact(ForeignGivethBridgeArtifact);
+
+  const [err, receipt] = await toWrapper(foreignWeb3.eth.getTransactionReceipt(txHash));
+
+  if (err || !receipt) {
+    logger.error('Error fetching transaction, or no tx receipt found ->', err, receipt);
+    return undefined;
+  }
+
+  const topics = topicsFromArtifacts([ForeignGivethBridgeArtifact], ['Deposit']);
+
+  // get logs we're interested in.
+  const logs = receipt.logs.filter(log => topics.some(t => t.hash === log.topics[0]));
+
+  if (logs.length === 0) return undefined;
+
+  const log = logs[0];
+
+  const topic = topics.find(t => t.hash === log.topics[0]);
+  const event = decoders[topic.name](log);
+
+  return event.returnValues.homeTx;
+}
+
+async function getHomeTxHashForDonation({ txHash, parentDonations, from }) {
+  if (from === '0') {
+    return getHomeTxHash(txHash);
+  }
+  if (parentDonations && parentDonations.length === 1) {
+    const parentDonationWithHomeTxHash = await Donations.findOne({
+      _id: Types.ObjectId(parentDonations[0]),
+      txHash,
+      homeTxHash: { $exists: true },
+    });
+    if (parentDonationWithHomeTxHash) {
+      return parentDonationWithHomeTxHash.homeTxHash;
+    }
+  }
+  return null;
+}
+
 // Update createdAt date of donations based on transaction date
 // @params {string} startDate
 // eslint-disable-next-line no-unused-vars
@@ -325,12 +383,23 @@ const updateDonationsCreatedDate = async startDate => {
           `Donation ${_id.toString()} createdAt is changed from ${createdAt.toISOString()} to ${newCreatedAt.toISOString()}`,
         );
         logger.info('Updating...');
-        const [d] = await Donations.find({ _id }).exec();
+        const d = await Donations.findOne({ _id });
         d.createdAt = newCreatedAt;
         await d.save();
       }
     });
 };
+//
+// const getTransactionTimeStamp = async txHash => {
+//   const mockApp = {
+//     get: key => {
+//       if (key === 'transactionsModel') return Transaction;
+//       return null;
+//     },
+//   };
+//   const { timestamp } = getTransaction(mockApp, txHash, false);
+//   return timestamp;
+// };
 
 // Fills pledgeNotUsedDonationListMap map to contain donation items for each pledge
 // Fills donationMap to map id to donation item
@@ -596,7 +665,7 @@ const handleFromDonations = async (from, to, amount, transactionHash) => {
         candidateChargedParents.forEach(candidate =>
           logger.debug(JSON.stringify(candidate, null, 2)),
         );
-        terminateScript();
+        terminateScript(`from delegate ${from} donations don't have enough amountRemaining!`);
       }
     } else {
       logger.error(`There is no donation for transfer from ${from} to ${to}`);
@@ -618,20 +687,6 @@ const handleToDonations = async ({
   giverAddress,
   isReverted = false,
 }) => {
-  const toNotFilledDonationList = pledgeNotUsedDonationListMap[to] || []; // List of donations which are candidates to be charged
-
-  const toIndex = toNotFilledDonationList.findIndex(
-    item => item.txHash === transactionHash && item.amountRemaining.eq(0),
-  );
-
-  const toDonation = toIndex !== -1 ? toNotFilledDonationList.splice(toIndex, 1)[0] : undefined;
-
-  // It happens when a donation is cancelled, we choose the first one (created earlier)
-  // if (toDonationList.length > 1) {
-  //   console.log('toDonationList length is greater than 1');
-  //   process.exit();
-  // }
-
   const fromPledge = pledges[Number(from)];
   const toPledge = pledges[Number(to)];
 
@@ -641,7 +696,7 @@ const handleToDonations = async ({
   const toOwnerAdmin = admins[Number(toOwnerId)];
   const fromOwnerAdmin = from !== '0' ? admins[Number(fromOwnerId)] : {};
 
-  const [fromPledgeAdmin] = await PledgeAdmins.find({ id: Number(fromOwnerId) }).exec();
+  const fromPledgeAdmin = await PledgeAdmins.findOne({ id: Number(fromOwnerId) }).exec();
 
   let isReturn = isReverted;
   if (!isReturn) {
@@ -659,6 +714,20 @@ const handleToDonations = async ({
     const rejectedDelegation = isRejectedDelegation({ toPledge, fromPledge });
     isReturn = isReturn || rejectedDelegation;
   }
+  const toNotFilledDonationList = pledgeNotUsedDonationListMap[to] || []; // List of donations which are candidates to be charged
+
+  const toIndex = toNotFilledDonationList.findIndex(
+    item =>
+      item.txHash === transactionHash && item.amountRemaining.eq(0) && item.isReturn === isReturn,
+  );
+
+  const toDonation = toIndex !== -1 ? toNotFilledDonationList.splice(toIndex, 1)[0] : undefined;
+
+  // It happens when a donation is cancelled, we choose the first one (created earlier)
+  // if (toDonationList.length > 1) {
+  //   console.log('toDonationList length is greater than 1');
+  //   process.exit();
+  // }
 
   if (toDonation === undefined) {
     // If parent is cancelled, this donation is not needed anymore
@@ -676,10 +745,18 @@ const handleToDonations = async ({
       giverAddress,
       isReturn,
     };
+    const homeTxHash = await getHomeTxHashForDonation({
+      txHash: transactionHash,
+      parentDonations: usedFromDonations,
+      from,
+    });
+    if (homeTxHash) {
+      expectedToDonation.homeTxHash = homeTxHash;
+    }
 
     if (fixConflicts) {
-      let [toPledgeAdmin] = await PledgeAdmins.find({ id: Number(toOwnerId) }).exec();
-      if (toPledgeAdmin === undefined) {
+      let toPledgeAdmin = await PledgeAdmins.findOne({ id: Number(toOwnerId) });
+      if (!toPledgeAdmin) {
         if (toOwnerAdmin.type !== 'Giver') {
           terminateScript(
             `No PledgeAdmin record exists for non user admin ${JSON.stringify(
@@ -729,8 +806,8 @@ const handleToDonations = async ({
       // It's delegated to a DAC
       if (toPledge.delegates.length > 0) {
         const [delegate] = toPledge.delegates;
-        const [dacPledgeAdmin] = await PledgeAdmins.find({ id: Number(delegate.id) }).exec();
-        if (dacPledgeAdmin === undefined) {
+        const dacPledgeAdmin = await PledgeAdmins.findOne({ id: Number(delegate.id) });
+        if (!dacPledgeAdmin) {
           // This is wrong, why should we terminate if there is no dacPledgeAdmin
           logger.error(`No dac found for id: ${delegate.id}`);
           terminateScript(`No dac found for id: ${delegate.id}`);
@@ -743,7 +820,7 @@ const handleToDonations = async ({
         // Has intended project
         const { intendedProject } = toPledge;
         if (intendedProject !== '0') {
-          const [intendedProjectPledgeAdmin] = await PledgeAdmins.find({
+          const intendedProjectPledgeAdmin = await PledgeAdmins.findOne({
             id: Number(intendedProject),
           });
           if (intendedProjectPledgeAdmin === undefined) {
@@ -1215,13 +1292,22 @@ const syncPledgeAdmins = async () => {
         : await Milestones.findOne({ txHash: transactionHash });
       // Not found any
       if (!entity && !isCampaign) {
-        entity = await createMilestoneForPledgeAdmin({
-          project,
-          idProject,
-          milestoneType,
-          transactionHash,
-          getMilestoneDataForCreate,
-        });
+        try {
+          entity = await createMilestoneForPledgeAdmin({
+            project,
+            idProject,
+            milestoneType,
+            transactionHash,
+            getMilestoneDataForCreate,
+          });
+        } catch (e) {
+          logger.error('createMilestoneForPledgeAdmin error', { idProject, e });
+          new PledgeAdmins({
+            id: Number(idProject),
+            type: AdminTypes.MILESTONE,
+          }).save();
+          logger.error('create pledgeAdmin without creating milestone', { idProject });
+        }
       } else if (!entity && isCampaign) {
         entity = await createCampaignForPledgeAdmin({
           project,
@@ -1254,6 +1340,54 @@ const syncPledgeAdmins = async () => {
   const spentTime = (new Date().getTime() - startTime.getTime()) / 1000;
   console.log(`pledgeAdmin events synced end.\n spentTime :${spentTime} seconds`);
 };
+
+const syncDacs = async () => {
+  console.log('syncDacs called', { fixConflicts });
+  if (!fixConflicts) return;
+  const { getDacDataForCreate } = await createProjectHelper({
+    web3: foreignWeb3,
+    liquidPledging,
+    kernel: await getKernel(),
+    AppProxyUpgradeable,
+  });
+
+  const startTime = new Date();
+  const progressBar = createProgressBar({ title: 'Syncing Dacs with events' });
+  progressBar.start(events.length, 0);
+  for (let i = 0; i < events.length; i += 1) {
+    progressBar.update(i);
+    try {
+      const { event, transactionHash, returnValues } = events[i];
+      if (event !== 'DelegateAdded') continue;
+      const { idDelegate } = returnValues;
+      const pledgeAdmin = await PledgeAdmins.findOne({ id: Number(idDelegate) });
+      if (pledgeAdmin) {
+        continue;
+      }
+      const { from, blockNumber } = await foreignWeb3.eth.getTransaction(transactionHash);
+      const delegateId = idDelegate;
+      let dac = await Dacs.findOne({ delegateId });
+      if (!dac) {
+        const dacData = await getDacDataForCreate({
+          from,
+          txHash: transactionHash,
+          delegateId,
+          blockNumber,
+        });
+        dac = await new Dacs(dacData).save();
+        logger.info('created dac ', dac);
+      }
+      await new PledgeAdmins({ id: Number(delegateId), type: 'dac', typeId: dac._id }).save();
+    } catch (e) {
+      logger.error('error in creating dac', e);
+    }
+  }
+  progressBar.update(events.length);
+  progressBar.stop();
+  const spentTime = (new Date().getTime() - startTime.getTime()) / 1000;
+  console.log(`dac/delegate events synced end.\n spentTime :${spentTime} seconds`);
+};
+
 const main = async () => {
   try {
     await fetchBlockchainData();
@@ -1275,6 +1409,7 @@ const main = async () => {
     db.once('open', async () => {
       logger.info('Connected to Mongo');
       await syncPledgeAdmins();
+      await syncDacs();
       await syncDonationsWithNetwork();
       terminateScript(null, 0);
     });
