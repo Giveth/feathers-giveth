@@ -25,7 +25,7 @@ const findConversionRates = () => async context => {
     isHome,
   } = params.query;
 
-  let date = Number(queryDate);
+  let date = queryDate;
   let interval = queryInterval;
 
   if (txHash) {
