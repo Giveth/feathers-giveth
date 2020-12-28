@@ -1743,7 +1743,7 @@ const updateMilestonesFinalStatus = async () => {
     progressBar.increment();
     const matchedEvents = events.filter(event => event.returnValues && event.returnValues.idProject === String(milestone.projectId));
     const { status, projectId } = milestone;
-    if ([MilestoneStatus.ARCHIVED, MilestoneStatus.CANCELED].includes(status)) return;
+    if ([MilestoneStatus.ARCHIVED, MilestoneStatus.CANCELED].includes(status)) continue;
 
     let message = '';
     message += `Project ID: ${projectId}\n`;
@@ -1785,10 +1785,8 @@ const main = async () => {
         await updateEntity(campaignModel, AdminTypes.CAMPAIGN);
         await updateEntity(milestoneModel, AdminTypes.MILESTONE);
         await updateMilestonesFinalStatus();
-
-        // await sendReportEmail(report);
         console.table(report);
-        terminateScript(null, 0);
+        terminateScript('All job done.', 0);
       } catch (e) {
         console.log('error syncing ... ', e);
       }
