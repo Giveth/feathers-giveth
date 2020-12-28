@@ -151,7 +151,8 @@ const getHourlyRateCryptocompare = async (timestamp, fromToken, toToken) => {
     ),
   );
 
-  const tsData = resp && resp.Data && resp.Data.find(d => d.time === timestampMS);
+  const tsData =
+    resp && resp.Data && Array.isArray(resp.Data) && resp.Data.find(d => d.time === timestampMS);
 
   if (!tsData) {
     logger.error('getHourlyRateCryptocompare error', { timestampMS, resp, fromToken, toToken });

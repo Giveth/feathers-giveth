@@ -1,6 +1,7 @@
 const config = require('config');
 const jwt = require('jsonwebtoken');
 const path = require('path');
+// eslint-disable-next-line import/no-unresolved
 const restore = require('mongodb-restore-dump');
 const { ObjectID } = require('bson');
 const { assert } = require('chai');
