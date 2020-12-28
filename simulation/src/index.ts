@@ -1038,8 +1038,8 @@ const handleToDonations = async ({
     }
 
     if (fixConflicts) {
-      let toPledgeAdmin: any = (await pledgeAdminModel.find({ id: Number(toOwnerId) }))[0];
-      if (toPledgeAdmin === undefined) {
+      let toPledgeAdmin: PledgeAdminMongooseDocument = await pledgeAdminModel.findOne({ id: Number(toOwnerId) });
+      if (!toPledgeAdmin) {
         if (toOwnerAdmin.type !== 'Giver') {
           terminateScript(
             `No PledgeAdmin record exists for non user admin ${JSON.stringify(
@@ -1104,10 +1104,10 @@ const handleToDonations = async ({
         // Has intended project
         const { intendedProject } = toPledge;
         if (intendedProject !== '0') {
-          const [intendedProjectPledgeAdmin] = await pledgeAdminModel.find({
+          const intendedProjectPledgeAdmin = await pledgeAdminModel.findOne({
             id: Number(intendedProject),
           });
-          if (intendedProjectPledgeAdmin === undefined) {
+          if (!intendedProjectPledgeAdmin) {
             terminateScript(`No project found for id: ${intendedProject}`);
             return;
           }
