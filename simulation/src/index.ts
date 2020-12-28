@@ -9,6 +9,10 @@ import {
   PledgeInterface, TransferInfoInterface,
 } from './utils/interfaces';
 // import  Web3 from 'web3';
+const  Contract = require('web3-eth-contract');
+const ForeignGivethBridgeArtifact = require('giveth-bridge/build/ForeignGivethBridge.json');
+import { keccak256 } from 'web3-utils';
+
 const Web3 = require('web3');
 import * as fs from 'fs';
 import * as path from 'path';
@@ -37,10 +41,11 @@ import { getLogger } from './utils/logger';
 import { dacModel, DacStatus } from './models/dacs.model';
 import { ANY_TOKEN, getTransaction, ZERO_ADDRESS } from './utils/web3Helpers';
 import { transactionModel } from './models/transactions.model';
-import { sendReportEmail } from './utils/emailService';
+// import { sendReportEmail } from './utils/emailService';
 import { getAdminBatch, getPledgeBatch } from './utils/liquidPledgingHelper';
 import { toBN } from 'web3-utils';
 import * as Events from 'events';
+import { Types } from 'mongoose';
 
 const _groupBy = require('lodash.groupby');
 
@@ -118,6 +123,84 @@ let liquidPledging;
 
 console.log(cacheDir);
 const logger: Logger = getLogger(logDir, 'debug');
+
+function eventDecodersFromArtifact(artifact) {
+  return artifact.compilerOutput.abi
+    .filter(method => method.type === 'event')
+    .reduce(
+      (decoders, event) => ({
+        ...decoders,
+        [event.name]: Contract.prototype._decodeEventABI.bind(event),
+      }),
+      {},
+    );
+}
+
+function topicsFromArtifacts(artifacts, names) {
+  return artifacts
+    .reduce(
+      (accumulator, artifact) =>
+        accumulator.concat(
+          artifact.compilerOutput.abi.filter(
+            method => method.type === 'event' && names.includes(method.name),
+          ),
+        ),
+      [],
+    )
+    .reduce(
+      (accumulator, event) =>
+        accumulator.concat({
+          name: event.name,
+          hash: keccak256(`${event.name}(${event.inputs.map(i => i.type).join(',')})`),
+        }),
+      [],
+    );
+}
+
+async function getHomeTxHash(txHash:string) {
+  const decoders = eventDecodersFromArtifact(ForeignGivethBridgeArtifact);
+
+  const [err, receipt] = await toFn(foreignWeb3.eth.getTransactionReceipt(txHash));
+
+  if (err || !receipt) {
+    logger.error('Error fetching transaction, or no tx receipt found ->', err, receipt);
+    return undefined;
+  }
+
+  const topics = topicsFromArtifacts([ForeignGivethBridgeArtifact], ['Deposit']);
+
+  // get logs we're interested in.
+  const logs = receipt.logs.filter(log => topics.some(t => t.hash === log.topics[0]));
+
+  if (logs.length === 0) return undefined;
+
+  const log = logs[0];
+
+  const topic = topics.find(t => t.hash === log.topics[0]);
+  const event = decoders[topic.name](log);
+
+  return event.returnValues.homeTx;
+}
+
+async function getHomeTxHashForDonation(options :
+                                          { txHash:string, parentDonations:string[], from:string }) {
+  const { txHash, parentDonations, from } = options
+  if (from === '0') {
+    return getHomeTxHash(txHash);
+  }
+  if (parentDonations && parentDonations.length === 1) {
+    const parentDonationWithHomeTxHash = await donationModel.findOne({
+      _id: Types.ObjectId(parentDonations[0]),
+      txHash,
+      homeTxHash: { $exists: true },
+    });
+    if (parentDonationWithHomeTxHash) {
+      return parentDonationWithHomeTxHash.homeTxHash;
+    }
+  }
+  return null;
+}
+
 // const logger: Logger = getLogger(logDir, argv.debug ?'debug':'error')
 
 const terminateScript = (message = '', code = 0) => {
@@ -888,17 +971,6 @@ const handleToDonations = async ({
                                  }) => {
   const toNotFilledDonationList = pledgeNotUsedDonationListMap[to] || []; // List of donations which are candidates to be charged
 
-  const toIndex = toNotFilledDonationList.findIndex(
-    item => item.txHash === transactionHash && item.amountRemaining.eq(0),
-  );
-
-  const toDonation = toIndex !== -1 ? toNotFilledDonationList.splice(toIndex, 1)[0] : undefined;
-
-  // It happens when a donation is cancelled, we choose the first one (created earlier)
-  // if (toDonationList.length > 1) {
-  //   console.log('toDonationList length is greater than 1');
-  //   process.exit();
-  // }
 
   const fromPledge = pledges[Number(from)];
   const toPledge = pledges[Number(to)];
@@ -923,6 +995,18 @@ const handleToDonations = async ({
     isReturn = isReturn || returnedTransfer;
   }
 
+  const toIndex = toNotFilledDonationList.findIndex(
+    item => item.txHash === transactionHash && item.amountRemaining.eq(0) && item.isReturn === isReturn,
+  );
+
+  const toDonation = toIndex !== -1 ? toNotFilledDonationList.splice(toIndex, 1)[0] : undefined;
+
+  // It happens when a donation is cancelled, we choose the first one (created earlier)
+  // if (toDonationList.length > 1) {
+  //   console.log('toDonationList length is greater than 1');
+  //   process.exit();
+  // }
+
   if (!isReturn) {
     const rejectedDelegation = isRejectedDelegation({ toPledge, fromPledge });
     isReturn = isReturn || rejectedDelegation;
@@ -944,6 +1028,14 @@ const handleToDonations = async ({
       giverAddress,
       isReturn,
     };
+    const homeTxHash = await getHomeTxHashForDonation({
+      txHash: transactionHash,
+      parentDonations: usedFromDonations,
+      from,
+    });
+    if (homeTxHash) {
+      expectedToDonation.homeTxHash = homeTxHash;
+    }
 
     if (fixConflicts) {
       let toPledgeAdmin: any = (await pledgeAdminModel.find({ id: Number(toOwnerId) }))[0];

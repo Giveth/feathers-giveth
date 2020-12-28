@@ -20,6 +20,7 @@ export const DonationStatus = {
 
 export interface DonationMongooseDocument extends  Document {
   txHash:string,
+  homeTxHash:string,
   createdAt ?:Date,
   amount :string,
   amountRemaining:string,
