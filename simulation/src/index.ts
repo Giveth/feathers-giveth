@@ -1572,6 +1572,7 @@ const createPledgeAdminAndProjectsIfNeeded = async (options:
     : await milestoneModel.findOne({ txHash: transactionHash });
   // Not found any
   if (!entity && !isCampaign) {
+    try{
     entity = await createMilestoneForPledgeAdmin({
       project,
       idProject,
@@ -1580,6 +1581,14 @@ const createPledgeAdminAndProjectsIfNeeded = async (options:
       getMilestoneDataForCreate,
     });
     report.createdMilestones++;
+  } catch (e) {
+    logger.error('createMilestoneForPledgeAdmin error', { idProject, e });
+    await new pledgeAdminModel({
+      id: Number(idProject),
+      type: AdminTypes.MILESTONE,
+    }).save();
+    logger.error('create pledgeAdmin without creating milestone', { idProject });
+  }
   } else if (!entity && isCampaign) {
     entity = await createCampaignForPledgeAdmin({ project, idProject, transactionHash, getCampaignDataForCreate });
     report.createdCampaigns++;
