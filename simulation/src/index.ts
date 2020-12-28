@@ -117,8 +117,9 @@ const txHashTransferEventMap = {};
 // Map from owner pledge admin ID to dictionary of charged donations
 const ownerPledgeAdminIdChargedDonationMap = {};
 
-const { nodeUrl, liquidPledgingAddress } = config.get('blockchain');
+const { nodeUrl, liquidPledgingAddress , homeNodeUrl} = config.get('blockchain');
 let foreignWeb3;
+let homeWeb3;
 let liquidPledging;
 
 console.log(cacheDir);
@@ -182,6 +183,11 @@ async function getHomeTxHash(txHash:string) {
   return event.returnValues.homeTx;
 }
 
+async function getActionTakerAddress(options: {txHash:string, homeTxHash:string}){
+  const {txHash, homeTxHash } = options;
+  const {from} =homeTxHash ? homeWeb3.eth.getTransaction(homeTxHash): await foreignWeb3.eth.getTransaction(txHash)
+  return from;
+}
 async function getHomeTxHashForDonation(options :
                                           { txHash:string, parentDonations:string[], from:string }) {
   const { txHash, parentDonations, from } = options
@@ -230,37 +236,38 @@ const DISCONNECT_EVENT = 'reconnect';
 const THIRTY_SECONDS = 30 * 1000;
 // if the websocket connection drops, attempt to re-connect
 // upon successful re-connection, we re-start all listeners
-const reconnectOnEnd = () => {
-  foreignWeb3.currentProvider.on('end', e => {
-    if (foreignWeb3.reconnectInterval) return;
+const reconnectOnEnd = ({web3, url}) => {
+  web3.currentProvider.on('end', e => {
+    if (web3.reconnectInterval) return;
 
-    foreignWeb3.emit(DISCONNECT_EVENT);
+    web3.emit(DISCONNECT_EVENT);
     logger.error(`connection closed reason: ${e.reason}, code: ${e.code}`);
 
-    foreignWeb3.pingInterval = undefined;
+    web3.pingInterval = undefined;
 
-    foreignWeb3.reconnectInterval = setInterval(() => {
+    web3.reconnectInterval = setInterval(() => {
       logger.info('attempting to reconnect');
 
-      const newProvider = new foreignWeb3.providers.WebsocketProvider(nodeUrl);
+      const newProvider = new web3.providers.WebsocketProvider(nodeUrl);
 
       newProvider.on('connect', () => {
         logger.info('successfully connected');
-        clearInterval(foreignWeb3.reconnectInterval);
-        foreignWeb3.reconnectInterval = undefined;
+        clearInterval(web3.reconnectInterval);
+        web3.reconnectInterval = undefined;
         // note: "connection not open on send()" will appear in the logs when setProvider is called
-        // This is because foreignWeb3.setProvider will attempt to clear any subscriptions on the currentProvider
+        // This is because web3.setProvider will attempt to clear any subscriptions on the currentProvider
         // before setting the newProvider. Our currentProvider has been disconnected, so thus the not open
         // error is logged
-        foreignWeb3.setProvider(newProvider);
+        web3.setProvider(newProvider);
         // attach reconnection logic to newProvider
-        reconnectOnEnd();
-        foreignWeb3.emit(RECONNECT_EVENT);
+        reconnectOnEnd({web3, url});
+        web3.emit(RECONNECT_EVENT);
       });
     }, THIRTY_SECONDS);
   });
 };
-const instantiateWeb3 = async url => {
+const instantiateWeb3 = async ({url} ) => {
+  let web3;
   const provider =
     url && url.startsWith('ws')
       ? new Web3.providers.WebsocketProvider(url, {
@@ -271,20 +278,20 @@ const instantiateWeb3 = async url => {
       })
       : url;
   return new Promise(resolve => {
-    foreignWeb3 = Object.assign(new Web3(provider), EventEmitter.prototype);
+    web3 = Object.assign(new Web3(provider), EventEmitter.prototype);
 
-    if (foreignWeb3.currentProvider.on) {
-      foreignWeb3.currentProvider.on('connect', () => {
+    if (web3.currentProvider.on) {
+      web3.currentProvider.on('connect', () => {
         console.log('connected');
-        liquidPledging = new LiquidPledging(foreignWeb3, liquidPledgingAddress);
-        reconnectOnEnd();
-        foreignWeb3.emit(RECONNECT_EVENT);
-        resolve(foreignWeb3);
+        liquidPledging = new LiquidPledging(web3, liquidPledgingAddress);
+        reconnectOnEnd({web3, url});
+        web3.emit(RECONNECT_EVENT);
+        resolve(web3);
 
       });
     } else {
-      liquidPledging = new LiquidPledging(foreignWeb3, liquidPledgingAddress);
-      resolve(foreignWeb3);
+      liquidPledging = new LiquidPledging(web3, liquidPledgingAddress);
+      resolve(web3);
     }
   });
 };
@@ -313,7 +320,8 @@ const fetchBlockchainData = async () => {
     updateEvents,
     updateState,
   });
-  await instantiateWeb3(nodeUrl);
+  foreignWeb3 = await instantiateWeb3({url:nodeUrl});
+  // homeWeb3 = await instantiateWeb3({url:homeNodeUrl});
   try {
     if (!fs.existsSync(cacheDir)) {
       fs.mkdirSync(cacheDir);
@@ -1139,15 +1147,21 @@ const handleToDonations = async ({
       }
 
       const { timestamp } = await foreignWeb3.eth.getBlock(blockNumber);
-      const { from } = await foreignWeb3.eth.getTransaction(transactionHash);
+      // const actionTakerAddress  = await getActionTakerAddress({txHash:transactionHash, homeTxHash})
+
       const model: any = {
         ...expectedToDonation,
         tokenAddress: token.address,
-        actionTakerAddress: from,
         amountRemaining: new BigNumber(expectedToDonation.amountRemaining).toFixed(),
         mined: true,
         createdAt: new Date(timestamp * 1000),
       };
+
+      if (!homeTxHash){
+        //TODO now connecting homeWeb3 has problem if it was ok we can get actionTakerAddress for that too and using this function getActionTakerAddress()
+        const {from}  = await foreignWeb3.eth.getTransaction(transactionHash)
+        model.actionTakerAddress = from
+      }
 
       const { cutoff } = symbolDecimalsMap[token.symbol];
       model.lessThanCutoff = cutoff.gt(new BigNumber(model.amountRemaining));
