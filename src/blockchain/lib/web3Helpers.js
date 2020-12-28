@@ -1,6 +1,7 @@
 const Web3 = require('web3');
 const logger = require('winston');
 const EventEmitter = require('events');
+const errors = require('@feathersjs/errors');
 
 const THIRTY_SECONDS = 30 * 1000;
 
@@ -160,10 +161,8 @@ const txListeners = {};
  * @param {boolean} isHome get transaction of home network
  */
 const getTransaction = async (app, hash, isHome = false) => {
-  const web3 = isHome ? app.getHomeWeb3() : app.getWeb3();
   const Transaction = app.get('transactionsModel');
-  const query = { hash };
-  if (isHome) query.isHome = true;
+  const query = { hash, isHome };
   const result = await Transaction.find(query).exec();
   if (result.length > 0) {
     return result[0];
@@ -179,9 +178,21 @@ const getTransaction = async (app, hash, isHome = false) => {
 
   txListeners[hash] = [];
 
-  const { from } = await web3.eth.getTransaction(hash);
+  const web3 = isHome ? app.getHomeWeb3() : app.getWeb3();
+  const tx = await web3.eth.getTransaction(hash);
+  if (!tx) {
+    throw new errors.NotFound(`Not tx found for ${hash}`);
+  }
+  const { from, blockNumber } = tx;
+  const { timestamp } = await web3.eth.getBlock(blockNumber);
 
-  const transaction = new Transaction({ hash, from });
+  const transaction = new Transaction({
+    hash,
+    from,
+    blockNumber,
+    timestamp: new Date(timestamp * 1000),
+    isHome: !!isHome,
+  });
   await transaction.save();
 
   // execute any listeners for the block
@@ -312,4 +323,5 @@ module.exports = {
   getTransaction,
   ANY_TOKEN,
   ZERO_ADDRESS,
+  reconnectOnEnd,
 };
