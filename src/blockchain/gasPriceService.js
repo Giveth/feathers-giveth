@@ -11,11 +11,7 @@ const queryGasPrice = () => {
   const app = getFeatherAppInstance();
   logger.debug('fetching gas price = require(ethgasstation');
   return rp('https://ethgasstation.info/json/ethgasAPI.json')
-    .then(resp => {
-      const data = JSON.parse(resp);
-      app.set('gasPrice', data);
-      return data;
-    })
+    .then(resp => app.set('gasPrice', JSON.parse(resp)))
     .catch(e => {
       logger.error('could not fetch gas = require(ethgasstation', e.statusCode || e);
     });

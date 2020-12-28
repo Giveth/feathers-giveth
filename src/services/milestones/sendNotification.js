@@ -52,6 +52,8 @@ const sendNotification = () => async context => {
     REJECTED,
     COMPLETED,
     CANCELED,
+    PAYING,
+    PAID,
     NEEDS_REVIEW,
     IN_PROGRESS,
     PROPOSED,
@@ -71,12 +73,12 @@ const sendNotification = () => async context => {
     ownerAddress,
     recipientAddress,
     mined,
-    // donationCounters,
+    donationCounters,
     campaign,
     reviewer,
-    // recipient,
+    recipient,
   } = result;
-  logger.info('sendNotification', { owner, status, prevStatus });
+
   if (context.method === 'create') {
     if (status === PROPOSED) {
       try {
@@ -237,6 +239,16 @@ const sendNotification = () => async context => {
           campaignTitle: campaign.title,
           campaignId,
           message,
+        });
+      } else if (status === PAID && mined && prevStatus === PAYING) {
+        Notifications.milestonePaid(app, {
+          recipient: recipient.email,
+          user: recipient.name,
+          milestoneTitle: title,
+          milestoneId: _id,
+          donationCounters,
+          address: recipientAddress,
+          campaignId,
         });
       }
     } else if (data.status === REJECTED && prevStatus === PROPOSED) {

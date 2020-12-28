@@ -5,7 +5,7 @@ config
 !config/default.json
 !config/test.json
 ecosystem.config.js
-simulation-script-data
+
 # Logs
 logs
 *.log

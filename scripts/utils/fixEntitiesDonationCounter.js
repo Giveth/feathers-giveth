@@ -8,8 +8,11 @@ require('mongoose-long')(mongoose);
 require('../../src/models/mongoose-bn')(mongoose);
 const _groupBy = require('lodash.groupby');
 const { toBN } = require('web3-utils');
-const config = require('config');
-const { getTokenByAddress, getTokenSymbolByAddress } = require('./tokenUtility');
+
+const configFileName = 'beta'; // default or beta
+
+// eslint-disable-next-line import/no-dynamic-require
+const config = require(`../../config/${configFileName}.json`);
 
 const appFactory = () => {
   const data = {};
@@ -97,13 +100,10 @@ const updateEntity = async (model, type) => {
       }).exec();
 
       // first group by token (symbol)
-      const groupedDonations = _groupBy(
-        donations,
-        d => getTokenSymbolByAddress(d.tokenAddress) || 'ETH',
-      );
+      const groupedDonations = _groupBy(donations, d => (d.token && d.token.symbol) || 'ETH');
       const groupedReturnedDonations = _groupBy(
         returnedDonations,
-        d => getTokenSymbolByAddress(d.tokenAddress) || 'ETH',
+        d => (d.token && d.token.symbol) || 'ETH',
       );
 
       // and calculate cumulative token balances for each donated token
@@ -140,13 +140,13 @@ const updateEntity = async (model, type) => {
 
         // find the first donation in the group that has a token object
         // b/c there are other donation objects coming through as well
-        const { tokenAddress } = tokenDonations.find(d => d.tokenAddress);
-        const token = getTokenByAddress(tokenAddress);
+        const tokenDonation = tokenDonations.find(d => typeof d.token === 'object');
+
         return {
-          name: token.name,
-          address: token.address,
-          foreignAddress: token.foreignAddress,
-          decimals: token.decimals,
+          name: tokenDonation.token.name,
+          address: tokenDonation.token.address,
+          foreignAddress: tokenDonation.token.foreignAddress,
+          decimals: tokenDonation.token.decimals,
           symbol,
           totalDonated,
           currentBalance,
@@ -180,17 +180,15 @@ const updateEntity = async (model, type) => {
             message += `${typeName} ${entity._id.toString()} (${
               entity.status
             }) donation counter should be updated\n`;
-            if (oldDC) {
-              message += `Old:\n${JSON.stringify(
-                {
-                  symbol: oldDC.symbol,
-                  totalDonated: oldDC.totalDonated.toString(),
-                  currentBalance: oldDC.currentBalance.toString(),
-                },
-                null,
-                2,
-              )}\n`;
-            }
+            message += `Old:\n${JSON.stringify(
+              {
+                symbol: oldDC.symbol,
+                totalDonated: oldDC.totalDonated.toString(),
+                currentBalance: oldDC.currentBalance.toString(),
+              },
+              null,
+              2,
+            )}\n`;
             message += `New:\n${JSON.stringify(
               {
                 symbol: dc.symbol,
@@ -207,27 +205,24 @@ const updateEntity = async (model, type) => {
         });
       }
 
-      const { tokenAddress, maxAmount } = entity;
-      const token = getTokenByAddress(tokenAddress);
-      const foundDonationCounter = token && donationCounters.find(dc => dc.symbol === token.symbol);
+      const { token, maxAmount } = entity;
       const fullyFunded = !!(
         type === AdminTypes.MILESTONE &&
         donationCounters.length > 0 &&
-        token &&
         token.foreignAddress !== ANY_TOKEN.foreignAddress &&
         maxAmount &&
-        foundDonationCounter &&
         maxAmount
-          .sub(foundDonationCounter.totalDonated)
+          .sub(donationCounters.find(dc => dc.symbol === token.symbol).totalDonated)
           .lt(toBN(10 ** (18 - Number(token.decimals))))
       ); // Difference less than this number is negligible
 
       if (
         (fullyFunded === true || entity.fullyFunded !== undefined) &&
-        entity.fullyFunded !== fullyFunded &&
-        foundDonationCounter
+        entity.fullyFunded !== fullyFunded
       ) {
-        message += `Diff: ${entity.maxAmount.sub(foundDonationCounter.totalDonated)}\n`;
+        message += `Diff: ${entity.maxAmount.sub(
+          donationCounters.find(dc => dc.symbol === entity.token.symbol).totalDonated,
+        )}\n`;
         message += `${typeName} ${entity._id.toString()} (${
           entity.status
         }) fullyFunded status changed from ${entity.fullyFunded} to ${fullyFunded}\n`;
