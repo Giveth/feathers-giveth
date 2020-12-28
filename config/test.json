@@ -50,6 +50,7 @@
       "address": "0x6b175474e89094c44da98b954eedeac495271d0f",
       "foreignAddress": "0x05A075B296995AdCaEC7c1dE0E52271a4Cf6DEb8",
       "symbol": "DAI",
+      "rateEqSymbol": "USD",
       "coingeckoId": "dai",
       "decimals": 3
     },
@@ -86,6 +87,13 @@
       "symbol": "ANT",
       "coingeckoId": "aragon",
       "decimals": "3"
+    },
+    { "name": "MiniMe Test Token",
+      "address": "0xE690E380740a682E2b8CEAEa33584Ea2cb59849E",
+      "foreignAddress": "0xe1DA0672bDBdBc469E82cCACCe9e4c7C79dAF6cf",
+      "symbol": "XDAI",
+      "rateEqSymbol": "USD",
+      "decimals": 3
     }
 
   ],

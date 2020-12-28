@@ -2,6 +2,7 @@ const BigNumber = require('bignumber.js');
 const {
   getHourlyCryptoConversion,
 } = require('../../src/services/conversionRates/getConversionRatesService');
+const { getTokenByAddress } = require('./tokenUtility');
 
 // Used by scripts to set usdValue of donations
 class DonationUsdValueUtility {
@@ -39,10 +40,11 @@ class DonationUsdValueUtility {
   }
 
   async setDonationUsdValue(donation) {
-    const { createdAt, token, amount } = donation;
-    const { symbol } = token;
+    const { createdAt, tokenAddress, amount } = donation;
 
     try {
+      const token = getTokenByAddress(tokenAddress);
+      const { symbol } = token;
       const { rate } = await getHourlyCryptoConversion(this.app, createdAt, symbol, 'USD');
       const usdValue = Number(
         new BigNumber(amount.toString())
@@ -52,7 +54,14 @@ class DonationUsdValueUtility {
       );
       donation.usdValue = usdValue;
       // eslint-disable-next-line no-empty
-    } catch (e) {}
+    } catch (e) {
+      console.log('setDonationUsdValue error', {
+        donation,
+        tokenAddress,
+        token: getTokenByAddress(tokenAddress),
+      });
+      // throw e;
+    }
   }
 }
 

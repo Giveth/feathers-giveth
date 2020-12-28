@@ -1,5 +1,6 @@
 const rp = require('request-promise');
 const logger = require('winston');
+const { getTokenBySymbol } = require('../../utils/tokenHelper');
 const { fetchCoingecko } = require('./coingecko');
 
 const MINUTE = 1000 * 60;
@@ -35,24 +36,17 @@ const _getRatesDb = async (app, timestamp, symbol = 'ETH') => {
  * @param {Array}  timestampMS Timestamp requested for the rate
  * @param {Array}  coingeckoId the unique coingecko id needed for the token that the api needs
  * @param {Array}  ratestToGet Rates that are missing in the DB and should be retrieved
- * @param {Array}  stableCoins coins whose value equal one usd
  *
  * @return {Object} Rates object in format { 0.241 }
  */
-const _getRatesCoinGecko = async (
-  requestedSymbol,
-  timestampMS,
-  coingeckoId,
-  ratesToGet,
-  stableCoins,
-) => {
+const _getRatesCoinGecko = async (requestedSymbol, timestampMS, coingeckoId, ratesToGet) => {
   const rates = {};
   rates[requestedSymbol] = 1;
 
   const promises = ratesToGet.map(async r => {
-    const rateSymbolInner = stableCoins.includes(r) ? 'USD' : r;
-    if (rateSymbolInner !== requestedSymbol) {
-      rates[r] = await fetchCoingecko(timestampMS, coingeckoId, rateSymbolInner);
+    const symbol = getTokenBySymbol(requestedSymbol).rateEqSymbol || requestedSymbol;
+    if (symbol !== requestedSymbol) {
+      rates[r] = await fetchCoingecko(timestampMS, coingeckoId, symbol);
     } else {
       rates[r] = 1;
     }
@@ -74,21 +68,20 @@ const _getRatesCoinGecko = async (
  *
  * @param {Number} timestamp   Timestamp for which the value should be retrieved
  * @param {Array}  ratestToGet Rates that are missing in the DB and should be retrieved
- * @param {Array}  stableCoins coins whose value equal one usd
  *
  * @return {Object} Rates object in format { EUR: 241, USD: 123 }
  */
-const _getRatesCryptocompare = async (timestamp, ratesToGet, symbol, stableCoins) => {
+const _getRatesCryptocompare = async (timestamp, ratesToGet, symbol) => {
   logger.debug(`Fetching coversion rates from crypto compare for: ${ratesToGet}`);
   const timestampMS = Math.round(timestamp / 1000);
 
   const rates = {};
   rates[symbol] = 1;
 
-  const requestSymbol = stableCoins.includes(symbol) ? 'USD' : symbol;
+  const requestSymbol = getTokenBySymbol(symbol).rateEqSymbol || symbol;
   // Fetch the conversion rate
   const promises = ratesToGet.map(async r => {
-    const rateSymbol = stableCoins.includes(r) ? 'USD' : r;
+    const rateSymbol = getTokenBySymbol(r).rateEqSymbol || r;
     if (rateSymbol !== requestSymbol) {
       const resp = JSON.parse(
         await rp(
@@ -158,7 +151,8 @@ const getHourlyRateCryptocompare = async (timestamp, fromToken, toToken) => {
     ),
   );
 
-  const tsData = resp && resp.Data && resp.Data.find(d => d.time === timestampMS);
+  const tsData =
+    resp && resp.Data && Array.isArray(resp.Data) && resp.Data.find(d => d.time === timestampMS);
 
   if (!tsData) {
     logger.error('getHourlyRateCryptocompare error', { timestampMS, resp, fromToken, toToken });
@@ -210,19 +204,6 @@ const _saveToDB = (app, timestamp, rates, symbol, _id = undefined) => {
   });
 };
 
-let symbolToToken;
-const getTokenBySymbol = (app, symbol) => {
-  if (!symbolToToken) {
-    symbolToToken = {};
-    const tokens = app.get('tokenWhitelist');
-    tokens.forEach(token => {
-      symbolToToken[token.symbol] = token;
-    });
-  }
-
-  return symbolToToken[symbol] || { symbol };
-};
-
 /**
  * Fetching eth conversion based on daily average from cryptocompare
  * Saves the conversion rates in the backend if we don't have it stored yet.timestamp
@@ -247,9 +228,8 @@ const getConversionRates = async (app, requestedDate, symbol = 'ETH') => {
   const timestamp = reqDateUTC < yesterdayUTC ? reqDateUTC : yesterdayUTC;
 
   const fiat = app.get('fiatWhitelist');
-  const stableCoins = app.get('stableCoins') || [];
 
-  const token = getTokenBySymbol(app, symbol);
+  const token = getTokenBySymbol(symbol);
 
   // This field needed for PAN currency
   const { coingeckoId } = token;
@@ -268,20 +248,9 @@ const getConversionRates = async (app, requestedDate, symbol = 'ETH') => {
     // Some rates have not been obtained yet, get them from cryptocompare
     let newRates = [];
     if (requestedSymbol === 'PAN') {
-      newRates = await _getRatesCoinGecko(
-        requestedSymbol,
-        timestamp,
-        coingeckoId,
-        unknownRates,
-        stableCoins,
-      );
+      newRates = await _getRatesCoinGecko(requestedSymbol, timestamp, coingeckoId, unknownRates);
     } else {
-      newRates = await _getRatesCryptocompare(
-        timestamp,
-        unknownRates,
-        requestedSymbol,
-        stableCoins,
-      );
+      newRates = await _getRatesCryptocompare(timestamp, unknownRates, requestedSymbol);
     }
 
     if (newRates === undefined || newRates === []) {
@@ -307,14 +276,16 @@ const getHourlyCryptoConversion = async (app, ts, fromSymbol = 'ETH', toSymbol =
   const requestTs = ts ? new Date(ts).setUTCMinutes(0, 0, 0) : lastHourUTC;
 
   // Return 1 for stable coins
-  const stableCoins = app.get('stableCoins') || [];
-  const normalizedFromSymbol = stableCoins.includes(fromSymbol) ? 'USD' : fromSymbol;
-  const normalizedToSymbol = stableCoins.includes(toSymbol) ? 'USD' : toSymbol;
+  let fromToken = getTokenBySymbol(fromSymbol);
+  let toToken = getTokenBySymbol(toSymbol);
+
+  const normalizedFromSymbol = fromToken.rateEqSymbol || fromSymbol;
+  const normalizedToSymbol = toToken.rateEqSymbol || toSymbol;
 
   if (normalizedFromSymbol === normalizedToSymbol) return { timestamp: requestTs, rate: 1 };
 
-  const fromToken = getTokenBySymbol(app, normalizedFromSymbol);
-  const toToken = getTokenBySymbol(app, normalizedToSymbol);
+  fromToken = getTokenBySymbol(normalizedFromSymbol);
+  toToken = getTokenBySymbol(normalizedToSymbol);
 
   // Check if we already have this exchange rate for this timestamp, if not we save it
   const dbRates = await _getRatesDb(app, requestTs, fromToken.symbol);
