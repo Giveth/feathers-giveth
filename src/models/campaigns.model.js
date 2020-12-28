@@ -1,4 +1,5 @@
 const DonationCounter = require('./donationCounter.model');
+const Prerender = require('../utils/prerender');
 
 const CampaignStatus = {
   ACTIVE: 'Active',
@@ -12,6 +13,7 @@ const CampaignStatus = {
 // See http://mongoosejs.com/docs/models.html
 // for more of what you can do here.
 function createModel(app) {
+  const prerender = new Prerender(app.get('dappUrl'));
   const mongooseClient = app.get('mongooseClient');
   const { Schema } = mongooseClient;
   const campaign = new Schema(
@@ -49,6 +51,17 @@ function createModel(app) {
       timestamps: true,
     },
   );
+
+  campaign.post('save', (campaignDocument, next) => {
+    prerender.invalidateCacheForCampaign(campaignDocument._id);
+    if (campaignDocument.dacs) {
+      campaignDocument.dacs.forEach(dacId => {
+        prerender.invalidateCacheForDac(dacId);
+      });
+    }
+    prerender.invalidateCacheForHomepage();
+    next();
+  });
 
   campaign.index({ campaignId: 1, projectId: 1 });
   campaign.index({ createdAt: 1, status: 1 });

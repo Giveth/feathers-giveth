@@ -1,5 +1,6 @@
 const Item = require('./item.model');
 const DonationCounter = require('./donationCounter.model');
+const Prerender = require('../utils/prerender');
 
 // milestones-model.js - A mongoose model
 //
@@ -26,6 +27,7 @@ const MilestoneTypes = {
 };
 
 function Milestone(app) {
+  const prerender = new Prerender(app.get('dappUrl'));
   const mongooseClient = app.get('mongooseClient');
   const { Schema } = mongooseClient;
 
@@ -85,6 +87,19 @@ function Milestone(app) {
       timestamps: true,
     },
   );
+
+  milestone.post('save', (milestoneDocument, next) => {
+    prerender.invalidateCacheForMilestone(milestoneDocument._id);
+    if (milestoneDocument.campaignId) {
+      prerender.invalidateCacheForCampaign(milestoneDocument.campaignId);
+    }
+    if (milestoneDocument.dacId) {
+      prerender.invalidateCacheForDac(milestoneDocument.dacId);
+    }
+    prerender.invalidateCacheForHomepage();
+    next();
+  });
+
   milestone.index({ campaignId: 1, status: 1, projectAddedAt: 1 });
   milestone.index({ createdAt: 1, ownerAddress: 1, reviewerAddress: 1, recipientAddress: 1 });
   milestone.index({ status: 1, fullyFunded: 1, createdAt: 1 });

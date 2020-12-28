@@ -1,4 +1,5 @@
 const DonationCounter = require('./donationCounter.model');
+const Prerender = require('../utils/prerender');
 
 const DacStatus = {
   ACTIVE: 'Active',
@@ -12,6 +13,7 @@ const DacStatus = {
 // See http://mongoosejs.com/docs/models.html
 // for more of what you can do here.
 function createModel(app) {
+  const prerender = new Prerender(app.get('dappUrl'));
   const mongooseClient = app.get('mongooseClient');
   const { Schema } = mongooseClient;
   const dac = new Schema(
@@ -49,6 +51,14 @@ function createModel(app) {
       timestamps: true,
     },
   );
+
+  dac.post('save', (dacDocument, next) => {
+    prerender.invalidateCacheForDac(dacDocument._id);
+    prerender.invalidateCacheForHomepage();
+    next();
+
+  });
+
   dac.index({ createdAt: 1 });
   dac.index({ status: 1, createdAt: 1 });
   dac.index({ ownerAddress: 1, createdAt: 1 });
