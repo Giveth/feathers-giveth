@@ -19,6 +19,7 @@ require('../../src/models/mongoose-bn')(mongoose);
 const { LiquidPledging, LiquidPledgingState } = require('giveth-liquidpledging');
 const { Kernel, AppProxyUpgradeable } = require('giveth-liquidpledging/build/contracts');
 const ForeignGivethBridgeArtifact = require('giveth-bridge/build/ForeignGivethBridge.json');
+const { Types } = require('mongoose');
 const toFn = require('../../src/utils/to');
 const DonationUsdValueUtility = require('./DonationUsdValueUtility');
 const { getTokenByAddress } = require('./tokenUtility');
@@ -26,7 +27,6 @@ const { createProjectHelper } = require('../../src/common-utils/createProjectHel
 const topicsFromArtifacts = require('../../src/blockchain/lib/topicsFromArtifacts');
 const eventDecodersFromArtifact = require('../../src/blockchain/lib/eventDecodersFromArtifact');
 const toWrapper = require('../../src/utils/to');
-const {Types} = require('mongoose')
 
 // const { getTransaction } = require('../../src/blockchain/lib/web3Helpers');
 
@@ -676,20 +676,6 @@ const handleToDonations = async ({
   giverAddress,
   isReverted = false,
 }) => {
-  const toNotFilledDonationList = pledgeNotUsedDonationListMap[to] || []; // List of donations which are candidates to be charged
-
-  const toIndex = toNotFilledDonationList.findIndex(
-    item => item.txHash === transactionHash && item.amountRemaining.eq(0),
-  );
-
-  const toDonation = toIndex !== -1 ? toNotFilledDonationList.splice(toIndex, 1)[0] : undefined;
-
-  // It happens when a donation is cancelled, we choose the first one (created earlier)
-  // if (toDonationList.length > 1) {
-  //   console.log('toDonationList length is greater than 1');
-  //   process.exit();
-  // }
-
   const fromPledge = pledges[Number(from)];
   const toPledge = pledges[Number(to)];
 
@@ -717,6 +703,20 @@ const handleToDonations = async ({
     const rejectedDelegation = isRejectedDelegation({ toPledge, fromPledge });
     isReturn = isReturn || rejectedDelegation;
   }
+  const toNotFilledDonationList = pledgeNotUsedDonationListMap[to] || []; // List of donations which are candidates to be charged
+
+  const toIndex = toNotFilledDonationList.findIndex(
+    item =>
+      item.txHash === transactionHash && item.amountRemaining.eq(0) && item.isReturn === isReturn,
+  );
+
+  const toDonation = toIndex !== -1 ? toNotFilledDonationList.splice(toIndex, 1)[0] : undefined;
+
+  // It happens when a donation is cancelled, we choose the first one (created earlier)
+  // if (toDonationList.length > 1) {
+  //   console.log('toDonationList length is greater than 1');
+  //   process.exit();
+  // }
 
   if (toDonation === undefined) {
     // If parent is cancelled, this donation is not needed anymore
@@ -744,8 +744,8 @@ const handleToDonations = async ({
     }
 
     if (fixConflicts) {
-      let toPledgeAdmin = await PledgeAdmins.findOne({ id: Number(toOwnerId) }).exec();
-      if (toPledgeAdmin === undefined) {
+      let toPledgeAdmin = await PledgeAdmins.findOne({ id: Number(toOwnerId) });
+      if (!toPledgeAdmin) {
         if (toOwnerAdmin.type !== 'Giver') {
           terminateScript(
             `No PledgeAdmin record exists for non user admin ${JSON.stringify(
@@ -795,8 +795,8 @@ const handleToDonations = async ({
       // It's delegated to a DAC
       if (toPledge.delegates.length > 0) {
         const [delegate] = toPledge.delegates;
-        const dacPledgeAdmin = await PledgeAdmins.findOne({ id: Number(delegate.id) }).exec();
-        if (dacPledgeAdmin === undefined) {
+        const dacPledgeAdmin = await PledgeAdmins.findOne({ id: Number(delegate.id) });
+        if (!dacPledgeAdmin) {
           // This is wrong, why should we terminate if there is no dacPledgeAdmin
           logger.error(`No dac found for id: ${delegate.id}`);
           terminateScript(`No dac found for id: ${delegate.id}`);
