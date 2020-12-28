@@ -11,6 +11,7 @@ const {
 } = require('../blockchain/lib/web3Helpers');
 const { MilestoneTypes } = require('../models/milestones.model');
 const { getTokenByForeignAddress } = require('../utils/tokenHelper');
+const { DacStatus } = require('../models/dacs.model');
 
 function createProjectHelper({ web3, liquidPledging, kernel, AppProxyUpgradeable }) {
   let baseCodeData;
@@ -62,6 +63,11 @@ function createProjectHelper({ web3, liquidPledging, kernel, AppProxyUpgradeable
       default:
         throw new Error('Unknown Milestone type ->', milestoneType);
     }
+  };
+
+  const getTransactionDate = async blockNumber => {
+    const { timestamp } = await web3.eth.getBlock(blockNumber);
+    return new Date(timestamp * 1000);
   };
 
   return {
@@ -187,6 +193,28 @@ function createProjectHelper({ web3, liquidPledging, kernel, AppProxyUpgradeable
         commitTime: project.commitTime,
         url: project.url,
         mined: true,
+      };
+    },
+
+    getDacDataForCreate: async ({ txHash, delegateId, blockNumber }) => {
+      const { from } = await web3.eth.getTransaction(txHash);
+      const delegate = await liquidPledging.getPledgeAdmin(delegateId);
+      const createdAt = await getTransactionDate(blockNumber);
+      return {
+        createdAt,
+        ownerAddress: from,
+        pluginAddress: delegate.plugin,
+        title: delegate.name,
+        commitTime: delegate.commitTime,
+        url: delegate.url,
+        txHash,
+        delegateId,
+        mined: true,
+        status: DacStatus.ACTIVE,
+        totalDonated: '0',
+        currentBalance: '0',
+        donationCount: 0,
+        description: 'Missing Description... Added outside of UI',
       };
     },
   };

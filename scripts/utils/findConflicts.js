@@ -184,6 +184,7 @@ const Milestones = createModel(app);
 const Campaigns = require('../../src/models/campaigns.model').createModel(app);
 const Donations = require('../../src/models/donations.model').createModel(app);
 const PledgeAdmins = require('../../src/models/pledgeAdmins.model').createModel(app);
+const Dacs = require('../../src/models/dacs.model').createModel(app);
 const ConversationRates = require('../../src/models/conversionRates.model')(app);
 // const Transaction = require('../../src/models/transactions.model').createModel(app);
 
@@ -1329,6 +1330,54 @@ const syncPledgeAdmins = async () => {
   const spentTime = (new Date().getTime() - startTime.getTime()) / 1000;
   console.log(`pledgeAdmin events synced end.\n spentTime :${spentTime} seconds`);
 };
+
+const syncDacs = async () => {
+  console.log('syncDacs called', { fixConflicts });
+  if (!fixConflicts) return;
+  const { getDacDataForCreate } = await createProjectHelper({
+    web3: foreignWeb3,
+    liquidPledging,
+    kernel: await getKernel(),
+    AppProxyUpgradeable,
+  });
+
+  const startTime = new Date();
+  const progressBar = createProgressBar({ title: 'Syncing Dacs with events' });
+  progressBar.start(events.length, 0);
+  for (let i = 0; i < events.length; i += 1) {
+    progressBar.update(i);
+    try {
+      const { event, transactionHash, returnValues } = events[i];
+      if (event !== 'DelegateAdded') continue;
+      const { idDelegate } = returnValues;
+      const pledgeAdmin = await PledgeAdmins.findOne({ id: Number(idDelegate) });
+      if (pledgeAdmin) {
+        continue;
+      }
+      const { from, blockNumber } = await foreignWeb3.eth.getTransaction(transactionHash);
+      const delegateId = idDelegate;
+      let dac = await Dacs.findOne({ delegateId });
+      if (!dac) {
+        const dacData = await getDacDataForCreate({
+          from,
+          txHash: transactionHash,
+          delegateId,
+          blockNumber,
+        });
+        dac = await new Dacs(dacData).save();
+        logger.info('created dac ', dac);
+      }
+      await new PledgeAdmins({ id: Number(delegateId), type: 'dac', typeId: dac._id }).save();
+    } catch (e) {
+      logger.error('error in creating dac', e);
+    }
+  }
+  progressBar.update(events.length);
+  progressBar.stop();
+  const spentTime = (new Date().getTime() - startTime.getTime()) / 1000;
+  console.log(`dac/delegate events synced end.\n spentTime :${spentTime} seconds`);
+};
+
 const main = async () => {
   try {
     await fetchBlockchainData();
@@ -1350,6 +1399,7 @@ const main = async () => {
     db.once('open', async () => {
       logger.info('Connected to Mongo');
       await syncPledgeAdmins();
+      await syncDacs();
       await syncDonationsWithNetwork();
       terminateScript(null, 0);
     });
