@@ -1,6 +1,6 @@
 import { Document, model, Schema, Types } from 'mongoose';
 
-export const DonationCounter = require('./donationCounter.model');
+import  DonationCounter from './donationCounter.model';
 
 export const DacStatus = {
   ACTIVE: 'Active',

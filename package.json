@@ -59,8 +59,6 @@
     "@feathersjs/socketio": "3.2.2",
     "axios": "^0.19.2",
     "bignumber.js": "^8.1.1",
-    "cli-progress": "3.8.2",
-    "colors": "1.4.0",
     "compression": "^1.7.0",
     "config": "^3.3.2",
     "cors": "^2.8.4",

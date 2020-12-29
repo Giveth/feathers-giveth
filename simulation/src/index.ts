@@ -2,6 +2,7 @@
 /* eslint-disable no-console */
 /*  eslint-disable no-await-in-loop */
 // import  Web3 from 'web3';
+import * as config from 'config';
 import {
   AdminInterface,
   DelegateInfoInterface,
@@ -17,7 +18,6 @@ const Web3 = require('web3');
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import * as config from 'config';
 import * as yargs from 'yargs';
 import BigNumber from 'bignumber.js';
 import * as mongoose from 'mongoose';
@@ -123,7 +123,7 @@ let homeWeb3;
 let liquidPledging;
 
 console.log(cacheDir);
-const logger: Logger = getLogger(logDir, 'debug');
+const logger: Logger = getLogger(logDir, argv.debug ? 'debug' : 'error');
 
 function eventDecodersFromArtifact(artifact) {
   return artifact.compilerOutput.abi

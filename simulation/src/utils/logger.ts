@@ -1,7 +1,7 @@
 import * as DailyRotateFile from 'winston-daily-rotate-file';
 import * as winston from 'winston';
 
-export const getLogger = (logDir : string, logLevel = 'error')=>{
+export const getLogger = (logDir : string, logLevel :'error'|'debug'|'info')=>{
   const winstonTransports = [];
   if (logDir) {
     winstonTransports.push(
