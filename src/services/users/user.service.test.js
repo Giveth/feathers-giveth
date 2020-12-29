@@ -64,8 +64,8 @@ function deleteUserTestCases() {
 }
 
 it('should users service registration be ok', () => {
-  const userService = app.service('users');
-  assert.ok(userService, 'Registered the service');
+  const service = app.service('users');
+  assert.ok(service, 'Registered the service');
 });
 
 describe(`Test GET  ${relativeUrl}`, getUserTestCases);

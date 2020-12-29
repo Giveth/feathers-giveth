@@ -68,8 +68,8 @@ function putConversationsTestCases() {
 }
 
 it('should conversations service registration be ok', () => {
-  const userService = app.service('conversations');
-  assert.ok(userService, 'Registered the service');
+  const conversationService = app.service('conversations');
+  assert.ok(conversationService, 'Registered the service');
 });
 
 describe(`Test GET ${relativeUrl}`, getConversationsTestCases);

@@ -12,7 +12,7 @@ jobs:
       # Specify service dependencies here if necessary
       # CircleCI maintains a library of pre-built images
       # documented at https://circleci.com/docs/2.0/circleci-images/
-      # - image: circleci/mongo:3.4.4
+      - image: circleci/mongo:4.4.2
 
     working_directory: ~/repo
 
@@ -37,11 +37,21 @@ jobs:
       # - run: yarn test
       # run linter
       - run: npm run eslint
+      - run: mkdir reports
+      - run:
+          command: npm run test:circleci
+          environment:
+            MOCHA_FILE: reports/mocha/test-results.xml
+          when: always
+      - store_test_results:
+          path: reports
+      - store_artifacts:
+          path: ./reports/mocha/test-results.xml
       - deploy:
           name: Production Deploy
           command: |
             if [ "${CIRCLE_BRANCH}" == "develop" ]; then
-            ssh -o "StrictHostKeyChecking no" deploy@95.85.4.133 'cd feathers-giveth-develop/ && git checkout develop && git pull && npm ci && npm run serve;'
+            ssh -o "StrictHostKeyChecking no" deploy@95.85.4.133 'cd feathers-giveth-develop/ && git checkout develop && git pull && npm ci && NODE_ENV=develop ./node_modules/.bin/migrate-mongo up && npm run serve;'
             fi
             if [ "${CIRCLE_BRANCH}" == "release" ]; then
             ssh -o "StrictHostKeyChecking no" deploy@95.85.4.133 'cd feathers-giveth-release/ && git checkout release && git pull && npm ci && npm run serve;'

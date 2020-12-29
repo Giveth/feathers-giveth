@@ -57,8 +57,8 @@ function patchEventsTestCases() {
 }
 
 it('should events service registration be ok', () => {
-  const userService = app.service('events');
-  assert.ok(userService, 'Registered the service');
+  const service = app.service('events');
+  assert.ok(service, 'Registered the service');
 });
 
 describe(`Test GET ${relativeUrl}`, getEventsTestCases);

@@ -14,7 +14,6 @@ const transactions = require('./transactions/transactions.service.js');
 const whitelist = require('./whitelist/whitelist.service.js');
 const gasprice = require('./gasprice/gasprice.service.js');
 const conversionRates = require('./conversionRates/conversionRates.service.js');
-
 const conversations = require('./conversations/conversations.service.js');
 
 module.exports = function configure() {
