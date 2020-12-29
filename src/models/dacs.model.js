@@ -56,7 +56,6 @@ function createModel(app) {
     prerender.invalidateCacheForDac(dacDocument._id);
     prerender.invalidateCacheForHomepage();
     next();
-
   });
 
   dac.index({ createdAt: 1 });
