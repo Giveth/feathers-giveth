@@ -14,7 +14,7 @@ const invalidateCache = url => {
       return res.status === 200;
     });
 };
-module.exports = givethBaseUrl => {
+function Prerender(givethBaseUrl) {
   const q = as.queue((url, cb) => {
     invalidateCache(url)
       .then(res => {
@@ -40,4 +40,5 @@ module.exports = givethBaseUrl => {
   this.invalidateCacheForHomepage = () => {
     q.push(givethBaseUrl);
   };
-};
+}
+module.exports = Prerender;
