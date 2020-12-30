@@ -10,7 +10,7 @@ import {
   PledgeInterface, TransferInfoInterface,
 } from './utils/interfaces';
 // import  Web3 from 'web3';
-const  Contract = require('web3-eth-contract');
+const Contract = require('web3-eth-contract');
 const Web3WsProvider = require('web3-providers-ws');
 const ForeignGivethBridgeArtifact = require('giveth-bridge/build/ForeignGivethBridge.json');
 import { keccak256 } from 'web3-utils';
@@ -27,7 +27,6 @@ import * as _colors from 'colors';
 
 const { LiquidPledging, LiquidPledgingState } = require('giveth-liquidpledging');
 const { Kernel, AppProxyUpgradeable } = require('giveth-liquidpledging/build/contracts');
-const EventEmitter = require('events');
 import { toFn } from './utils/to';
 import { DonationUsdValueUtility } from './utils/DonationUsdValueUtility';
 import { getTokenByAddress, getTokenSymbolByAddress } from './utils/tokenUtility';
@@ -41,11 +40,10 @@ import { Logger } from 'winston';
 import { getLogger } from './utils/logger';
 import { dacModel, DacStatus } from './models/dacs.model';
 import { ANY_TOKEN, getTransaction, ZERO_ADDRESS } from './utils/web3Helpers';
-import { transactionModel } from './models/transactions.model';
+import { transactionModel, TransactionMongooseDocument } from './models/transactions.model';
 // import { sendReportEmail } from './utils/emailService';
 import { getAdminBatch, getPledgeBatch } from './utils/liquidPledgingHelper';
 import { toBN } from 'web3-utils';
-import * as Events from 'events';
 import { Types } from 'mongoose';
 
 const _groupBy = require('lodash.groupby');
@@ -118,7 +116,7 @@ const txHashTransferEventMap = {};
 // Map from owner pledge admin ID to dictionary of charged donations
 const ownerPledgeAdminIdChargedDonationMap = {};
 
-const { nodeUrl, liquidPledgingAddress , homeNodeUrl} = config.get('blockchain');
+const { nodeUrl, liquidPledgingAddress, homeNodeUrl } = config.get('blockchain');
 let foreignWeb3;
 let homeWeb3;
 let liquidPledging;
@@ -159,7 +157,7 @@ function topicsFromArtifacts(artifacts, names) {
     );
 }
 
-async function getHomeTxHash(txHash:string) {
+async function getHomeTxHash(txHash: string) {
   const decoders = eventDecodersFromArtifact(ForeignGivethBridgeArtifact);
 
   const [err, receipt] = await toFn(foreignWeb3.eth.getTransactionReceipt(txHash));
@@ -184,14 +182,15 @@ async function getHomeTxHash(txHash:string) {
   return event.returnValues.homeTx;
 }
 
-async function getActionTakerAddress(options: {txHash:string, homeTxHash:string}){
-  const {txHash, homeTxHash } = options;
-  const {from} =homeTxHash ? homeWeb3.eth.getTransaction(homeTxHash): await foreignWeb3.eth.getTransaction(txHash)
+async function getActionTakerAddress(options: { txHash: string, homeTxHash: string }) {
+  const { txHash, homeTxHash } = options;
+  const { from } = await getTransaction({ txHash:homeTxHash|| txHash, isHome: Boolean(homeTxHash), foreignWeb3, homeWeb3 });
   return from;
 }
-async function getHomeTxHashForDonation(options :
-                                          { txHash:string, parentDonations:string[], from:string }) {
-  const { txHash, parentDonations, from } = options
+
+async function getHomeTxHashForDonation(options:
+                                          { txHash: string, parentDonations: string[], from: string }) {
+  const { txHash, parentDonations, from } = options;
   if (from === '0') {
     return getHomeTxHash(txHash);
   }
@@ -232,7 +231,7 @@ config.get('tokenWhitelist').forEach(({ symbol, decimals }) => {
 });
 
 
-const instantiateWeb3 = async ({url} ) => {
+const instantiateWeb3 = async ({ url }) => {
   const options = {
     timeout: 30000, // ms
 
@@ -255,8 +254,8 @@ const instantiateWeb3 = async ({url} ) => {
     },
   };
 
-  if (!url || !url && url.startsWith('ws')){
-    throw new Error("invalid web3 websocket url")
+  if (!url || !url && url.startsWith('ws')) {
+    throw new Error('invalid web3 websocket url');
   }
   const provider = new Web3WsProvider(url, options);
   return new Promise(resolve => {
@@ -299,8 +298,8 @@ const fetchBlockchainData = async () => {
     updateState,
   });
   try {
-    foreignWeb3 = await instantiateWeb3({url:nodeUrl});
-    // homeWeb3 = await instantiateWeb3({url:homeNodeUrl});
+    homeWeb3 = await instantiateWeb3({ url: homeNodeUrl });
+    foreignWeb3 = await instantiateWeb3({ url: nodeUrl });
 
     if (!fs.existsSync(cacheDir)) {
       fs.mkdirSync(cacheDir);
@@ -646,9 +645,8 @@ const updateDonationsCreatedDate = async (startDate: Date) => {
   });
   for (const donation of donations) {
     const { _id, txHash, createdAt } = donation;
-    const { blockNumber } = await web3.eth.getTransaction(txHash);
-    const { timestamp } = await web3.eth.getBlock(blockNumber);
-    const newCreatedAt = new Date(timestamp * 1000);
+    const { timestamp } = await getTransaction({txHash, isHome :false, foreignWeb3, homeWeb3});
+    const newCreatedAt =timestamp;
     if (createdAt.toISOString() !== newCreatedAt.toISOString()) {
       logger.info(
         `Donation ${_id.toString()} createdAt is changed from ${createdAt.toISOString()} to ${newCreatedAt.toISOString()}`,
@@ -1126,21 +1124,21 @@ const handleToDonations = async ({
       }
 
       const { timestamp } = await foreignWeb3.eth.getBlock(blockNumber);
-      // const actionTakerAddress  = await getActionTakerAddress({txHash:transactionHash, homeTxHash})
-
+      const actionTakerAddress = await getActionTakerAddress({ txHash: transactionHash, homeTxHash });
       const model: any = {
         ...expectedToDonation,
         tokenAddress: token.address,
+        actionTakerAddress,
         amountRemaining: new BigNumber(expectedToDonation.amountRemaining).toFixed(),
         mined: true,
         createdAt: new Date(timestamp * 1000),
       };
 
-      if (!homeTxHash){
-        //TODO now connecting homeWeb3 has problem if it was ok we can get actionTakerAddress for that too and using this function getActionTakerAddress()
-        const {from}  = await foreignWeb3.eth.getTransaction(transactionHash)
-        model.actionTakerAddress = from
-      }
+      // if (!homeTxHash){
+      //   //TODO now connecting homeWeb3 has problem if it was ok we can get actionTakerAddress for that too and using this function getActionTakerAddress()
+      //   const {from}  = await foreignWeb3.eth.getTransaction(transactionHash)
+      //   model.actionTakerAddress = from
+      // }
 
       const { cutoff } = symbolDecimalsMap[token.symbol];
       model.lessThanCutoff = cutoff.gt(new BigNumber(model.amountRemaining));
@@ -1565,23 +1563,23 @@ const createPledgeAdminAndProjectsIfNeeded = async (options:
     : await milestoneModel.findOne({ txHash: transactionHash });
   // Not found any
   if (!entity && !isCampaign) {
-    try{
-    entity = await createMilestoneForPledgeAdmin({
-      project,
-      idProject,
-      milestoneType,
-      transactionHash,
-      getMilestoneDataForCreate,
-    });
-    report.createdMilestones++;
-  } catch (e) {
-    logger.error('createMilestoneForPledgeAdmin error', { idProject, e });
-    await new pledgeAdminModel({
-      id: Number(idProject),
-      type: AdminTypes.MILESTONE,
-    }).save();
-    logger.error('create pledgeAdmin without creating milestone', { idProject });
-  }
+    try {
+      entity = await createMilestoneForPledgeAdmin({
+        project,
+        idProject,
+        milestoneType,
+        transactionHash,
+        getMilestoneDataForCreate,
+      });
+      report.createdMilestones++;
+    } catch (e) {
+      logger.error('createMilestoneForPledgeAdmin error', { idProject, e });
+      await new pledgeAdminModel({
+        id: Number(idProject),
+        type: AdminTypes.MILESTONE,
+      }).save();
+      logger.error('create pledgeAdmin without creating milestone', { idProject });
+    }
   } else if (!entity && isCampaign) {
     entity = await createCampaignForPledgeAdmin({ project, idProject, transactionHash, getCampaignDataForCreate });
     report.createdCampaigns++;
@@ -1614,6 +1612,7 @@ const syncPledgeAdminsAndProjects = async () => {
     getMilestoneDataForCreate,
   } = await createProjectHelper({
     web3: foreignWeb3,
+    homeWeb3,
     liquidPledging,
     kernel: await getKernel(),
     AppProxyUpgradeable,
@@ -1649,6 +1648,7 @@ const syncDacs = async () => {
     getDacDataForCreate,
   } = await createProjectHelper({
     web3: foreignWeb3,
+    homeWeb3,
     liquidPledging,
     kernel: await getKernel(),
     AppProxyUpgradeable,
@@ -1667,7 +1667,8 @@ const syncDacs = async () => {
       if (pledgeAdmin) {
         continue;
       }
-      const { from, blockNumber } = await getTransaction(foreignWeb3, transactionHash);
+      const { from } = await getTransaction(
+        {txHash:transactionHash, isHome:false, foreignWeb3, homeWeb3});
       const delegateId = idDelegate;
       let dac = await dacModel.findOne({ delegateId });
       if (!dac) {
@@ -1675,7 +1676,6 @@ const syncDacs = async () => {
           from,
           txHash: transactionHash,
           delegateId,
-          blockNumber,
         });
         dac = await new dacModel(dacData).save();
         report.createdDacs++;

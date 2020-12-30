@@ -6,7 +6,6 @@ import { isAddress } from 'web3-utils';
 import {
   removeHexPrefix,
   executeRequestsAsBatch,
-  getBlockTimestamp,
   ANY_TOKEN, getTransaction,
 } from './web3Helpers';
 import { MilestoneTypes } from '../models/milestones.model';
@@ -14,7 +13,7 @@ import { getTokenByForeignAddress } from './tokenUtility';
 import { ProjectInterface } from './interfaces';
 import { DacStatus } from '../models/dacs.model';
 
-export function createProjectHelper({ web3, liquidPledging, kernel, AppProxyUpgradeable }) {
+export function createProjectHelper({ web3,homeWeb3, liquidPledging, kernel, AppProxyUpgradeable }) {
   let baseCodeData;
 
   const getMilestoneAndCampaignBaseCodes = async () => {
@@ -70,12 +69,6 @@ export function createProjectHelper({ web3, liquidPledging, kernel, AppProxyUpgr
         throw new Error('Unknown Milestone type ->' + milestoneType);
     }
   };
-
-
-  const getTransactionDate = async (blockNumber:number):Promise<Date> => {
-    const { timestamp } = await web3.eth.getBlock(blockNumber);
-    return  new Date(timestamp * 1000);
-  }
 
   return {
     getMilestoneTypeByProjectId: async (projectId: string) => {
@@ -155,14 +148,14 @@ export function createProjectHelper({ web3, liquidPledging, kernel, AppProxyUpgr
       const token = getTokenByForeignAddress(acceptedToken);
       if (!token) throw new Error(`Un-whitelisted token: ${acceptedToken}`);
       // const date = await getBlockTimestamp(web3, tx.blockNumber);
-      const createdAt = await getTransactionDate(tx.blockNumber);
+      const {timestamp} = await getTransaction({txHash:tx.hash, foreignWeb3:web3, homeWeb3});
       return {
         title: project.name,
         description: 'Missing Description... Added outside of UI',
         fiatAmount: maxAmount === '0' ? undefined : Number(maxAmount) / 10 ** 18,
         selectedFiatType: token.symbol === ANY_TOKEN.symbol ? undefined : token.symbol,
-        date: createdAt,
-        createdAt,
+        date: timestamp,
+        createdAt:timestamp,
         conversionRateTimestamp: maxAmount === '0' ? undefined : new Date(),
         conversionRate: maxAmount === '0' ? undefined : 1,
         projectId,
@@ -188,18 +181,15 @@ export function createProjectHelper({ web3, liquidPledging, kernel, AppProxyUpgr
       from:string,
       txHash:string,
       delegateId: string,
-      blockNumber:number,
     })=>{
       const {
         txHash,
         delegateId,
-        blockNumber,
       }= options;
-      const {from} = await getTransaction(web3, txHash)
+      const {from, timestamp} = await getTransaction({foreignWeb3:web3, txHash, homeWeb3})
       const delegate = await liquidPledging.getPledgeAdmin(delegateId)
-      const createdAt = await getTransactionDate(blockNumber);
       return {
-        createdAt,
+        createdAt:timestamp,
         ownerAddress: from,
         pluginAddress: delegate.plugin,
         title: delegate.name,
@@ -227,10 +217,9 @@ export function createProjectHelper({ web3, liquidPledging, kernel, AppProxyUpgr
       const [reviewerAddress] = await executeRequestsAsBatch(web3, [
         lppCampaign.$contract.methods.reviewer().call.request,
       ]);
-      const { from, blockNumber } = await web3.eth.getTransaction(txHash);
-      const createdAt = await getTransactionDate(blockNumber);
+      const { from, timestamp } = await getTransaction({txHash, foreignWeb3:web3, homeWeb3});
       return {
-        createdAt,
+        createdAt:timestamp,
         projectId,
         ownerAddress: from,
         coownerAddress: '0x0',

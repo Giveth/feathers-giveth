@@ -3,7 +3,7 @@
  *
  * @param {string} hex
  */
-import { transactionModel } from '../models/transactions.model';
+import { transactionModel, TransactionMongooseDocument } from '../models/transactions.model';
 export const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
 export const removeHexPrefix = hex => {
@@ -73,67 +73,41 @@ export function executeRequestsAsBatch(web3, requests) {
   return promise;
 }
 
-/**
- * Adds an account to the wallet of the provided web3 instance
- * if it has not be previously added
- *
- * @param {object} web3 Web3 instance
- * @param {string} privateKey pk of the account to add to the wallet
- * @returns {object} web3 account instance
- */
 
-const blockCache = {};
-const blockListeners = {};
-/**
- * fetches the ts for the given blockNumber.
- *
- * caches the last 100 ts
- *
- * first checks if the ts is in the cache.
- * if it misses, we fetch the block using web3 and cache the result.
- *
- * if we are currently fetching a given block, we will not fetch it twice.
- * instead, we resolve the promise after we fetch the ts for the block.
- *
- * @param {number} blockNumber the blockNumber to fetch the ts of
- */
-export const getBlockTimestamp = async (web3, blockNumber) => {
-  if (blockCache[blockNumber]) return blockCache[blockNumber];
-
-  // if we are already fetching the block, don't do it twice
-  if (blockListeners[blockNumber]) {
-    return new Promise(resolve => {
-      // attach a listener which is executed when we get the block ts
-      blockListeners[blockNumber].push(resolve);
+export async function getTransaction(
+  options: { txHash: string, isHome?: boolean , foreignWeb3:any, homeWeb3:any},
+): Promise<TransactionMongooseDocument> {
+  const { txHash, isHome, foreignWeb3, homeWeb3 } = options;
+  const web3 = isHome ? homeWeb3 : foreignWeb3;
+  let transaction = await transactionModel.findOne(
+    {
+      hash: txHash, isHome,
+      blockNumber: {$exists:true},
+      timestamp: {$exists:true},
     });
+
+  if (transaction) {
+    return transaction;
   }
-
-  blockListeners[blockNumber] = [];
-
-  const block = await web3.eth.getBlock(blockNumber);
-  const ts = new Date(block.timestamp * 1000);
-
-  blockCache[blockNumber] = ts;
-
-  // only keep 100 block ts cached
-  if (Object.keys(blockCache).length > 100) {
-    Object.keys(blockCache)
-      // @ts-ignore
-      .sort((a, b) => b - a)
-      .forEach(key => delete blockCache[key]);
-  }
-
-  // execute any listeners for the block
-  blockListeners[blockNumber].forEach(cb => cb(ts));
-  delete blockListeners[blockNumber];
-
-  return ts;
-};
-
-export const getTransaction = async (web3:any ,hash:string) => {
-  const transaction = await web3.eth.getTransaction(hash);
+  const fetchedTransaction = await web3.eth.getTransaction(txHash);
+  const { from, blockNumber } = fetchedTransaction;
+  const { timestamp } = await web3.eth.getBlock(blockNumber);
+  transaction = await transactionModel.findOneAndUpdate({ hash: txHash },
+    {
+      hash: txHash,
+      from,
+      blockNumber,
+      timestamp: new Date(timestamp * 1000),
+      isHome,
+    }, { upsert: true, new: true });
   return transaction;
-};
+
+}
+//
+// export const getTransaction = async (web3:any ,hash:string) => {
+//   const transaction = await web3.eth.getTransaction(hash);
+//   return transaction;
+// };
 
 export const ANY_TOKEN = {
   name: 'ANY_TOKEN',
