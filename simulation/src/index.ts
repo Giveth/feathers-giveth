@@ -11,6 +11,7 @@ import {
 } from './utils/interfaces';
 // import  Web3 from 'web3';
 const  Contract = require('web3-eth-contract');
+const Web3WsProvider = require('web3-providers-ws');
 const ForeignGivethBridgeArtifact = require('giveth-bridge/build/ForeignGivethBridge.json');
 import { keccak256 } from 'web3-utils';
 
@@ -231,63 +232,40 @@ config.get('tokenWhitelist').forEach(({ symbol, decimals }) => {
 });
 
 
-const RECONNECT_EVENT = 'disconnect';
-const DISCONNECT_EVENT = 'reconnect';
-const THIRTY_SECONDS = 30 * 1000;
-// if the websocket connection drops, attempt to re-connect
-// upon successful re-connection, we re-start all listeners
-const reconnectOnEnd = ({web3, url}) => {
-  web3.currentProvider.on('end', e => {
-    if (web3.reconnectInterval) return;
-
-    web3.emit(DISCONNECT_EVENT);
-    logger.error(`connection closed reason: ${e.reason}, code: ${e.code}`);
-
-    web3.pingInterval = undefined;
-
-    web3.reconnectInterval = setInterval(() => {
-      logger.info('attempting to reconnect');
-
-      const newProvider = new web3.providers.WebsocketProvider(nodeUrl);
-
-      newProvider.on('connect', () => {
-        logger.info('successfully connected');
-        clearInterval(web3.reconnectInterval);
-        web3.reconnectInterval = undefined;
-        // note: "connection not open on send()" will appear in the logs when setProvider is called
-        // This is because web3.setProvider will attempt to clear any subscriptions on the currentProvider
-        // before setting the newProvider. Our currentProvider has been disconnected, so thus the not open
-        // error is logged
-        web3.setProvider(newProvider);
-        // attach reconnection logic to newProvider
-        reconnectOnEnd({web3, url});
-        web3.emit(RECONNECT_EVENT);
-      });
-    }, THIRTY_SECONDS);
-  });
-};
 const instantiateWeb3 = async ({url} ) => {
-  let web3;
-  const provider =
-    url && url.startsWith('ws')
-      ? new Web3.providers.WebsocketProvider(url, {
-        clientConfig: {
-          maxReceivedFrameSize: 100000000,
-          maxReceivedMessageSize: 100000000,
-        },
-      })
-      : url;
+  const options = {
+    timeout: 30000, // ms
+
+    clientConfig: {
+      // Useful if requests are large
+      maxReceivedFrameSize: 100000000, // bytes - default: 1MiB
+      maxReceivedMessageSize: 100000000, // bytes - default: 8MiB
+
+      // Useful to keep a connection alive
+      keepalive: true,
+      keepaliveInterval: 45000, // ms
+    },
+
+    // Enable auto reconnection
+    reconnect: {
+      auto: true,
+      delay: 5000, // ms
+      maxAttempts: 5,
+      onTimeout: false,
+    },
+  };
+
+  if (!url || !url && url.startsWith('ws')){
+    throw new Error("invalid web3 websocket url")
+  }
+  const provider = new Web3WsProvider(url, options);
   return new Promise(resolve => {
-    web3 = Object.assign(new Web3(provider), EventEmitter.prototype);
-
-    if (web3.currentProvider.on) {
-      web3.currentProvider.on('connect', () => {
-        console.log('connected');
+    const web3 = new Web3(provider);
+    if (provider.on) {
+      provider.on('connect', () => {
+        console.log(`connected to ${url}`);
         liquidPledging = new LiquidPledging(web3, liquidPledgingAddress);
-        reconnectOnEnd({web3, url});
-        web3.emit(RECONNECT_EVENT);
         resolve(web3);
-
       });
     } else {
       liquidPledging = new LiquidPledging(web3, liquidPledgingAddress);
@@ -320,9 +298,10 @@ const fetchBlockchainData = async () => {
     updateEvents,
     updateState,
   });
-  foreignWeb3 = await instantiateWeb3({url:nodeUrl});
-  // homeWeb3 = await instantiateWeb3({url:homeNodeUrl});
   try {
+    foreignWeb3 = await instantiateWeb3({url:nodeUrl});
+    // homeWeb3 = await instantiateWeb3({url:homeNodeUrl});
+
     if (!fs.existsSync(cacheDir)) {
       fs.mkdirSync(cacheDir);
     }
