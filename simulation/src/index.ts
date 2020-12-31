@@ -45,6 +45,7 @@ import { transactionModel, TransactionMongooseDocument } from './models/transact
 import { getAdminBatch, getPledgeBatch } from './utils/liquidPledgingHelper';
 import { toBN } from 'web3-utils';
 import { Types } from 'mongoose';
+import { sendReportEmail } from './utils/emailService';
 
 const _groupBy = require('lodash.groupby');
 
@@ -278,7 +279,7 @@ async function getKernel() {
   return new Kernel(foreignWeb3, kernelAddress);
 }
 
-const donationUsdValueUtility = new DonationUsdValueUtility(converionRateModel, config);
+const donationUsdValueUtility = new DonationUsdValueUtility(converionRateModel, config, logger);
 
 const createProgressBar = ({ title }) => {
   return new cliProgress.SingleBar({
@@ -1600,7 +1601,8 @@ const createPledgeAdminAndProjectsIfNeeded = async (options:
   const result = await newPledgeAdmin.save();
   report.createdPledgeAdmins++;
   logger.info('pledgeAdmin saved', result);
-  process.stdout.write('.');
+  // process.stdout.write('.');
+  console.log('.');
 };
 
 const syncPledgeAdminsAndProjects = async () => {
@@ -1779,6 +1781,19 @@ const main = async () => {
         await updateEntity(milestoneModel, AdminTypes.MILESTONE);
         await updateMilestonesFinalStatus();
         console.table(report);
+
+
+        const dappMailerUrl = config.get('dappMailerUrl');
+        const givethDevMailList = config.get('givethDevMailList');
+        const dappMailerSecret = config.get('dappMailerSecret')
+        if (givethDevMailList && Array.isArray(givethDevMailList)&& givethDevMailList.length>0){
+          await sendReportEmail(report,
+            givethDevMailList,
+            dappMailerUrl,
+            dappMailerSecret
+          )
+        }
+
         terminateScript('All job done.', 0);
       } catch (e) {
         console.log('error syncing ... ', e);

@@ -1,16 +1,20 @@
+import { Logger } from 'winston';
+
 const BigNumber = require('bignumber.js');
 import {
   getHourlyCryptoConversion,
 } from '../../../src/services/conversionRates/getConversionRatesService';
 import { getTokenByAddress } from './tokenUtility';
+import { getLogger } from './logger';
 
 // Used by scripts to set usdValue of donations
 export class DonationUsdValueUtility {
   app;
   services;
-  constructor(conversionRateModel, config) {
+  logger;
+  constructor(conversionRateModel, config, logger:Logger) {
     this.services = {};
-
+    this.logger = logger;
     const createServiceFromModel = (name, Model) => {
       this.services[name] = {
         find: async ({ query }) => {
@@ -57,12 +61,11 @@ export class DonationUsdValueUtility {
       donation.usdValue = usdValue;
       // eslint-disable-next-line no-empty
     } catch (e) {
-      console.log('setDonationUsdValue error', {
+      this.logger.error('setDonationUsdValue error', {
         donation,
         tokenAddress,
         token: getTokenByAddress(tokenAddress),
       });
-      throw e;
     }
   }
 }
