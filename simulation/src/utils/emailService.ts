@@ -24,44 +24,44 @@ export const sendReportEmail = async (reportData: ReportInterface,
       text: `
               <table style='${tableStyle}'>
                 <tr>
-                  <th style='${tableCellStyle}'>syncDelegatesSpentTime</th>
-                  <th style='${tableCellStyle}'>${reportData.syncDelegatesSpentTime}</th>
+                  <td style='${tableCellStyle}'>syncDelegatesSpentTime</td>
+                  <td style='${tableCellStyle}'>${reportData.syncDelegatesSpentTime} seconds</td>
                 </tr>
                 <tr>
                   <td style='${tableCellStyle}'>syncProjectsSpentTime</td>
-                  <td style='${tableCellStyle}'>${reportData.syncProjectsSpentTime}</td>
+                  <td style='${tableCellStyle}'>${reportData.syncProjectsSpentTime} seconds</td>
                 </tr>
                 <tr>
                   <td style='${tableCellStyle}'>syncDonationsSpentTime</td>
-                  <td style='${tableCellStyle}'>${reportData.syncDonationsSpentTime}</td>
+                  <td style='${tableCellStyle}'>${reportData.syncDonationsSpentTime} seconds</td>
                 </tr>
                 <tr>
                   <td style='${tableCellStyle}'>syncPledgeAdminsSpentTime</td>
-                  <td style='${tableCellStyle}'>${reportData.syncPledgeAdminsSpentTime}</td>
+                  <td style='${tableCellStyle}'>${reportData.syncPledgeAdminsSpentTime} seconds</td>
                 </tr>
                 <tr>
                   <td style='${tableCellStyle}'>createdDacs</td>
-                  <td style='${tableCellStyle}'>${reportData.createdDacs}</td>
+                  <td style='${tableCellStyle}'>${reportData.createdDacs} seconds</td>
                 </tr>
                 <tr>
                   <td style='${tableCellStyle}'>createdCampaigns</td>
-                  <td style='${tableCellStyle}'>${reportData.createdCampaigns}</td>
+                  <td style='${tableCellStyle}'>${reportData.createdCampaigns} seconds</td>
                 </tr>
                 <tr>
                   <td style='${tableCellStyle}'>createdMilestones</td>
-                  <td style='${tableCellStyle}'>${reportData.createdMilestones}</td>
+                  <td style='${tableCellStyle}'>${reportData.createdMilestones} seconds</td>
                 </tr>
                 <tr>
                   <td style='${tableCellStyle}'>createdDonations</td>
-                  <td style='${tableCellStyle}'>${reportData.createdDonations}</td>
+                  <td style='${tableCellStyle}'>${reportData.createdDonations} seconds</td>
                 </tr>
                 <tr>
                   <td style='${tableCellStyle}'>correctFailedDonations</td>
-                  <td style='${tableCellStyle}'>${reportData.correctFailedDonations}</td>
+                  <td style='${tableCellStyle}'>${reportData.correctFailedDonations} seconds</td>
                 </tr>
                 <tr>
                   <td style='${tableCellStyle}'>createdPledgeAdmins</td>
-                  <td style='${tableCellStyle}'>${reportData.createdPledgeAdmins}</td>
+                  <td style='${tableCellStyle}'>${reportData.createdPledgeAdmins} seconds</td>
                 </tr>
               </table>
       `,
