@@ -36,6 +36,10 @@ export const sendReportEmail = async (reportData: ReportInterface,
                   <td style='${tableCellStyle}'>${reportData.syncDonationsSpentTime}</td>
                 </tr>
                 <tr>
+                  <td style='${tableCellStyle}'>syncPledgeAdminsSpentTime</td>
+                  <td style='${tableCellStyle}'>${reportData.syncPledgeAdminsSpentTime}</td>
+                </tr>
+                <tr>
                   <td style='${tableCellStyle}'>createdDacs</td>
                   <td style='${tableCellStyle}'>${reportData.createdDacs}</td>
                 </tr>
@@ -83,6 +87,47 @@ export const sendReportEmail = async (reportData: ReportInterface,
     await Promise.all(promises);
   } catch (e) {
     console.log('sendReportEmail error', e);
+  }
+
+};
+
+export const sendSimulationErrorEmail = async (error: string,
+                                      givethDevMailList:string[],
+                                      dappMailerUrl :string,
+                                      dappMailerSecret: string
+                                      ) => {
+  try {
+    const promises = [];
+
+    /**
+     * You can see the dapp-mail code here @see{@link https://github.com/Giveth/dapp-mailer/blob/master/src/services/send/send.hooks.js}
+     */
+    const data = {
+      template: 'notification',
+      subject: `Simulation report ${new Date()}` ,
+      secretIntro: `This is required but I dont know what is this field`,
+      title: 'Simulation failed :((',
+      image: 'Giveth-milestone-review-rejected-banner-email.png',
+      text: error,
+      unsubscribeType: 'simulation-report',
+      unsubscribeReason: `You receive this email because you are in Giveth1-dev team`,
+    };
+    givethDevMailList.forEach(recipient => {
+      promises.push(
+        axios.post(`${dappMailerUrl}/send`,{
+          ...data, recipient
+        },
+          {
+            headers:{
+              Authorization:dappMailerSecret
+            }
+          }
+          )
+      )
+    });
+    await Promise.all(promises);
+  } catch (e) {
+    console.log('sendSimulationErrorEmail error', e);
   }
 
 };

@@ -45,14 +45,18 @@ import { transactionModel, TransactionMongooseDocument } from './models/transact
 import { getAdminBatch, getPledgeBatch } from './utils/liquidPledgingHelper';
 import { toBN } from 'web3-utils';
 import { Types } from 'mongoose';
-import { sendReportEmail } from './utils/emailService';
+import { sendReportEmail, sendSimulationErrorEmail } from './utils/emailService';
 
 const _groupBy = require('lodash.groupby');
+const dappMailerUrl = config.get('dappMailerUrl');
+const givethDevMailList = config.get('givethDevMailList');
+const dappMailerSecret = config.get('dappMailerSecret')
 
 const report = {
   syncDelegatesSpentTime: 0,
   syncProjectsSpentTime: 0,
   syncDonationsSpentTime: 0,
+  syncPledgeAdminsSpentTime: 0,
   createdDacs: 0,
   createdCampaigns: 0,
   createdMilestones: 0,
@@ -1055,6 +1059,10 @@ const handleToDonations = async ({
         logger.info(`pledgeAdmin crated: ${toPledgeAdmin._id.toString()}`);
       }
 
+      if(!toPledgeAdmin.typeId){
+        console.log("pledgeAdminId is undefined", {toPledgeAdmin, expectedToDonation})
+      }
+
       expectedToDonation = {
         ...expectedToDonation,
         ownerId: toPledgeAdmin.id,
@@ -1550,59 +1558,68 @@ const createPledgeAdminAndProjectsIfNeeded = async (options:
     getMilestoneTypeByProjectId, getMilestoneDataForCreate,
   } = options;
   if (event !== 'ProjectAdded') return;
-  const { idProject } = returnValues;
-  const pledgeAdmin = await pledgeAdminModel.findOne({ id: Number(idProject) });
-  if (pledgeAdmin) {
-    return;
-  }
-  logger.error(`No pledge admin exists for ${idProject}`);
-  logger.info('Transaction Hash:', transactionHash);
-
-  const { project, milestoneType, isCampaign } = await getMilestoneTypeByProjectId(idProject);
-  let entity = isCampaign
-    ? await campaignModel.findOne({ txHash: transactionHash })
-    : await milestoneModel.findOne({ txHash: transactionHash });
-  // Not found any
-  if (!entity && !isCampaign) {
-    try {
-      entity = await createMilestoneForPledgeAdmin({
-        project,
-        idProject,
-        milestoneType,
-        transactionHash,
-        getMilestoneDataForCreate,
-      });
-      report.createdMilestones++;
-    } catch (e) {
-      logger.error('createMilestoneForPledgeAdmin error', { idProject, e });
-      await new pledgeAdminModel({
-        id: Number(idProject),
-        type: AdminTypes.MILESTONE,
-      }).save();
-      logger.error('create pledgeAdmin without creating milestone', { idProject });
+  try {
+    const { idProject } = returnValues;
+    const pledgeAdmin = await pledgeAdminModel.findOne({ id: Number(idProject) });
+    if (pledgeAdmin) {
+      return;
     }
-  } else if (!entity && isCampaign) {
-    entity = await createCampaignForPledgeAdmin({ project, idProject, transactionHash, getCampaignDataForCreate });
-    report.createdCampaigns++;
-  }
-  if (!entity) {
-    return;
-  }
+    logger.error(`No pledge admin exists for ${idProject}`);
+    logger.info('Transaction Hash:', transactionHash);
 
-  logger.info('created entity ', entity);
-  const type = isCampaign ? AdminTypes.CAMPAIGN : AdminTypes.MILESTONE;
-  logger.info(`a ${type} found with id ${entity._id.toString()} and status ${entity.status}`);
-  logger.info(`Title: ${entity.title}`);
-  const newPledgeAdmin = new pledgeAdminModel({
-    id: Number(idProject),
-    type,
-    typeId: entity._id.toString(),
-  });
-  const result = await newPledgeAdmin.save();
-  report.createdPledgeAdmins++;
-  logger.info('pledgeAdmin saved', result);
+    const { project, milestoneType, isCampaign } = await getMilestoneTypeByProjectId(idProject);
+    let entity = isCampaign
+      ? await campaignModel.findOne({ txHash: transactionHash })
+      : await milestoneModel.findOne({ txHash: transactionHash });
+    // Not found any
+    if (!entity && !isCampaign) {
+      try {
+        entity = await createMilestoneForPledgeAdmin({
+          project,
+          idProject,
+          milestoneType,
+          transactionHash,
+          getMilestoneDataForCreate,
+        });
+        report.createdMilestones++;
+      } catch (e) {
+        logger.error('createMilestoneForPledgeAdmin error', { idProject, e });
+        await new pledgeAdminModel({
+          id: Number(idProject),
+          type: AdminTypes.MILESTONE,
+          typeId: 'notExists because create milestone failed',
+        }).save();
+        logger.error('create pledgeAdmin without creating milestone', { idProject });
+      }
+    } else if (!entity && isCampaign) {
+      entity = await createCampaignForPledgeAdmin({ project, idProject, transactionHash, getCampaignDataForCreate });
+      report.createdCampaigns++;
+    }
+    if (!entity) {
+      return;
+    }
+
+    logger.info('created entity ', entity);
+    const type = isCampaign ? AdminTypes.CAMPAIGN : AdminTypes.MILESTONE;
+    logger.info(`a ${type} found with id ${entity._id.toString()} and status ${entity.status}`);
+    logger.info(`Title: ${entity.title}`);
+    const newPledgeAdmin = new pledgeAdminModel({
+      id: Number(idProject),
+      type,
+      typeId: entity._id.toString(),
+    });
+    const result = await newPledgeAdmin.save();
+    report.createdPledgeAdmins++;
+    logger.info('pledgeAdmin saved', result);
+  } catch (e) {
+    console.log('createPledgeAdminAndProjectsIfNeeded error', {
+      e,
+      event,
+      transactionHash,
+      returnValues
+    })
+  }
   // process.stdout.write('.');
-  console.log('.');
 };
 
 const syncPledgeAdminsAndProjects = async () => {
@@ -1623,23 +1640,29 @@ const syncPledgeAdminsAndProjects = async () => {
   const startTime = new Date();
   console.log('Syncing PledgeAdmins with events .... ');
   const promises = [];
+  const progressBar = createProgressBar({ title: 'Syncing pladgeAdmins with events' });
+  progressBar.start(events.length, 0);
   for (let i = 0; i < events.length; i += 1) {
+    progressBar.update(i);
+
     const { event, transactionHash, returnValues } = events[i];
-    promises.push(createPledgeAdminAndProjectsIfNeeded({
+    await createPledgeAdminAndProjectsIfNeeded({
       getCampaignDataForCreate,
       getMilestoneDataForCreate,
       getMilestoneTypeByProjectId, event, transactionHash, returnValues,
-    }));
-  }
-  try {
-    await Promise.all(promises);
-    const spentTime = (new Date().getTime() - startTime.getTime()) / 1000;
-    report.syncProjectsSpentTime = spentTime;
-    console.log(`pledgeAdmin events synced end.\n spentTime :${spentTime} seconds`);
-  } catch (e) {
-    logger.error('error in creating pledgeAdmin', e);
-  }
+    })
 
+    // promises.push(createPledgeAdminAndProjectsIfNeeded({
+    //   getCampaignDataForCreate,
+    //   getMilestoneDataForCreate,
+    //   getMilestoneTypeByProjectId, event, transactionHash, returnValues,
+    // }));
+  }
+  progressBar.update(events.length);
+  progressBar.stop();
+  const spentTime = (new Date().getTime() - startTime.getTime()) / 1000;
+  report.syncPledgeAdminsSpentTime = spentTime;
+  console.log(`pledgeAdmins events synced end.\n spentTime :${spentTime} seconds`);
 };
 
 
@@ -1781,12 +1804,7 @@ const main = async () => {
         await updateEntity(milestoneModel, AdminTypes.MILESTONE);
         await updateMilestonesFinalStatus();
         console.table(report);
-
-
-        const dappMailerUrl = config.get('dappMailerUrl');
-        const givethDevMailList = config.get('givethDevMailList');
-        const dappMailerSecret = config.get('dappMailerSecret')
-        if (givethDevMailList && Array.isArray(givethDevMailList)&& givethDevMailList.length>0){
+        if (config.get('emailReport')){
           await sendReportEmail(report,
             givethDevMailList,
             dappMailerUrl,
@@ -1797,6 +1815,13 @@ const main = async () => {
         terminateScript('All job done.', 0);
       } catch (e) {
         console.log('error syncing ... ', e);
+        if (config.get('emailSimulationError')){
+          sendSimulationErrorEmail(JSON.stringify(e, null , 4),
+            givethDevMailList,
+            dappMailerUrl,
+            dappMailerSecret
+          )
+        }
       }
 
     });

@@ -95,6 +95,7 @@ export interface ReportInterface {
   syncDelegatesSpentTime: number,
   syncProjectsSpentTime: number,
   syncDonationsSpentTime: number,
+  syncPledgeAdminsSpentTime: number,
   createdDacs: number,
   createdCampaigns: number,
   createdMilestones: number,

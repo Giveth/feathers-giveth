@@ -61,11 +61,11 @@ export class DonationUsdValueUtility {
       donation.usdValue = usdValue;
       // eslint-disable-next-line no-empty
     } catch (e) {
-      this.logger.error('setDonationUsdValue error', {
-        donation,
-        tokenAddress,
-        token: getTokenByAddress(tokenAddress),
-      });
+      // this.logger.error('setDonationUsdValue error', {
+      //   donation,
+      //   tokenAddress,
+      //   token: getTokenByAddress(tokenAddress),
+      // });
     }
   }
 }
