@@ -20,7 +20,7 @@ export const sendReportEmail = async (reportData: ReportInterface,
       subject: `Simulation report ${new Date()}` ,
       secretIntro: `This is required but I dont know what is this field`,
       title: 'See the simulation result',
-      image: 'Giveth-milestone-review-approved-banner-email.png',
+      image: 'Giveth-review-banner-email.png',
       text: `
               <table style='${tableStyle}'>
                 <tr>
