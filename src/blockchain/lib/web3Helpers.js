@@ -180,7 +180,9 @@ const getTransaction = async (app, hash, isHome = false) => {
 
   const web3 = isHome ? app.getHomeWeb3() : app.getWeb3();
   const tx = await web3.eth.getTransaction(hash);
-  if (!tx) {
+  if (!tx || !tx.blockNumber) {
+    // sometimes tx is not null but the tx.blockNumber is null
+    delete txListeners[hash];
     throw new errors.NotFound(`Not tx found for ${hash}`);
   }
   const { from, blockNumber } = tx;
