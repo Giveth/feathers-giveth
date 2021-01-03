@@ -208,6 +208,7 @@ const sendNotification = () => async context => {
           campaignTitle: campaign.title,
           campaignId,
           message,
+          token,
         });
       } else if (data.status === IN_PROGRESS && prevStatus === NEEDS_REVIEW) {
         _createConversion('rejected');

@@ -123,3 +123,4 @@ data/
 # test result output
 .nyc_output
 test-results.xml
+simulation/**/*.js
