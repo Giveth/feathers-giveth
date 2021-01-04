@@ -161,6 +161,9 @@ const txListeners = {};
  * @param {boolean} isHome get transaction of home network
  */
 const getTransaction = async (app, hash, isHome = false) => {
+  if (!hash) {
+    throw new errors.NotFound(`Hash value cannot be undefined`);
+  }
   const Transaction = app.get('transactionsModel');
   const query = { hash, isHome };
   const result = await Transaction.find(query).exec();
@@ -170,9 +173,9 @@ const getTransaction = async (app, hash, isHome = false) => {
 
   // if we are already fetching the transaction, don't do it twice
   if (txListeners[hash]) {
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
       // attach a listener which is executed when we get the block ts
-      txListeners[hash].push(resolve);
+      txListeners[hash].push({ resolve, reject });
     });
   }
 
@@ -181,25 +184,35 @@ const getTransaction = async (app, hash, isHome = false) => {
   const web3 = isHome ? app.getHomeWeb3() : app.getWeb3();
   const tx = await web3.eth.getTransaction(hash);
   if (!tx) {
-    throw new errors.NotFound(`Not tx found for ${hash}`);
+    // sometimes tx is not null but the tx.blockNumber is null (maybe when transaction is not mined already)
+    const error = new errors.NotFound(`Not tx found for ${hash}`);
+    txListeners[hash].forEach(callback => callback.reject(error));
+    delete txListeners[hash];
+    throw error;
   }
   const { from, blockNumber } = tx;
-  const { timestamp } = await web3.eth.getBlock(blockNumber);
 
-  const transaction = new Transaction({
+  const model = {
     hash,
     from,
-    blockNumber,
-    timestamp: new Date(timestamp * 1000),
     isHome: !!isHome,
-  });
-  await transaction.save();
+  };
+
+  if (blockNumber) {
+    model.blockNumber = blockNumber;
+
+    const { timestamp } = await web3.eth.getBlock(blockNumber);
+    model.timestamp = new Date(timestamp * 1000);
+
+    const transaction = new Transaction();
+    await transaction.save();
+  }
 
   // execute any listeners for the block
-  txListeners[hash].forEach(cb => cb(transaction));
+  txListeners[hash].forEach(callback => callback.resolve(model));
   delete txListeners[hash];
 
-  return transaction;
+  return model;
 };
 
 // if the websocket connection drops, attempt to re-connect
