@@ -204,7 +204,7 @@ const getTransaction = async (app, hash, isHome = false) => {
     const { timestamp } = await web3.eth.getBlock(blockNumber);
     model.timestamp = new Date(timestamp * 1000);
 
-    const transaction = new Transaction();
+    const transaction = new Transaction(model);
     await transaction.save();
   }
 
