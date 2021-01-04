@@ -180,7 +180,7 @@ const getTransaction = async (app, hash, isHome = false) => {
 
   const web3 = isHome ? app.getHomeWeb3() : app.getWeb3();
   const tx = await web3.eth.getTransaction(hash);
-  if (!tx || !tx.blockNumber) {
+  if (!tx) {
     // sometimes tx is not null but the tx.blockNumber is null (maybe when transaction is not mined already)
     const error = new errors.NotFound(`Not tx found for ${hash}`);
     txListeners[hash].forEach(callback => callback.reject(error));
@@ -188,21 +188,28 @@ const getTransaction = async (app, hash, isHome = false) => {
     throw error;
   }
   const { from, blockNumber } = tx;
-  const { timestamp } = await web3.eth.getBlock(blockNumber);
 
-  const transaction = new Transaction({
+  const model = {
     hash,
     from,
-    blockNumber,
-    timestamp: new Date(timestamp * 1000),
     isHome: !!isHome,
-  });
-  await transaction.save();
+  };
+
+  if (blockNumber) {
+    model.blockNumber = blockNumber;
+
+    const { timestamp } = await web3.eth.getBlock(blockNumber);
+    model.timestamp = new Date(timestamp * 1000);
+
+    const transaction = new Transaction();
+    await transaction.save();
+  }
+
   // execute any listeners for the block
-  txListeners[hash].forEach(callback => callback.resolve(transaction));
+  txListeners[hash].forEach(callback => callback.resolve(model));
   delete txListeners[hash];
 
-  return transaction;
+  return model;
 };
 
 // if the websocket connection drops, attempt to re-connect
