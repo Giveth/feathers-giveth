@@ -660,7 +660,7 @@ const pledges = (app, liquidPledging) => {
 
       const { from, to, amount } = event.returnValues;
       const txHash = event.transactionHash;
-      const { timestamp } = await getTransaction(web3, event.transactionHash);
+      const { timestamp } = await getTransaction(app, event.transactionHash);
       if (Number(from) === 0) {
         const [err] = await toWrapper(newDonation(to, amount, timestamp, txHash));
 

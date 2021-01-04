@@ -161,6 +161,9 @@ const txListeners = {};
  * @param {boolean} isHome get transaction of home network
  */
 const getTransaction = async (app, hash, isHome = false) => {
+  if (!hash) {
+    throw new errors.NotFound(`Hash value cannot be undefined`);
+  }
   const Transaction = app.get('transactionsModel');
   const query = { hash, isHome };
   const result = await Transaction.find(query).exec();
