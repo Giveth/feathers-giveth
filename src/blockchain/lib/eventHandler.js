@@ -77,7 +77,14 @@ const eventHandler = app => {
       return new Promise((resolve, reject) => {
         const fn = async () => {
           try {
-            logger.info('Handling Event: ', event);
+            logger.info('Handling Event: ', {
+              event: event.event,
+              transactionHash: event.transactionHash,
+              status: event.status,
+              transactionIndex: event.transactionIndex,
+              logIndex: event.logIndex,
+              _id: event._id,
+            });
             await handler(event);
             resolve();
           } catch (err) {

@@ -4,7 +4,7 @@ const logger = require('winston');
 const { toBN } = require('web3-utils');
 const eventDecodersFromArtifact = require('./lib/eventDecodersFromArtifact');
 const topicsFromArtifacts = require('./lib/topicsFromArtifacts');
-const { getBlockTimestamp, executeRequestsAsBatch, ANY_TOKEN } = require('./lib/web3Helpers');
+const { getTransaction, executeRequestsAsBatch, ANY_TOKEN } = require('./lib/web3Helpers');
 const { CampaignStatus } = require('../models/campaigns.model');
 const { DonationStatus } = require('../models/donations.model');
 const { MilestoneStatus, MilestoneTypes } = require('../models/milestones.model');
@@ -660,15 +660,15 @@ const pledges = (app, liquidPledging) => {
 
       const { from, to, amount } = event.returnValues;
       const txHash = event.transactionHash;
-      const ts = await getBlockTimestamp(web3, event.blockNumber);
+      const { timestamp } = await getTransaction(app, event.transactionHash);
       if (Number(from) === 0) {
-        const [err] = await toWrapper(newDonation(to, amount, ts, txHash));
+        const [err] = await toWrapper(newDonation(to, amount, timestamp, txHash));
 
         if (err) {
           logger.error('newDonation error ->', err);
         }
       } else {
-        await transfer(from, to, amount, ts, txHash);
+        await transfer(from, to, amount, timestamp, txHash);
       }
     },
   };
