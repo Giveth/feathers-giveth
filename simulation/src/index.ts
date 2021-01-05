@@ -660,7 +660,6 @@ const updateDonationsCreatedDate = async (startDate: Date) => {
       const [d] = await donationModel.find({ _id });
       d.createdAt = newCreatedAt;
       await d.save();
-      report.createdDonations++;
     }
   }
 
@@ -1462,37 +1461,6 @@ const syncDonationsWithNetwork = async () => {
   const spentTime = (new Date().getTime() - startTime.getTime()) / 1000;
   report.syncDonationsSpentTime = spentTime;
   console.log(`events donations synced end.\n spentTime :${spentTime} seconds`);
-
-  // Find conflicts in donations and pledges!
-  Object.keys(chargedDonationListMap).forEach(pledgeId => {
-    const list = chargedDonationListMap[pledgeId];
-    const reducer = (totalAmountRemaining, chargedDonation) => {
-      return new BigNumber(totalAmountRemaining).plus(new BigNumber(chargedDonation.amountRemaining));
-    };
-    const totalAmountRemaining = list.reduce(reducer, new BigNumber(0)).toFixed();
-    const { amount: pledgeAmount, owner, oldPledge, pledgeState } = pledges[Number(pledgeId)];
-    const admin = admins[Number(owner)];
-    const { isCanceled, canceled } = admin;
-
-    if (totalAmountRemaining !== pledgeAmount) {
-      logger.error(
-        `Pledge ${pledgeId} amount ${pledgeAmount} does not equal total amount remaining ${totalAmountRemaining}`,
-      );
-      logger.debug(
-        JSON.stringify(
-          {
-            PledgeState: pledgeState,
-            'Old Pledge': oldPledge,
-            Owner: owner,
-            'Owner canceled': !!canceled,
-            'Owner isCanceled': !!isCanceled,
-          },
-          null,
-          2,
-        ),
-      );
-    }
-  });
 
   const unusedDonationMap = new Map();
   Object.values(pledgeNotUsedDonationListMap).forEach((list: any = []) =>
