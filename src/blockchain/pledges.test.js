@@ -26,7 +26,7 @@ function transferTestCases() {
     const badFunc = async () => {
       await pledges.transfer(event);
     };
-    await assertThrowsAsync(badFunc, 'connection not open');
+    await assertThrowsAsync(badFunc);
   });
 }
 

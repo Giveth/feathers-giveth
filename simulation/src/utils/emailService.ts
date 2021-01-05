@@ -41,27 +41,27 @@ export const sendReportEmail = async (reportData: ReportInterface,
                 </tr>
                 <tr>
                   <td style='${tableCellStyle}'>createdDacs</td>
-                  <td style='${tableCellStyle}'>${reportData.createdDacs} seconds</td>
+                  <td style='${tableCellStyle}'>${reportData.createdDacs}</td>
                 </tr>
                 <tr>
                   <td style='${tableCellStyle}'>createdCampaigns</td>
-                  <td style='${tableCellStyle}'>${reportData.createdCampaigns} seconds</td>
+                  <td style='${tableCellStyle}'>${reportData.createdCampaigns}</td>
                 </tr>
                 <tr>
                   <td style='${tableCellStyle}'>createdMilestones</td>
-                  <td style='${tableCellStyle}'>${reportData.createdMilestones} seconds</td>
+                  <td style='${tableCellStyle}'>${reportData.createdMilestones}</td>
                 </tr>
                 <tr>
                   <td style='${tableCellStyle}'>createdDonations</td>
-                  <td style='${tableCellStyle}'>${reportData.createdDonations} seconds</td>
+                  <td style='${tableCellStyle}'>${reportData.createdDonations}</td>
                 </tr>
                 <tr>
                   <td style='${tableCellStyle}'>correctFailedDonations</td>
-                  <td style='${tableCellStyle}'>${reportData.correctFailedDonations} seconds</td>
+                  <td style='${tableCellStyle}'>${reportData.correctFailedDonations}</td>
                 </tr>
                 <tr>
                   <td style='${tableCellStyle}'>createdPledgeAdmins</td>
-                  <td style='${tableCellStyle}'>${reportData.createdPledgeAdmins} seconds</td>
+                  <td style='${tableCellStyle}'>${reportData.createdPledgeAdmins}</td>
                 </tr>
               </table>
       `,
