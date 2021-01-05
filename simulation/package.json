@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "./node_modules/.bin/tsc src/index.ts",
     "start:local": "npm run build && NODE_ENV=local node src/index.js --update-network-cache  --log-dir simulation-script-data/log --cache-dir simulation-script-data/cache",
-    "start:develop": "npm run build && NODE_ENV=develop node src/index.js --update-network-cache  --log-dir simulation-script-data/log --cache-dir simulation-script-data/cache",
+    "start:develop": "npm run build && NODE_ENV=develop node src/index.js --update-network-cache   --debug true --log-dir simulation-script-data/log --cache-dir simulation-script-data/cache",
     "start:beta": "npm run build && NODE_ENV=beta node src/index.js --update-network-cache  --log-dir simulation-script-data/log --cache-dir simulation-script-data/cache",
     "start:ts": "npm run build && NODE_ENV=simulation ./node_modules/.bin/ts-node src/index.ts --update-network-cache  --log-dir simulation-script-data/log --cache-dir simulation-script-data/cache"
   },

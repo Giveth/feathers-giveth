@@ -57,11 +57,13 @@ const report = {
   syncProjectsSpentTime: 0,
   syncDonationsSpentTime: 0,
   syncPledgeAdminsSpentTime: 0,
+  syncMilestoneSpentTime: 0,
   createdDacs: 0,
   createdCampaigns: 0,
   createdMilestones: 0,
   createdDonations: 0,
   createdPledgeAdmins: 0,
+  updatedMilestoneStatus: 0,
   processedEvents: 0,
   correctFailedDonations: 0,
   fetchedNewEventsCount: 0,
@@ -1723,6 +1725,7 @@ const getExpectedStatus = (events: EventInterface[], milestone: MilestoneMongoos
 
 const updateMilestonesFinalStatus = async () => {
   const milestones = await milestoneModel.find({ projectId: { $gt: 0 } });
+  const startTime = new Date();
   const progressBar = createProgressBar({ title: 'Updating milestone status' });
   progressBar.start(milestones.length);
   for (const milestone of milestones) {
@@ -1735,11 +1738,16 @@ const updateMilestonesFinalStatus = async () => {
     message += `Project ID: ${projectId}\n`;
     message += `Events: ${events.toString()}\n`;
     const expectedStatus = getExpectedStatus(matchedEvents, milestone);
-    await milestoneModel.updateOne({ _id: milestone._id }, { status: expectedStatus, mined: true });
+    if (status !== expectedStatus ){
+      await milestoneModel.updateOne({ _id: milestone._id }, { status: expectedStatus, mined: true });
+      report.updatedMilestoneStatus ++;
+    }
   }
   progressBar.update(milestones.length);
   progressBar.stop();
-  console.log('Updating milestone status ends.');
+  const spentTime = (new Date().getTime() - startTime.getTime()) / 1000;
+  console.log(`Updating milestone status synced end.\n spentTime :${spentTime} seconds`);
+  report.syncMilestoneSpentTime = spentTime;
 };
 
 

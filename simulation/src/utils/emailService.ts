@@ -41,6 +41,10 @@ export const sendReportEmail = async (reportData: ReportInterface,
                   <td style='${tableCellStyle}'>${reportData.syncPledgeAdminsSpentTime} seconds</td>
                 </tr>
                 <tr>
+                  <td style='${tableCellStyle}'>syncMilestoneSpentTime</td>
+                  <td style='${tableCellStyle}'>${reportData.syncMilestoneSpentTime} seconds</td>
+                </tr>
+                <tr>
                   <td style='${tableCellStyle}'>createdDacs</td>
                   <td style='${tableCellStyle}'>${reportData.createdDacs}</td>
                 </tr>
@@ -63,6 +67,10 @@ export const sendReportEmail = async (reportData: ReportInterface,
                 <tr>
                   <td style='${tableCellStyle}'>createdPledgeAdmins</td>
                   <td style='${tableCellStyle}'>${reportData.createdPledgeAdmins}</td>
+                </tr>
+                <tr>
+                  <td style='${tableCellStyle}'>updatedMilestoneStatus</td>
+                  <td style='${tableCellStyle}'>${reportData.updatedMilestoneStatus}</td>
                 </tr>
               </table>
       `,
