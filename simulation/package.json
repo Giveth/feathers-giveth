@@ -6,7 +6,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "build": "./node_modules/.bin/tsc src/index.ts",
-    "start": "npm run build && NODE_ENV=simulation node src/index.js --update-network-cache  --log-dir simulation-script-data/log --cache-dir simulation-script-data/cache",
+    "start:local": "npm run build && NODE_ENV=local node src/index.js --update-network-cache  --log-dir simulation-script-data/log --cache-dir simulation-script-data/cache",
+    "start:develop": "npm run build && NODE_ENV=develop node src/index.js --update-network-cache  --log-dir simulation-script-data/log --cache-dir simulation-script-data/cache",
+    "start:beta": "npm run build && NODE_ENV=beta node src/index.js --update-network-cache  --log-dir simulation-script-data/log --cache-dir simulation-script-data/cache",
     "start:ts": "npm run build && NODE_ENV=simulation ./node_modules/.bin/ts-node src/index.ts --update-network-cache  --log-dir simulation-script-data/log --cache-dir simulation-script-data/cache"
   },
   "author": "",
@@ -31,6 +33,7 @@
     "lpp-campaign": "^1.0.0",
     "lpp-capped-milestone": "^1.1.0",
     "lpp-milestones": "^1.0.0-beta.1",
+    "moment": "^2.29.1",
     "mongodb": "^3.6.3",
     "mongoose": "^5.11.9",
     "web3": "1.2.2",

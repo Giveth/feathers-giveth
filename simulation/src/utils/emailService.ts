@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { ReportInterface } from './interfaces';
+const moment = require('moment')
 
 
 export const sendReportEmail = async (reportData: ReportInterface,
@@ -17,7 +18,7 @@ export const sendReportEmail = async (reportData: ReportInterface,
      */
     const data = {
       template: 'notification',
-      subject: `Simulation report ${new Date()}` ,
+      subject: `Simulation report ${moment().format('YYYY-MM-DD HH:m:s')} ${process.env.NODE_ENV}` ,
       secretIntro: `This is required but I dont know what is this field`,
       title: 'See the simulation result',
       image: 'Giveth-review-banner-email.png',
