@@ -8,6 +8,7 @@ const logger = require('winston');
 function unsetUndefined(next) {
   const query = this;
   if (['findOneAndUpdate', 'update', 'updateMany'].includes(this.op)) {
+    this._update = this._update || {};
     Object.keys(this._update).forEach(k => {
       if (query._update[k] === undefined) {
         delete query._update[k];
