@@ -562,7 +562,7 @@ const pledges = (app, liquidPledging) => {
         return events.total <= similarDonation.total;
       }
     } catch (e) {
-      logger.error(e);
+      logger.error('Find similar donation error:', e);
     }
 
     return false;
@@ -645,7 +645,7 @@ const pledges = (app, liquidPledging) => {
         logger.warn('Ignore repetitive transfer:', transferInfo);
       }
     } catch (err) {
-      logger.error(err);
+      logger.error('Handling transfer event error:', err);
     }
   }
 

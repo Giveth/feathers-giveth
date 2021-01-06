@@ -2,6 +2,7 @@
 const createService = require('feathers-mongoose');
 const { createModel } = require('../../models/dacs.model');
 const hooks = require('./dacs.hooks');
+const { defaultFeatherMongooseOptions } = require('../serviceCommons');
 
 module.exports = function dacs() {
   const app = this;
@@ -12,6 +13,7 @@ module.exports = function dacs() {
     name: 'dacs',
     Model,
     paginate,
+    ...defaultFeatherMongooseOptions,
   };
 
   // Initialize our service with any options it requires

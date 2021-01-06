@@ -47,7 +47,7 @@ const notifyParents = [
 
 module.exports = {
   before: {
-    all: [],
+    all: [commons.discardQuery('$disableStashBefore')],
     find: [sanitizeAddress('address')],
     get: [normalizeId()],
     create: [commons.discard('_id'), ...address],

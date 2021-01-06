@@ -55,7 +55,7 @@ const _getRatesCoinGecko = async (requestedSymbol, timestampMS, coingeckoId, rat
   try {
     await Promise.all(promises);
   } catch (e) {
-    logger.error(e);
+    logger.error('CoinGecko get rate error:', e);
   }
 
   return rates;
@@ -99,7 +99,7 @@ const _getRatesCryptocompare = async (timestamp, ratesToGet, symbol) => {
   try {
     await Promise.all(promises);
   } catch (e) {
-    logger.error(e);
+    logger.error('Crypto Compare get rate error:', e);
   }
 
   return rates;
@@ -193,11 +193,11 @@ const _saveToDB = (app, timestamp, rates, symbol, _id = undefined) => {
             if (r._id) {
               return _saveToDB(app, timestamp, rates, symbol, r._id);
             }
-            logger.error(e);
+            logger.error('Conversion rate conflict error:', e);
             reject(e);
           });
         } else {
-          logger.error(e);
+          logger.error('Conversion rate error:', e);
           reject(e);
         }
       });

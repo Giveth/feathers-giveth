@@ -17,8 +17,7 @@ const fetchCoingecko = async (timestampMS, coingeckoId, toSymbol) => {
       ),
     );
   } catch (e) {
-    logger.error(`coingecko fetch (id:${coingeckoId}, toSymbol:${toSymbol})`);
-    logger.error(e);
+    logger.error(`coingecko fetch (id:${coingeckoId}, toSymbol:${toSymbol})`, e);
     return undefined;
   }
 
