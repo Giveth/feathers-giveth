@@ -7,7 +7,7 @@ const logger = require('winston');
 // remove the key from the doc if the value is undefined
 function unsetUndefined(next) {
   const query = this;
-  if (['findOneAndUpdate', 'update'].includes(this.op)) {
+  if (['findOneAndUpdate', 'update', 'updateMany'].includes(this.op)) {
     Object.keys(this._update).forEach(k => {
       if (query._update[k] === undefined) {
         delete query._update[k];
@@ -41,6 +41,7 @@ module.exports = function mongooseFactory() {
   mongoose.plugin(schema => {
     // feathers-mongoose only uses the following 2 calls
     schema.pre('update', unsetUndefined);
+    schema.pre('updateMany', unsetUndefined);
     schema.pre('findOneAndUpdate', unsetUndefined);
   });
 
