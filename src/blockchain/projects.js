@@ -549,7 +549,7 @@ const projects = (app, liquidPledging) => {
 
       return donations.patch(donation._id, mutation);
     } catch (err) {
-      logger.error(err);
+      logger.error('Revert donation patch error:', err);
     }
   }
 
@@ -715,11 +715,11 @@ const projects = (app, liquidPledging) => {
             donationsToRevert.map(donation => revertDonation(donation, event.transactionHash)),
           );
         } catch (error) {
-          logger.error(error);
+          logger.error('Revert donations of canceled project error:', error);
         }
       } catch (error) {
         if (error.name === 'NotFound') return;
-        logger.error(error);
+        logger.error('Cancel project error:', error);
       }
     },
   };

@@ -88,7 +88,7 @@ const eventHandler = app => {
             await handler(event);
             resolve();
           } catch (err) {
-            logger.error(err);
+            logger.error('Handle event error:', err);
             reject(err);
           }
           queue.purge();
