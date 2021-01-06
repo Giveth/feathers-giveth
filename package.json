@@ -55,7 +55,7 @@
     "@feathersjs/express": "1.2.3",
     "@feathersjs/feathers": "3.1.7",
     "@feathersjs/socketio": "3.2.2",
-    "axios": "^0.19.2",
+    "axios": "^0.21.1",
     "bignumber.js": "^8.1.1",
     "cli-progress": "3.8.2",
     "colors": "1.4.0",
