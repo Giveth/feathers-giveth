@@ -32,7 +32,7 @@ module.exports = function loggerFactory() {
       } else if (hook.error.name === 'NotFound') {
         logger.info(`${hook.path} - ${hook.error.message}`);
       } else {
-        logger.error(e);
+        logger.error('Hook error:', e);
       }
     }
   };

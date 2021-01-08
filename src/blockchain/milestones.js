@@ -184,7 +184,7 @@ const milestonesFactory = app => {
       }
       return null;
     } catch (e) {
-      logger.error(e);
+      logger.error('Error milestone patch:', e);
       return null;
     }
   }
@@ -218,7 +218,7 @@ const milestonesFactory = app => {
       }
       return null;
     } catch (e) {
-      logger.error(e);
+      logger.error('Update milestone reviewer:', e);
       return null;
     }
   }

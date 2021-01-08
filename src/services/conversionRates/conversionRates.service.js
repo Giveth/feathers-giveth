@@ -2,6 +2,7 @@
 const createService = require('feathers-mongoose');
 const createModel = require('../../models/conversionRates.model');
 const hooks = require('./conversionRates.hooks');
+const { defaultFeatherMongooseOptions } = require('../serviceCommons');
 
 module.exports = function conversionRates() {
   const app = this;
@@ -12,6 +13,7 @@ module.exports = function conversionRates() {
     name: 'conversionRates',
     Model,
     paginate,
+    ...defaultFeatherMongooseOptions,
   };
 
   // Initialize our service with any options it requires

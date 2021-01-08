@@ -70,17 +70,12 @@ const restrict = () => context => {
 };
 
 const countMilestones = (item, service) =>
-  service
-    .find({
-      query: {
-        campaignId: item._id,
-        projectId: {
-          $gt: 0, // 0 is a pending milestone
-        },
-        $limit: 0,
-      },
-    })
-    .then(count => Object.assign(item, { milestonesCount: count.total }));
+  service.Model.countDocuments({
+    campaignId: item._id,
+    projectId: {
+      $gt: 0, // 0 is a pending milestone
+    },
+  }).then(count => Object.assign(item, { milestonesCount: count }));
 
 // add milestonesCount to each DAC object
 const addMilestoneCounts = () => context => {

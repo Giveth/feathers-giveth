@@ -177,7 +177,7 @@ const failedTxMonitor = (app, eventWatcher) => {
         const transactionCount = await homeWeb3.eth.getTransactionCount(giverAddress);
         userMaxUsedNonce = transactionCount - 1;
       } catch (e) {
-        logger.error(e);
+        logger.error('Get home transaction count:', e);
       }
     }
     // reset the donation status if the tx has been pending for more then 2 hrs, otherwise ignore
@@ -444,7 +444,7 @@ const failedTxMonitor = (app, eventWatcher) => {
           : updateInitialDonationIfFailed(blockNumber, d),
       );
     } catch (e) {
-      logger.error(e);
+      logger.error('Check pending donations error:', e);
     }
   }
 
@@ -457,7 +457,7 @@ const failedTxMonitor = (app, eventWatcher) => {
 
       pendingDacs.forEach(d => updateDACIfFailed(blockNumber, d));
     } catch (e) {
-      logger.error(e);
+      logger.error('Check pending DACs error:', e);
     }
   }
 
@@ -470,7 +470,7 @@ const failedTxMonitor = (app, eventWatcher) => {
 
       pendingCampaigns.forEach(c => updateCampaignIfFailed(blockNumber, c));
     } catch (e) {
-      logger.error(e);
+      logger.error('Check pending campaigns error:', e);
     }
   }
 
@@ -483,7 +483,7 @@ const failedTxMonitor = (app, eventWatcher) => {
 
       pendingMilestones.forEach(m => updateMilestoneIfFailed(blockNumber, m));
     } catch (e) {
-      logger.error(e);
+      logger.error('Check pending milestones error:', e);
     }
   }
 

@@ -2,6 +2,7 @@
 const createService = require('feathers-mongoose');
 const { createModel } = require('../../models/milestones.model');
 const hooks = require('./milestones.hooks');
+const { defaultFeatherMongooseOptions } = require('../serviceCommons');
 
 module.exports = function milestones() {
   const app = this;
@@ -12,6 +13,7 @@ module.exports = function milestones() {
     name: 'milestones',
     Model,
     paginate,
+    ...defaultFeatherMongooseOptions,
   };
 
   // Initialize our service with any options it requires
