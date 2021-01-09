@@ -26,7 +26,7 @@ function transferTestCases() {
     const badFunc = async () => {
       await pledges.transfer(event);
     };
-    await assertThrowsAsync(badFunc);
+    await assertThrowsAsync(badFunc, 'Hash value cannot be undefined');
   });
 }
 

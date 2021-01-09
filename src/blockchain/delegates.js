@@ -83,7 +83,7 @@ const delegates = (app, liquidPledging) => {
 
       return dacs.patch(dac._id, mutation);
     } catch (err) {
-      logger.error(err);
+      logger.error('Error dac patch:', err);
     }
   }
 

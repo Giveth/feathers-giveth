@@ -69,7 +69,7 @@ function initFeatherApp() {
           if (e.name === 'NotFound') {
             logger.warn(`404 - NotFound - ${e.data.url}`);
           } else {
-            logger.error(e);
+            logger.error('Express error handler:', e);
           }
         },
       },

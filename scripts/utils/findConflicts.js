@@ -446,7 +446,7 @@ const fetchDonationsInfo = async () => {
           ownerId,
           ownerType,
           ownerTypeId,
-          intendedProjectId,
+          intendedProjectId: String(intendedProjectId),
           giverAddress,
           pledgeId: pledgeId.toString(),
           tokenAddress,
@@ -585,7 +585,7 @@ const handleFromDonations = async (from, to, amount, transactionHash) => {
 
         if (fixConflicts) {
           logger.debug('Updating...');
-          await Donations.update(
+          await Donations.updateOne(
             { _id: toFixDonation._id },
             { status: toFixDonation.status, pledgeId: to },
           ).exec();
@@ -638,10 +638,19 @@ const handleFromDonations = async (from, to, amount, transactionHash) => {
 
           const min = BigNumber.min(item.amountRemaining, fromAmount);
           item.amountRemaining = item.amountRemaining.minus(min);
+          fromAmount = fromAmount.minus(min);
+
           if (item.amountRemaining.isZero()) {
             consumedCandidates += 1;
+
+            // It's approve or reject
+            if (item.status === DonationStatus.TO_APPROVE) {
+              item.status =
+                toPledge.owner === item.intendedProjectId
+                  ? DonationStatus.COMMITTED
+                  : DonationStatus.REJECTED;
+            }
           }
-          fromAmount = fromAmount.minus(min);
           logger.debug(
             `Amount ${min.toFixed()} is reduced from ${JSON.stringify(
               { ...item, amountRemaining: item.amountRemaining.toFixed() },
@@ -917,7 +926,7 @@ const handleToDonations = async ({
     if (toDonation.mined === false) {
       logger.error(`Donation ${toDonation._id} mined flag should be true`);
       logger.debug('Updating...');
-      await Donations.update({ _id: toDonation._id }, { mined: true }).exec();
+      await Donations.updateOne({ _id: toDonation._id }, { mined: true }).exec();
       toDonation.mined = true;
     }
 
@@ -932,7 +941,7 @@ const handleToDonations = async ({
       if (fixConflicts) {
         logger.debug('Updating...');
         toDonation.parentDonations = usedFromDonations;
-        await Donations.update(
+        await Donations.updateOne(
           { _id: toDonation._id },
           { parentDonations: usedFromDonations },
         ).exec();
@@ -942,7 +951,7 @@ const handleToDonations = async ({
     if (toDonation.isReturn !== isReturn) {
       logger.error(`Donation ${toDonation._id} isReturn flag should be ${isReturn}`);
       logger.debug('Updating...');
-      await Donations.update({ _id: toDonation._id }, { isReturn }).exec();
+      await Donations.updateOne({ _id: toDonation._id }, { isReturn }).exec();
       toDonation.isReturn = isReturn;
     }
 
@@ -953,7 +962,7 @@ const handleToDonations = async ({
         `Donation ${toDonation._id} usdValue is ${usdValue} but should be updated to ${toDonation.usdValue}`,
       );
       logger.debug('Updating...');
-      await Donations.update({ _id: toDonation._id }, { usdValue: toDonation.usdValue }).exec();
+      await Donations.updateOne({ _id: toDonation._id }, { usdValue: toDonation.usdValue }).exec();
     }
 
     toDonation.txHash = transactionHash;
@@ -1072,7 +1081,7 @@ const fixConflictInDonations = unusedDonationMap => {
             logger.debug('Updating...');
             const { cutoff } = symbolDecimalsMap[getTokenByAddress(tokenAddress).symbol];
             promises.push(
-              Donations.update(
+              Donations.updateOne(
                 { _id },
                 {
                   $set: {
@@ -1102,7 +1111,7 @@ const fixConflictInDonations = unusedDonationMap => {
           );
           if (fixConflicts) {
             logger.debug('Updating...');
-            promises.push(Donations.update({ _id }, { status }).exec());
+            promises.push(Donations.updateOne({ _id }, { status }).exec());
           }
         }
       }
