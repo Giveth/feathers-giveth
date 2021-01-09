@@ -1230,7 +1230,7 @@ const handleToDonations = async ({
     if (toDonation.isReturn !== isReturn) {
       logger.error(`Donation ${toDonation._id} isReturn flag should be ${isReturn}`);
       logger.debug('Updating...');
-      await donationModel.update({ _id: toDonation._id }, { isReturn });
+      await donationModel.updateOne({ _id: toDonation._id }, { isReturn });
       toDonation.isReturn = isReturn;
     }
 
