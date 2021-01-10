@@ -1,5 +1,5 @@
 import { keccak256 } from 'web3-utils';
-import { LPPCappedMilestone } from 'lpp-capped-milestone';
+import  { LPPCappedMilestone } from 'lpp-capped-milestone';
 import { LPMilestone, BridgedMilestone } from 'lpp-milestones';
 import { LPPCampaign } from 'lpp-campaign';
 import { isAddress } from 'web3-utils';
@@ -13,7 +13,16 @@ import { getTokenByForeignAddress } from './tokenUtility';
 import { ProjectInterface } from './interfaces';
 import { DacStatus } from '../models/dacs.model';
 
-export function createProjectHelper({ web3,homeWeb3, liquidPledging, kernel, AppProxyUpgradeable }) {
+export function createProjectHelper(options :{ web3:any,
+                                      homeWeb3:any,
+                                      liquidPledging:any,
+                                      kernel:any,
+                                      AppProxyUpgradeable:any }) {
+  const { web3,
+    homeWeb3,
+    liquidPledging,
+    kernel,
+    AppProxyUpgradeable } = options;
   let baseCodeData;
 
   const getMilestoneAndCampaignBaseCodes = async () => {
@@ -145,7 +154,7 @@ export function createProjectHelper({ web3,homeWeb3, liquidPledging, kernel, App
         acceptedToken,
         tx,
       ] = responses;
-      const token = getTokenByForeignAddress(acceptedToken);
+      const token = getTokenByForeignAddress(acceptedToken as string);
       if (!token) throw new Error(`Un-whitelisted token: ${acceptedToken}`);
       // const date = await getBlockTimestamp(web3, tx.blockNumber);
       const {timestamp} = await getTransaction({txHash:tx.hash, foreignWeb3:web3, homeWeb3});
@@ -161,8 +170,8 @@ export function createProjectHelper({ web3,homeWeb3, liquidPledging, kernel, App
         projectId,
         maxAmount: maxAmount === '0' ? undefined : maxAmount,
         reviewerAddress: reviewer,
-        recipientAddress: isAddress(recipient) ? recipient : undefined,
-        recipientId: !isAddress(recipient) ? recipient : undefined,
+        recipientAddress: isAddress(recipient as string) ? recipient : undefined,
+        recipientId: !isAddress(recipient as string) ? recipient : undefined,
         campaignReviewerAddress: campaignReviewer,
         txHash: tx.hash,
         pluginAddress: project.plugin,

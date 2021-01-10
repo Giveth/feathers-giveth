@@ -1,0 +1,6 @@
+declare module 'lpp-milestones'
+declare module 'lpp-capped-milestone'
+declare module 'lpp-campaign'
+declare module 'giveth-liquidpledging'
+declare module 'cli-progress'
+declare module 'yargs'

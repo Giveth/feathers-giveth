@@ -2,7 +2,7 @@
 /* eslint-disable no-console */
 /*  eslint-disable no-await-in-loop */
 // import  Web3 from 'web3';
-import * as config from 'config';
+const config =require('config');
 import {
   AdminInterface,
   DelegateInfoInterface,
@@ -25,7 +25,7 @@ import * as mongoose from 'mongoose';
 import * as cliProgress from 'cli-progress';
 import * as _colors from 'colors';
 
-const { LiquidPledging, LiquidPledgingState } = require('giveth-liquidpledging');
+import { LiquidPledging, LiquidPledgingState } from 'giveth-liquidpledging';
 const { Kernel, AppProxyUpgradeable } = require('giveth-liquidpledging/build/contracts');
 import { toFn } from './utils/to';
 import { DonationUsdValueUtility } from './utils/DonationUsdValueUtility';
