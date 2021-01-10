@@ -16,16 +16,16 @@ const ForeignGivethBridgeArtifact = require('giveth-bridge/build/ForeignGivethBr
 import { keccak256 } from 'web3-utils';
 
 const Web3 = require('web3');
+const cliProgress = require('cli-progress');
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import * as yargs from 'yargs';
 import BigNumber from 'bignumber.js';
 import * as mongoose from 'mongoose';
-import * as cliProgress from 'cli-progress';
 import * as _colors from 'colors';
 
-import { LiquidPledging, LiquidPledgingState } from 'giveth-liquidpledging';
+import { LiquidPledging } from 'giveth-liquidpledging';
 const { Kernel, AppProxyUpgradeable } = require('giveth-liquidpledging/build/contracts');
 import { toFn } from './utils/to';
 import { DonationUsdValueUtility } from './utils/DonationUsdValueUtility';

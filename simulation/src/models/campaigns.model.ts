@@ -9,7 +9,7 @@ export const CampaignStatus = {
   FAILED: 'Failed',
 };
 
-interface CampaignMongooseDocument extends  Document {
+export interface CampaignMongooseDocument extends  Document {
   title:string,
   status: string
 }
