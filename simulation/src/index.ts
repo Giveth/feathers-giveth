@@ -1671,7 +1671,7 @@ const syncDacs = async () => {
       const { from } = await getTransaction(
         {txHash:transactionHash, isHome:false, foreignWeb3, homeWeb3});
       const delegateId = idDelegate;
-      let dac = await dacModel.findOne({ delegateId });
+      let dac = await dacModel.findOne({ txHash:transactionHash });
       if (!dac) {
         const dacData = await getDacDataForCreate({
           from,
