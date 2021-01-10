@@ -38,9 +38,8 @@ import { campaignModel, CampaignStatus } from './models/campaigns.model';
 import { pledgeAdminModel, AdminTypes, PledgeAdminMongooseDocument } from './models/pledgeAdmins.model';
 import { Logger } from 'winston';
 import { getLogger } from './utils/logger';
-import { dacModel, DacStatus } from './models/dacs.model';
+import { dacModel } from './models/dacs.model';
 import { ANY_TOKEN, getTransaction, ZERO_ADDRESS } from './utils/web3Helpers';
-import { transactionModel, TransactionMongooseDocument } from './models/transactions.model';
 // import { sendReportEmail } from './utils/emailService';
 import { getAdminBatch, getPledgeBatch } from './utils/liquidPledgingHelper';
 import { toBN } from 'web3-utils';
@@ -659,7 +658,7 @@ const updateDonationsCreatedDate = async (startDate: Date) => {
         `Donation ${_id.toString()} createdAt is changed from ${createdAt.toISOString()} to ${newCreatedAt.toISOString()}`,
       );
       logger.info('Updating...');
-      const [d] = await donationModel.find({ _id });
+      const d = await donationModel.findOne({ _id });
       d.createdAt = newCreatedAt;
       await d.save();
     }
@@ -911,10 +910,17 @@ const handleFromDonations = async (from: string, to: string,
 
           const min = BigNumber.min(item.amountRemaining, fromAmount);
           item.amountRemaining = new BigNumber(item.amountRemaining).minus(min).toFixed();
+          fromAmount = fromAmount.minus(min);
           if (new BigNumber(item.amountRemaining).isZero()) {
             consumedCandidates += 1;
+            // It's approve or reject
+            if (item.status === DonationStatus.TO_APPROVE) {
+              item.status =
+                Number(toPledge.owner) === item.intendedProjectId
+                  ? DonationStatus.COMMITTED
+                  : DonationStatus.REJECTED;
+            }
           }
-          fromAmount = fromAmount.minus(min);
           logger.debug(
             `Amount ${min.toFixed()} is reduced from ${JSON.stringify(
               { ...item, amountRemaining: item.amountRemaining },
@@ -972,7 +978,7 @@ const handleToDonations = async ({
   const toOwnerAdmin = admins[Number(toOwnerId)];
   const fromOwnerAdmin = from !== '0' ? admins[Number(fromOwnerId)] : {};
 
-  const [fromPledgeAdmin] = await pledgeAdminModel.find({ id: Number(fromOwnerId) });
+  const fromPledgeAdmin = await pledgeAdminModel.findOne({ id: Number(fromOwnerId) });
 
   let isReturn = isReverted;
   if (!isReturn) {
