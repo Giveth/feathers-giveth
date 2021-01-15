@@ -56,7 +56,7 @@ const findConversionRates = () => async context => {
     });
   }
   // daily
-  return getConversionRates(app, date, symbol).then(res => {
+  return getConversionRates(app, date, symbol, to).then(res => {
     context.result = res;
     return context;
   });
