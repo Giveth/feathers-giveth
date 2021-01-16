@@ -34,7 +34,7 @@ const getDonationPaymentsByToken = donations => {
 const createPaymentConversationAndSendEmail = async ({ app, milestone, txHash }) => {
   try {
     const milestoneId = milestone._id;
-    const { recipient, campaignId, title } = milestone;
+    const { recipient, campaignId, title, owner } = milestone;
 
     const paymentCollectedEvents = await app.service('events').find({
       paginate: false,
@@ -71,11 +71,16 @@ const createPaymentConversationAndSendEmail = async ({ app, milestone, txHash })
       },
       { performedByAddress: donations[0].actionTakerAddress },
     );
-    if (recipient && recipient.email) {
+    // When the recipient is campaign then recipient.email and recipient.name is undefined
+    // and  recipient is an address that doesnt have account in Giveth recipient is null
+    // so below checking is for this purpose to send emails for milestone's owner instead of recipient
+    const email = (recipient && recipient.email) || owner.email;
+    const name = (recipient && recipient.name) || owner.name;
+    if (email) {
       // now we dont send donations-collected email for milestones that don't have recipient
       await donationsCollected(app, {
-        recipient: recipient.email,
-        user: recipient.name,
+        recipient: email,
+        user: name,
         milestoneTitle: title,
         milestoneId,
         campaignId,
