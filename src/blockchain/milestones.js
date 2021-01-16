@@ -36,6 +36,12 @@ const createPaymentConversationAndSendEmail = async ({ app, milestone, txHash })
     const milestoneId = milestone._id;
     const { recipient, campaignId, title, owner } = milestone;
 
+    // When the recipient is campaign then recipient.email and recipient.name is undefined
+    // and  recipient is an address that doesnt have account in Giveth recipient is null
+    // so below checking is for this purpose to send emails for milestone's owner instead of recipient
+    const email = (recipient && recipient.email) || owner.email;
+    const name = (recipient && recipient.name) || owner.name;
+    const recipientAddress = (recipient && recipient.address) || owner.address;
     const paymentCollectedEvents = await app.service('events').find({
       paginate: false,
       query: {
@@ -67,15 +73,10 @@ const createPaymentConversationAndSendEmail = async ({ app, milestone, txHash })
         messageContext: 'payment',
         txHash,
         payments,
-        recipientAddress: recipient.address,
+        recipientAddress,
       },
       { performedByAddress: donations[0].actionTakerAddress },
     );
-    // When the recipient is campaign then recipient.email and recipient.name is undefined
-    // and  recipient is an address that doesnt have account in Giveth recipient is null
-    // so below checking is for this purpose to send emails for milestone's owner instead of recipient
-    const email = (recipient && recipient.email) || owner.email;
-    const name = (recipient && recipient.name) || owner.name;
     if (email) {
       // now we dont send donations-collected email for milestones that don't have recipient
       await donationsCollected(app, {
@@ -86,10 +87,15 @@ const createPaymentConversationAndSendEmail = async ({ app, milestone, txHash })
         campaignId,
         conversation,
       });
+    }else{
+      logger.error(
+        `The recipient and the owner of this milestone dont have email, so we cant send donations-collected email `,{
+          milestoneId,
+          recipient
+        },
+      );
     }
-    logger.info(
-      `Currently we dont send email for milestones who doesnt have recipient, milestoneId: ${milestoneId}`,
-    );
+
   } catch (e) {
     logger.error('createConversation and send collectedEmail error', e);
   }
