@@ -23,9 +23,6 @@ const sendNotification = async (app, pledge) => {
     }
     return app.service('users').get(id);
   };
-
-  await app.service('milestones').get(pledge.delegateTypeId || pledge.ownerTypeId);
-
   const pledgeAdmin = await getAdmin(
     pledge.delegateType || pledge.ownerType,
     pledge.delegateTypeId || pledge.ownerTypeId,
