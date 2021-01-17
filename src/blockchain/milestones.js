@@ -34,7 +34,7 @@ const getDonationPaymentsByToken = donations => {
 const createPaymentConversationAndSendEmail = async ({ app, milestone, txHash }) => {
   try {
     const milestoneId = milestone._id;
-    const { recipient, campaignId, title } = milestone;
+    const { recipient, campaignId, title, owner } = milestone;
 
     const paymentCollectedEvents = await app.service('events').find({
       paginate: false,
@@ -81,12 +81,11 @@ const createPaymentConversationAndSendEmail = async ({ app, milestone, txHash })
         campaignId,
         conversation,
       });
-    }else{
+    } else {
       logger.info(
         `Currently we dont send email for milestones who doesnt have recipient, milestoneId: ${milestoneId}`,
       );
     }
-
   } catch (e) {
     logger.error('createConversation and send collectedEmail error', e);
   }
