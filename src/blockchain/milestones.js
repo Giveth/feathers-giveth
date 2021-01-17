@@ -34,13 +34,8 @@ const getDonationPaymentsByToken = donations => {
 const createPaymentConversationAndSendEmail = async ({ app, milestone, txHash }) => {
   try {
     const milestoneId = milestone._id;
-    const { recipient, campaignId, title, owner } = milestone;
+    const { recipient, campaignId, title } = milestone;
 
-    // When  recipient is an address that doesnt have account in Giveth recipient is null
-    // so below checking is for this purpose to send emails for milestone's owner instead of recipient
-    const email = (recipient && recipient.email) || owner.email;
-    const name = (recipient && recipient.name) || owner.name;
-    const recipientAddress = (recipient && recipient.address) || owner.address;
     const paymentCollectedEvents = await app.service('events').find({
       paginate: false,
       query: {
@@ -72,29 +67,26 @@ const createPaymentConversationAndSendEmail = async ({ app, milestone, txHash })
         messageContext: 'payment',
         txHash,
         payments,
-        recipientAddress,
+        recipientAddress: (recipient && recipient.address) || owner.address,
       },
       { performedByAddress: donations[0].actionTakerAddress },
     );
-    if (email) {
+    if (recipient && recipient.email) {
       // now we dont send donations-collected email for milestones that don't have recipient
       await donationsCollected(app, {
-        recipient: email,
-        user: name,
+        recipient: recipient.email,
+        user: recipient.name,
         milestoneTitle: title,
         milestoneId,
         campaignId,
         conversation,
       });
-    } else {
-      logger.error(
-        `The recipient and the owner of this milestone dont have email, so we cant send donations-collected email `,
-        {
-          milestoneId,
-          recipient,
-        },
+    }else{
+      logger.info(
+        `Currently we dont send email for milestones who doesnt have recipient, milestoneId: ${milestoneId}`,
       );
     }
+
   } catch (e) {
     logger.error('createConversation and send collectedEmail error', e);
   }
