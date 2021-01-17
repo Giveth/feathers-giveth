@@ -36,8 +36,7 @@ const createPaymentConversationAndSendEmail = async ({ app, milestone, txHash })
     const milestoneId = milestone._id;
     const { recipient, campaignId, title, owner } = milestone;
 
-    // When the recipient is campaign then recipient.email and recipient.name is undefined
-    // and  recipient is an address that doesnt have account in Giveth recipient is null
+    // When  recipient is an address that doesnt have account in Giveth recipient is null
     // so below checking is for this purpose to send emails for milestone's owner instead of recipient
     const email = (recipient && recipient.email) || owner.email;
     const name = (recipient && recipient.name) || owner.name;
