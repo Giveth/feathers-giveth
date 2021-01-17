@@ -40,7 +40,6 @@ module.exports = function aggregateDonations() {
           count: { $sum: 1 },
           donations: { $push: '$_id' },
         })
-        .match({})
         .facet({
           data: dataQuery,
           metadata: [{ $count: 'total' }],
