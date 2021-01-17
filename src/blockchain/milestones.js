@@ -87,15 +87,15 @@ const createPaymentConversationAndSendEmail = async ({ app, milestone, txHash })
         campaignId,
         conversation,
       });
-    }else{
+    } else {
       logger.error(
-        `The recipient and the owner of this milestone dont have email, so we cant send donations-collected email `,{
+        `The recipient and the owner of this milestone dont have email, so we cant send donations-collected email `,
+        {
           milestoneId,
-          recipient
+          recipient,
         },
       );
     }
-
   } catch (e) {
     logger.error('createConversation and send collectedEmail error', e);
   }
