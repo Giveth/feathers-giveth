@@ -214,7 +214,7 @@ const _saveToDB = (app, timestamp, rates, symbol, _id = undefined) => {
  *
  * @return {Promise} Promise that resolves to object {timestamp, rates: { EUR: 100, USD: 90 } }
  */
-const getConversionRates = async (app, requestedDate, symbol = 'ETH', toRate = 'ETH') => {
+const getConversionRates = async (app, requestedDate, symbol = 'ETH') => {
   // Get yesterday date from today respecting UTC
   const yesterday = new Date(new Date().setUTCDate(new Date().getUTCDate() - 1));
   const yesterdayUTC = yesterday.setUTCHours(0, 0, 0, 0);
@@ -227,6 +227,8 @@ const getConversionRates = async (app, requestedDate, symbol = 'ETH', toRate = '
   // Only the rates for yesterday or older dates are final
   const timestamp = reqDateUTC < yesterdayUTC ? reqDateUTC : yesterdayUTC;
 
+  const fiat = app.get('fiatWhitelist');
+
   const token = getTokenBySymbol(symbol);
 
   // This field needed for PAN currency
@@ -237,18 +239,18 @@ const getConversionRates = async (app, requestedDate, symbol = 'ETH', toRate = '
   // Check if we already have this exchange rate for this timestamp, if not we save it
   const dbRates = await _getRatesDb(app, timestamp, requestedSymbol);
   const retrievedRates = new Set(Object.keys(dbRates.rates || {}));
-  const allRatesToGet = [toRate];
-  const ratesToGet = allRatesToGet.filter(cur => !retrievedRates.has(cur));
+  const unknownRates = fiat.filter(cur => !retrievedRates.has(cur));
+
   let { rates } = dbRates;
 
-  if (ratesToGet.length !== 0) {
+  if (unknownRates.length !== 0) {
     logger.debug('fetching eth coversion from crypto compare');
     // Some rates have not been obtained yet, get them from cryptocompare
     let newRates = [];
     if (requestedSymbol === 'PAN') {
-      newRates = await _getRatesCoinGecko(requestedSymbol, timestamp, coingeckoId, ratesToGet);
+      newRates = await _getRatesCoinGecko(requestedSymbol, timestamp, coingeckoId, unknownRates);
     } else {
-      newRates = await _getRatesCryptocompare(timestamp, ratesToGet, requestedSymbol);
+      newRates = await _getRatesCryptocompare(timestamp, unknownRates, requestedSymbol);
     }
 
     if (newRates === undefined || newRates === []) {
