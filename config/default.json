@@ -109,7 +109,6 @@
     "ETH",
     "DAI",
     "PAN",
-    "ANT",
     "BTC",
     "USDC",
     "USD",
@@ -159,10 +158,6 @@
     {
       "symbol": "PAN",
       "decimals": 2
-    },
-    {
-      "symbol": "ANT",
-      "decimals": 3
     },
     {
       "symbol": "USDC",
