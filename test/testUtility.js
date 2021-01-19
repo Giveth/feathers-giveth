@@ -66,6 +66,7 @@ function getJwt(address = testAddress) {
 
 async function dropDb() {
   return new Promise((resolve, reject) => {
+    console.log('dropping db');
     mongoose.connect(config.get('mongodb'), error => {
       if (error) {
         reject(error);
@@ -78,6 +79,7 @@ async function dropDb() {
 }
 async function seedData() {
   await dropDb();
+  console.log('test db dropped');
   const dbName = config.get('mongodb').split('/')[config.get('mongodb').split('/').length - 1];
   await restore.database({
     uri: config.get('mongodb').replace(dbName, ''),
