@@ -44,7 +44,7 @@ const _getRatesCoinGecko = async (requestedSymbol, timestampMS, coingeckoId, rat
   rates[requestedSymbol] = 1;
 
   const promises = ratesToGet.map(async r => {
-    const symbol = getTokenBySymbol(requestedSymbol).rateEqSymbol || requestedSymbol;
+    const symbol = getTokenBySymbol(r).rateEqSymbol || r;
     if (symbol !== requestedSymbol) {
       rates[r] = await fetchCoingecko(timestampMS, coingeckoId, symbol);
     } else {
