@@ -210,11 +210,12 @@ const _saveToDB = (app, timestamp, rates, symbol, _id = undefined) => {
  *
  * @param {Object} app             Feathers app object
  * @param {Number} requestedDate   Optional requested date as number of miliseconds since 1.1.1970 UTC
- * @param {String} symbol          The symbol to resolve rates of
+ * @param {String} symbol          The symbol to resolve rate of
+ * @param {String} toRate          The symbol to resolve rate to
  *
  * @return {Promise} Promise that resolves to object {timestamp, rates: { EUR: 100, USD: 90 } }
  */
-const getConversionRates = async (app, requestedDate, symbol = 'ETH', toRate = 'ETH') => {
+const getConversionRates = async (app, requestedDate, symbol = 'ETH', toRate = 'USD') => {
   // Get yesterday date from today respecting UTC
   const yesterday = new Date(new Date().setUTCDate(new Date().getUTCDate() - 1));
   const yesterdayUTC = yesterday.setUTCHours(0, 0, 0, 0);
