@@ -36,11 +36,10 @@ function getConversionRatesTestCases() {
     assert.equal(response.statusCode, 200);
     assert.exists(response.body.rates);
     assert.equal(response.body.rates[symbol], 1);
-    assert.exists(response.body.rates['BTC']);
-    assert.notEqual(response.body.rates['BTC'], 1);
-    assert.exists(response.body.rates['USD']);
-    assert.notEqual(response.body.rates['USD'],1);
-
+    assert.exists(response.body.rates.BTC);
+    assert.notEqual(response.body.rates.BTC, 1);
+    assert.exists(response.body.rates.USD);
+    assert.notEqual(response.body.rates.USD, 1);
   });
 
   it('should hourly get successful result', async function() {
