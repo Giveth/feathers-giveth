@@ -239,19 +239,19 @@ const getConversionRates = async (app, requestedDate, fromSymbol = 'ETH', toSymb
   // Check if we already have this exchange rate for this timestamp, if not we save it
   const dbRates = await _getRatesDb(app, timestamp, requestedFromSymbol);
   const retrievedRates = new Set(Object.keys(dbRates.rates || {}));
-  const allRatesToGet = [requestedToSymbol];
-  const ratesToGet = allRatesToGet.filter(cur => !retrievedRates.has(cur));
   let { rates } = dbRates;
 
-  if (ratesToGet.length !== 0) {
+  if (!retrievedRates.has(requestedToSymbol)) {
     logger.debug('fetching eth coversion from crypto compare');
     // Some rates have not been obtained yet, get them from cryptocompare
     let newRates = [];
     if (requestedFromSymbol === 'PAN') {
       const { coingeckoId } = fromToken;
-      newRates = await _getRatesCoinGecko(requestedFromSymbol, timestamp, coingeckoId, ratesToGet);
+      newRates = await _getRatesCoinGecko(requestedFromSymbol, timestamp, coingeckoId, [
+        requestedToSymbol,
+      ]);
     } else {
-      newRates = await _getRatesCryptocompare(timestamp, ratesToGet, requestedFromSymbol);
+      newRates = await _getRatesCryptocompare(timestamp, [requestedToSymbol], requestedFromSymbol);
     }
 
     if (newRates === undefined || newRates === []) {
@@ -263,6 +263,9 @@ const getConversionRates = async (app, requestedDate, fromSymbol = 'ETH', toSymb
     // Save the newly retrieved rates
     await _saveToDB(app, dbRates.timestamp, rates, requestedFromSymbol, dbRates._id);
   }
+
+  // In case rateEqSymbol is used to resolve
+  if (toSymbol !== requestedToSymbol) rates[toSymbol] = rates[requestedToSymbol];
 
   return { timestamp: dbRates.timestamp, rates };
 };
