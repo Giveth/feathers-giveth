@@ -67,7 +67,7 @@ const _getRatesCoinGecko = async (requestedSymbol, timestampMS, coingeckoId, rat
  * @throws Error if fetching the rates from cryptocompare API failed
  *
  * @param {Number} timestamp   Timestamp for which the value should be retrieved
- * @param {Array}  ratestToGet Rates that are missing in the DB and should be retrieved
+ * @param {Array}  ratesToGet Rates that are missing in the DB and should be retrieved
  *
  * @return {Object} Rates object in format { EUR: 241, USD: 123 }
  */
