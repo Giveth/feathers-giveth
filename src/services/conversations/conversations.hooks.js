@@ -83,12 +83,12 @@ const restrictAndSetOwner = () => context => {
           context.data.performedByRole = 'Campaign Reviewer';
           break;
         default:
-          //TODO It's when creating donated conversation the ownerAddress maybe it's not
-          //involved to milestone, so we should not throw exception in this case
+          // TODO It's when creating donated conversation the ownerAddress maybe it's not
+          // involved to milestone, so we should not throw exception in this case
           context.data.performedByRole = ' ';
         // throw new errors.Forbidden(
-          //   'Only people involved with the milestone can create conversation',
-          // );
+        //   'Only people involved with the milestone can create conversation',
+        // );
       }
       return context;
     })
