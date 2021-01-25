@@ -1,5 +1,5 @@
-const { isRequestInternal } = require('./feathersUtils');
 const { assert } = require('chai');
+const { isRequestInternal } = require('./feathersUtils');
 
 function isRequestInternalTestCases() {
   it('should return false ', function() {
