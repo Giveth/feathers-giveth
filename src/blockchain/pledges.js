@@ -280,6 +280,14 @@ const pledges = (app, liquidPledging) => {
       mutation.comment = comment;
       mutation.actionTakerAddress = actionTakerAddress;
     }
+    // Propagate comment for donations created by delegation
+    if (
+      donations.length === 1 &&
+      ownerType === AdminTypes.GIVER &&
+      status === DonationStatus.TO_APPROVE
+    ) {
+      mutation.comment = comment;
+    }
     if (initialTransfer) {
       // always set homeTx on mutation b/c ui checks if homeTxHash exists to check for initial donations
       mutation.homeTxHash = (await getHomeTxHash(txHash)) || 'unknown';
