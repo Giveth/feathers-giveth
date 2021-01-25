@@ -284,7 +284,7 @@ const pledges = (app, liquidPledging) => {
     if (
       donations.length === 1 &&
       ownerType === AdminTypes.GIVER &&
-      status === DonationStatus.TO_APPROVE
+      status === DonationStatus.COMMITTED
     ) {
       mutation.comment = comment;
     }
