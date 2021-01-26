@@ -16,10 +16,15 @@ const checkConversionRates = () => context => {
 
   const { data, app } = context;
   const { items } = data;
+  let selectedFiatSymbol;
+  let fromSymbol;
 
-  const fromSymbol = data.token.rateEqSymbol || data.token.symbol;
-  const selectedFiatToken = getTokenBySymbol(data.selectedFiatType);
-  const selectedFiatSymbol = selectedFiatToken.rateEqSymbol || selectedFiatToken.symbol;
+  // When accepting proposed milestone the data doesn't have token
+  if (data.token) {
+    fromSymbol = data.token.rateEqSymbol || data.token.symbol;
+    const selectedFiatToken = getTokenBySymbol(data.selectedFiatType);
+    selectedFiatSymbol = selectedFiatToken.rateEqSymbol || selectedFiatToken.symbol;
+  }
 
   // skip check if the milestone has been already created
   // FIXME: Even single expense should be stored in data.items. Unnecessary duplicity in code on both frontend and feathers.
@@ -27,7 +32,7 @@ const checkConversionRates = () => context => {
     (!items || (Array.isArray(items) && items.length === 0)) &&
     !data.fiatAmount &&
     !data.maxAmount &&
-    !selectedFiatSymbol
+    (!data.token || !selectedFiatSymbol)
   ) {
     return context;
   }
