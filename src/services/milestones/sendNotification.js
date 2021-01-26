@@ -12,7 +12,7 @@ const sendNotification = () => async context => {
   const { data, app, result, params } = context;
   const { performedByAddress, eventTxHash } = params;
 
-  const _createConversion = async messageContext => {
+  const _createConversation = async messageContext => {
     const service = app.service('conversations');
     const { proofItems, _id, message } = result;
 
@@ -108,7 +108,7 @@ const sendNotification = () => async context => {
      * */
     if (eventTxHash) {
       if (data.status === IN_PROGRESS && prevStatus === PROPOSED) {
-        _createConversion('proposedAccepted');
+        _createConversation('proposedAccepted');
 
         // find the milestone owner and send a notification that his/her proposed milestone is approved
         Notifications.proposedMilestoneAccepted(app, {
@@ -185,7 +185,7 @@ const sendNotification = () => async context => {
         }
       } else if (data.status === NEEDS_REVIEW) {
         // find the milestone reviewer owner and send a notification that this milestone is been marked as complete and needs review
-        _createConversion(status);
+        _createConversation(status);
 
         Notifications.milestoneRequestReview(app, {
           recipient: reviewer.email,
@@ -197,7 +197,7 @@ const sendNotification = () => async context => {
           message,
         });
       } else if (status === COMPLETED && mined) {
-        _createConversion(status);
+        _createConversation(status);
 
         // find the milestone owner and send a notification that his/her milestone is marked complete
         Notifications.milestoneMarkedCompleted(app, {
@@ -211,7 +211,7 @@ const sendNotification = () => async context => {
           token,
         });
       } else if (data.status === IN_PROGRESS && prevStatus === NEEDS_REVIEW) {
-        _createConversion('rejected');
+        _createConversation('rejected');
 
         // find the milestone reviewer and send a notification that his/her milestone has been rejected by reviewer
         // it's possible to have a null reviewer if that address has never logged in
@@ -227,7 +227,7 @@ const sendNotification = () => async context => {
           });
         }
       } else if (status === CANCELED && mined) {
-        _createConversion(status);
+        _createConversation(status);
 
         // find the milestone owner and send a notification that his/her milestone is canceled
         Notifications.milestoneCanceled(app, {
@@ -241,7 +241,7 @@ const sendNotification = () => async context => {
         });
       }
     } else if (data.status === REJECTED && prevStatus === PROPOSED) {
-      _createConversion('proposedRejected');
+      _createConversation('proposedRejected');
 
       // find the milestone owner and send a notification that his/her proposed milestone is rejected
       Notifications.proposedMilestoneRejected(app, {
@@ -254,9 +254,9 @@ const sendNotification = () => async context => {
         message,
       });
     } else if (data.status === PROPOSED && prevStatus === REJECTED) {
-      _createConversion('rePropose');
+      _createConversation('rePropose');
     } else if (data.status === ARCHIVED && prevStatus === IN_PROGRESS) {
-      _createConversion('archived');
+      _createConversation('archived');
     }
   }
 };
