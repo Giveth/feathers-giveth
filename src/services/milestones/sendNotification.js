@@ -2,6 +2,7 @@ const logger = require('winston');
 
 const { MilestoneStatus } = require('../../models/milestones.model');
 const Notifications = require('../../utils/dappMailer');
+const { getTransaction } = require('../../blockchain/lib/web3Helpers');
 
 /**
  *
@@ -32,6 +33,14 @@ const sendNotification = () => async context => {
       }
     }
 
+    let createdAt;
+    try {
+      const { timestamp } = await getTransaction(app, eventTxHash);
+      createdAt = timestamp;
+    } catch (e) {
+      logger.error(`Error on getting tx ${eventTxHash} info`, e);
+    }
+
     try {
       const res = await service.create(
         {
@@ -40,6 +49,7 @@ const sendNotification = () => async context => {
           items: proofItems,
           messageContext,
           txHash: eventTxHash,
+          createdAt,
         },
         { performedByAddress },
       );
