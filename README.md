@@ -1,3 +1,5 @@
+![CI/CD](https://github.com/Giveth/feathers-giveth/workflows/CI/CD/badge.svg)
+
 ![Feathers Giveth](readme-header.png)
 
 > Real-time json cache server for blockchain data
