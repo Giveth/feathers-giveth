@@ -25,12 +25,12 @@ jobs:
         run: npm run test
 
   deploy:
-    if: github.ref == 'refs/heads/f_372_replace_circleci_with_github_actions' || github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/master'
     needs: test
     runs-on: ubuntu-latest
     steps:
       - name: develop deploy
-        if: github.ref == 'refs/heads/f_372_replace_circleci_with_github_actions'
+        if: github.ref == 'refs/heads/develop'
         uses: garygrossgarten/github-action-ssh@v0.6.4
         with:
           command: cd feathers-giveth-develop && git checkout develop && git pull origin develop && [[ -s $HOME/.nvm/nvm.sh ]] && . $HOME/.nvm/nvm.sh && nvm use 10  && npm ci &&  NODE_ENV=develop ./node_modules/.bin/migrate-mongo up && npm run serve
