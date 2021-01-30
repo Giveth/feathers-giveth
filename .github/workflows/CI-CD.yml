@@ -24,9 +24,28 @@ jobs:
       - name: test
         run: npm run test
 
-  deploy:
+  publish:
     if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/master'
     needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v2
+      - name: Push to GitHub Packages
+        uses: docker/build-push-action@v1
+        with:
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+          registry: docker.pkg.github.com
+          repository: mohammadranjbarz/renjer-feathers/giveth-feathers
+          # Add branch name to docker image tag @see{@link https://github.com/docker/build-push-action/tree/releases/v1#tag_with_ref}
+          tag_with_ref: true
+          # Add commit hash to docker image tag @see{@link https://github.com/docker/build-push-action/tree/releases/v1#tag_with_sha}
+          tag_with_sha: true
+
+  deploy:
+    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/master'
+    needs: publish
     runs-on: ubuntu-latest
     steps:
       - name: develop deploy
@@ -36,7 +55,7 @@ jobs:
           command: cd feathers-giveth-develop && git checkout develop && git pull origin develop && [[ -s $HOME/.nvm/nvm.sh ]] && . $HOME/.nvm/nvm.sh && nvm use 10  && npm ci &&  NODE_ENV=develop ./node_modules/.bin/migrate-mongo up && npm run serve
           host: ${{ secrets.DEVELOP_HOST }}
           username: ${{ secrets.DEVELOP_USERNAME }}
-#          passphrase: ${{ secrets.PASSPHRASE }}
+          #          passphrase: ${{ secrets.PASSPHRASE }}
           privateKey: ${{ secrets.DEVELOP_PRIVATE_KEY}}
 
       - name: beta deploy
@@ -46,5 +65,5 @@ jobs:
           command: echo "It's not implemented"
           host: ${{ secrets.BETA_HOST }}
           username: ${{ secrets.BETA_USERNAME }}
-#          passphrase: ${{ secrets.PASSPHRASE }}
+          #          passphrase: ${{ secrets.PASSPHRASE }}
           privateKey: ${{ secrets.BETA_PRIVATE_KEY}}
