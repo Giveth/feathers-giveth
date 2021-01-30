@@ -25,7 +25,7 @@ jobs:
         run: npm run test
 
   publish:
-    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/develop' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/dockerize-with-github-package'
     needs: test
     runs-on: ubuntu-latest
     steps:
