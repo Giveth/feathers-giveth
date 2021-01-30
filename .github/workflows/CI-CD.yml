@@ -48,3 +48,23 @@ jobs:
           username: ${{ secrets.BETA_USERNAME }}
 #          passphrase: ${{ secrets.PASSPHRASE }}
           privateKey: ${{ secrets.BETA_PRIVATE_KEY}}
+
+  publish:
+    if: github.ref == 'refs/heads/dockerize' || github.ref == 'refs/heads/master'
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Build develop docker image
+        if: github.ref == 'refs/heads/dockerize'
+        uses: actions/checkout@v2
+        run: docker build . --file Dockerfile --tag feathers-giveth-develop:$(date +%s)
+
+      - name: beta deploy
+        if: github.ref == 'refs/heads/main'
+        uses: garygrossgarten/github-action-ssh@v0.6.4
+        with:
+          command: echo "It's not implemented"
+          host: ${{ secrets.BETA_HOST }}
+          username: ${{ secrets.BETA_USERNAME }}
+#          passphrase: ${{ secrets.PASSPHRASE }}
+          privateKey: ${{ secrets.BETA_PRIVATE_KEY}}
