@@ -37,7 +37,7 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
           registry: docker.pkg.github.com
-          repository: mohammadranjbarz/renjer-feathers/giveth-feathers
+          repository: giveth/feathers-giveth/feathers-giveth
           # Add branch name to docker image tag @see{@link https://github.com/docker/build-push-action/tree/releases/v1#tag_with_ref}
           tag_with_ref: true
           # Add commit hash to docker image tag @see{@link https://github.com/docker/build-push-action/tree/releases/v1#tag_with_sha}
