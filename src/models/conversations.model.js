@@ -1,4 +1,5 @@
 const Item = require('./item.model');
+const { AdminTypes } = require('./pledgeAdmins.model');
 
 // conversations-model.js - A mongoose model
 //
@@ -24,6 +25,8 @@ module.exports = function Conversations(app) {
           tokenDecimals: { type: String },
         },
       ],
+      donorType: { type: String, enum: Object.values(AdminTypes) },
+      donorAddress: { type: String },
       items: [Item],
       txHash: { type: String },
       mined: { type: Boolean, default: false },
