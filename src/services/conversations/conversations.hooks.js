@@ -2,10 +2,12 @@ const logger = require('winston');
 const commons = require('feathers-hooks-common');
 const { disallow } = require('feathers-hooks-common');
 const errors = require('@feathersjs/errors');
+const { getItems } = require('feathers-hooks-common');
 const sanitizeAddress = require('../../hooks/sanitizeAddress');
 const sanitizeHtml = require('../../hooks/sanitizeHtml');
 const resolveFiles = require('../../hooks/resolveFiles');
 const onlyInternal = require('../../hooks/onlyInternal');
+const { AdminTypes } = require('../../models/pledgeAdmins.model');
 const { isRequestInternal } = require('../../utils/feathersUtils');
 
 /**
@@ -38,6 +40,7 @@ const MESSAGE_CONTEXT = [
   'archived',
   'payment',
   'donated',
+  'delegated',
   'comment',
 ];
 
@@ -125,6 +128,53 @@ const checkMessageContext = () => context => {
 };
 
 /**
+ * populate delegator title
+ */
+const populateDonorTitle = () => context => {
+  const addDonorTitle = async item => {
+    const { donorId, donorType } = item;
+    if (!donorId || !donorType) return Promise.resolve(item);
+    const { app } = context;
+
+    let service;
+    let query;
+    let field;
+
+    switch (donorType) {
+      case AdminTypes.DAC:
+        service = app.service('dacs');
+        query = { _id: donorId };
+        field = 'title';
+        break;
+      case AdminTypes.CAMPAIGN:
+        service = app.service('campaigns');
+        query = { _id: donorId };
+        field = 'title';
+        break;
+      case AdminTypes.GIVER:
+        service = app.service('users');
+        query = { address: donorId };
+        field = 'name';
+        break;
+      default:
+        return Promise.resolve(item);
+    }
+
+    const donor = await service.Model.findOne(query, [field]);
+    item.donorTitle = donor[field];
+
+    return item;
+  };
+
+  const items = getItems(context);
+  if (!Array.isArray(items)) {
+    return addDonorTitle(items).then(() => context);
+  }
+
+  return Promise.all(items.map(addDonorTitle)).then(() => context);
+};
+
+/**
  include user object when querying message
  * */
 const schema = {
@@ -160,8 +210,8 @@ module.exports = {
 
   after: {
     all: [],
-    find: [commons.populate({ schema }), resolveFiles(['items'])],
-    get: [commons.populate({ schema }), resolveFiles(['items'])],
+    find: [commons.populate({ schema }), populateDonorTitle(), resolveFiles(['items'])],
+    get: [commons.populate({ schema }), populateDonorTitle(), resolveFiles(['items'])],
     create: [],
     update: [],
     patch: [],

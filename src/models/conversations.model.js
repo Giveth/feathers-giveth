@@ -26,7 +26,7 @@ module.exports = function Conversations(app) {
         },
       ],
       donorType: { type: String, enum: Object.values(AdminTypes) },
-      donorAddress: { type: String },
+      donorId: { type: String },
       items: [Item],
       txHash: { type: String },
       mined: { type: Boolean, default: false },

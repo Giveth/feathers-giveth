@@ -141,7 +141,7 @@ const sendNotification = async (app, pledge) => {
             decimals: token.decimals,
           },
         ],
-        donorAddress: giverAddress,
+        donorId: giverAddress,
       };
     }
     // Delegate
@@ -151,19 +151,19 @@ const sendNotification = async (app, pledge) => {
       const [firstParentId] = parentDonations;
       const firstParent = await app.service('donations').get(firstParentId);
       let donorType;
-      let donorAddress;
+      let donorId;
       if (firstParent.delegateTypeId) {
         donorType = AdminTypes.DAC;
-        donorAddress = firstParent.delegateTypeId;
+        donorId = firstParent.delegateTypeId;
       } else {
         donorType = firstParent.ownerType;
-        donorAddress = firstParent.ownerTypeId;
+        donorId = firstParent.ownerTypeId;
       }
 
       conversationModel = {
         milestoneId: pledgeAdmin._id,
         messageContext: 'delegated',
-        txHash: homeTxHash,
+        txHash,
         payments: [
           {
             symbol: token.symbol,
@@ -172,7 +172,7 @@ const sendNotification = async (app, pledge) => {
           },
         ],
         donorType,
-        donorAddress,
+        donorId,
       };
     }
 
