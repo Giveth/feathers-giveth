@@ -3,6 +3,7 @@ const errors = require('@feathersjs/errors');
 const { utils } = require('web3');
 const logger = require('winston');
 const { MilestoneTypes } = require('../../models/milestones.model');
+const { getTokenBySymbol } = require('../../utils/tokenHelper');
 
 BigNumber.config({ DECIMAL_PLACES: 18 });
 
@@ -15,6 +16,15 @@ const checkConversionRates = () => context => {
 
   const { data, app } = context;
   const { items } = data;
+  let selectedFiatSymbol;
+  let fromSymbol;
+
+  // When accepting proposed milestone the data doesn't have token
+  if (data.token) {
+    fromSymbol = data.token.rateEqSymbol || data.token.symbol;
+    const selectedFiatToken = getTokenBySymbol(data.selectedFiatType);
+    selectedFiatSymbol = selectedFiatToken.rateEqSymbol || selectedFiatToken.symbol;
+  }
 
   // skip check if the milestone has been already created
   // FIXME: Even single expense should be stored in data.items. Unnecessary duplicity in code on both frontend and feathers.
@@ -22,7 +32,7 @@ const checkConversionRates = () => context => {
     (!items || (Array.isArray(items) && items.length === 0)) &&
     !data.fiatAmount &&
     !data.maxAmount &&
-    !data.selectedFiatType
+    (!data.token || !selectedFiatSymbol)
   ) {
     return context;
   }
@@ -64,7 +74,7 @@ const checkConversionRates = () => context => {
     const promises = items.map(item =>
       app
         .service('conversionRates')
-        .find({ query: { date: item.date, symbol: data.token.symbol } })
+        .find({ query: { date: item.date, symbol: fromSymbol } })
         .then(conversionRate => {
           calculateCorrectEther(conversionRate, item.fiatAmount, item.wei, item.selectedFiatType);
         }),
@@ -75,9 +85,9 @@ const checkConversionRates = () => context => {
   // check that the conversion rate for the milestone is correct
   return app
     .service('conversionRates')
-    .find({ query: { date: data.date, symbol: data.token.symbol } })
+    .find({ query: { date: data.date, symbol: fromSymbol } })
     .then(conversionRate => {
-      calculateCorrectEther(conversionRate, data.fiatAmount, data.maxAmount, data.selectedFiatType);
+      calculateCorrectEther(conversionRate, data.fiatAmount, data.maxAmount, selectedFiatSymbol);
       return context;
     });
 };
