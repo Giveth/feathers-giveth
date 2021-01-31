@@ -142,6 +142,7 @@ const sendNotification = async (app, pledge) => {
           },
         ],
         donorId: giverAddress,
+        donorType: AdminTypes.GIVER,
       };
     }
     // Delegate
