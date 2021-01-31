@@ -35,9 +35,10 @@ const sendNotification = () => async context => {
 
     let createdAt;
     try {
-      const { timestamp } = await getTransaction(app, eventTxHash);
+      const { timestamp } = await getTransaction(app, eventTxHash, false);
       createdAt = timestamp;
     } catch (e) {
+      createdAt = new Date();
       logger.error(`Error on getting tx ${eventTxHash} info`, e);
     }
 
