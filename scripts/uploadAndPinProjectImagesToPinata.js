@@ -12,7 +12,7 @@ const fs = require('fs');
 require('mongoose-long')(mongoose);
 require('../src/models/mongoose-bn')(mongoose);
 
-const cacheFileName = 'uploadAndPinAllImagesToPinata.json';
+const cacheFileName = 'uploadAndPinProjectImagesToPinata.json';
 const cacheDir = `${__dirname}/${cacheFileName}`;
 let cachedHashes = [];
 if (fs.existsSync(cacheDir)) {
@@ -79,7 +79,10 @@ const uploadMilestoneImageToPinata = async (entity, entityType, mongooseModel) =
     ownerType: entityType,
     projectId,
   };
-  await mongooseModel.findOneAndUpdate({ _id: entity._id }, { image: `/ipfs/${ipfsHash}` });
+  await mongooseModel.updateOne({ _id: entity._id }, { image: `/ipfs/${ipfsHash}` },
+    { timestamps: false },
+  );
+  console.log('result ', result);
   cachedHashes.push(result);
   return result;
 };
@@ -103,19 +106,39 @@ const Campaigns = require('../src/models/campaigns.model').createModel(app);
 const Dacs = require('../src/models/dacs.model').createModel(app);
 
 const uploadEntityImagesToPinata = async () => {
-  const milestones = await Milestones.find({ image: /data:image/ });
-  const campaigns = await Campaigns.find({ image: /data:image/ });
-  const dacs = await Dacs.find({ image: /data:image/ });
   try {
-    const promises = [].concat(
-      milestones.map(milestone => uploadMilestoneImageToPinata(milestone, 'milestone', Milestones)),
-      campaigns.map(campaign => uploadMilestoneImageToPinata(campaign, 'campaign', Campaigns)),
-      dacs.map(dac => uploadMilestoneImageToPinata(dac, 'dac', Dacs)),
-    );
-    console.log('jobs length ', promises.length);
-    const result = await Promise.all(promises);
+    await Milestones.find({ image: /data:image/ })
+      .cursor()
+      .eachAsync(
+        async milestone => {
+          await uploadMilestoneImageToPinata(milestone, 'milestone', Milestones);
+        },
+        {
+          parallel: 3,
+        },
+      );
+    await Campaigns.find({ image: /data:image/ })
+      .cursor()
+      .eachAsync(
+        async campaign => {
+          await uploadMilestoneImageToPinata(campaign, 'campaign', Campaigns);
+        },
+        {
+          parallel: 3,
+        },
+      );
+    await Dacs.find({ image: /data:image/ })
+      .cursor()
+      .eachAsync(
+        async dac => {
+          await uploadMilestoneImageToPinata(dac, 'dac', Dacs);
+        },
+        {
+          parallel: 3,
+        },
+      );
     fs.writeFileSync(cacheDir, JSON.stringify(cachedHashes, null, 4));
-    console.log('result', result);
+    console.log('task ended');
     process.exit(0);
   } catch (e) {
     console.log('uploadEntityImagesToPinata error', e);
