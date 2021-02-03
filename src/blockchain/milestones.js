@@ -80,6 +80,7 @@ const createPaymentConversationAndSendEmail = async ({ app, milestone, txHash })
         milestoneId,
         campaignId,
         conversation,
+        address: recipient.address,
       });
     } else {
       logger.info(
