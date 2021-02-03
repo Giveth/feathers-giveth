@@ -6,23 +6,30 @@ const Mailer = require('./dappMailer');
 const { getTransaction } = require('../blockchain/lib/web3Helpers');
 const { MilestoneStatus } = require('../models/milestones.model');
 
+const getPledgeAdmin = (app, type, id) => {
+  if (type === AdminTypes.DAC) {
+    return app.service('dacs').get(id);
+  }
+  if (type === AdminTypes.CAMPAIGN) {
+    return app.service('campaigns').get(id);
+  }
+  if (type === AdminTypes.MILESTONE) {
+    return app.service('milestones').get(id);
+  }
+  return app.service('users').get(id);
+};
+
 async function sendMilestoneProposedEmail(
   app,
-  data,
-  title,
-  _id,
-  campaign,
-  campaignId,
-  maxAmount,
-  token,
+  { milestoneTitle, _id, campaign, campaignId, maxAmount, token },
 ) {
   try {
-    const { owner: campaignOwner } = await app.service('campaigns').get(data.campaignId);
+    const { owner: campaignOwner } = await app.service('campaigns').get(campaignId);
     const { email, name } = campaignOwner;
     Mailer.milestoneProposed(app, {
       recipient: email,
       user: name,
-      milestoneTitle: title,
+      milestoneTitle,
       milestoneId: _id,
       campaignTitle: campaign.title,
       campaignId,
@@ -34,17 +41,21 @@ async function sendMilestoneProposedEmail(
   }
 }
 
-async function sendMilestoneCreatedEmail(app, result, data, _id, campaignId) {
+async function sendMilestoneCreatedEmail(
+  app,
+  { _id, campaignId, milestoneTitle, maxAmount, token, recipientAddress },
+) {
   try {
-    const { email, name } = await app.service('users').get(result.recipientAddress);
+    const { email, name } = await app.service('users').get(recipientAddress);
     Mailer.milestoneCreated(app, {
       recipient: email,
+
       user: name,
-      milestoneTitle: data.title,
+      milestoneTitle,
       milestoneId: _id,
       campaignId,
-      amount: data.maxAmount,
-      token: data.token,
+      amount: maxAmount,
+      token,
     });
   } catch (e) {
     // ignore missing recipient
@@ -134,74 +145,116 @@ const handleMilestoneConversationAndEmail = () => async context => {
     // recipient,
   } = result;
   logger.info('sendNotification', { owner, status, prevStatus });
-  if (context.method === 'create') {
-    if (status === PROPOSED) {
-      await sendMilestoneProposedEmail(
-        app,
-        data,
+  if (context.method === 'create' && status === PROPOSED) {
+    await sendMilestoneProposedEmail(app, {
+      title,
+      _id,
+      campaign,
+      campaignId,
+      maxAmount,
+      token,
+    });
+    return;
+  }
+
+  /**
+   * Generate Mailer and Conversations when a milestone is patched
+   */
+  if (context.method !== 'patch' || !data.status) {
+    // The rest of code is for patch requests that update the status, so in this case we dont need to run it
+    return;
+  }
+
+  /**
+   * This only gets triggered when the txHash is received through a milestone event
+   * Which basically means the event is really mined
+   * */
+  if (eventTxHash) {
+    if (data.status === IN_PROGRESS && prevStatus === PROPOSED) {
+      _createConversation('proposedAccepted');
+
+      // find the milestone owner and send a notification that his/her proposed milestone is approved
+      Mailer.proposedMilestoneAccepted(app, {
+        recipient: owner.email,
+        user: owner.name,
+        milestoneTitle: title,
+        milestoneId: _id,
+        campaignTitle: campaign.title,
+        campaignId,
+        // amount: maxAmount,
+        message,
+      });
+
+      // milestone may have been created on the recipient's behalf
+      // lets notify them if they are registered
+      if (ownerAddress !== recipientAddress) {
+        await sendMilestoneCreatedEmail(app, {
+          recipientAddress: result.recipientAddress,
+          milestoneTitle: data.title,
+          maxAmount: data.maxAmount,
+          token: data.token,
+          _id,
+          campaignId,
+        });
+      }
+    } else if (status === PROPOSED && prevStatus === REJECTED) {
+      await sendMilestoneProposedEmail(app, {
         title,
         _id,
         campaign,
         campaignId,
         maxAmount,
         token,
-      );
-    }
-  }
+      });
+    } else if (
+      status === IN_PROGRESS &&
+      prevStatus === PROPOSED &&
+      ownerAddress !== recipientAddress
+    ) {
+      // milestone may have been created on the recipient's behalf
+      // lets notify them if they are registered
+      await sendMilestoneCreatedEmail(app, {
+        recipientAddress: result.recipientAddress,
+        milestoneTitle: data.title,
+        maxAmount: data.maxAmount,
+        token: data.token,
+        _id,
+        campaignId,
+      });
+    } else if (data.status === NEEDS_REVIEW) {
+      // find the milestone reviewer owner and send a notification that this milestone is been marked as complete and needs review
+      _createConversation(status);
 
-  /**
-   * Generate Mailer and Conversations when a milestone is patched
-   */
-  if (context.method === 'patch' && data.status) {
-    /**
-     * This only gets triggered when the txHash is received through a milestone event
-     * Which basically means the event is really mined
-     * */
-    if (eventTxHash) {
-      if (data.status === IN_PROGRESS && prevStatus === PROPOSED) {
-        _createConversation('proposedAccepted');
+      Mailer.milestoneRequestReview(app, {
+        recipient: reviewer.email,
+        user: reviewer.name,
+        milestoneTitle: title,
+        milestoneId: _id,
+        campaignTitle: campaign.title,
+        campaignId,
+        message,
+      });
+    } else if (status === COMPLETED && mined) {
+      _createConversation(status);
 
-        // find the milestone owner and send a notification that his/her proposed milestone is approved
-        Mailer.proposedMilestoneAccepted(app, {
-          recipient: owner.email,
-          user: owner.name,
-          milestoneTitle: title,
-          milestoneId: _id,
-          campaignTitle: campaign.title,
-          campaignId,
-          // amount: maxAmount,
-          message,
-        });
+      // find the milestone owner and send a notification that his/her milestone is marked complete
+      Mailer.milestoneMarkedCompleted(app, {
+        recipient: owner.email,
+        user: owner.name,
+        milestoneTitle: title,
+        milestoneId: _id,
+        campaignTitle: campaign.title,
+        campaignId,
+        message,
+        token,
+      });
+    } else if (data.status === IN_PROGRESS && prevStatus === NEEDS_REVIEW) {
+      _createConversation('rejected');
 
-        // milestone may have been created on the recipient's behalf
-        // lets notify them if they are registered
-        if (ownerAddress !== recipientAddress) {
-          await sendMilestoneCreatedEmail(app, result, data, _id, campaignId);
-        }
-      } else if (status === PROPOSED && prevStatus === REJECTED) {
-        await sendMilestoneProposedEmail(
-          app,
-          data,
-          title,
-          _id,
-          campaign,
-          campaignId,
-          maxAmount,
-          token,
-        );
-      } else if (
-        status === IN_PROGRESS &&
-        prevStatus === PROPOSED &&
-        ownerAddress !== recipientAddress
-      ) {
-        // milestone may have been created on the recipient's behalf
-        // lets notify them if they are registered
-        await sendMilestoneCreatedEmail(app, result, data, _id, campaignId);
-      } else if (data.status === NEEDS_REVIEW) {
-        // find the milestone reviewer owner and send a notification that this milestone is been marked as complete and needs review
-        _createConversation(status);
-
-        Mailer.milestoneRequestReview(app, {
+      // find the milestone reviewer and send a notification that his/her milestone has been rejected by reviewer
+      // it's possible to have a null reviewer if that address has never logged in
+      if (reviewer) {
+        Mailer.milestoneReviewRejected(app, {
           recipient: reviewer.email,
           user: reviewer.name,
           milestoneTitle: title,
@@ -210,55 +263,12 @@ const handleMilestoneConversationAndEmail = () => async context => {
           campaignId,
           message,
         });
-      } else if (status === COMPLETED && mined) {
-        _createConversation(status);
-
-        // find the milestone owner and send a notification that his/her milestone is marked complete
-        Mailer.milestoneMarkedCompleted(app, {
-          recipient: owner.email,
-          user: owner.name,
-          milestoneTitle: title,
-          milestoneId: _id,
-          campaignTitle: campaign.title,
-          campaignId,
-          message,
-          token,
-        });
-      } else if (data.status === IN_PROGRESS && prevStatus === NEEDS_REVIEW) {
-        _createConversation('rejected');
-
-        // find the milestone reviewer and send a notification that his/her milestone has been rejected by reviewer
-        // it's possible to have a null reviewer if that address has never logged in
-        if (reviewer) {
-          Mailer.milestoneReviewRejected(app, {
-            recipient: reviewer.email,
-            user: reviewer.name,
-            milestoneTitle: title,
-            milestoneId: _id,
-            campaignTitle: campaign.title,
-            campaignId,
-            message,
-          });
-        }
-      } else if (status === CANCELED && mined) {
-        _createConversation(status);
-
-        // find the milestone owner and send a notification that his/her milestone is canceled
-        Mailer.milestoneCanceled(app, {
-          recipient: owner.email,
-          user: owner.name,
-          milestoneTitle: title,
-          milestoneId: _id,
-          campaignTitle: campaign.title,
-          campaignId,
-          message,
-        });
       }
-    } else if (data.status === REJECTED && prevStatus === PROPOSED) {
-      _createConversation('proposedRejected');
+    } else if (status === CANCELED && mined) {
+      _createConversation(status);
 
-      // find the milestone owner and send a notification that his/her proposed milestone is rejected
-      Mailer.proposedMilestoneRejected(app, {
+      // find the milestone owner and send a notification that his/her milestone is canceled
+      Mailer.milestoneCanceled(app, {
         recipient: owner.email,
         user: owner.name,
         milestoneTitle: title,
@@ -267,11 +277,24 @@ const handleMilestoneConversationAndEmail = () => async context => {
         campaignId,
         message,
       });
-    } else if (data.status === PROPOSED && prevStatus === REJECTED) {
-      _createConversation('rePropose');
-    } else if (data.status === ARCHIVED && prevStatus === IN_PROGRESS) {
-      _createConversation('archived');
     }
+  } else if (data.status === REJECTED && prevStatus === PROPOSED) {
+    _createConversation('proposedRejected');
+
+    // find the milestone owner and send a notification that his/her proposed milestone is rejected
+    Mailer.proposedMilestoneRejected(app, {
+      recipient: owner.email,
+      user: owner.name,
+      milestoneTitle: title,
+      milestoneId: _id,
+      campaignTitle: campaign.title,
+      campaignId,
+      message,
+    });
+  } else if (data.status === PROPOSED && prevStatus === REJECTED) {
+    _createConversation('rePropose');
+  } else if (data.status === ARCHIVED && prevStatus === IN_PROGRESS) {
+    _createConversation('archived');
   }
 };
 
@@ -301,21 +324,11 @@ const handleDonationConversationAndEmail = async (app, pledge) => {
 
   // paid donations are handled by the milestone notifications
   if ([DonationStatus.PAYING, DonationStatus.PAID].includes(status)) return;
-
-  const getAdmin = (type, id) => {
-    if (type === AdminTypes.DAC) {
-      return app.service('dacs').get(id);
-    }
-    if (type === AdminTypes.CAMPAIGN) {
-      return app.service('campaigns').get(id);
-    }
-    if (type === AdminTypes.MILESTONE) {
-      return app.service('milestones').get(id);
-    }
-    return app.service('users').get(id);
-  };
-
-  const pledgeAdmin = await getAdmin(delegateType || ownerType, delegateTypeId || ownerTypeId);
+  const pledgeAdmin = await getPledgeAdmin(
+    app,
+    delegateType || ownerType,
+    delegateTypeId || ownerTypeId,
+  );
 
   // this is an initial donation
   if (homeTxHash) {
@@ -344,7 +357,7 @@ const handleDonationConversationAndEmail = async (app, pledge) => {
       const giver = await app.service('users').get(giverAddress);
 
       if (giver.email) {
-        const intendedAdmin = await getAdmin(intendedProjectType, intendedProjectTypeId);
+        const intendedAdmin = await getPledgeAdmin(app, intendedProjectType, intendedProjectTypeId);
 
         Mailer.donationDelegated(app, {
           recipient: giver.email,
