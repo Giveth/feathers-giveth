@@ -3,31 +3,9 @@
 const logger = require('winston');
 const rp = require('request-promise');
 const { AdminTypes } = require('../models/pledgeAdmins.model');
+const { EMAIL_IMAGES, EMAIL_SUBSCRIBE_TYPES } = require('../models/emails.model');
 
-const EMAIL_IMAGES = {
-  MILESTONE_REVIEW_APPROVED: 'Giveth-milestone-review-approved-banner-email.png',
-  MILESTONE_REVIEW_REJECTED: 'Giveth-milestone-review-rejected-banner-email.png',
-  MILESTONE_CANCELLED: 'Giveth-milestone-canceled-banner-email.png',
-  SUGGEST_MILESTONE: 'Giveth-suggest-milestone-banner.png',
-  DONATION_BANNER: 'Giveth-donation-banner-email.png',
-  REVIEW_BANNER: 'Giveth-review-banner-email.png',
-};
 
-const EMAIL_SUBSCRIBE_TYPES = {
-  DONATION_RECEIPT: 'donation-receipt',
-  DONATION_RECEIVED: 'donation-received',
-  REQUEST_DELEGATION: 'request-delegation',
-  DONATION_DELEGATED: 'donation-delegated',
-  MILESTONE_PROPOSED: 'milestone-proposed',
-  PROPOSED_MILESTONE_ACCEPTED: 'proposed-milestone-accepted',
-  PROPOSED_MILESTONE_REJECTED: 'proposed-milestone-rejected',
-  MILESTONE_REQUEST_REVIEW: 'milestone-request-review',
-  MILESTONE_REVIEW_APPROVED: 'milestone-review-approved',
-  MILESTONE_REVIEW_REJECTED: 'milestone-review-rejected',
-  MILESTONE_CREATED: 'milestone-created',
-  MILESTONE_CANCELLED: 'milestone-canceled',
-  DONATIONS_COLLECTED: 'donations-collected',
-};
 const emailNotificationTemplate = 'notification';
 const emailStyle = `style='line-height: 33px; font-size: 22px;'`;
 const generateMilestoneCtaRelativeUrl = (campaignId, milestoneId) => {
@@ -44,41 +22,12 @@ const normalizeAmount = amount => {
 };
 
 const sendEmail = (app, data) => {
-  // add the dapp url that this feathers serves for
-  Object.assign(data, { dappUrl: app.get('dappUrl') });
-  const dappMailerUrl = app.get('dappMailerUrl');
-
-  if (!dappMailerUrl) {
-    logger.info(`skipping email notification. Missing dappMailerUrl in configuration file`);
-    return;
-  }
-  if (!data.recipient) {
-    logger.info(`skipping email notification to ${data.recipient} > ${data.unsubscribeType}`);
-    return;
-  }
-
-  logger.info(`sending email notification to ${data.recipient} > ${data.unsubscribeType}`);
-
+  const emailService = app.service('/emails');
   // add host to subject for development
   if (!app.get('host').includes('beta')) {
     data.subject = `[${app.get('host')}] - ${data.subject}`;
   }
-
-  rp({
-    method: 'POST',
-    url: `${dappMailerUrl}/send`,
-    headers: {
-      Authorization: app.get('dappMailerSecret'),
-    },
-    form: data,
-    json: true,
-  })
-    .then(res => {
-      logger.info(`email sent to ${data.recipient}: `, res);
-    })
-    .catch(err => {
-      logger.error(`error sending email to ${data.recipient}`, err);
-    });
+  emailService.create(data);
 };
 
 const thanksFromDonationGiver = (
