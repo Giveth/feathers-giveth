@@ -1,5 +1,10 @@
 const { assert } = require('chai');
-const { capitalizeDelegateType, normalizeAmount } = require('./dappMailer');
+const {
+  capitalizeDelegateType,
+  normalizeAmount,
+  generateMilestoneCtaRelativeUrl,
+} = require('./dappMailer');
+const { generateRandomMongoId } = require('../../test/testUtility');
 
 function normalizeAmountTestCases() {
   it('should 1700 turn to 0.0000000000000017', function() {
@@ -28,6 +33,15 @@ function capitalizeDelegateTypeTestCases() {
     assert.equal(result, 'Campaign');
   });
 }
+function generateMilestoneCtaRelativeUrlTestCases() {
+  it('should generate milestoneUrl by campaignId and milestoneId', () => {
+    const milestoneId = generateRandomMongoId();
+    const campaignId = generateRandomMongoId();
+    const url = generateMilestoneCtaRelativeUrl(campaignId, milestoneId);
+    assert.equal(url, `/campaigns/${campaignId}/milestones/${milestoneId}`);
+  });
+}
 
 describe('test normalizeAmount', normalizeAmountTestCases);
 describe('test capitalizeDelegateType', capitalizeDelegateTypeTestCases);
+describe('test generateMilestoneCtaRelativeUrl', generateMilestoneCtaRelativeUrlTestCases);

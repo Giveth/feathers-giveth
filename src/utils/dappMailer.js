@@ -4,6 +4,20 @@ const logger = require('winston');
 const rp = require('request-promise');
 const { AdminTypes } = require('../models/pledgeAdmins.model');
 
+const EMAIL_IMAGES = {
+  MILESTONE_REVIEW_APPROVED: 'Giveth-milestone-review-approved-banner-email.png',
+  MILESTONE_REVIEW_REJECTED: 'Giveth-milestone-review-rejected-banner-email.png',
+  MILESTONE_CANCELLED: 'Giveth-milestone-canceled-banner-email.png',
+  SUGGEST_MILESTONE: 'Giveth-suggest-milestone-banner.png',
+  DONATION_BANNER: 'Giveth-donation-banner-email.png',
+  REVIEW_BANNER: 'Giveth-review-banner-email.png',
+};
+const emailNotificationTemplate = 'notification';
+const emailStyle = `style='line-height: 33px; font-size: 22px;'`;
+const generateMilestoneCtaRelativeUrl = (campaignId, milestoneId) => {
+  return `/campaigns/${campaignId}/milestones/${milestoneId}`;
+};
+
 const sendEmail = (app, data) => {
   // add the dapp url that this feathers serves for
   Object.assign(data, { dappUrl: app.get('dappUrl') });
@@ -57,13 +71,13 @@ const thanksFromDonationGiver = (
 ) => {
   const data = {
     recipient,
-    template: 'notification',
+    template: emailNotificationTemplate,
     subject: 'Giveth - Thank you for your donation!',
     secretIntro: `Thank you for your donation of ${normalizeAmount(amount)} ${
       token.symbol
     } to the ${donationType} "${donatedToTitle}"!`,
     title: 'You are so awesome!',
-    image: 'Giveth-donation-banner-email.png',
+    image: EMAIL_IMAGES.DONATION_BANNER,
     text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${user}</span></p>
         <p>
@@ -88,15 +102,15 @@ const donationReceived = (
 ) => {
   const data = {
     recipient,
-    template: 'notification',
+    template: emailNotificationTemplate,
     subject: "Giveth - You've received a donation!",
     secretIntro: `You have received a donation of ${normalizeAmount(amount)} ${
       token.symbol
     } for the ${donationType} "${donatedToTitle}"!`,
     title: 'You are so awesome!',
-    image: 'Giveth-donation-banner-email.png',
+    image: EMAIL_IMAGES.DONATION_BANNER,
     text: `
-        <p><span style='line-height: 33px; font-size: 22px;'>Hi ${user}</span></p>
+        <p><span ${emailStyle}>Hi ${user}</span></p>
         <p>
           You have received a donation of
           <span>${amount} ${token.symbol}</span>
@@ -126,15 +140,15 @@ const delegationRequired = (
   const data = {
     recipient,
     user,
-    template: 'notification',
+    template: emailNotificationTemplate,
     subject: 'Giveth - Delegation required for new donation!',
     secretIntro: `Take action! Please delegate a new donation of ${normalizeAmount(amount)} ${
       token.symbol
     } for the ${donationType} "${donatedToTitle}"!`,
     title: "Take action! You've received a donation, delegate now!",
-    image: 'Giveth-donation-banner-email.png',
+    image: EMAIL_IMAGES.DONATION_BANNER,
     text: `
-        <p><span style='line-height: 33px; font-size: 22px;'>Hi ${user}</span></p>
+        <p><span ${emailStyle}>Hi ${user}</span></p>
         <p>
           You have received a donation of
           <span style='display: block; color: rgb(53, 184, 209); line-height: 72px; font-size: 48px;'>${amount} ${
@@ -173,15 +187,15 @@ const donationDelegated = (
 ) => {
   const data = {
     recipient,
-    template: 'notification',
+    template: emailNotificationTemplate,
     subject: 'Giveth - Your donation has been delegated!',
     secretIntro: `Take action! Please approve or reject the delegation of ${normalizeAmount(
       amount,
     )} ${token.symbol} to the ${delegationType} "${delegatedToTitle}"!`,
     title: 'Take action! Your donation has been delegated!',
-    image: 'Giveth-donation-banner-email.png',
+    image: EMAIL_IMAGES.DONATION_BANNER,
     text: `
-        <p><span style='line-height: 33px; font-size: 22px;'>Hi ${user}</span></p>
+        <p><span ${emailStyle}>Hi ${user}</span></p>
         <p>
           The ${capitalizeDelegateType(
             delegateType,
@@ -210,13 +224,13 @@ const milestoneProposed = (
 ) => {
   const data = {
     recipient,
-    template: 'notification',
+    template: emailNotificationTemplate,
     subject: 'Giveth - A Milestone has been proposed!',
     secretIntro: `Take action! A Milestone has been proposed for your Campaign! Please accept or reject.`,
     title: 'Take action: Milestone proposed!',
-    image: 'Giveth-suggest-milestone-banner.png',
+    image: EMAIL_IMAGES.SUGGEST_MILESTONE,
     text: `
-        <p><span style='line-height: 33px; font-size: 22px;'>Hi ${user}</span></p>
+        <p><span ${emailStyle}>Hi ${user}</span></p>
         <p>
           The Milestone <em>${milestoneTitle}</em> for <em>${normalizeAmount(amount)} ${
       token.symbol
@@ -226,7 +240,7 @@ const milestoneProposed = (
         </p>
       `,
     cta: `See the Milestone`,
-    ctaRelativeUrl: `/campaigns/${campaignId}/milestones/${milestoneId}`,
+    ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
     unsubscribeType: 'milestone-proposed',
     unsubscribeReason: `You receive this email because you run a Campaign`,
     // message: message,
@@ -241,11 +255,11 @@ const proposedMilestoneAccepted = (
 ) => {
   const data = {
     recipient,
-    template: 'notification',
+    template: emailNotificationTemplate,
     subject: 'Giveth - Your proposed Milestone is accepted!',
     secretIntro: `Your Milestone ${milestoneTitle} has been accepted by the Campaign Owner. You can now receive donations.`,
     title: 'Take action: Milestone proposed!',
-    image: 'Giveth-milestone-review-approved-banner-email.png',
+    image: EMAIL_IMAGES.MILESTONE_REVIEW_APPROVED,
     text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${user}</span></p>
         <p>
@@ -255,7 +269,7 @@ const proposedMilestoneAccepted = (
         </p>
       `,
     cta: `Manage Milestone`,
-    ctaRelativeUrl: `/campaigns/${campaignId}/milestones/${milestoneId}`,
+    ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
     unsubscribeType: 'proposed-milestone-accepted',
     unsubscribeReason: `You receive this email because you run a Milestone`,
     message,
@@ -270,13 +284,13 @@ const proposedMilestoneRejected = (
 ) => {
   const data = {
     recipient,
-    template: 'notification',
+    template: emailNotificationTemplate,
     subject: 'Giveth - Your proposed Milestone is rejected :-(',
     secretIntro: `Your Milestone ${milestoneTitle} has been rejected by the Campaign Owner :-(`,
     title: 'Milestone rejected :-(',
-    image: 'Giveth-milestone-review-approved-banner-email.png',
+    image: EMAIL_IMAGES.MILESTONE_REVIEW_APPROVED,
     text: `
-        <p><span style='line-height: 33px; font-size: 22px;'>Hi ${user}</span></p>
+        <p><span ${emailStyle}>Hi ${user}</span></p>
         <p>
           Unfortunately your proposed Milestone <em>${milestoneTitle}</em> to the Campaign <em>${campaignTitle}</em> has been rejected by the Campaign Owner.
           <br/><br/>
@@ -284,7 +298,7 @@ const proposedMilestoneRejected = (
         </p>
       `,
     cta: `Manage Milestone`,
-    ctaRelativeUrl: `/campaigns/${campaignId}/milestones/${milestoneId}`,
+    ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
     unsubscribeType: 'proposed-milestone-rejected',
     unsubscribeReason: `You receive this email because you proposed a Milestone`,
     message,
@@ -299,13 +313,13 @@ const milestoneRequestReview = (
 ) => {
   const data = {
     recipient,
-    template: 'notification',
+    template: emailNotificationTemplate,
     subject: 'Giveth - Time to review!',
     secretIntro: `Take action: you are requested to review the Milestone ${milestoneTitle} within 3 days.`,
     title: 'Milestone review requested',
-    image: 'Giveth-review-banner-email.png',
+    image: EMAIL_IMAGES.REVIEW_BANNER,
     text: `
-        <p><span style='line-height: 33px; font-size: 22px;'>Hi ${user}</span></p>
+        <p><span ${emailStyle}>Hi ${user}</span></p>
         <p>
           The Milestone <em>${milestoneTitle}</em> to the Campaign <em>${campaignTitle}</em> has been marked as completed by the Milestone Owner.
           <br/><br/>
@@ -317,7 +331,7 @@ const milestoneRequestReview = (
         </p>
       `,
     cta: `Review Milestone`,
-    ctaRelativeUrl: `/campaigns/${campaignId}/milestones/${milestoneId}`,
+    ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
     unsubscribeType: 'milestone-request-review',
     unsubscribeReason: `You receive this email because you run a Milestone`,
     message,
@@ -331,11 +345,11 @@ const milestoneMarkedCompleted = (
 ) => {
   const data = {
     recipient,
-    template: 'notification',
+    template: emailNotificationTemplate,
     subject: 'Giveth - Your Milestone is finished!',
     secretIntro: `Your Milestone ${milestoneTitle} has been marked complete by the reviewer. The recipient can now collect the payment.`,
     title: `Milestone completed! Time to collect ${token.symbol}.`,
-    image: 'Giveth-milestone-review-approved-banner-email.png',
+    image: EMAIL_IMAGES.MILESTONE_REVIEW_APPROVED,
     text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${user}</span></p>
         <p>
@@ -346,7 +360,7 @@ const milestoneMarkedCompleted = (
         </p>
       `,
     cta: `Manage Milestone`,
-    ctaRelativeUrl: `/campaigns/${campaignId}/milestones/${milestoneId}`,
+    ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
     unsubscribeType: 'milestone-review-approved',
     unsubscribeReason: `You receive this email because you run a Milestone`,
     message,
@@ -360,12 +374,12 @@ const milestoneReviewRejected = (
 ) => {
   const data = {
     recipient,
-    template: 'notification',
+    template: emailNotificationTemplate,
     subject: 'Giveth - Milestone rejected by reviewer :-(',
     type: 'milestone-review-rejected',
     secretIntro: `The completion of your Milestone ${milestoneTitle} has been rejected by the reviewer.`,
     title: 'Milestone completion rejected.',
-    image: 'Giveth-milestone-review-rejected-banner-email.png',
+    image: EMAIL_IMAGES.MILESTONE_REVIEW_REJECTED,
     text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${user}</span></p>
         <p>
@@ -373,7 +387,7 @@ const milestoneReviewRejected = (
         </p>
       `,
     cta: `Manage Milestone`,
-    ctaRelativeUrl: `/campaigns/${campaignId}/milestones/${milestoneId}`,
+    ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
     unsubscribeType: 'milestone-review-rejected',
     unsubscribeReason: `You receive this email because you run a Milestone`,
     message,
@@ -388,14 +402,14 @@ const milestoneCreated = (
 ) => {
   const data = {
     recipient,
-    template: 'notification',
+    template: emailNotificationTemplate,
     subject: 'Giveth - Milestone created with you as a recipient',
     type: 'milestone-created',
     secretIntro: `A Milestone ${milestoneTitle} has been created with you as the recipient.`,
     title: 'Milestone created.',
-    image: 'Giveth-milestone-review-approved-banner-email.png',
+    image: EMAIL_IMAGES.MILESTONE_REVIEW_APPROVED,
     text: `
-        <p><span style='line-height: 33px; font-size: 22px;'>Hi ${user}</span></p>
+        <p><span ${emailStyle}>Hi ${user}</span></p>
         <p>
           A Milestone <em>${milestoneTitle}</em> for ${normalizeAmount(amount)} ${
       token.symbol
@@ -403,7 +417,7 @@ const milestoneCreated = (
         </p>
       `,
     cta: `See your Milestones`,
-    ctaRelativeUrl: `/campaigns/${campaignId}/milestones/${milestoneId}`,
+    ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
     unsubscribeType: 'milestone-created',
     unsubscribeReason: `You receive this email because you are the recipient of a Milestone`,
   };
@@ -416,20 +430,20 @@ const milestoneCanceled = (
 ) => {
   const data = {
     recipient,
-    template: 'notification',
+    template: emailNotificationTemplate,
     subject: 'Giveth - Milestone canceled :-(',
     type: 'milestone-canceled',
     secretIntro: `Your Milestone ${milestoneTitle} has been canceled.`,
     title: 'Milestone Canceled',
-    image: 'Giveth-milestone-canceled-banner-email.png',
+    image: EMAIL_IMAGES.MILESTONE_CANCELLED,
     text: `
-        <p><span style='line-height: 33px; font-size: 22px;'>Hi ${user}</span></p>
+        <p><span ${emailStyle}>Hi ${user}</span></p>
         <p>
           The Milestone <em>${milestoneTitle}</em> in the Campaign <em>${campaignTitle}</em> has been canceled.
         </p>
       `,
     cta: `Manage Milestones`,
-    ctaRelativeUrl: `/campaigns/${campaignId}/milestones/${milestoneId}`,
+    ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
     unsubscribeType: 'milestone-canceled',
     unsubscribeReason: `You receive this email because you run a Milestone`,
     message,
@@ -444,14 +458,14 @@ const donationsCollected = (
 ) => {
   const data = {
     recipient,
-    template: 'notification',
+    template: emailNotificationTemplate,
     subject: 'Giveth - Donations collected',
     type: 'milestone-donations-collected',
     secretIntro: `Your Milestone ${milestoneTitle} has been paid.`,
     title: 'Milestone Donations Collected',
-    image: 'Giveth-milestone-review-approved-banner-email.png',
+    image: EMAIL_IMAGES.MILESTONE_REVIEW_APPROVED,
     text: `
-        <p><span style='line-height: 33px; font-size: 22px;'>Hi ${user}</span></p>
+        <p><span ${emailStyle}>Hi ${user}</span></p>
         <p>The following payments have been initiated for your Milestone <em>${milestoneTitle}</em>:</p>
         <p></p>
         ${conversation.payments.map(p => `<p>${p.amount / 10 ** 18} ${p.symbol}</p>`)}
@@ -461,7 +475,7 @@ const donationsCollected = (
         </em> within 48 - 72 hrs.</p>
       `,
     cta: `See your Milestones`,
-    ctaRelativeUrl: `/campaigns/${campaignId}/milestones/${milestoneId}`,
+    ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
     unsubscribeType: 'donations-collected',
     unsubscribeReason: `You receive this email because you are the recipient of a Milestone`,
   };
@@ -471,6 +485,7 @@ const donationsCollected = (
 module.exports = {
   capitalizeDelegateType,
   normalizeAmount,
+  generateMilestoneCtaRelativeUrl,
 
   donationsCollected,
   thanksFromDonationGiver,
