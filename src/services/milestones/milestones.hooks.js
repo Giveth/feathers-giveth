@@ -345,6 +345,7 @@ module.exports = {
       ...address,
       sanitizeHtml('description'),
       convertTokenToTokenAddress(),
+      checkMilestoneName(),
     ],
     patch: [
       restrict(),
@@ -356,6 +357,7 @@ module.exports = {
       storePrevState(),
       performedBy(),
       convertTokenToTokenAddress(),
+      checkMilestoneName(),
     ],
     remove: [canDelete()],
   },
