@@ -14,7 +14,7 @@ const checkIfMilestoneNameIsUnique = () => async context => {
     },
   });
   if (milestoneWithSameName.total > 0) {
-    //milestone titles are supposed to be unique
+    // milestone titles are supposed to be unique
     throw new errors.Forbidden(
       'Milestone title is repetitive. Please select a different title for the milestone.',
       { showMessageInPopup: true },
