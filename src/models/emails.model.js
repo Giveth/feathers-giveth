@@ -46,7 +46,7 @@ function createModel(app) {
       cta: { type: String, required: true },
       ctaRelativeUrl: { type: String, required: true },
       message: { type: String, default: '' },
-      dappMailerResponse: { type: Object},
+      dappMailerResponse: { type: Object },
       error: { type: String, default: '' },
       status: { type: String, enum: Object.values(EMAIL_STATUS), default: EMAIL_STATUS.PENDING },
     },

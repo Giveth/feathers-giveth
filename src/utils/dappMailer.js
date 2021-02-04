@@ -1,10 +1,7 @@
 /* eslint-disable no-param-reassign */
 
-const logger = require('winston');
-const rp = require('request-promise');
 const { AdminTypes } = require('../models/pledgeAdmins.model');
 const { EMAIL_IMAGES, EMAIL_SUBSCRIBE_TYPES } = require('../models/emails.model');
-
 
 const emailNotificationTemplate = 'notification';
 const emailStyle = `style='line-height: 33px; font-size: 22px;'`;
