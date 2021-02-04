@@ -12,6 +12,22 @@ const EMAIL_IMAGES = {
   DONATION_BANNER: 'Giveth-donation-banner-email.png',
   REVIEW_BANNER: 'Giveth-review-banner-email.png',
 };
+
+const EMAIL_SUBSCRIBE_TYPES = {
+  DONATION_RECEIPT: 'donation-receipt',
+  DONATION_RECEIVED: 'donation-received',
+  REQUEST_DELEGATION: 'request-delegation',
+  DONATION_DELEGATED: 'donation-delegated',
+  MILESTONE_PROPOSED: 'milestone-proposed',
+  PROPOSED_MILESTONE_ACCEPTED: 'proposed-milestone-accepted',
+  PROPOSED_MILESTONE_REJECTED: 'proposed-milestone-rejected',
+  MILESTONE_REQUEST_REVIEW: 'milestone-request-review',
+  MILESTONE_REVIEW_APPROVED: 'milestone-review-approved',
+  MILESTONE_REVIEW_REJECTED: 'milestone-review-rejected',
+  MILESTONE_CREATED: 'milestone-created',
+  MILESTONE_CANCELLED: 'milestone-canceled',
+  DONATIONS_COLLECTED: 'donations-collected',
+};
 const emailNotificationTemplate = 'notification';
 const emailStyle = `style='line-height: 33px; font-size: 22px;'`;
 const generateMilestoneCtaRelativeUrl = (campaignId, milestoneId) => {
@@ -89,7 +105,7 @@ const thanksFromDonationGiver = (
       `,
     cta: 'Manage your Donations',
     ctaRelativeUrl: '/donations',
-    unsubscribeType: 'donation-receipt',
+    unsubscribeType: EMAIL_SUBSCRIBE_TYPES.DONATION_RECEIPT,
     unsubscribeReason: 'You receive this email from Giveth because you have made a donation',
   };
 
@@ -119,7 +135,7 @@ const donationReceived = (
       `,
     cta: `Manage your ${donationType}`,
     ctaRelativeUrl: `/my-${donationType}s`,
-    unsubscribeType: 'donation-received',
+    unsubscribeType: EMAIL_SUBSCRIBE_TYPES.DONATION_RECEIVED,
     unsubscribeReason: `You receive this email because you run a ${donationType}`,
   };
 
@@ -164,7 +180,7 @@ const delegationRequired = (
       `,
     cta: `Delegate Donation`,
     ctaRelativeUrl: `/delegations`,
-    unsubscribeType: 'request-delegation',
+    unsubscribeType: EMAIL_SUBSCRIBE_TYPES.REQUEST_DELEGATION,
     unsubscribeReason: `You receive this email because you run a ${donationType}`,
   };
 
@@ -211,7 +227,7 @@ const donationDelegated = (
       `,
     cta: `View Donations`,
     ctaRelativeUrl: `/donations`,
-    unsubscribeType: 'donation-delegated',
+    unsubscribeType: EMAIL_SUBSCRIBE_TYPES.DONATION_DELEGATED,
     unsubscribeReason: `You receive this email because your donation was delegated`,
   };
 
@@ -241,7 +257,7 @@ const milestoneProposed = (
       `,
     cta: `See the Milestone`,
     ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
-    unsubscribeType: 'milestone-proposed',
+    unsubscribeType: EMAIL_SUBSCRIBE_TYPES.MILESTONE_PROPOSED,
     unsubscribeReason: `You receive this email because you run a Campaign`,
     // message: message,
   };
@@ -270,7 +286,7 @@ const proposedMilestoneAccepted = (
       `,
     cta: `Manage Milestone`,
     ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
-    unsubscribeType: 'proposed-milestone-accepted',
+    unsubscribeType: EMAIL_SUBSCRIBE_TYPES.PROPOSED_MILESTONE_ACCEPTED,
     unsubscribeReason: `You receive this email because you run a Milestone`,
     message,
   };
@@ -299,7 +315,7 @@ const proposedMilestoneRejected = (
       `,
     cta: `Manage Milestone`,
     ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
-    unsubscribeType: 'proposed-milestone-rejected',
+    unsubscribeType: EMAIL_SUBSCRIBE_TYPES.PROPOSED_MILESTONE_REJECTED,
     unsubscribeReason: `You receive this email because you proposed a Milestone`,
     message,
   };
@@ -332,7 +348,7 @@ const milestoneRequestReview = (
       `,
     cta: `Review Milestone`,
     ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
-    unsubscribeType: 'milestone-request-review',
+    unsubscribeType: EMAIL_SUBSCRIBE_TYPES.MILESTONE_REQUEST_REVIEW,
     unsubscribeReason: `You receive this email because you run a Milestone`,
     message,
   };
@@ -361,7 +377,7 @@ const milestoneMarkedCompleted = (
       `,
     cta: `Manage Milestone`,
     ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
-    unsubscribeType: 'milestone-review-approved',
+    unsubscribeType: EMAIL_SUBSCRIBE_TYPES.MILESTONE_REVIEW_APPROVED,
     unsubscribeReason: `You receive this email because you run a Milestone`,
     message,
   };
@@ -376,7 +392,7 @@ const milestoneReviewRejected = (
     recipient,
     template: emailNotificationTemplate,
     subject: 'Giveth - Milestone rejected by reviewer :-(',
-    type: 'milestone-review-rejected',
+    type: EMAIL_SUBSCRIBE_TYPES.MILESTONE_REVIEW_REJECTED,
     secretIntro: `The completion of your Milestone ${milestoneTitle} has been rejected by the reviewer.`,
     title: 'Milestone completion rejected.',
     image: EMAIL_IMAGES.MILESTONE_REVIEW_REJECTED,
@@ -388,7 +404,7 @@ const milestoneReviewRejected = (
       `,
     cta: `Manage Milestone`,
     ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
-    unsubscribeType: 'milestone-review-rejected',
+    unsubscribeType: EMAIL_SUBSCRIBE_TYPES.MILESTONE_REVIEW_REJECTED,
     unsubscribeReason: `You receive this email because you run a Milestone`,
     message,
   };
@@ -404,7 +420,7 @@ const milestoneCreated = (
     recipient,
     template: emailNotificationTemplate,
     subject: 'Giveth - Milestone created with you as a recipient',
-    type: 'milestone-created',
+    type: EMAIL_SUBSCRIBE_TYPES.MILESTONE_CREATED,
     secretIntro: `A Milestone ${milestoneTitle} has been created with you as the recipient.`,
     title: 'Milestone created.',
     image: EMAIL_IMAGES.MILESTONE_REVIEW_APPROVED,
@@ -418,7 +434,7 @@ const milestoneCreated = (
       `,
     cta: `See your Milestones`,
     ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
-    unsubscribeType: 'milestone-created',
+    unsubscribeType: EMAIL_SUBSCRIBE_TYPES.MILESTONE_CREATED,
     unsubscribeReason: `You receive this email because you are the recipient of a Milestone`,
   };
 
@@ -432,7 +448,7 @@ const milestoneCanceled = (
     recipient,
     template: emailNotificationTemplate,
     subject: 'Giveth - Milestone canceled :-(',
-    type: 'milestone-canceled',
+    type: EMAIL_SUBSCRIBE_TYPES.MILESTONE_CANCELLED,
     secretIntro: `Your Milestone ${milestoneTitle} has been canceled.`,
     title: 'Milestone Canceled',
     image: EMAIL_IMAGES.MILESTONE_CANCELLED,
@@ -444,7 +460,7 @@ const milestoneCanceled = (
       `,
     cta: `Manage Milestones`,
     ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
-    unsubscribeType: 'milestone-canceled',
+    unsubscribeType: EMAIL_SUBSCRIBE_TYPES.MILESTONE_CANCELLED,
     unsubscribeReason: `You receive this email because you run a Milestone`,
     message,
   };
@@ -476,7 +492,7 @@ const donationsCollected = (
       `,
     cta: `See your Milestones`,
     ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
-    unsubscribeType: 'donations-collected',
+    unsubscribeType: EMAIL_SUBSCRIBE_TYPES.DONATIONS_COLLECTED,
     unsubscribeReason: `You receive this email because you are the recipient of a Milestone`,
   };
   sendEmail(app, data);
