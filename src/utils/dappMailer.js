@@ -47,26 +47,29 @@ const capitalizeDelegateType = inputDelegateType => {
   return inputDelegateType.charAt(0).toUpperCase() + inputDelegateType.slice(1);
 };
 
-const normalizeAmount = (amount) => {
-  return  Number(amount) / 10 ** 18
-}
+const normalizeAmount = amount => {
+  return Number(amount) / 10 ** 18;
+};
 
 const thanksFromDonationGiver = (
   app,
   { recipient, user, amount, token, donationType, donatedToTitle },
 ) => {
-
   const data = {
     recipient,
     template: 'notification',
     subject: 'Giveth - Thank you for your donation!',
-    secretIntro: `Thank you for your donation of ${normalizeAmount(amount)} ${token.symbol} to the ${donationType} "${donatedToTitle}"!`,
+    secretIntro: `Thank you for your donation of ${normalizeAmount(amount)} ${
+      token.symbol
+    } to the ${donationType} "${donatedToTitle}"!`,
     title: 'You are so awesome!',
     image: 'Giveth-donation-banner-email.png',
     text: `
         <p><span style="line-height: 33px; font-size: 22px;">Hi ${user}</span></p>
         <p>
-          Thank you very much for your donation of ${normalizeAmount(amount)} ${token.symbol} to the ${donationType} <em>${donatedToTitle}</em>.
+          Thank you very much for your donation of ${normalizeAmount(amount)} ${
+      token.symbol
+    } to the ${donationType} <em>${donatedToTitle}</em>.
           With your donation we can really make this happen, and you play a vital part in making the world a better place!
         </p>
       `,
@@ -79,12 +82,17 @@ const thanksFromDonationGiver = (
   sendEmail(app, data);
 };
 
-const donationReceived = (app, { recipient, user, donationType, donatedToTitle, amount, token }) => {
+const donationReceived = (
+  app,
+  { recipient, user, donationType, donatedToTitle, amount, token },
+) => {
   const data = {
     recipient,
     template: 'notification',
-    subject: 'Giveth - You\'ve received a donation!',
-    secretIntro: `You have received a donation of ${normalizeAmount(amount)} ${token.symbol} for the ${donationType} "${donatedToTitle}"!`,
+    subject: "Giveth - You've received a donation!",
+    secretIntro: `You have received a donation of ${normalizeAmount(amount)} ${
+      token.symbol
+    } for the ${donationType} "${donatedToTitle}"!`,
     title: 'You are so awesome!',
     image: 'Giveth-donation-banner-email.png',
     text: `
@@ -120,8 +128,10 @@ const delegationRequired = (
     user,
     template: 'notification',
     subject: 'Giveth - Delegation required for new donation!',
-    secretIntro: `Take action! Please delegate a new donation of ${normalizeAmount(amount)} ${token.symbol} for the ${donationType} "${donatedToTitle}"!`,
-    title: 'Take action! You\'ve received a donation, delegate now!',
+    secretIntro: `Take action! Please delegate a new donation of ${normalizeAmount(amount)} ${
+      token.symbol
+    } for the ${donationType} "${donatedToTitle}"!`,
+    title: "Take action! You've received a donation, delegate now!",
     image: 'Giveth-donation-banner-email.png',
     text: `
         <p><span style='line-height: 33px; font-size: 22px;'>Hi ${user}</span></p>
@@ -134,8 +144,8 @@ const delegationRequired = (
         </p>
         <p>
           You can now delegate this money to a ${
-      donationType === AdminTypes.DAC ? 'Campaign or a Milestone' : 'Milestone'
-    }.
+            donationType === AdminTypes.DAC ? 'Campaign or a Milestone' : 'Milestone'
+          }.
         </p>
       `,
     cta: `Delegate Donation`,
@@ -165,15 +175,17 @@ const donationDelegated = (
     recipient,
     template: 'notification',
     subject: 'Giveth - Your donation has been delegated!',
-    secretIntro: `Take action! Please approve or reject the delegation of ${normalizeAmount(amount)} ${token.symbol} to the ${delegationType} "${delegatedToTitle}"!`,
+    secretIntro: `Take action! Please approve or reject the delegation of ${normalizeAmount(
+      amount,
+    )} ${token.symbol} to the ${delegationType} "${delegatedToTitle}"!`,
     title: 'Take action! Your donation has been delegated!',
     image: 'Giveth-donation-banner-email.png',
     text: `
         <p><span style='line-height: 33px; font-size: 22px;'>Hi ${user}</span></p>
         <p>
           The ${capitalizeDelegateType(
-      delegateType,
-    )} <em>${delegateTitle}</em> has proposed a delegation of
+            delegateType,
+          )} <em>${delegateTitle}</em> has proposed a delegation of
           <span style='display: block; color: rgb(53, 184, 209); line-height: 72px; font-size: 48px;'>
           ${normalizeAmount(amount)} ${token.symbol}</span> from your donation to
           ${capitalizeDelegateType(delegateType)} <em>${delegateTitle}</em>.
@@ -196,7 +208,6 @@ const milestoneProposed = (
   app,
   { recipient, user, milestoneTitle, milestoneId, campaignTitle, campaignId, amount, token },
 ) => {
-
   const data = {
     recipient,
     template: 'notification',
@@ -207,7 +218,9 @@ const milestoneProposed = (
     text: `
         <p><span style='line-height: 33px; font-size: 22px;'>Hi ${user}</span></p>
         <p>
-          The Milestone <em>${milestoneTitle}</em> for <em>${normalizeAmount(amount)} ${token.symbol}</em> has been proposed to <em>${campaignTitle}</em> Campaign .
+          The Milestone <em>${milestoneTitle}</em> for <em>${normalizeAmount(amount)} ${
+      token.symbol
+    }</em> has been proposed to <em>${campaignTitle}</em> Campaign .
           If you think this is a great idea, then <strong>please approve this Milestone within 3 days</strong> to add it to your Campaign.
           If not, then please reject it with comment.
         </p>
@@ -373,7 +386,6 @@ const milestoneCreated = (
   app,
   { recipient, user, milestoneTitle, milestoneId, campaignId, amount, token },
 ) => {
-
   const data = {
     recipient,
     template: 'notification',
@@ -385,7 +397,9 @@ const milestoneCreated = (
     text: `
         <p><span style='line-height: 33px; font-size: 22px;'>Hi ${user}</span></p>
         <p>
-          A Milestone <em>${milestoneTitle}</em> for ${normalizeAmount(amount)} ${token.symbol} has been created with you as the recipient.
+          A Milestone <em>${milestoneTitle}</em> for ${normalizeAmount(amount)} ${
+      token.symbol
+    } has been created with you as the recipient.
         </p>
       `,
     cta: `See your Milestones`,
@@ -423,7 +437,6 @@ const milestoneCanceled = (
 
   sendEmail(app, data);
 };
-
 
 const donationsCollected = (
   app,
@@ -471,4 +484,5 @@ module.exports = {
   milestoneMarkedCompleted,
   milestoneRequestReview,
   milestoneCreated,
+  milestoneCanceled,
 };

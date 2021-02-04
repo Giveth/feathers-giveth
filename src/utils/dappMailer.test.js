@@ -29,6 +29,5 @@ function capitalizeDelegateTypeTestCases() {
   });
 }
 
-
 describe('test normalizeAmount', normalizeAmountTestCases);
 describe('test capitalizeDelegateType', capitalizeDelegateTypeTestCases);

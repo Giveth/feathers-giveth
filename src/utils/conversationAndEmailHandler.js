@@ -7,16 +7,16 @@ const { getTransaction } = require('../blockchain/lib/web3Helpers');
 const { MilestoneStatus } = require('../models/milestones.model');
 
 const getPledgeAdmin = (app, type, id) => {
-  if (type === AdminTypes.DAC) {
-    return app.service('dacs').get(id);
+  switch (type) {
+    case AdminTypes.DAC:
+      return app.service('dacs').get(id);
+    case AdminTypes.CAMPAIGN:
+      return app.service('campaigns').get(id);
+    case AdminTypes.MILESTONE:
+      return app.service('milestones').get(id);
+    default:
+      return app.service('users').get(id);
   }
-  if (type === AdminTypes.CAMPAIGN) {
-    return app.service('campaigns').get(id);
-  }
-  if (type === AdminTypes.MILESTONE) {
-    return app.service('milestones').get(id);
-  }
-  return app.service('users').get(id);
 };
 
 async function sendMilestoneProposedEmail(
@@ -157,13 +157,14 @@ const handleMilestoneConversationAndEmail = () => async context => {
     return;
   }
 
-  /**
-   * Generate Mailer and Conversations when a milestone is patched
-   */
   if (context.method !== 'patch' || !data.status) {
     // The rest of code is for patch requests that update the status, so in this case we dont need to run it
     return;
   }
+
+  /**
+   * Generate Mailer and Conversations when a milestone is patched
+   */
 
   /**
    * This only gets triggered when the txHash is received through a milestone event
@@ -474,6 +475,8 @@ const handleDonationConversationAndEmail = async (app, pledge) => {
 };
 
 module.exports = {
+  getPledgeAdmin,
+
   handleDonationConversationAndEmail,
   handleMilestoneConversationAndEmail,
 };

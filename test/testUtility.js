@@ -131,6 +131,7 @@ const SAMPLE_DATA = {
   CAMPAIGN_ID: campaignAddress,
   FAKE_USER_ADDRESS: generateRandomEtheriumAddress(),
   DAC_ID: '5fd339eaa5ffa2a6198ecd70',
+  USER_ID: '5fd3385aa5ffa2a6198ecd6e',
   MILESTONE_STATUSES: {
     PROPOSED: 'Proposed',
     REJECTED: 'Rejected',
