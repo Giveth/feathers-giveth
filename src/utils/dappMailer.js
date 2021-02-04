@@ -18,6 +18,15 @@ const generateMilestoneCtaRelativeUrl = (campaignId, milestoneId) => {
   return `/campaigns/${campaignId}/milestones/${milestoneId}`;
 };
 
+const capitalizeDelegateType = inputDelegateType => {
+  if (inputDelegateType.toLowerCase() === 'dac') return 'DAC';
+  return inputDelegateType.charAt(0).toUpperCase() + inputDelegateType.slice(1);
+};
+
+const normalizeAmount = amount => {
+  return Number(amount) / 10 ** 18;
+};
+
 const sendEmail = (app, data) => {
   // add the dapp url that this feathers serves for
   Object.assign(data, { dappUrl: app.get('dappUrl') });
@@ -54,15 +63,6 @@ const sendEmail = (app, data) => {
     .catch(err => {
       logger.error(`error sending email to ${data.recipient}`, err);
     });
-};
-
-const capitalizeDelegateType = inputDelegateType => {
-  if (inputDelegateType.toLowerCase() === 'dac') return 'DAC';
-  return inputDelegateType.charAt(0).toUpperCase() + inputDelegateType.slice(1);
-};
-
-const normalizeAmount = amount => {
-  return Number(amount) / 10 ** 18;
 };
 
 const thanksFromDonationGiver = (

@@ -2,6 +2,7 @@ const logger = require('winston');
 
 const { DonationStatus } = require('../models/donations.model');
 const { AdminTypes } = require('../models/pledgeAdmins.model');
+const { CONVERSATION_MESSAGE_CONTEXT } = require('../models/conversations.model');
 const Mailer = require('./dappMailer');
 const { getTransaction } = require('../blockchain/lib/web3Helpers');
 const { MilestoneStatus } = require('../models/milestones.model');
@@ -76,7 +77,7 @@ const handleMilestoneConversationAndEmail = () => async context => {
     const { proofItems, _id, message } = result;
 
     // Comment doesn't have hash value and other fields should not be unique
-    if (messageContext !== 'comment') {
+    if (messageContext !== CONVERSATION_MESSAGE_CONTEXT.COMMENT) {
       const similarConversations = await service.find({
         paginate: false,
         query: {
@@ -172,7 +173,7 @@ const handleMilestoneConversationAndEmail = () => async context => {
    * */
   if (eventTxHash) {
     if (data.status === IN_PROGRESS && prevStatus === PROPOSED) {
-      _createConversation('proposedAccepted');
+      _createConversation(CONVERSATION_MESSAGE_CONTEXT.PROPOSED_ACCEPTED);
 
       // find the milestone owner and send a notification that his/her proposed milestone is approved
       Mailer.proposedMilestoneAccepted(app, {
@@ -250,7 +251,7 @@ const handleMilestoneConversationAndEmail = () => async context => {
         token,
       });
     } else if (data.status === IN_PROGRESS && prevStatus === NEEDS_REVIEW) {
-      _createConversation('rejected');
+      _createConversation(CONVERSATION_MESSAGE_CONTEXT.REJECTED);
 
       // find the milestone reviewer and send a notification that his/her milestone has been rejected by reviewer
       // it's possible to have a null reviewer if that address has never logged in
@@ -266,7 +267,7 @@ const handleMilestoneConversationAndEmail = () => async context => {
         });
       }
     } else if (status === CANCELED && mined) {
-      _createConversation(status);
+      _createConversation(CONVERSATION_MESSAGE_CONTEXT.CANCELLED);
 
       // find the milestone owner and send a notification that his/her milestone is canceled
       Mailer.milestoneCanceled(app, {
@@ -280,7 +281,7 @@ const handleMilestoneConversationAndEmail = () => async context => {
       });
     }
   } else if (data.status === REJECTED && prevStatus === PROPOSED) {
-    _createConversation('proposedRejected');
+    _createConversation(CONVERSATION_MESSAGE_CONTEXT.PROPOSED_REJECTED);
 
     // find the milestone owner and send a notification that his/her proposed milestone is rejected
     Mailer.proposedMilestoneRejected(app, {
@@ -293,9 +294,9 @@ const handleMilestoneConversationAndEmail = () => async context => {
       message,
     });
   } else if (data.status === PROPOSED && prevStatus === REJECTED) {
-    _createConversation('rePropose');
+    _createConversation(CONVERSATION_MESSAGE_CONTEXT.RE_PROPOSE);
   } else if (data.status === ARCHIVED && prevStatus === IN_PROGRESS) {
-    _createConversation('archived');
+    _createConversation(CONVERSATION_MESSAGE_CONTEXT.ARCHIVED);
   }
 };
 
@@ -415,7 +416,7 @@ const handleDonationConversationAndEmail = async (app, pledge) => {
       eventTxHash = homeTxHash;
       conversationModel = {
         milestoneId: pledgeAdmin._id,
-        messageContext: 'donated',
+        messageContext: CONVERSATION_MESSAGE_CONTEXT.DONATED,
         txHash: homeTxHash,
         payments: [
           {
@@ -446,7 +447,7 @@ const handleDonationConversationAndEmail = async (app, pledge) => {
 
       conversationModel = {
         milestoneId: pledgeAdmin._id,
-        messageContext: 'delegated',
+        messageContext: CONVERSATION_MESSAGE_CONTEXT.DELEGATED,
         txHash,
         payments: [
           {

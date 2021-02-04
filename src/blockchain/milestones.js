@@ -2,6 +2,7 @@ const logger = require('winston');
 const { toBN } = require('web3-utils');
 const { MilestoneStatus } = require('../models/milestones.model');
 const { DonationStatus } = require('../models/donations.model');
+const { CONVERSATION_MESSAGE_CONTEXT } = require('../models/conversations.model');
 const { getTransaction } = require('./lib/web3Helpers');
 const { donationsCollected } = require('../utils/dappMailer');
 
@@ -64,7 +65,7 @@ const createPaymentConversationAndSendEmail = async ({ app, milestone, txHash })
     const conversation = await app.service('conversations').create(
       {
         milestoneId,
-        messageContext: 'payment',
+        messageContext: CONVERSATION_MESSAGE_CONTEXT.PAYMENT,
         txHash,
         payments,
         recipientAddress: (recipient && recipient.address) || owner.address,
