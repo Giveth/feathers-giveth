@@ -1,6 +1,10 @@
 const { assert } = require('chai');
-const { isUserAdmin, isUserInDelegateWhiteList,
-  isUserInProjectWhiteList, isUserInReviewerWhiteList,} = require('./roleUtility');
+const {
+  isUserAdmin,
+  isUserInDelegateWhiteList,
+  isUserInProjectWhiteList,
+  isUserInReviewerWhiteList,
+} = require('./roleUtility');
 const { SAMPLE_DATA } = require('../../test/testUtility');
 const { getFeatherAppInstance } = require('../app');
 
@@ -30,30 +34,6 @@ function isUserInDelegateWhiteListTestCases() {
       SAMPLE_DATA.ADMIN_USER_ADDRESS,
     );
     assert.isTrue(isInDelegateWhitelist);
-  });
-  it('should return false for user that has isInDelegateWhitelist false', async () => {
-    const isInDelegateWhitelist = await isUserInDelegateWhiteList(
-      app,
-      SAMPLE_DATA.SECOND_USER_ADDRESS,
-    );
-    assert.isNotOk(isInDelegateWhitelist);
-  });
-}
-
-function isUserInProjectWhiteListTestCases() {
-  it('should return true for user that has isInProjectWhitelist true', async () => {
-    const isInProjectWhitelist = await isUserInDelegateWhiteList(
-      app,
-      SAMPLE_DATA.IN_PROJECT_WHITELIST_USER_ADDRESS,
-    );
-    assert.isTrue(isInProjectWhitelist);
-  });
-  it('should return true for admin user', async () => {
-    const isInProjectWhitelist = await isUserInDelegateWhiteList(
-      app,
-      SAMPLE_DATA.ADMIN_USER_ADDRESS,
-    );
-    assert.isTrue(isInProjectWhitelist);
   });
   it('should return false for user that has isInDelegateWhitelist false', async () => {
     const isInDelegateWhitelist = await isUserInDelegateWhiteList(
