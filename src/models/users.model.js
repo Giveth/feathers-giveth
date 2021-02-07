@@ -16,6 +16,9 @@ module.exports = function User(app) {
       prevAvatar: { type: String }, // To store deleted/cleared lost ipfs values
       linkedin: { type: String },
       url: { type: String },
+      isInReviewerWhitelist: { type: Boolean, default: false },
+      isInDelegateWhitelist: { type: Boolean, default: false },
+      isInProjectWhitelist: { type: Boolean, default: false },
       prevUrl: { type: String }, // To store deleted/cleared lost ipfs values
       currency: { type: String }, // Users's native currency
     },
