@@ -62,7 +62,7 @@ function patchCampaignTestCases() {
 
   it('should update campaign successfully, reviewer can cancel the campaign', async () => {
     const description = 'Description updated by test';
-    const reviewerAddress = SAMPLE_DATA.SECOND_USER_ADDRESS;
+    const reviewerAddress = SAMPLE_DATA.IN_REVIEWER_WHITELIST_USER_ADDRESS;
     const campaign = await createCampaign({
       ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
       reviewerAddress,
@@ -77,7 +77,7 @@ function patchCampaignTestCases() {
 
   it('should update campaign successfully, reviewer can cancel the campaign and just status and mined should be updated', async function() {
     const description = 'Description updated by test';
-    const reviewerAddress = SAMPLE_DATA.SECOND_USER_ADDRESS;
+    const reviewerAddress = SAMPLE_DATA.IN_REVIEWER_WHITELIST_USER_ADDRESS;
     const campaign = await createCampaign({
       ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
       reviewerAddress,
@@ -97,7 +97,7 @@ function patchCampaignTestCases() {
 
   it('should not update campaign successfully, reviewer just can change status to Canceled', async () => {
     const description = 'Description updated by test';
-    const reviewerAddress = SAMPLE_DATA.SECOND_USER_ADDRESS;
+    const reviewerAddress = SAMPLE_DATA.IN_REVIEWER_WHITELIST_USER_ADDRESS;
     const campaign = await createCampaign({
       ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
       reviewerAddress,
@@ -116,7 +116,7 @@ function patchCampaignTestCases() {
 
   it('should not update campaign successfully, reviewer need to send mined:false in data', async () => {
     const description = 'Description updated by test';
-    const reviewerAddress = SAMPLE_DATA.SECOND_USER_ADDRESS;
+    const reviewerAddress = SAMPLE_DATA.IN_REVIEWER_WHITELIST_USER_ADDRESS;
     const campaign = await createCampaign({
       ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
       reviewerAddress,
