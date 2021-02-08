@@ -7,12 +7,36 @@ const sanitizeAddress = require('../../hooks/sanitizeAddress');
 const setAddress = require('../../hooks/setAddress');
 const fundWallet = require('../../hooks/fundWallet');
 const resolveFiles = require('../../hooks/resolveFiles');
+const { isUserAdmin } = require('../../utils/roleUtility');
 
 const normalizeId = () => context => {
   if (context.id) {
     context.id = toChecksumAddress(context.id);
   }
   return context;
+};
+
+const restrictUserdataAndAccess = () => context => {
+  const { user } = context.params;
+  const { data } = context;
+  const sentUserAddress = context.id;
+  const roleAccessKeys = ['isInReviewerWhitelist', 'isInProjectWhitelist', 'isInDelegateWhitelist'];
+  if (isUserAdmin(user.address) && user.address === sentUserAddress){
+    return context;
+  }else if (!isUserAdmin(user.address) && user.address === sentUserAddress) {
+    roleAccessKeys.forEach(key => {
+      delete data[key];
+    });
+  }else if (isUserAdmin(user.address) && !user.address === sentUserAddress) {
+    roleAccessKeys.forEach(key => {
+      delete data[key];
+    });
+    Object.keys(data).forEach(key =>{
+      if (roleAccessKeys.in)
+    })
+  }else if(!isUserAdmin(user.address) && user.address !== sentUserAddress){
+
+  }
 };
 
 const restrict = [
