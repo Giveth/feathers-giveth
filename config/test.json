@@ -2,7 +2,9 @@
   "port": 3040,
   "mongodb": "mongodb://localhost:27017/giveth-test",
   "givethFathersBaseUrl": "http://localhost:3040",
-  "useProjectOwnerWhitelist": false,
+  "useProjectOwnerWhitelist": true,
+  "useReviewerWhitelist": true,
+  "useDelegateWhitelist": true,
   "admins": [
     "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1"
   ],
