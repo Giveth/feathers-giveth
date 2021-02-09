@@ -42,7 +42,9 @@ const assertNotThrowsAsync = async fn => {
 };
 
 const testAddress = '0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1';
+const reviewerAddress = '0xd00cc82a132f421bA6414D196BC830Db95e2e7Dd';
 const campaignAddress = '5fd3412e3e403d0c0f9e4463';
+const projectOwnerAddress = '0x839395e20bbB182fa440d08F850E6c7A8f6F0780';
 
 function getJwt(address = testAddress) {
   const authentication = config.get('authentication');
@@ -128,8 +130,8 @@ const SAMPLE_DATA = {
   USER_GIVER_ID: 1,
 
   SECOND_USER_ADDRESS: '0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0',
-  IN_PROJECT_WHITELIST_USER_ADDRESS: '0x839395e20bbB182fa440d08F850E6c7A8f6F0780',
-  IN_REVIEWER_WHITELIST_USER_ADDRESS: '0xd00cc82a132f421bA6414D196BC830Db95e2e7Dd',
+  IN_PROJECT_WHITELIST_USER_ADDRESS: projectOwnerAddress,
+  IN_REVIEWER_WHITELIST_USER_ADDRESS: reviewerAddress,
   IN_DELEGATE_WHITELIST_USER_ADDRESS: '0x84DD429D2A54176A971e0993E11020e4Aa81aB13',
   MILESTONE_ID: '5fd3424c3e403d0c0f9e4487',
   CAMPAIGN_ID: campaignAddress,
@@ -205,8 +207,8 @@ const SAMPLE_DATA = {
     projectId: 10,
     image: 'This should be image :))',
     mined: false,
-    reviewerAddress: testAddress,
-    ownerAddress: testAddress,
+    reviewerAddress,
+    ownerAddress: projectOwnerAddress,
     status: 'Pending',
     txHash: generateRandomTransactionHash(),
     description: 'test description for campaign',
