@@ -124,7 +124,7 @@ function generateRandomTransactionHash() {
 const SAMPLE_DATA = {
   // the user in seed data has these values
   USER_ADDRESS: testAddress,
-  ADMIN_USER_ADDRESS: testAddress,
+  ADMIN_USER_ADDRESS: '0xb192Ade5c76209655380285d3D2F3AfA16C44727',
   USER_GIVER_ID: 1,
 
   SECOND_USER_ADDRESS: '0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0',

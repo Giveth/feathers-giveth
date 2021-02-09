@@ -56,23 +56,23 @@ function patchUserTestCases() {
     const response = await request(baseUrl)
       .patch(`${relativeUrl}/${SAMPLE_DATA.SECOND_USER_ADDRESS}`)
       .send({
-        isInReviewerWhitelist: true,
-        isInProjectWhitelist: true,
-        isInDelegateWhitelist: true,
+        isReviewer: true,
+        isInProjectOwner: true,
+        isDelegator: true,
       })
       .set({ Authorization: getJwt(SAMPLE_DATA.ADMIN_USER_ADDRESS) });
     assert.equal(response.statusCode, 200);
-    assert.isTrue(response.body.isInReviewerWhitelist);
-    assert.isTrue(response.body.isInProjectWhitelist);
-    assert.isTrue(response.body.isInDelegateWhitelist);
+    assert.isTrue(response.body.isReviewer);
+    assert.isTrue(response.body.isInProjectOwner);
+    assert.isTrue(response.body.isDelegator);
 
     console.log('change back secondUsers permissions');
     await request(baseUrl)
       .patch(`${relativeUrl}/${SAMPLE_DATA.SECOND_USER_ADDRESS}`)
       .send({
-        isInReviewerWhitelist: false,
-        isInProjectWhitelist: false,
-        isInDelegateWhitelist: false,
+        isReviewer: false,
+        isInProjectOwner: false,
+        isDelegator: false,
       })
       .set({ Authorization: getJwt(SAMPLE_DATA.ADMIN_USER_ADDRESS) });
   });
@@ -81,9 +81,9 @@ function patchUserTestCases() {
     const response = await request(baseUrl)
       .patch(`${relativeUrl}/${SAMPLE_DATA.SECOND_USER_ADDRESS}`)
       .send({
-        isInReviewerWhitelist: true,
-        isInProjectWhitelist: true,
-        isInDelegateWhitelist: true,
+        isReviewer: true,
+        isInProjectOwner: true,
+        isDelegator: true,
       })
       .set({ Authorization: getJwt(SAMPLE_DATA.SECOND_USER_ADDRESS) });
     assert.equal(response.statusCode, 403);
@@ -93,15 +93,15 @@ function patchUserTestCases() {
     const response = await request(baseUrl)
       .patch(`${relativeUrl}/${SAMPLE_DATA.ADMIN_USER_ADDRESS}`)
       .send({
-        isInReviewerWhitelist: true,
-        isInProjectWhitelist: true,
-        isInDelegateWhitelist: true,
+        isReviewer: true,
+        isInProjectOwner: true,
+        isDelegator: true,
       })
       .set({ Authorization: getJwt(SAMPLE_DATA.ADMIN_USER_ADDRESS) });
     assert.equal(response.statusCode, 200);
-    assert.isTrue(response.body.isInReviewerWhitelist);
-    assert.isTrue(response.body.isInProjectWhitelist);
-    assert.isTrue(response.body.isInDelegateWhitelist);
+    assert.isTrue(response.body.isReviewer);
+    assert.isTrue(response.body.isInProjectOwner);
+    assert.isTrue(response.body.isDelegator);
   });
 }
 
