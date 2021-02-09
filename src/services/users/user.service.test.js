@@ -20,6 +20,20 @@ function getUserTestCases() {
     assert.equal(response.statusCode, 200);
     assert.equal(response.body.address, SAMPLE_DATA.USER_ADDRESS);
   });
+  it('getUserDetail of admin should have isAdmin field', async () => {
+    const response = await request(baseUrl).get(`${relativeUrl}/${SAMPLE_DATA.ADMIN_USER_ADDRESS}`);
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.body.address, SAMPLE_DATA.ADMIN_USER_ADDRESS);
+    assert.isTrue(response.body.isAdmin);
+  });
+  it('getUserDetail of non-admin user should not have isAdmin field', async () => {
+    const response = await request(baseUrl).get(
+      `${relativeUrl}/${SAMPLE_DATA.SECOND_USER_ADDRESS}`,
+    );
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.body.address, SAMPLE_DATA.SECOND_USER_ADDRESS);
+    assert.isNotOk(response.body.isAdmin);
+  });
 }
 
 function postUserTestCases() {
