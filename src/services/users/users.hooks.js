@@ -16,6 +16,13 @@ const normalizeId = () => context => {
   }
   return context;
 };
+const addAdminField = () => context => {
+  const { result } = context;
+  if (isUserAdmin(result.address)) {
+    result.isAdmin = true;
+  }
+  return context;
+};
 const roleAccessKeys = ['isReviewer', 'isProjectOwner', 'isDelegator'];
 
 const restrictUserdataAndAccess = () => context => {
@@ -90,7 +97,7 @@ module.exports = {
   },
 
   after: {
-    all: [commons.discard('_id')],
+    all: [commons.discard('_id'), addAdminField()],
     find: [resolveFiles('avatar')],
     get: [resolveFiles('avatar')],
     create: [fundWallet(), resolveFiles('avatar')],
