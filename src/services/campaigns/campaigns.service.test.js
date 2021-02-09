@@ -36,9 +36,9 @@ function postCampaignTestCases() {
     const response = await request(baseUrl)
       .post(relativeUrl)
       .send(SAMPLE_DATA.CREATE_CAMPAIGN_DATA)
-      .set({ Authorization: getJwt() });
+      .set({ Authorization: getJwt(SAMPLE_DATA.CREATE_CAMPAIGN_DATA.ownerAddress) });
     assert.equal(response.statusCode, 201);
-    assert.equal(response.body.ownerAddress, SAMPLE_DATA.USER_ADDRESS);
+    assert.equal(response.body.ownerAddress, SAMPLE_DATA.CREATE_CAMPAIGN_DATA.ownerAddress);
   });
   it('should get unAuthorized error', async () => {
     const response = await request(baseUrl)

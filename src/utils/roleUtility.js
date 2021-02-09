@@ -20,7 +20,7 @@ const isUserInProjectWhiteList = async (app, address) => {
   }
   const userService = app.service('users');
   const user = await userService.get(address);
-  return user.isInProjectOwner;
+  return user.isProjectOwner;
 };
 
 const isUserInReviewerWhiteList = async (app, address) => {

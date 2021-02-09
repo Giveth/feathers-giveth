@@ -1,7 +1,7 @@
 const request = require('supertest');
 const config = require('config');
 const { assert } = require('chai');
-const { getJwt, SAMPLE_DATA} = require('../../../test/testUtility');
+const { getJwt, SAMPLE_DATA } = require('../../../test/testUtility');
 const { getFeatherAppInstance } = require('../../app');
 
 const app = getFeatherAppInstance();
@@ -47,6 +47,15 @@ function patchUserTestCases() {
   });
 
   it('should get unAuthorized error', async () => {
+    const response = await request(baseUrl)
+      .patch(`${relativeUrl}/${SAMPLE_DATA.USER_ADDRESS}`)
+      .send({ name: 'fake' })
+      .set({ Authorization: getJwt(SAMPLE_DATA.SECOND_USER_ADDRESS) });
+    assert.equal(response.statusCode, 403);
+    assert.equal(response.body.code, 403);
+  });
+
+  it('should get unAuthorized error when updating another user', async () => {
     const response = await request(baseUrl).patch(`${relativeUrl}/${SAMPLE_DATA.USER_ADDRESS}`);
     assert.equal(response.statusCode, 401);
     assert.equal(response.body.code, 401);
@@ -57,24 +66,33 @@ function patchUserTestCases() {
       .patch(`${relativeUrl}/${SAMPLE_DATA.SECOND_USER_ADDRESS}`)
       .send({
         isReviewer: true,
-        isInProjectOwner: true,
+        isProjectOwner: true,
         isDelegator: true,
       })
       .set({ Authorization: getJwt(SAMPLE_DATA.ADMIN_USER_ADDRESS) });
     assert.equal(response.statusCode, 200);
     assert.isTrue(response.body.isReviewer);
-    assert.isTrue(response.body.isInProjectOwner);
+    assert.isTrue(response.body.isProjectOwner);
     assert.isTrue(response.body.isDelegator);
-
-    console.log('change back secondUsers permissions');
     await request(baseUrl)
       .patch(`${relativeUrl}/${SAMPLE_DATA.SECOND_USER_ADDRESS}`)
       .send({
         isReviewer: false,
-        isInProjectOwner: false,
+        isProjectOwner: false,
         isDelegator: false,
       })
       .set({ Authorization: getJwt(SAMPLE_DATA.ADMIN_USER_ADDRESS) });
+  });
+  it('should not update users non-role fields by admin', async () => {
+    const name = 'fake';
+    const response = await request(baseUrl)
+      .patch(`${relativeUrl}/${SAMPLE_DATA.SECOND_USER_ADDRESS}`)
+      .send({
+        name,
+      })
+      .set({ Authorization: getJwt(SAMPLE_DATA.ADMIN_USER_ADDRESS) });
+    assert.equal(response.statusCode, 200);
+    assert.notEqual(response.body.name, name);
   });
 
   it('non-admin user cant update his/her accesses', async () => {
@@ -82,11 +100,14 @@ function patchUserTestCases() {
       .patch(`${relativeUrl}/${SAMPLE_DATA.SECOND_USER_ADDRESS}`)
       .send({
         isReviewer: true,
-        isInProjectOwner: true,
+        isProjectOwner: true,
         isDelegator: true,
       })
       .set({ Authorization: getJwt(SAMPLE_DATA.SECOND_USER_ADDRESS) });
-    assert.equal(response.statusCode, 403);
+    assert.equal(response.statusCode, 200);
+    assert.isNotOk(response.body.isReviewer);
+    assert.isNotOk(response.body.isProjectOwner);
+    assert.isNotOk(response.body.isDelegator);
   });
 
   it('admin user can update his/her accesses', async () => {
@@ -94,13 +115,13 @@ function patchUserTestCases() {
       .patch(`${relativeUrl}/${SAMPLE_DATA.ADMIN_USER_ADDRESS}`)
       .send({
         isReviewer: true,
-        isInProjectOwner: true,
+        isProjectOwner: true,
         isDelegator: true,
       })
       .set({ Authorization: getJwt(SAMPLE_DATA.ADMIN_USER_ADDRESS) });
     assert.equal(response.statusCode, 200);
     assert.isTrue(response.body.isReviewer);
-    assert.isTrue(response.body.isInProjectOwner);
+    assert.isTrue(response.body.isProjectOwner);
     assert.isTrue(response.body.isDelegator);
   });
 }
