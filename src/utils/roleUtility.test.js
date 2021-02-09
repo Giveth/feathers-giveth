@@ -21,49 +21,49 @@ function isUserAdminTestCases() {
   });
 }
 function isUserInDelegateWhiteListTestCases() {
-  it('should return true for user that has isInDelegateWhitelist true', async () => {
-    const isInDelegateWhitelist = await isUserInDelegateWhiteList(
+  it('should return true for user that has isDelegator true', async () => {
+    const isDelegator = await isUserInDelegateWhiteList(
       app,
       SAMPLE_DATA.IN_DELEGATE_WHITELIST_USER_ADDRESS,
     );
-    assert.isTrue(isInDelegateWhitelist);
+    assert.isTrue(isDelegator);
   });
   it('should return true for admin user', async () => {
-    const isInDelegateWhitelist = await isUserInDelegateWhiteList(
+    const isDelegator = await isUserInDelegateWhiteList(
       app,
       SAMPLE_DATA.ADMIN_USER_ADDRESS,
     );
-    assert.isTrue(isInDelegateWhitelist);
+    assert.isTrue(isDelegator);
   });
-  it('should return false for user that has isInDelegateWhitelist false', async () => {
-    const isInDelegateWhitelist = await isUserInDelegateWhiteList(
+  it('should return false for user that has isDelegator false', async () => {
+    const isDelegator = await isUserInDelegateWhiteList(
       app,
       SAMPLE_DATA.SECOND_USER_ADDRESS,
     );
-    assert.isNotOk(isInDelegateWhitelist);
+    assert.isNotOk(isDelegator);
   });
 }
 function isUserInProjectWhiteListTestCases() {
-  it('should return true for user that has isInProjectWhitelist true', async () => {
-    const isInProjectWhitelist = await isUserInProjectWhiteList(
+  it('should return true for user that has isInProjectOwner true', async () => {
+    const isInProjectOwner = await isUserInProjectWhiteList(
       app,
       SAMPLE_DATA.IN_PROJECT_WHITELIST_USER_ADDRESS,
     );
-    assert.isTrue(isInProjectWhitelist);
+    assert.isTrue(isInProjectOwner);
   });
   it('should return true for admin user', async () => {
-    const isInProjectWhitelist = await isUserInProjectWhiteList(
+    const isInProjectOwner = await isUserInProjectWhiteList(
       app,
       SAMPLE_DATA.ADMIN_USER_ADDRESS,
     );
-    assert.isTrue(isInProjectWhitelist);
+    assert.isTrue(isInProjectOwner);
   });
-  it('should return false for user that has isInDelegateWhitelist false', async () => {
-    const isInProjectWhitelist = await isUserInProjectWhiteList(
+  it('should return false for user that has isDelegator false', async () => {
+    const isInProjectOwner = await isUserInProjectWhiteList(
       app,
       SAMPLE_DATA.SECOND_USER_ADDRESS,
     );
-    assert.isNotOk(isInProjectWhitelist);
+    assert.isNotOk(isInProjectOwner);
   });
 }
 function isUserInReviewerWhiteListTestCases() {
@@ -81,7 +81,7 @@ function isUserInReviewerWhiteListTestCases() {
     );
     assert.isTrue(isInReviewerWhiteList);
   });
-  it('should return false for user that has isInDelegateWhitelist false', async () => {
+  it('should return false for user that has isDelegator false', async () => {
     const isInReviewerWhiteList = await isUserInReviewerWhiteList(
       app,
       SAMPLE_DATA.SECOND_USER_ADDRESS,

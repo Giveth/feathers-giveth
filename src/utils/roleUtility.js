@@ -11,7 +11,7 @@ const isUserInDelegateWhiteList = async (app, address) => {
   }
   const userService = app.service('users');
   const user = await userService.get(address);
-  return user.isInDelegateWhitelist;
+  return user.isDelegator;
 };
 
 const isUserInProjectWhiteList = async (app, address) => {
@@ -20,7 +20,7 @@ const isUserInProjectWhiteList = async (app, address) => {
   }
   const userService = app.service('users');
   const user = await userService.get(address);
-  return user.isInProjectWhitelist;
+  return user.isInProjectOwner;
 };
 
 const isUserInReviewerWhiteList = async (app, address) => {
@@ -29,7 +29,7 @@ const isUserInReviewerWhiteList = async (app, address) => {
   }
   const userService = app.service('users');
   const user = await userService.get(address);
-  return user.isInReviewerWhitelist;
+  return user.isReviewer;
 };
 
 module.exports = {

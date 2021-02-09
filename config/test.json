@@ -6,7 +6,7 @@
   "useReviewerWhitelist": true,
   "useDelegateWhitelist": true,
   "admins": [
-    "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1"
+    "0xb192Ade5c76209655380285d3D2F3AfA16C44727"
   ],
   "blockchain": {
     "nodeUrl": "ws://localhost:8547",

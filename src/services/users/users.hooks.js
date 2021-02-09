@@ -20,7 +20,7 @@ const restrictUserdataAndAccess = () => context => {
   const { user } = context.params;
   const { data } = context;
   const sentUserAddress = context.id;
-  const roleAccessKeys = ['isInReviewerWhitelist', 'isInProjectWhitelist', 'isInDelegateWhitelist'];
+  const roleAccessKeys = ['isReviewer', 'isInProjectOwner', 'isDelegator'];
   if (isUserAdmin(user.address) && user.address === sentUserAddress){
     return context;
   }else if (!isUserAdmin(user.address) && user.address === sentUserAddress) {
@@ -31,11 +31,11 @@ const restrictUserdataAndAccess = () => context => {
     roleAccessKeys.forEach(key => {
       delete data[key];
     });
-    Object.keys(data).forEach(key =>{
-      if (roleAccessKeys.in)
-    })
-  }else if(!isUserAdmin(user.address) && user.address !== sentUserAddress){
-
+    // Object.keys(data).forEach(key =>{
+    //   if (roleAccessKeys.in)
+    // })
+  } else if (!isUserAdmin(user.address) && user.address !== sentUserAddress) {
+    // TODO return 403 error
   }
 };
 
