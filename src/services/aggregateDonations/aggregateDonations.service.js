@@ -15,7 +15,7 @@ module.exports = function aggregateDonations() {
 
       const donationModel = donationsService.Model;
 
-      const dataQuery = [{ $sort: { totalAmount: -1 } }];
+      const dataQuery = [{ $sort: { totalAmount: -1, updatedAt: 1, 'giver.address': -1 } }];
       if ($skip) dataQuery.push({ $skip: Number($skip) });
       if ($limit) dataQuery.push({ $limit: Number($limit) });
 
@@ -39,6 +39,7 @@ module.exports = function aggregateDonations() {
           totalAmount: { $sum: '$usdValue' },
           count: { $sum: 1 },
           donations: { $push: '$_id' },
+          updatedAt: { $max: '$updatedAt' },
         })
         .facet({
           data: dataQuery,
