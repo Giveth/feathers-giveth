@@ -18,6 +18,7 @@ const checkIfMilestoneNameIsUnique = () => async context => {
   }
   const milestoneWithSameName = await milestoneService.find({
     query: {
+      _id: { $ne: context.id },
       campaignId: data.campaignId,
       title: new RegExp(`\\s*${title.replace(/^\s+|\s+$|\s+(?=\s)/g, '')}\\s*`),
     },
