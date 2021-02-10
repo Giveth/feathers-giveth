@@ -203,7 +203,7 @@ function deleteMilestoneTestCases() {
     assert.equal(response.statusCode, 200);
   });
 
-  it('should be successful , delete Proposed milestone of another user', async function() {
+  it("should get 403 , users cant delete other's  milestone", async function() {
     const createMileStoneData = { ...SAMPLE_DATA.CREATE_MILESTONE_DATA() };
     createMileStoneData.status = SAMPLE_DATA.MILESTONE_STATUSES.REJECTED;
     createMileStoneData.ownerAddress = SAMPLE_DATA.USER_ADDRESS;
@@ -211,6 +211,18 @@ function deleteMilestoneTestCases() {
     const response = await request(baseUrl)
       .delete(`${relativeUrl}/${milestone._id}`)
       .set({ Authorization: getJwt(SAMPLE_DATA.SECOND_USER_ADDRESS) });
+    // TODO this testCase is for a bug, when bug fixed this testCase should fix and probably the status should be 403 instead of 200
+    assert.equal(response.statusCode, 403);
+  });
+
+  it('should be successful , delete Proposed milestone', async function() {
+    const createMileStoneData = { ...SAMPLE_DATA.CREATE_MILESTONE_DATA() };
+    createMileStoneData.status = SAMPLE_DATA.MILESTONE_STATUSES.REJECTED;
+    createMileStoneData.ownerAddress = SAMPLE_DATA.USER_ADDRESS;
+    const milestone = await createMilestone(createMileStoneData);
+    const response = await request(baseUrl)
+      .delete(`${relativeUrl}/${milestone._id}`)
+      .set({ Authorization: getJwt(SAMPLE_DATA.USER_ADDRESS) });
     // TODO this testCase is for a bug, when bug fixed this testCase should fix and probably the status should be 403 instead of 200
     assert.equal(response.statusCode, 200);
   });
