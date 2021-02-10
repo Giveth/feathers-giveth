@@ -20,7 +20,7 @@ const checkIfMilestoneNameIsUnique = () => async context => {
     query: {
       _id: { $ne: context.id },
       campaignId: data.campaignId,
-      title: new RegExp(`\\s*${title.replace(/^\s+|\s+$|\s+(?=\s)/g, '')}\\s*`),
+      title: new RegExp(`\\s*${title.replace(/^\s+|\s+$|\s+(?=\s)/g, '')}\\s*`, 'i'),
     },
   });
   if (milestoneWithSameName.total > 0) {
