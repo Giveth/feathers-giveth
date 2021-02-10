@@ -19,7 +19,7 @@ const checkIfMilestoneNameIsUnique = () => async context => {
   const milestoneWithSameName = await milestoneService.find({
     query: {
       campaignId: data.campaignId,
-      title: new RegExp(`\\s*${title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*`),
+      title: new RegExp(`\\s*${title.replace(/^\s+|\s+$|\s+(?=\s)/g, '')}\\s*`),
     },
   });
   if (milestoneWithSameName.total > 0) {
