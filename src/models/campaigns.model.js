@@ -60,6 +60,7 @@ function createModel(app) {
     reviewerAddress: 1,
     coownerAddress: 1,
   });
+  campaign.index({ slug: 1 }, { unique: true });
   return mongooseClient.model('campaign', campaign);
 }
 

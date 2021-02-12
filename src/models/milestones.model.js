@@ -91,6 +91,7 @@ function Milestone(app) {
   milestone.index({ status: 1, fullyFunded: 1, createdAt: 1 });
   milestone.index({ createdAt: 1, campaignId: 1 });
   milestone.index({ projectId: 1, campaignId: 1 });
+  milestone.index({ slug: 1 }, { unique: true });
 
   return mongooseClient.model('milestone', milestone);
 }
