@@ -6,6 +6,9 @@ const slugify = require('../../utils/slugify');
  * */
 const createMilestoneSlug = () => async context => {
   const { data, app } = context;
+  if (data.slug) {
+    return context;
+  }
   const service = app.service('milestones');
   const slug = slugify(data.title);
   let realSlug;
