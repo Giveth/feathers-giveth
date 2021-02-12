@@ -1,8 +1,6 @@
 /* eslint-disable no-param-reassign */
-
 const { AdminTypes } = require('../models/pledgeAdmins.model');
 const { EMAIL_IMAGES, EMAIL_SUBSCRIBE_TYPES } = require('../models/emails.model');
-
 const emailNotificationTemplate = 'notification';
 const emailStyle = `style='line-height: 33px; font-size: 22px;'`;
 const generateMilestoneCtaRelativeUrl = (campaignId, milestoneId) => {
@@ -240,6 +238,32 @@ const proposedMilestoneAccepted = (
   sendEmail(app, data);
 };
 
+const proposedMilestoneAcceptedForDacOwner = (
+  app,
+  { recipient, milestoneId, user, campaignId, message, dacTitle },
+) => {
+  const data = {
+    recipient,
+    template: emailNotificationTemplate,
+    subject: `${dacTitle} has added a new milestone!`,
+    secretIntro: `Check out what ${dacTitle} has been up to!`,
+    title: `${dacTitle} has expanded!`,
+    image: EMAIL_IMAGES.MILESTONE_REVIEW_APPROVED,
+    text: `
+        <p><span style="line-height: 33px; font-size: 22px;">Hi ${user}</span></p>
+        <p>${dacTitle} added a new milestone. Come see what awesome things they have planned!</p>
+        <br/><br/>
+      `,
+    cta: `See Milestone`,
+    ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
+    unsubscribeType: EMAIL_SUBSCRIBE_TYPES.PROPOSED_MILESTONE_ACCEPTED,
+    unsubscribeReason: `You receive this email because you run a Milestone`,
+    message,
+  };
+
+  sendEmail(app, data);
+};
+
 const proposedMilestoneRejected = (
   app,
   { recipient, user, milestoneTitle, milestoneId, campaignTitle, campaignId, message },
@@ -462,4 +486,5 @@ module.exports = {
   milestoneRequestReview,
   milestoneCreated,
   milestoneCanceled,
+  proposedMilestoneAcceptedForDacOwner,
 };

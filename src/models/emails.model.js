@@ -43,6 +43,7 @@ function createModel(app) {
       image: { type: String, required: true, enum: Object.values(EMAIL_IMAGES) },
       unsubscribeType: { type: String, required: true, enum: Object.values(EMAIL_SUBSCRIBE_TYPES) },
       unsubscribeReason: { type: String, required: true },
+      dappUrl: { type: String },
       cta: { type: String, required: true },
       ctaRelativeUrl: { type: String, required: true },
       message: { type: String, default: '' },

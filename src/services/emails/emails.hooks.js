@@ -6,6 +6,7 @@ const { EMAIL_STATUS } = require('../../models/emails.model');
 const sendEmailToDappMailer = () => async context => {
   const { app, result } = context;
   const emailService = app.service('/emails');
+  const dappUrl = app.get('dappUrl');
   const emailData = {
     recipient: result.recipient,
     template: result.template,
@@ -18,7 +19,7 @@ const sendEmailToDappMailer = () => async context => {
     unsubscribeType: result.unsubscribeType,
     unsubscribeReason: result.unsubscribeReason,
     // add the dapp url that this feathers serves for
-    dappUrl: app.get('dappUrl'),
+    dappUrl,
     message: result.message,
   };
   const dappMailerUrl = app.get('dappMailerUrl');
@@ -51,6 +52,7 @@ const sendEmailToDappMailer = () => async context => {
       logger.info(`email sent to ${emailData.recipient}: `, res);
       return emailService.patch(result._id, {
         status: EMAIL_STATUS.SUCCESS,
+        dappUrl,
         dappMailerResponse: res,
       });
     })
@@ -58,6 +60,7 @@ const sendEmailToDappMailer = () => async context => {
       logger.error(`error sending email to ${emailData.recipient}`, err);
       return emailService.patch(result._id, {
         status: EMAIL_STATUS.FAILED,
+        dappUrl,
         error: err.message,
       });
     });
