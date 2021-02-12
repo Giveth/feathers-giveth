@@ -208,6 +208,8 @@ const SAMPLE_DATA = {
     txHash: generateRandomTransactionHash(),
     description: 'test description for campaign',
   },
+  CAMPAIGN_PROJECT_ID: 4,
+  DAC_OWNER_ADDRESS: testAddress,
   DacStatus: {
     ACTIVE: 'Active',
     PENDING: 'Pending',

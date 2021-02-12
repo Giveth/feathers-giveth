@@ -9,7 +9,7 @@ const baseUrl = config.get('givethFathersBaseUrl');
 const relativeUrl = '/emails';
 
 function getEmailsTestCases() {
-  it('should return successful result', async function() {
+  it('should return successful result', async () => {
     const response = await request(baseUrl).get(relativeUrl);
     assert.equal(response.statusCode, 200);
     assert.isArray(response.body.data);
@@ -17,7 +17,7 @@ function getEmailsTestCases() {
 }
 
 function postEmailsTestCases() {
-  it('should return 405, POST is disallowed', async function() {
+  it('should return 405, POST is disallowed', async () => {
     const response = await request(baseUrl)
       .post(relativeUrl)
       .set({ Authorization: getJwt() });
