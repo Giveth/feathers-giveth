@@ -21,7 +21,6 @@ async function createSlug(id, title, collection) {
           _id: { $ne: id },
         })
         .then(_count => {
-          console.log(realSlug, count);
           count = _count;
           cb();
         })
@@ -34,7 +33,6 @@ async function createSlug(id, title, collection) {
       testCb(null, count > 0);
     },
   );
-  console.log(id, realSlug);
   return realSlug;
 }
 
