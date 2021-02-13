@@ -54,14 +54,7 @@ const restrictUserdataAndAccess = () => context => {
   throw new errors.Forbidden();
 };
 
-const restrict = [
-  normalizeId(),
-  // restrictToOwner({
-  //   idField: 'address',
-  //   ownerField: 'address',
-  // }),
-  restrictUserdataAndAccess(),
-];
+const restrict = [normalizeId(), restrictUserdataAndAccess()];
 
 const address = [
   setAddress('address'),
