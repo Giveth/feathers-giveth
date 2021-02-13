@@ -64,7 +64,7 @@ function postMilestoneTestCases() {
     expect(response.body.token).to.be.deep.equal(ethToken);
   });
 
-  it('should get unAuthorized error', async function() {
+  it('should get unAuthorized error', async () => {
     const response = await request(baseUrl)
       .post(relativeUrl)
       .send(SAMPLE_DATA.CREATE_MILESTONE_DATA);
