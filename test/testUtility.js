@@ -163,6 +163,34 @@ const SAMPLE_DATA = {
     PROCESSED: 'Processed',
     FAILED: 'Failed',
   },
+  CREATE_EVENT_DATA: {
+    topics: [],
+    status: 'Processed',
+    address: '0x8eB047585ABeD935a73ba4b9525213F126A0c979',
+    blockNumber: 3051511,
+    transactionHash: '0x28a99355b05336993764f39d383a47b7b4577c3186d59fe55afb2cd0b4c15347',
+    transactionIndex: 9,
+    blockHash: '0xcdee74b8a7c19540b619672e260b0a88b8e81887de676a5da839fade04970688',
+    logIndex: 6,
+    id: 'log_69157b69',
+    returnValues: {
+      0: '261',
+      1: '',
+      idProject: '261',
+      url: '',
+    },
+    event: 'ProjectAdded',
+    signature: '0x9958fc92731727637b02f1ac1e6caf2814442c27e1d962f0c477cd14280f586d',
+    raw: {
+      data:
+        '0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000',
+      topics: [
+        '0x9958fc92731727637b02f1ac1e6caf2814442c27e1d962f0c477cd14280f586d',
+        '0x0000000000000000000000000000000000000000000000000000000000000105',
+      ],
+    },
+    confirmations: 6,
+  },
   CREATE_MILESTONE_DATA: {
     fullyFunded: false,
     mined: true,
