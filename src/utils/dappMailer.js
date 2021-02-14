@@ -67,9 +67,7 @@ const donationReceived = (
     recipient,
     template: emailNotificationTemplate,
     subject: "Giveth - You've received a donation!",
-    secretIntro: `You have received a donation of ${normalizedAmount} ${
-      token.symbol
-    } for the ${donationType} "${donatedToTitle}"!`,
+    secretIntro: `You have received a donation of ${normalizedAmount} ${token.symbol} for the ${donationType} "${donatedToTitle}"!`,
     title: 'You are so awesome!',
     image: EMAIL_IMAGES.DONATION_BANNER,
     text: `
