@@ -62,11 +62,12 @@ const donationReceived = (
   app,
   { recipient, user, donationType, donatedToTitle, amount, token },
 ) => {
+  const normalizedAmount = normalizeAmount(amount);
   const data = {
     recipient,
     template: emailNotificationTemplate,
     subject: "Giveth - You've received a donation!",
-    secretIntro: `You have received a donation of ${normalizeAmount(amount)} ${
+    secretIntro: `You have received a donation of ${normalizedAmount} ${
       token.symbol
     } for the ${donationType} "${donatedToTitle}"!`,
     title: 'You are so awesome!',
@@ -75,7 +76,7 @@ const donationReceived = (
         <p><span ${emailStyle}>Hi ${user}</span></p>
         <p>
           You have received a donation of
-          <span>${amount} ${token.symbol}</span>
+          <span>${normalizedAmount} ${token.symbol}</span>
           for your ${donationType} <em>${donatedToTitle}</em>.
         </p>
       `,
@@ -99,21 +100,20 @@ const delegationRequired = (
     token,
   },
 ) => {
+  const normalizedAmount = normalizeAmount(amount);
   const data = {
     recipient,
     user,
     template: emailNotificationTemplate,
     subject: 'Giveth - Delegation required for new donation!',
-    secretIntro: `Take action! Please delegate a new donation of ${normalizeAmount(amount)} ${
-      token.symbol
-    } for the ${donationType} "${donatedToTitle}"!`,
+    secretIntro: `Take action! Please delegate a new donation of ${normalizedAmount} ${token.symbol} for the ${donationType} "${donatedToTitle}"!`,
     title: "Take action! You've received a donation, delegate now!",
     image: EMAIL_IMAGES.DONATION_BANNER,
     text: `
         <p><span ${emailStyle}>Hi ${user}</span></p>
         <p>
           You have received a donation of
-          <span style='display: block; color: rgb(53, 184, 209); line-height: 72px; font-size: 48px;'>${amount} ${
+          <span style='display: block; color: rgb(53, 184, 209); line-height: 72px; font-size: 48px;'>${normalizedAmount} ${
       token.symbol
     }</span>
           for your ${donationType} <em>${donatedToTitle}</em>.
