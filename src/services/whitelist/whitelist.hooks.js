@@ -4,7 +4,7 @@ const getWhitelist = () => context => {
   const { app } = context;
 
   // fetch whitelisted addresses from default.json
-  const reviewerWhiteListEnabled = !!app.get('useReviewerWhitelist');
+  const reviewerWhitelistEnabled = !!app.get('useReviewerWhitelist');
   const delegateWhitelistEnabled = !!app.get('useDelegateWhitelist');
   const projectOwnersWhitelistEnabled = !!app.get('useProjectOwnerWhitelist');
   const tokenWhitelist = app.get('tokenWhitelist');
@@ -19,7 +19,7 @@ const getWhitelist = () => context => {
   const fiatWhitelist = app.get('fiatWhitelist');
   const nativeCurrencyWhitelist = app.get('nativeCurrencyWhitelist');
   context.result = {
-    reviewerWhiteListEnabled,
+    reviewerWhitelistEnabled,
     delegateWhitelistEnabled,
     projectOwnersWhitelistEnabled,
     tokenWhitelist,
