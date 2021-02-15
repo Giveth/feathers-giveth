@@ -2,7 +2,7 @@ const config = require('config');
 
 const isUserAdmin = address => {
   const admins = config.get('admins');
-  return Boolean(admins.find(adminAddress => adminAddress === address));
+  return admins.some(adminAddress => adminAddress === address);
 };
 
 const isUserInDelegateWhiteList = async (app, address) => {

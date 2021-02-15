@@ -17,9 +17,17 @@ const normalizeId = () => context => {
   return context;
 };
 const addAdminField = () => context => {
-  const { result } = context;
-  if (isUserAdmin(result.address)) {
-    result.isAdmin = true;
+  const _addAdminField = item => {
+    if (isUserAdmin(item.address)) {
+      item.isAdmin = true;
+    }
+  };
+  const items = commons.getItems(context);
+
+  if (Array.isArray(items)) {
+    items.forEach(_addAdminField);
+  } else {
+    _addAdminField(items);
   }
   return context;
 };
