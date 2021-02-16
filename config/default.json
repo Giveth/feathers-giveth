@@ -8,6 +8,7 @@
     "max": 100
   },
   "mongodb": "mongodb://localhost:27017/giveth",
+  "bridgeMonitorBaseUrl": "https://feathers.bridge.beta.giveth.io",
   "nedb": "../data",
   "uploads": "../uploads",
   "uploadsBaseUrl": "http://localhost:3030/uploads/",
