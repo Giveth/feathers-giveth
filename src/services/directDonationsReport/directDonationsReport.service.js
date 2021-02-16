@@ -1,4 +1,5 @@
 const config = require('config');
+const { Parser } = require('json2csv');
 const { getTokenByAddress } = require('../../utils/tokenHelper');
 
 const createAggregateQuery = ownerType => {
@@ -52,22 +53,24 @@ module.exports = async function aggregateDonations() {
   const donationsService = app.service('donations');
   const donationModel = donationsService.Model;
 
-  const directDonationsReport = {
-    async find() {
-      const campaignDonations = await donationModel.aggregate(createAggregateQuery('campaign'));
-      const milestoneDonations = await donationModel.aggregate(createAggregateQuery('milestone'));
-      const donations = milestoneDonations
-        .concat(...campaignDonations)
-        .sort((a, b) => {
-          if (a.createdAt < b.createdAt) return -1;
-          if (a.createdAt > b.createdAt) return 1;
-          return 0;
-        })
-        .map(donation => normalizeDonation(donation));
-      return {
-        donations,
-      };
-    },
+  const directDonationsReport = async (req, res, _next) => {
+    const campaignDonations = await donationModel.aggregate(createAggregateQuery('campaign'));
+    const milestoneDonations = await donationModel.aggregate(createAggregateQuery('milestone'));
+    const donations = milestoneDonations
+      .concat(...campaignDonations)
+      .sort((a, b) => {
+        if (a.createdAt < b.createdAt) return -1;
+        if (a.createdAt > b.createdAt) return 1;
+        return 0;
+      })
+      .map(donation => normalizeDonation(donation));
+
+    const fields = Object.keys(donations[0]);
+    const opts = { fields };
+    const parser = new Parser(opts);
+    const csv = parser.parse(donations);
+    res.type('csv');
+    res.end(csv);
   };
   app.use('/directDonationsReport', directDonationsReport);
 };
