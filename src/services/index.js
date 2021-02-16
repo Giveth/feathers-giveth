@@ -11,6 +11,7 @@ const users = require('./users/users.service.js');
 const uploads = require('./uploads/uploads.service.js');
 const donations = require('./donations/donations.service.js');
 const aggregateDonations = require('./aggregateDonations/aggregateDonations.service.js');
+const directDonationsReport = require('./directDonationsReport/directDonationsReport.service');
 const transactions = require('./transactions/transactions.service.js');
 const whitelist = require('./whitelist/whitelist.service.js');
 const gasprice = require('./gasprice/gasprice.service.js');
@@ -26,6 +27,7 @@ module.exports = function configure() {
   app.configure(uploads);
   app.configure(donations);
   app.configure(aggregateDonations);
+  app.configure(directDonationsReport);
   app.configure(transactions);
   app.configure(challenges);
   app.configure(pledgeAdmins);
