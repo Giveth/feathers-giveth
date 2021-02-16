@@ -7,7 +7,7 @@
     "default": 25,
     "max": 100
   },
-  "mongodb": "mongodb://localhost:27017/giveth-beta",
+  "mongodb": "mongodb://localhost:27017/giveth",
   "nedb": "../data",
   "uploads": "../uploads",
   "uploadsBaseUrl": "http://localhost:3030/uploads/",
@@ -85,58 +85,20 @@
     "0xe11ba2b4d45eaed5996cd0823791e0c93114882d",
     "0xd03ea8624c8c5987235048901fb614fdca89b117"
   ],
-  "tokenWhitelist":  [
+  "tokenWhitelist": [
     {
-      "name": "ETH",
+      "name": "Home Ganache ETH",
       "address": "0x0",
-      "foreignAddress": "0xe3ee055346a9EfaF4AA2900847dEb04de0195398",
+      "foreignAddress": "0x5a42ca500aB159c51312B764bb25C135026e7a31",
       "symbol": "ETH",
-      "coingeckoId": "ethereum",
       "decimals": 6
     },
     {
-      "name": "SAI",
-      "address": "0x89d24a6b4ccb1b6faa2625fe562bdd9a23260359",
-      "foreignAddress": "0xb5afaed1ae9b0485a859023e1372c100b11e98ab",
-      "symbol": "SAI",
-      "rateEqSymbol": "USD",
-      "coingeckoId": "sai",
+      "name": "MiniMe Test Token",
+      "address": "0xe78A0F7E598Cc8b0Bb87894B0F60dD2a88d6a8Ab",
+      "foreignAddress": "0x8F086f895deBc23473dfe507dd4BF35D6184552c",
+      "symbol": "ANT",
       "decimals": 3
-    },
-    {
-      "name": "DAI",
-      "address": "0x6b175474e89094c44da98b954eedeac495271d0f",
-      "foreignAddress": "0x05A075B296995AdCaEC7c1dE0E52271a4Cf6DEb8",
-      "symbol": "DAI",
-      "rateEqSymbol": "USD",
-      "coingeckoId": "dai",
-      "decimals": 3
-    },
-    {
-      "name": "PAN",
-      "address": "0xd56dac73a4d6766464b38ec6d91eb45ce7457c44",
-      "foreignAddress": "0x0aaf4acccddb40cdb6a1df3cfbc7944aa5effcc6",
-      "symbol": "PAN",
-      "coingeckoId": "panvala-pan",
-      "decimals": 2
-    },
-    {
-      "name": "WBTC",
-      "address": "0x2260fac5e5542a773aa44fbcfedf7c193bc2c599",
-      "foreignAddress": "0x6d03800013c591611a6ee597191d9f608b833510",
-      "symbol": "WBTC",
-      "rateEqSymbol": "BTC",
-      "coingeckoId": "bitcoin",
-      "decimals": "8"
-    },
-    {
-      "name": "USDC",
-      "address": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
-      "foreignAddress": "0xf14eCE303f190A70A2CF7C7011F75bDa658aD6EF",
-      "symbol": "USDC",
-      "rateEqSymbol": "USD",
-      "coingeckoId": "usd-coin",
-      "decimals": "3"
     }
   ],
   "activeTokenWhitelist": [
