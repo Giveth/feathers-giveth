@@ -191,24 +191,16 @@ const failedTxMonitor = (app, eventWatcher) => {
         updateFailedDonationParents(donation);
       }
 
-      // delete conversation related to that donation
-
-      // try {
-      //   const foundConversations = await app.service('conversations').Model.findOne({ donationId: String(_id) });
-      //   console.log("foundConversations :", foundConversations)
-      //   const result = await app.service('conversations').Model.deleteOne({ donationId: String(_id) });
-      //   console.log('result of delete conversation', result)
-      // } catch (e) {
-      //   console.log('delete conversation error ', e)
-      // }
-      app.service('conversations').Model.deleteOne({ donationId: String(_id) });
-      app
-        .service('donations')
-        .patch(_id, {
+      try {
+        // delete conversation related to that donation
+        await app.service('conversations').Model.deleteOne({ donationId: String(_id) });
+        await app.service('donations').patch(_id, {
           status: DonationStatus.FAILED,
           mined: true,
-        })
-        .catch(logger.error);
+        });
+      } catch (e) {
+        logger.error('update donation to Failed and delete related conversation error ', e);
+      }
       return;
     }
 
