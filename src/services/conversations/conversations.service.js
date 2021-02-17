@@ -12,6 +12,7 @@ module.exports = function conversations() {
   const options = {
     name: 'conversations',
     Model,
+    multi: ['remove'],
     paginate,
     ...defaultFeatherMongooseOptions,
   };
