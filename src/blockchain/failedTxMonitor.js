@@ -193,7 +193,9 @@ const failedTxMonitor = (app, eventWatcher) => {
 
       // delete conversation related to that donation
       app.service('conversations').remove(null, {
-        donationId: _id,
+        query: {
+          donationId: _id,
+        },
       });
       app
         .service('donations')

@@ -417,7 +417,7 @@ const handleDonationConversationAndEmail = async (app, donation) => {
       conversationModel = {
         milestoneId: pledgeAdmin._id,
         messageContext: CONVERSATION_MESSAGE_CONTEXT.DONATED,
-        donationId :donation._id,
+        donationId: donation._id,
         txHash: homeTxHash,
         payments: [
           {
