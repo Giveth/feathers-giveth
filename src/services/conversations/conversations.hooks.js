@@ -186,7 +186,7 @@ module.exports = {
     create: [restrictAndSetOwner(), checkMessageContext(), sanitizeHtml('message')],
     update: [disallow()],
     patch: [onlyInternal()],
-    remove: [onlyInternal()],
+    remove: [disallow()],
   },
 
   after: {

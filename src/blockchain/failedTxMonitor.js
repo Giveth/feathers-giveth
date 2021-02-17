@@ -192,11 +192,16 @@ const failedTxMonitor = (app, eventWatcher) => {
       }
 
       // delete conversation related to that donation
-      app.service('conversations').remove(null, {
-        query: {
-          donationId: String(_id),
-        },
-      });
+
+      // try {
+      //   const foundConversations = await app.service('conversations').Model.findOne({ donationId: String(_id) });
+      //   console.log("foundConversations :", foundConversations)
+      //   const result = await app.service('conversations').Model.deleteOne({ donationId: String(_id) });
+      //   console.log('result of delete conversation', result)
+      // } catch (e) {
+      //   console.log('delete conversation error ', e)
+      // }
+      app.service('conversations').Model.deleteOne({ donationId: String(_id) });
       app
         .service('donations')
         .patch(_id, {
