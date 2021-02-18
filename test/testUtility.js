@@ -123,6 +123,8 @@ function generateRandomTransactionHash() {
   return `0x${generateHexNumber(62)}`;
 }
 
+let milestoneCounter = 1;
+
 const SAMPLE_DATA = {
   // the user in seed data has these values
   USER_ADDRESS: testAddress,
@@ -201,7 +203,7 @@ const SAMPLE_DATA = {
     return {
       fullyFunded: false,
       mined: true,
-      title: `test-milestone-${Math.floor(Math.random() * 10000000000000000).toString()}`,
+      title: `test-milestone-${milestoneCounter++}`,
       description: '<p>give money for god sake</p>',
       image: '',
       reviewerAddress: testAddress,
@@ -231,7 +233,7 @@ const SAMPLE_DATA = {
       proofItems: [],
       pendingRecipientAddress: '0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1',
       peopleCount: 3,
-    }
+    };
   },
   CREATE_CAMPAIGN_DATA: {
     title: 'Hello I;m new Campaign',
