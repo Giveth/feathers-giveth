@@ -42,36 +42,50 @@ const updateMilestoneStatusToPaid = async (app, donation) => {
     },
   });
 
-  // if there are still committed donations, don't mark the as paid or paying
+  // if there are still committed and paying donations, don't mark the as paid or paying
   if (
     donations.some(d => d.status === DonationStatus.COMMITTED || d.status === DonationStatus.PAYING)
   ) {
     return;
   }
 
-  const hasPayingDonation = donations.some(d => d.status === DonationStatus.PAYING);
-
-  context.app.service('milestones').patch(donation.ownerTypeId, {
-    status:
-      donation.status === DonationStatus.PAYING || hasPayingDonation
-        ? MilestoneStatus.PAYING
-        : MilestoneStatus.PAID,
-  });
+  const hasDonationWithPendingStatusInBridge = donations.some(
+    d =>
+      d.bridgeStatus !== DONATION_BRIDGE_STATUS.PAID &&
+      d.bridgeStatus !== DONATION_BRIDGE_STATUS.CANCELLED,
+  );
+  if (!hasDonationWithPendingStatusInBridge) {
+    await app.service('milestones').patch(donation.ownerTypeId, {
+      isAllDonationsPaidInBridge: true,
+    });
+    // TODO can email to milestone owner and says that the money went to their wallet
+  }
 };
 
-const updateDonationsAndMilestoneStatusToMainNetPaid = async ({ app, donation, mainNetEvent }) => {
+const updateDonationsAndMilestoneStatusToBridgePaid = async ({ app, donation, bridgeEvent }) => {
   const donationService = app.service('donations');
   donationService.patch(donation._id, {
     bridgeStatus: DONATION_BRIDGE_STATUS.PAID,
-    bridgeTxHash: mainNetEvent.transactionHash,
+    bridgeTxHash: bridgeEvent.transactionHash,
   });
 
   if (donation.ownerType === AdminTypes.MILESTONE) {
     await updateMilestoneStatusToPaid(app, donation);
   }
 };
+const updateDonationsAndMilestoneStatusToBridgeFailed = async ({ app, donation, bridgeEvent }) => {
+  const donationService = app.service('donations');
+  donationService.patch(donation._id, {
+    bridgeStatus: DONATION_BRIDGE_STATUS.CANCELLED,
+    bridgeTxHash: bridgeEvent.transactionHash,
+  });
 
-const updateDonationsStatusesWithMainNet = async app => {
+  if (donation.ownerType === AdminTypes.MILESTONE) {
+    // TODO I dont know what should to do with milestone in this case
+  }
+};
+
+const updateDonationsStatusesWithBridge = async app => {
   const donationService = app.service('donations');
   // 0 */5 * * * means every five minutes
   cron.schedule('0 */5 * * *', async () => {
@@ -79,6 +93,7 @@ const updateDonationsStatusesWithMainNet = async app => {
       paginate: false,
       query: {
         $limit: 20,
+        // TODO add filter for createdAt to less than 72 hours ago
         status: DonationStatus.PAID,
         bridgeStatus: {
           $exists: true,
@@ -93,13 +108,19 @@ const updateDonationsStatusesWithMainNet = async app => {
       const payment = await getDonationStatusFromBridge({ txHash: donation.txHash });
       if (payment && payment.paid) {
         // eslint-disable-next-line no-await-in-loop
-        await updateDonationsAndMilestoneStatusToMainNetPaid({
+        await updateDonationsAndMilestoneStatusToBridgePaid({
           app,
           donation,
-          mainNetEvent: payment.event,
+          bridgeEvent: payment.event,
         });
         // TODO
       } else if (payment && payment.canceled) {
+        // eslint-disable-next-line no-await-in-loop
+        await updateDonationsAndMilestoneStatusToBridgeFailed({
+          app,
+          donation,
+          bridgeEvent: payment.event,
+        });
         // TODO
       }
     }
@@ -108,5 +129,5 @@ const updateDonationsStatusesWithMainNet = async app => {
 
 module.exports = {
   getDonationStatusFromBridge,
-  updateDonationsStatusesWithMainNet,
+  updateDonationsStatusesWithMainNet: updateDonationsStatusesWithBridge,
 };

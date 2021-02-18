@@ -78,6 +78,7 @@ function Milestone(app) {
       message: { type: String },
       proofItems: [Item],
       messageContext: { type: String },
+      isAllDonationsPaidInBridge: { type: Boolean },
       tokenAddress: { type: String, required: true },
       projectAddedAt: { type: Date }, // Store the time milestone is accepted or added by campaign owner
     },
