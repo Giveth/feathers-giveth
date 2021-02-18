@@ -8,6 +8,7 @@ const sanitizeHtml = require('../../hooks/sanitizeHtml');
 const resolveFiles = require('../../hooks/resolveFiles');
 const onlyInternal = require('../../hooks/onlyInternal');
 const { AdminTypes } = require('../../models/pledgeAdmins.model');
+const { CONVERSATION_MESSAGE_CONTEXT } = require('../../models/conversations.model');
 const { isRequestInternal } = require('../../utils/feathersUtils');
 
 /**
@@ -22,27 +23,6 @@ const { isRequestInternal } = require('../../utils/feathersUtils');
 
  @param ownerAddress (string) is automatically set based on the current logged in user
  * */
-
-/**
- Available conversation types. This roughly follows the milestone status
- replyTo is for threaded messages
- * */
-const MESSAGE_CONTEXT = [
-  'proposed',
-  'rejected',
-  'NeedsReview',
-  'Completed',
-  'Canceled',
-  'replyTo',
-  'proposedRejected',
-  'proposedAccepted',
-  'rePropose',
-  'archived',
-  'payment',
-  'donated',
-  'delegated',
-  'comment',
-];
 
 /**
  Only people involved with the milestone can create conversation
@@ -111,9 +91,10 @@ const checkMessageContext = () => context => {
   const { messageContext, replyToId } = context.data;
   const { app } = context;
 
-  if (!MESSAGE_CONTEXT.includes(messageContext))
+  if (!Object.values(CONVERSATION_MESSAGE_CONTEXT).includes(messageContext))
     throw new errors.BadRequest('Incorrect message context');
 
+  // TODO it should be CONVERSATION_MESSAGE_CONTEXT.REPLY_TO that is replyTo not ReplyTo
   if (messageContext === 'ReplyTo') {
     return app
       .service('conversations')

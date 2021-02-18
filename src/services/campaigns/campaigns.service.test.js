@@ -18,13 +18,13 @@ async function createCampaign(data) {
 }
 
 function getCampaignTestCases() {
-  it('should get successful result', async function() {
+  it('should get successful result', async () => {
     const response = await request(baseUrl).get(relativeUrl);
     assert.equal(response.statusCode, 200);
     assert.exists(response.body.data);
     assert.notEqual(response.body.data.length, 0);
   });
-  it('getCampaignDetail', async function() {
+  it('getCampaignDetail', async () => {
     const response = await request(baseUrl).get(`${relativeUrl}/${SAMPLE_DATA.CAMPAIGN_ID}`);
     assert.equal(response.statusCode, 200);
     assert.equal(response.body.ownerAddress, SAMPLE_DATA.USER_ADDRESS);
@@ -32,15 +32,15 @@ function getCampaignTestCases() {
 }
 
 function postCampaignTestCases() {
-  it('should create campaign successfully', async function() {
+  it('should create campaign successfully', async () => {
     const response = await request(baseUrl)
       .post(relativeUrl)
       .send(SAMPLE_DATA.CREATE_CAMPAIGN_DATA)
-      .set({ Authorization: getJwt() });
+      .set({ Authorization: getJwt(SAMPLE_DATA.CREATE_CAMPAIGN_DATA.ownerAddress) });
     assert.equal(response.statusCode, 201);
-    assert.equal(response.body.ownerAddress, SAMPLE_DATA.USER_ADDRESS);
+    assert.equal(response.body.ownerAddress, SAMPLE_DATA.CREATE_CAMPAIGN_DATA.ownerAddress);
   });
-  it('should get unAuthorized error', async function() {
+  it('should get unAuthorized error', async () => {
     const response = await request(baseUrl)
       .post(relativeUrl)
       .send(SAMPLE_DATA.CREATE_CAMPAIGN_DATA);
@@ -50,7 +50,7 @@ function postCampaignTestCases() {
 }
 
 function patchCampaignTestCases() {
-  it('should update campaign successfully', async function() {
+  it('should update campaign successfully', async () => {
     const description = 'Description updated by test';
     const response = await request(baseUrl)
       .patch(`${relativeUrl}/${SAMPLE_DATA.CAMPAIGN_ID}`)
@@ -60,9 +60,9 @@ function patchCampaignTestCases() {
     assert.equal(response.body.description, description);
   });
 
-  it('should update campaign successfully, reviewer can cancel the campaign', async function() {
+  it('should update campaign successfully, reviewer can cancel the campaign', async () => {
     const description = 'Description updated by test';
-    const reviewerAddress = SAMPLE_DATA.SECOND_USER_ADDRESS;
+    const reviewerAddress = SAMPLE_DATA.IN_REVIEWER_WHITELIST_USER_ADDRESS;
     const campaign = await createCampaign({
       ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
       reviewerAddress,
@@ -77,7 +77,7 @@ function patchCampaignTestCases() {
 
   it('should update campaign successfully, reviewer can cancel the campaign and just status and mined should be updated', async function() {
     const description = 'Description updated by test';
-    const reviewerAddress = SAMPLE_DATA.SECOND_USER_ADDRESS;
+    const reviewerAddress = SAMPLE_DATA.IN_REVIEWER_WHITELIST_USER_ADDRESS;
     const campaign = await createCampaign({
       ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
       reviewerAddress,
@@ -95,9 +95,9 @@ function patchCampaignTestCases() {
     // assert.notEqual(response.body.description, description);
   });
 
-  it('should not update campaign successfully, reviewer just can change status to Canceled', async function() {
+  it('should not update campaign successfully, reviewer just can change status to Canceled', async () => {
     const description = 'Description updated by test';
-    const reviewerAddress = SAMPLE_DATA.SECOND_USER_ADDRESS;
+    const reviewerAddress = SAMPLE_DATA.IN_REVIEWER_WHITELIST_USER_ADDRESS;
     const campaign = await createCampaign({
       ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
       reviewerAddress,
@@ -114,9 +114,9 @@ function patchCampaignTestCases() {
     assert.equal(response.body.code, 403);
   });
 
-  it('should not update campaign successfully, reviewer need to send mined:false in data', async function() {
+  it('should not update campaign successfully, reviewer need to send mined:false in data', async () => {
     const description = 'Description updated by test';
-    const reviewerAddress = SAMPLE_DATA.SECOND_USER_ADDRESS;
+    const reviewerAddress = SAMPLE_DATA.IN_REVIEWER_WHITELIST_USER_ADDRESS;
     const campaign = await createCampaign({
       ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
       reviewerAddress,
@@ -132,7 +132,7 @@ function patchCampaignTestCases() {
     assert.equal(response.body.code, 403);
   });
 
-  it('should get unAuthorized error', async function() {
+  it('should get unAuthorized error', async () => {
     const response = await request(baseUrl)
       .patch(`${relativeUrl}/${SAMPLE_DATA.CAMPAIGN_ID}`)
       .send(SAMPLE_DATA.CREATE_CAMPAIGN_DATA);
@@ -140,7 +140,7 @@ function patchCampaignTestCases() {
     assert.equal(response.body.code, 401);
   });
 
-  it('should get unAuthorized error because Only the Campaign owner can edit campaign', async function() {
+  it('should get unAuthorized error because Only the Campaign owner can edit campaign', async () => {
     const description = 'Description updated by test';
     const response = await request(baseUrl)
       .patch(`${relativeUrl}/${SAMPLE_DATA.CAMPAIGN_ID}`)
@@ -152,7 +152,7 @@ function patchCampaignTestCases() {
 }
 
 function deleteCampaignTestCases() {
-  it('should not delete because its disallowed', async function() {
+  it('should not delete because its disallowed', async () => {
     const createCampaignData = { ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA };
     const campaign = await createCampaign(createCampaignData);
     const response = await request(baseUrl)
@@ -161,7 +161,7 @@ function deleteCampaignTestCases() {
     assert.equal(response.statusCode, 405);
   });
 
-  it('should get unAuthorized error', async function() {
+  it('should get unAuthorized error', async () => {
     const response = await request(baseUrl).delete(`${relativeUrl}/${SAMPLE_DATA.CAMPAIGN_ID}`);
     assert.equal(response.statusCode, 401);
     assert.equal(response.body.code, 401);

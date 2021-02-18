@@ -23,6 +23,8 @@ module.exports = app => {
           'pluginAddress',
           'campaignId',
           'maxAmount',
+          'type',
+          'recipientAddress',
         ],
         $sort: { createdAt: 1 },
       },
