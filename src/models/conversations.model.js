@@ -51,7 +51,7 @@ const createModel = function Conversations(app) {
       donorId: { type: String },
 
       // this is for payment conversations
-      donationId: { type: String, unique: true},
+      donationId: { type: String, unique: true },
       items: [Item],
       txHash: { type: String },
       mined: { type: Boolean, default: false },
