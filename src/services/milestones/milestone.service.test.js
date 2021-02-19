@@ -34,7 +34,7 @@ function postMilestoneTestCases() {
   it('should create milestone successfully', async function() {
     const response = await request(baseUrl)
       .post(relativeUrl)
-      .send(SAMPLE_DATA.CREATE_MILESTONE_DATA)
+      .send(SAMPLE_DATA.CREATE_MILESTONE_DATA())
       .set({ Authorization: getJwt() });
     assert.equal(response.statusCode, 201);
     assert.equal(response.body.ownerAddress, SAMPLE_DATA.USER_ADDRESS);
@@ -49,7 +49,7 @@ function postMilestoneTestCases() {
     const response = await request(baseUrl)
       .post(relativeUrl)
       .send({
-        ...SAMPLE_DATA.CREATE_MILESTONE_DATA,
+        ...SAMPLE_DATA.CREATE_MILESTONE_DATA(),
         token: {
           address: ethToken.address,
         },
@@ -67,7 +67,7 @@ function postMilestoneTestCases() {
   it('should get unAuthorized error', async function() {
     const response = await request(baseUrl)
       .post(relativeUrl)
-      .send(SAMPLE_DATA.CREATE_MILESTONE_DATA);
+      .send(SAMPLE_DATA.CREATE_MILESTONE_DATA());
     assert.equal(response.statusCode, 401);
     assert.equal(response.body.code, 401);
   });
@@ -151,7 +151,7 @@ function patchMilestoneTestCases() {
   it('should get unAuthorized error', async function() {
     const response = await request(baseUrl)
       .patch(`${relativeUrl}/${SAMPLE_DATA.MILESTONE_ID}`)
-      .send(SAMPLE_DATA.CREATE_MILESTONE_DATA);
+      .send(SAMPLE_DATA.CREATE_MILESTONE_DATA());
     assert.equal(response.statusCode, 401);
     assert.equal(response.body.code, 401);
   });
@@ -182,7 +182,7 @@ function deleteMilestoneTestCases() {
     ];
     /* eslint-disable no-await-in-loop, no-restricted-syntax */
     for (const status of statusThatCantBeDeleted) {
-      const createMileStoneData = { ...SAMPLE_DATA.CREATE_MILESTONE_DATA };
+      const createMileStoneData = { ...SAMPLE_DATA.CREATE_MILESTONE_DATA() };
       createMileStoneData.status = status;
       createMileStoneData.ownerAddress = SAMPLE_DATA.USER_ADDRESS;
 
@@ -195,7 +195,7 @@ function deleteMilestoneTestCases() {
   });
 
   it('should be successful for milestone with status Proposed', async function() {
-    const createMileStoneData = { ...SAMPLE_DATA.CREATE_MILESTONE_DATA };
+    const createMileStoneData = { ...SAMPLE_DATA.CREATE_MILESTONE_DATA() };
     createMileStoneData.status = SAMPLE_DATA.MILESTONE_STATUSES.PROPOSED;
     createMileStoneData.ownerAddress = SAMPLE_DATA.USER_ADDRESS;
     const milestone = await createMilestone(createMileStoneData);
@@ -206,7 +206,7 @@ function deleteMilestoneTestCases() {
   });
 
   it('should be successful for milestone with status Rejected', async function() {
-    const createMileStoneData = { ...SAMPLE_DATA.CREATE_MILESTONE_DATA };
+    const createMileStoneData = { ...SAMPLE_DATA.CREATE_MILESTONE_DATA() };
     createMileStoneData.status = SAMPLE_DATA.MILESTONE_STATUSES.REJECTED;
     createMileStoneData.ownerAddress = SAMPLE_DATA.USER_ADDRESS;
     const milestone = await createMilestone(createMileStoneData);
@@ -217,7 +217,7 @@ function deleteMilestoneTestCases() {
   });
 
   it("should get 403 , users cant delete other's  milestone", async function() {
-    const createMileStoneData = { ...SAMPLE_DATA.CREATE_MILESTONE_DATA };
+    const createMileStoneData = { ...SAMPLE_DATA.CREATE_MILESTONE_DATA() };
     createMileStoneData.status = SAMPLE_DATA.MILESTONE_STATUSES.REJECTED;
     createMileStoneData.ownerAddress = SAMPLE_DATA.USER_ADDRESS;
     const milestone = await createMilestone(createMileStoneData);
@@ -229,7 +229,7 @@ function deleteMilestoneTestCases() {
   });
 
   it('should be successful , delete Proposed milestone', async function() {
-    const createMileStoneData = { ...SAMPLE_DATA.CREATE_MILESTONE_DATA };
+    const createMileStoneData = { ...SAMPLE_DATA.CREATE_MILESTONE_DATA() };
     createMileStoneData.status = SAMPLE_DATA.MILESTONE_STATUSES.REJECTED;
     createMileStoneData.ownerAddress = SAMPLE_DATA.USER_ADDRESS;
     const milestone = await createMilestone(createMileStoneData);
