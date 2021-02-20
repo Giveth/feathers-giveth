@@ -54,7 +54,6 @@ function Donation(app) {
       },
       bridgeStatus: {
         type: String,
-        required: true,
         enum: Object.values(DONATION_BRIDGE_STATUS),
       },
       bridgeTxHash: { type: String },

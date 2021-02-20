@@ -28,7 +28,7 @@ function getConversionRatesTestCases() {
     assert.equal(response.body.rates[btcSymbol], 1);
   });
 
-  it('should get result for PAN', async function() {
+  it('should get result for PAN', async () => {
     const symbol = 'PAN';
     const response = await request(baseUrl)
       .get(relativeUrl)
