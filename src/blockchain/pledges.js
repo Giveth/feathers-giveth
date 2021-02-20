@@ -650,7 +650,7 @@ const pledges = (app, liquidPledging) => {
         await spendAndUpdateExistingDonations(transferInfo);
         await createToDonation(transferInfo);
       } else {
-        logger.warn('Ignore repetitive transfer:', transferInfo);
+        // logger.warn('Ignore repetitive transfer:', transferInfo);
       }
     } catch (err) {
       logger.error('Handling transfer event error:', err);

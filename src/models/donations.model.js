@@ -17,6 +17,8 @@ const DonationStatus = {
 
 const DONATION_BRIDGE_STATUS = {
   CANCELLED: 'Cancelled',
+  EXPIRED: 'Expired',
+  UNKNOWN: 'Unknown',
   PAID: 'Paid',
 };
 
@@ -137,6 +139,6 @@ function Donation(app) {
 
 module.exports = {
   DonationStatus,
-  DONATION_MAIN_NET_STATUS: DONATION_BRIDGE_STATUS,
+  DONATION_BRIDGE_STATUS,
   createModel: Donation,
 };
