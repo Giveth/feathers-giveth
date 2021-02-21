@@ -1,10 +1,8 @@
 const config = require('config');
 const axios = require('axios');
-const cron = require('node-cron');
 const logger = require('winston');
-const { AdminTypes } = require('../models/pledgeAdmins.model');
 const { DonationStatus, DONATION_BRIDGE_STATUS } = require('../models/donations.model');
-const { ZERO_ADDRESS } = require('../blockchain/lib/web3Helpers');
+const { MilestoneStatus } = require('../models/milestones.model');
 
 const bridgeMonitorBaseUrl = config.get('bridgeMonitorBaseUrl');
 const getDonationStatusFromBridge = async ({ txHash }) => {
@@ -28,11 +26,7 @@ const updateMilestoneStatusToPaid = async (app, donation) => {
   const donationService = app.service('donations');
   const milestoneService = app.service('milestones');
   const milestone = await milestoneService.get(donation.ownerTypeId);
-  const { maxAmount, reviewerAddress, fullyFunded } = milestone;
-
-  // never set uncapped or without-reviewer non-fullyFunded milestones as PAID
-  const hasReviewer = reviewerAddress && reviewerAddress !== ZERO_ADDRESS;
-  if (!maxAmount || (!fullyFunded && !hasReviewer)) return;
+  if (milestone.status !== MilestoneStatus.PAID) return;
   const donations = await donationService.find({
     paginate: false,
     query: {
@@ -73,9 +67,7 @@ const updateDonationsAndMilestoneStatusToBridgePaid = async ({ app, donation, br
     donationId: donation._id,
     bridgeStatus,
   });
-  if (donation.ownerType === AdminTypes.MILESTONE) {
-    await updateMilestoneStatusToPaid(app, donation);
-  }
+  await updateMilestoneStatusToPaid(app, donation);
 };
 const updateDonationsAndMilestoneStatusToBridgeFailed = async ({ app, donation, bridgeEvent }) => {
   const donationService = app.service('donations');
@@ -88,17 +80,17 @@ const updateDonationsAndMilestoneStatusToBridgeFailed = async ({ app, donation, 
     donationId: donation._id,
     bridgeStatus,
   });
-  if (donation.ownerType === AdminTypes.MILESTONE) {
-    // TODO I dont know what should to do with milestone in this case
-  }
 };
 const updateDonationsAndMilestoneStatusToBridgeUnknown = async ({ app, donation }) => {
   const donationService = app.service('donations');
   let bridgeStatus = DONATION_BRIDGE_STATUS.UNKNOWN;
+
   const timeBetweenCreatedDonationAndNow =
     new Date().getTime() - new Date(donation.createdAt).getTime();
-  const threshold = 60 * 24 * 3600 * 1000;
-  if (timeBetweenCreatedDonationAndNow > threshold) {
+  const expirationThreshold = 60 * 24 * 3600 * 1000;
+  if (timeBetweenCreatedDonationAndNow > expirationThreshold) {
+    // If a donations is for more than two months ago and the bridge status is unknown
+    // then we set the bridgeStatus Expired to not inquiry again for that donation
     bridgeStatus = DONATION_BRIDGE_STATUS.EXPIRED;
   }
   donationService.patch(donation._id, {
@@ -110,60 +102,69 @@ const updateDonationsAndMilestoneStatusToBridgeUnknown = async ({ app, donation 
   });
 };
 
-const updateDonationsStatusesWithBridge = async app => {
-  const donationService = app.service('donations');
-  // */5 * * * * means every 5 minute
-  cron.schedule('*/5 * * * *', async () => {
-    const donations = await donationService.find({
-      paginate: false,
-      query: {
-        $limit: 100,
-        // TODO add filter for createdAt to less than 72 hours ago
-        status: DonationStatus.PAID,
-        bridgeStatus: {
-          // $exists: true,
-          $nin: [
-            DONATION_BRIDGE_STATUS.PAID,
-            DONATION_BRIDGE_STATUS.CANCELLED,
-            DONATION_BRIDGE_STATUS.EXPIRED,
-          ],
-        },
-      },
+const inquiryAndUpdateDonationStatusFromBridge = async ({ app, donation }) => {
+  const payment = await getDonationStatusFromBridge({ txHash: donation.txHash });
+  if (payment && payment.paid) {
+    await updateDonationsAndMilestoneStatusToBridgePaid({
+      app,
+      donation,
+      bridgeEvent: payment.event,
     });
-    logger.info(
-      'updateDonationsStatusesWithBridge cronjob executed, donationsCount:',
-      donations.length,
-    );
-    // eslint-disable-next-line no-restricted-syntax
-    for (const donation of donations) {
-      // eslint-disable-next-line no-await-in-loop
-      const payment = await getDonationStatusFromBridge({ txHash: donation.txHash });
-      if (payment && payment.paid) {
-        // eslint-disable-next-line no-await-in-loop
-        await updateDonationsAndMilestoneStatusToBridgePaid({
-          app,
-          donation,
-          bridgeEvent: payment.event,
-        });
-      } else if (payment && payment.canceled) {
-        // eslint-disable-next-line no-await-in-loop
-        await updateDonationsAndMilestoneStatusToBridgeFailed({
-          app,
-          donation,
-          bridgeEvent: payment.event,
-        });
-      } else {
-        // eslint-disable-next-line no-await-in-loop
-        await updateDonationsAndMilestoneStatusToBridgeUnknown({
-          app,
-          donation,
-        });
-      }
-    }
+  } else if (payment && payment.canceled) {
+    await updateDonationsAndMilestoneStatusToBridgeFailed({
+      app,
+      donation,
+      bridgeEvent: payment.event,
+    });
+  } else {
+    await updateDonationsAndMilestoneStatusToBridgeUnknown({
+      app,
+      donation,
+    });
+  }
+};
+
+const syncDonationsWithBridge = async app => {
+  const donationService = app.service('donations');
+  const donations = await donationService.find({
+    paginate: false,
+    query: {
+      $limit: 100,
+      // 3 * 24 * 60 * 60 * 1000 means 3 days
+      createdAt: { $lte: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) },
+      status: DonationStatus.PAID,
+      txHash: { $exists: true },
+      bridgeStatus: {
+        // $exists: true,
+        $nin: [
+          DONATION_BRIDGE_STATUS.PAID,
+          DONATION_BRIDGE_STATUS.CANCELLED,
+          DONATION_BRIDGE_STATUS.EXPIRED,
+        ],
+      },
+    },
   });
+  logger.info(
+    'updateDonationsStatusesWithBridge cronjob executed, donationsCount:',
+    donations.length,
+  );
+  // eslint-disable-next-line no-restricted-syntax
+  for (const donation of donations) {
+    // eslint-disable-next-line no-await-in-loop
+    await inquiryAndUpdateDonationStatusFromBridge({ app, donation });
+  }
+};
+
+const updateDonationsStatusesWithBridge = async app => {
+  await syncDonationsWithBridge(app);
+
+  // 1000 * 60 * 5 means every 5 minute
+  const intervalTime = 1000 * 60 * 5;
+  setInterval(async () => {
+    await syncDonationsWithBridge(app);
+  }, intervalTime);
 };
 
 module.exports = {
-  getDonationStatusFromBridge,
   updateDonationsStatusesWithBridge,
 };
