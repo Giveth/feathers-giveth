@@ -42,7 +42,9 @@ const assertNotThrowsAsync = async fn => {
 };
 
 const testAddress = '0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1';
+const reviewerAddress = '0xd00cc82a132f421bA6414D196BC830Db95e2e7Dd';
 const campaignAddress = '5fd3412e3e403d0c0f9e4463';
+const projectOwnerAddress = '0x839395e20bbB182fa440d08F850E6c7A8f6F0780';
 
 function getJwt(address = testAddress) {
   const authentication = config.get('authentication');
@@ -121,16 +123,23 @@ function generateRandomTransactionHash() {
   return `0x${generateHexNumber(62)}`;
 }
 
+let milestoneCounter = 1;
+
 const SAMPLE_DATA = {
   // the user in seed data has these values
   USER_ADDRESS: testAddress,
+  ADMIN_USER_ADDRESS: '0xb192Ade5c76209655380285d3D2F3AfA16C44727',
   USER_GIVER_ID: 1,
 
   SECOND_USER_ADDRESS: '0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0',
+  IN_PROJECT_WHITELIST_USER_ADDRESS: projectOwnerAddress,
+  IN_REVIEWER_WHITELIST_USER_ADDRESS: reviewerAddress,
+  IN_DELEGATE_WHITELIST_USER_ADDRESS: '0x84DD429D2A54176A971e0993E11020e4Aa81aB13',
   MILESTONE_ID: '5fd3424c3e403d0c0f9e4487',
   CAMPAIGN_ID: campaignAddress,
   FAKE_USER_ADDRESS: generateRandomEtheriumAddress(),
   DAC_ID: '5fd339eaa5ffa2a6198ecd70',
+  USER_ID: '5fd3385aa5ffa2a6198ecd6e',
   MILESTONE_STATUSES: {
     PROPOSED: 'Proposed',
     REJECTED: 'Rejected',
@@ -162,47 +171,77 @@ const SAMPLE_DATA = {
     PROCESSED: 'Processed',
     FAILED: 'Failed',
   },
-  CREATE_MILESTONE_DATA: {
-    fullyFunded: false,
-    mined: true,
-    title: 'test-milestone',
-    description: '<p>give money for god sake</p>',
-    image: '',
-    reviewerAddress: testAddress,
-    dacId: 0,
-    date: '2020-11-10T00:00:00.000Z',
-    recipientAddress: '0x0000000000000000000000000000000000000000',
-    pluginAddress: '0x0000000000000000000000000000000000000001',
-    campaignId: campaignAddress,
-    status: 'InProgress',
-    items: [],
-    token: {
-      name: 'ANY_TOKEN',
-      address: '0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF',
-      foreignAddress: '0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF',
-      symbol: 'ANY_TOKEN',
-      decimals: '1',
+  CREATE_EVENT_DATA: {
+    topics: [],
+    status: 'Processed',
+    address: '0x8eB047585ABeD935a73ba4b9525213F126A0c979',
+    blockNumber: 3051511,
+    transactionHash: '0x28a99355b05336993764f39d383a47b7b4577c3186d59fe55afb2cd0b4c15347',
+    transactionIndex: 9,
+    blockHash: '0xcdee74b8a7c19540b619672e260b0a88b8e81887de676a5da839fade04970688',
+    logIndex: 6,
+    id: 'log_69157b69',
+    returnValues: {
+      0: '261',
+      1: '',
+      idProject: '261',
+      url: '',
     },
-    owner: {
-      address: testAddress,
-      createdAt: '2018-08-22T00:34:52.691Z',
-      updatedAt: '2020-10-22T00:16:39.775Z',
-      email: 'test@giveth.io',
+    event: 'ProjectAdded',
+    signature: '0x9958fc92731727637b02f1ac1e6caf2814442c27e1d962f0c477cd14280f586d',
+    raw: {
+      data:
+        '0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000',
+      topics: [
+        '0x9958fc92731727637b02f1ac1e6caf2814442c27e1d962f0c477cd14280f586d',
+        '0x0000000000000000000000000000000000000000000000000000000000000105',
+      ],
     },
-    type: 'BridgedMilestone',
-    maxAmount: null,
-    txHash: '0x8b0abaa5f5d3cc87c3d52362ef147b8a0fd4ccb02757f5f48b6048aa2e9d86c0',
-    proofItems: [],
-    pendingRecipientAddress: '0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1',
-    peopleCount: 3,
+    confirmations: 6,
+  },
+  CREATE_MILESTONE_DATA() {
+    return {
+      fullyFunded: false,
+      mined: true,
+      title: `test-milestone-${milestoneCounter++}`,
+      description: '<p>give money for god sake</p>',
+      image: '',
+      reviewerAddress: testAddress,
+      dacId: 0,
+      date: '2020-11-10T00:00:00.000Z',
+      recipientAddress: '0x0000000000000000000000000000000000000000',
+      pluginAddress: '0x0000000000000000000000000000000000000001',
+      campaignId: campaignAddress,
+      status: 'InProgress',
+      items: [],
+      token: {
+        name: 'ANY_TOKEN',
+        address: '0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF',
+        foreignAddress: '0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF',
+        symbol: 'ANY_TOKEN',
+        decimals: '1',
+      },
+      owner: {
+        address: testAddress,
+        createdAt: '2018-08-22T00:34:52.691Z',
+        updatedAt: '2020-10-22T00:16:39.775Z',
+        email: 'test@giveth.io',
+      },
+      type: 'BridgedMilestone',
+      maxAmount: null,
+      txHash: '0x8b0abaa5f5d3cc87c3d52362ef147b8a0fd4ccb02757f5f48b6048aa2e9d86c0',
+      proofItems: [],
+      pendingRecipientAddress: '0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1',
+      peopleCount: 3,
+    };
   },
   CREATE_CAMPAIGN_DATA: {
     title: 'Hello I;m new Campaign',
     projectId: 10,
     image: 'This should be image :))',
     mined: false,
-    reviewerAddress: testAddress,
-    ownerAddress: testAddress,
+    reviewerAddress,
+    ownerAddress: projectOwnerAddress,
     status: 'Pending',
     txHash: generateRandomTransactionHash(),
     description: 'test description for campaign',

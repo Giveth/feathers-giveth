@@ -11,7 +11,7 @@ const { MilestoneStatus, MilestoneTypes } = require('../models/milestones.model'
 const { AdminTypes } = require('../models/pledgeAdmins.model');
 const toWrapper = require('../utils/to');
 const reprocess = require('../utils/reprocess');
-const notify = require('../utils/sendPledgeNotifications');
+const { handleDonationConversationAndEmail } = require('../utils/conversationAndEmailHandler');
 
 function isOlderThenAMin(ts) {
   return Date.now() - ts > 1000 * 60;
@@ -464,13 +464,13 @@ const pledges = (app, liquidPledging) => {
   async function createToDonation(transferInfo) {
     const mutation = await createToDonationMutation(transferInfo);
     // if tx is older then 1 min, set retry = true to instantly create the donation if necessary
-    const r = await createDonation(
+    const donation = await createDonation(
       mutation,
       transferInfo.initialTransfer,
       isOlderThenAMin(transferInfo.ts),
     );
-    notify(app, mutation);
-    return r;
+    handleDonationConversationAndEmail(app, donation);
+    return donation;
   }
 
   /**

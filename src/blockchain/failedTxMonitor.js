@@ -190,13 +190,17 @@ const failedTxMonitor = (app, eventWatcher) => {
       if (parentDonations.length > 0) {
         updateFailedDonationParents(donation);
       }
-      app
-        .service('donations')
-        .patch(_id, {
+
+      try {
+        // delete conversation related to that donation
+        await app.service('conversations').Model.deleteOne({ donationId: String(_id) });
+        await app.service('donations').patch(_id, {
           status: DonationStatus.FAILED,
           mined: true,
-        })
-        .catch(logger.error);
+        });
+      } catch (e) {
+        logger.error('update donation to Failed and delete related conversation error ', e);
+      }
       return;
     }
 

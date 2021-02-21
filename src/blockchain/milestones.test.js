@@ -20,7 +20,7 @@ function reviewRequestedTestCases() {
     await new Transaction({ hash: transactionHash, from }).save();
     const idProject = generateRandomNumber(10, 100000);
     await app.service('milestones').create({
-      ...SAMPLE_DATA.CREATE_MILESTONE_DATA,
+      ...SAMPLE_DATA.CREATE_MILESTONE_DATA(),
       ownerAddress: from,
       mined: false,
       status,
@@ -60,7 +60,7 @@ function reviewRequestedTestCases() {
     ];
     /* eslint-disable no-restricted-syntax */
     for (const status of validStatuses) {
-      it(`should update with status ${status}`, async function() {
+      it(`should update with status ${status}`, async () => {
         const upsertedMilestone = await updateMileStoneByRequestReviewEventData(status);
         assert.equal(upsertedMilestone.status, SAMPLE_DATA.MILESTONE_STATUSES.NEEDS_REVIEW);
         assert.equal(upsertedMilestone.mined, true);
@@ -95,7 +95,7 @@ function rejectTestCases() {
     await new Transaction({ hash: transactionHash, from }).save();
     const idProject = generateRandomNumber(10, 100000);
     await app.service('milestones').create({
-      ...SAMPLE_DATA.CREATE_MILESTONE_DATA,
+      ...SAMPLE_DATA.CREATE_MILESTONE_DATA(),
       ownerAddress: from,
       mined: false,
       status,
@@ -135,7 +135,7 @@ function rejectTestCases() {
     ];
     /* eslint-disable no-restricted-syntax */
     for (const status of validStatuses) {
-      it(`should update with status ${status}`, async function() {
+      it(`should update with status ${status}`, async () => {
         const upsertedMilestone = await updateMileStoneByRejectEventData(status);
         assert.equal(upsertedMilestone.status, SAMPLE_DATA.MILESTONE_STATUSES.IN_PROGRESS);
         assert.equal(upsertedMilestone.mined, true);
@@ -171,7 +171,7 @@ function acceptedTestCases() {
     await new Transaction({ hash: transactionHash, from }).save();
     const idProject = generateRandomNumber(10, 100000);
     await app.service('milestones').create({
-      ...SAMPLE_DATA.CREATE_MILESTONE_DATA,
+      ...SAMPLE_DATA.CREATE_MILESTONE_DATA(),
       ownerAddress: from,
       mined: false,
       status,
@@ -224,7 +224,7 @@ function reviewerChangedTestCases() {
     await new Transaction({ hash: transactionHash, from }).save();
     const idProject = generateRandomNumber(10, 100000);
     await app.service('milestones').create({
-      ...SAMPLE_DATA.CREATE_MILESTONE_DATA,
+      ...SAMPLE_DATA.CREATE_MILESTONE_DATA(),
       ownerAddress: from,
       mined: false,
       status,
@@ -256,7 +256,7 @@ function reviewerChangedTestCases() {
 
   describe('should reviewerChanged()  update milestone successfully by eventData', async () => {
     for (const status of Object.values(SAMPLE_DATA.MILESTONE_STATUSES)) {
-      it(`should update milestone with status: ${status} `, async function() {
+      it(`should update milestone with status: ${status} `, async () => {
         const reviewerAddress = generateRandomEtheriumAddress();
         const upsertedMilestone = await updateMileStoneByReviewerChangedEventData(
           status,
@@ -277,7 +277,7 @@ function recipientChangedTestCases() {
     await new Transaction({ hash: transactionHash, from }).save();
     const idProject = generateRandomNumber(10, 100000);
     await app.service('milestones').create({
-      ...SAMPLE_DATA.CREATE_MILESTONE_DATA,
+      ...SAMPLE_DATA.CREATE_MILESTONE_DATA(),
       ownerAddress: from,
       mined: false,
       status,
@@ -310,7 +310,7 @@ function recipientChangedTestCases() {
   describe('should update milestone successfully by eventData', async () => {
     /* eslint-disable no-restricted-syntax */
     for (const status of Object.values(SAMPLE_DATA.MILESTONE_STATUSES)) {
-      it(`should recipientChanged update milestone with status: ${status} `, async function() {
+      it(`should recipientChanged update milestone with status: ${status} `, async () => {
         const recipient = generateRandomEtheriumAddress();
         const upsertedMilestone = await updateMileStoneByRecipientChangedEventData(
           status,
@@ -331,7 +331,7 @@ function paymentCollectedTestCases() {
   //   await new Transaction({ hash: transactionHash, from }).save();
   //   const idProject = generateRandomNumber(10, 100000);
   //   const milestone = await app.service('milestones').create({
-  //     ...SAMPLE_DATA.CREATE_MILESTONE_DATA,
+  //     ...SAMPLE_DATA.CREATE_MILESTONE_DATA(),
   //     ownerAddress: from,
   //     fullyFunded: true,
   //     maxAmount: '700',

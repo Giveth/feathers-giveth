@@ -1,22 +1,22 @@
 const request = require('supertest');
 const config = require('config');
 const { assert } = require('chai');
-const { getJwt, SAMPLE_DATA } = require('../../../test/testUtility');
+const { getJwt } = require('../../../test/testUtility');
 const { getFeatherAppInstance } = require('../../app');
 
 const app = getFeatherAppInstance();
 const baseUrl = config.get('givethFathersBaseUrl');
-const relativeUrl = '/campaigncsv';
+const relativeUrl = '/emails';
 
-function getCampaignCsvTestCases() {
+function getEmailsTestCases() {
   it('should return successful result', async function() {
-    const response = await request(baseUrl).get(`${relativeUrl}/${SAMPLE_DATA.CAMPAIGN_ID}`);
+    const response = await request(baseUrl).get(relativeUrl);
     assert.equal(response.statusCode, 200);
-    assert.isOk(response.body);
+    assert.isArray(response.body.data);
   });
 }
 
-function postCampaignCsvTestCases() {
+function postEmailsTestCases() {
   it('should return 405, POST is disallowed', async function() {
     const response = await request(baseUrl)
       .post(relativeUrl)
@@ -26,7 +26,7 @@ function postCampaignCsvTestCases() {
   });
 }
 
-function putCampaignCsvTestCases() {
+function putEmailsTestCases() {
   it('should return 405, PUT is disallowed', async function() {
     const response = await request(baseUrl)
       .put(relativeUrl)
@@ -36,8 +36,8 @@ function putCampaignCsvTestCases() {
   });
 }
 
-function deleteCampaignCsvTestCases() {
-  it('should return 405, DELETE is disallowed', async () => {
+function deleteEmailsTestCases() {
+  it('should return 405, DELETE is disallowed', async function() {
     const response = await request(baseUrl)
       .delete(relativeUrl)
       .set({ Authorization: getJwt() });
@@ -46,7 +46,7 @@ function deleteCampaignCsvTestCases() {
   });
 }
 
-function patchCampaignCsvTestCases() {
+function patchEmailsTestCases() {
   it('should return 405, PATCH is disallowed', async function() {
     const response = await request(baseUrl)
       .patch(relativeUrl)
@@ -56,13 +56,13 @@ function patchCampaignCsvTestCases() {
   });
 }
 
-it('should campaigncsv service registration be ok', () => {
-  const userService = app.service('campaigncsv');
-  assert.ok(userService, 'Registered the service');
+it('should emails service registration be ok', () => {
+  const service = app.service('emails');
+  assert.ok(service, 'Registered the service');
 });
 
-describe(`Test GET ${relativeUrl}`, getCampaignCsvTestCases);
-describe(`Test POST ${relativeUrl}`, postCampaignCsvTestCases);
-describe(`Test PUT ${relativeUrl}`, putCampaignCsvTestCases);
-describe(`Test DELETE ${relativeUrl}`, deleteCampaignCsvTestCases);
-describe(`Test PATCH ${relativeUrl}`, patchCampaignCsvTestCases);
+describe(`Test GET ${relativeUrl}`, getEmailsTestCases);
+describe(`Test POST ${relativeUrl}`, postEmailsTestCases);
+describe(`Test PUT ${relativeUrl}`, putEmailsTestCases);
+describe(`Test DELETE ${relativeUrl}`, deleteEmailsTestCases);
+describe(`Test PATCH ${relativeUrl}`, patchEmailsTestCases);
