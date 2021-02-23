@@ -3,6 +3,7 @@ const axios = require('axios');
 const logger = require('winston');
 const { DonationStatus, DONATION_BRIDGE_STATUS } = require('../models/donations.model');
 const { MilestoneStatus } = require('../models/milestones.model');
+const { getTransaction } = require('../blockchain/lib/web3Helpers');
 
 const bridgeMonitorBaseUrl = config.get('bridgeMonitorBaseUrl');
 const getDonationStatusFromBridge = async ({ txHash }) => {
@@ -59,22 +60,27 @@ const updateMilestoneStatusToPaid = async (app, donation) => {
 const updateDonationsAndMilestoneStatusToBridgePaid = async ({ app, donation, bridgeEvent }) => {
   const donationService = app.service('donations');
   const bridgeStatus = DONATION_BRIDGE_STATUS.PAID;
+  const { timestamp } = await getTransaction(app, bridgeEvent.transactionHash, true);
   await donationService.patch(donation._id, {
     bridgeStatus,
     bridgeTxHash: bridgeEvent.transactionHash,
+    bridgeTransactionTime: timestamp,
   });
   logger.info('update donation bridge status', {
     donationId: donation._id,
     bridgeStatus,
+    timestamp,
   });
   await updateMilestoneStatusToPaid(app, donation);
 };
 const updateDonationsAndMilestoneStatusToBridgeFailed = async ({ app, donation, bridgeEvent }) => {
   const donationService = app.service('donations');
   const bridgeStatus = DONATION_BRIDGE_STATUS.CANCELLED;
+  const { timestamp } = await getTransaction(app, bridgeEvent.transactionHash, true);
   await donationService.patch(donation._id, {
     bridgeStatus,
     bridgeTxHash: bridgeEvent.transactionHash,
+    bridgeTransactionTime: timestamp,
   });
   logger.info('update donation bridge status', {
     donationId: donation._id,

@@ -57,6 +57,7 @@ function Donation(app) {
         enum: Object.values(DONATION_BRIDGE_STATUS),
       },
       bridgeTxHash: { type: String },
+      bridgeTransactionTime: { type: Date },
       txHash: { type: String, index: true },
       homeTxHash: { type: String },
       commitTime: { type: Date },
