@@ -175,7 +175,7 @@ const updateDonationsStatusesWithBridge = async app => {
   await syncDonationsWithBridge(app);
 
   // 1000 * 60 * 5 means every 5 minute
-  const intervalTime = 1000 * 60 * 1;
+  const intervalTime = 1000 * 60 * 5;
   setInterval(async () => {
     await syncDonationsWithBridge(app);
   }, intervalTime);
