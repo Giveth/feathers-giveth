@@ -6,7 +6,7 @@ const { MilestoneStatus } = require('../models/milestones.model');
 const { getTransaction } = require('../blockchain/lib/web3Helpers');
 
 const bridgeMonitorBaseUrl = config.get('bridgeMonitorBaseUrl');
-const getDonationStatusFromBridge = async ({ txHash }) => {
+const getDonationStatusFromBridge = async ({ txHash, tokenAddress }) => {
   /**
    * If you want to see an example of bridge monitor response you can check this link
    * @see{@link https://feathers.bridge.beta.giveth.io/payments?event.returnValues.reference=0xe5f676f6d24fbe43feddb80dcebbedf86e35835b1c5dd984cda46faff73dd98a}
@@ -18,7 +18,14 @@ const getDonationStatusFromBridge = async ({ txHash }) => {
     },
   });
   if (result.data && result.data.data && result.data.data.length >= 0) {
-    return result.data.data[0];
+    const matchedEvent = result.data.data.find(bridgeEvent => {
+      const normalizedToken =
+        tokenAddress === '0x0'
+          ? '0x0000000000000000000000000000000000000000'
+          : tokenAddress.toLowerCase();
+      return bridgeEvent.event.returnValues.token.toLowerCase() === normalizedToken;
+    });
+    return matchedEvent;
   }
   return undefined;
 };
@@ -109,7 +116,10 @@ const updateDonationsAndMilestoneStatusToBridgeUnknown = async ({ app, donation 
 };
 
 const inquiryAndUpdateDonationStatusFromBridge = async ({ app, donation }) => {
-  const payment = await getDonationStatusFromBridge({ txHash: donation.txHash });
+  const payment = await getDonationStatusFromBridge({
+    txHash: donation.txHash,
+    tokenAddress: donation.tokenAddress,
+  });
   if (payment && payment.paid) {
     await updateDonationsAndMilestoneStatusToBridgePaid({
       app,
@@ -154,18 +164,18 @@ const syncDonationsWithBridge = async app => {
     'updateDonationsStatusesWithBridge cronjob executed, donationsCount:',
     donations.length,
   );
-  // eslint-disable-next-line no-restricted-syntax
-  for (const donation of donations) {
-    // eslint-disable-next-line no-await-in-loop
-    await inquiryAndUpdateDonationStatusFromBridge({ app, donation });
-  }
+  const promises = [];
+  donations.forEach(donation => {
+    promises.push(inquiryAndUpdateDonationStatusFromBridge({ app, donation }));
+  });
+  await Promise.all(promises);
 };
 
 const updateDonationsStatusesWithBridge = async app => {
   await syncDonationsWithBridge(app);
 
   // 1000 * 60 * 5 means every 5 minute
-  const intervalTime = 1000 * 60 * 5;
+  const intervalTime = 1000 * 60 * 1;
   setInterval(async () => {
     await syncDonationsWithBridge(app);
   }, intervalTime);

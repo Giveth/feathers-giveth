@@ -93,6 +93,21 @@ module.exports = app => {
             value: tokenKey(token.symbol, 'milestone', TokenKeyType.PAID),
             default: '-',
           },
+          {
+            label: `${token.symbol} bridgeStatus`,
+            value: `${token.symbol}-bridgeStatus`,
+            default: '-',
+          },
+          {
+            label: `${token.symbol} bridgeTransactionTime`,
+            value: `${token.symbol}-bridgeTransactionTime`,
+            default: '-',
+          },
+          {
+            label: `${token.symbol} bridgeTransactionLink`,
+            value: `${token.symbol}-bridgeTransactionLink`,
+            default: '-',
+          },
         ])
         .reduce((acc, val) => acc.concat(val), []),
     ];
