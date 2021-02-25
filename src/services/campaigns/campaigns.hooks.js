@@ -124,6 +124,7 @@ module.exports = {
       restrict(),
       sanitizeAddress('ownerAddress', { validate: true }),
       sanitizeHtml('description'),
+      createCampaignSlug(),
     ],
     remove: [commons.disallow()],
   },

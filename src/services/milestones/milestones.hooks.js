@@ -385,6 +385,7 @@ module.exports = {
       handleMilestoneConversationAndEmail(),
       resolveFiles(['image', 'items']),
       updateCampaign(),
+      createMilestoneSlug(),
     ],
     remove: [],
   },

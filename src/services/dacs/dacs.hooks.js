@@ -96,6 +96,7 @@ module.exports = {
       ...restrict,
       sanitizeAddress('ownerAddress', { validate: true }),
       sanitizeHtml('description'),
+      createDacSlug(),
     ],
     remove: [commons.disallow()],
   },
