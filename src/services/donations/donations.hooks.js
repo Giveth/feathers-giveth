@@ -376,8 +376,6 @@ const validateCreateAndUpdateInputData = () => async context => {
   });
 };
 
-
-
 const setLessThanCutoff = async (context, donation) => {
   const { _id, amountRemaining, token, status } = donation;
 
