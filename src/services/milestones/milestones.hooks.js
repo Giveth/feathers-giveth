@@ -19,6 +19,7 @@ const getApprovedKeys = require('./getApprovedKeys');
 const checkConversionRates = require('./checkConversionRates');
 const { handleMilestoneConversationAndEmail } = require('../../utils/conversationAndEmailHandler');
 const checkMilestoneDates = require('./checkMilestoneDates');
+const checkMilestoneName = require('./checkMilestoneName');
 const { getBlockTimestamp, ZERO_ADDRESS } = require('../../blockchain/lib/web3Helpers');
 const { getTokenByAddress } = require('../../utils/tokenHelper');
 
@@ -331,6 +332,7 @@ module.exports = {
     create: [
       checkConversionRates(),
       checkMilestoneDates(),
+      checkMilestoneName(),
       setAddress('ownerAddress'),
       ...address,
       isProjectAllowed(),
@@ -344,6 +346,7 @@ module.exports = {
       ...address,
       sanitizeHtml('description'),
       convertTokenToTokenAddress(),
+      checkMilestoneName(),
     ],
     patch: [
       restrict(),
@@ -355,6 +358,7 @@ module.exports = {
       storePrevState(),
       performedBy(),
       convertTokenToTokenAddress(),
+      checkMilestoneName(),
     ],
     remove: [
       restrictToOwner({

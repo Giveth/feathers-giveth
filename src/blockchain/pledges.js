@@ -464,13 +464,13 @@ const pledges = (app, liquidPledging) => {
   async function createToDonation(transferInfo) {
     const mutation = await createToDonationMutation(transferInfo);
     // if tx is older then 1 min, set retry = true to instantly create the donation if necessary
-    const r = await createDonation(
+    const donation = await createDonation(
       mutation,
       transferInfo.initialTransfer,
       isOlderThenAMin(transferInfo.ts),
     );
-    handleDonationConversationAndEmail(app, mutation);
-    return r;
+    handleDonationConversationAndEmail(app, donation);
+    return donation;
   }
 
   /**

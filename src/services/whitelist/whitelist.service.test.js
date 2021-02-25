@@ -10,9 +10,6 @@ function getWhiteListTestCases() {
     const response = await request(baseUrl).get(relativeUrl);
 
     assert.equal(response.statusCode, 200);
-    assert.isArray(response.body.reviewerWhitelist);
-    assert.isArray(response.body.delegateWhitelist);
-    assert.isArray(response.body.projectOwnerWhitelist);
     expect(response.body.fiatWhitelist).to.deep.equal(config.get('fiatWhitelist'));
     expect(response.body.tokenWhitelist).to.deep.equal(config.get('tokenWhitelist'));
   });

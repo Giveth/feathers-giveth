@@ -40,7 +40,7 @@ jobs:
           privateKey: ${{ secrets.DEVELOP_PRIVATE_KEY}}
 
       - name: beta deploy
-        if: github.ref == 'refs/heads/main'
+        if: github.ref == 'refs/heads/master'
         uses: garygrossgarten/github-action-ssh@v0.6.4
         with:
           command: echo "It's not implemented"
