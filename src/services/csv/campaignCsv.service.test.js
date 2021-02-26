@@ -37,7 +37,7 @@ function putCampaignCsvTestCases() {
 }
 
 function deleteCampaignCsvTestCases() {
-  it('should return 405, DELETE is disallowed', async function() {
+  it('should return 405, DELETE is disallowed', async () => {
     const response = await request(baseUrl)
       .delete(relativeUrl)
       .set({ Authorization: getJwt() });

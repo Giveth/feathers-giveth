@@ -10,7 +10,7 @@ const relativeUrl = '/conversionRates';
 function getConversionRatesTestCases() {
   const btcSymbol = 'BTC';
 
-  it('should get successful result', async function() {
+  it('should get successful result', async () => {
     const response = await request(baseUrl)
       .get(relativeUrl)
       .query({ symbol: btcSymbol });
@@ -18,7 +18,7 @@ function getConversionRatesTestCases() {
     assert.exists(response.body.rates);
   });
 
-  it('should get equal values for BTC and WBTC', async function() {
+  it('should get equal values for BTC and WBTC', async () => {
     const wbtcSumbol = 'WBTC';
     const response = await request(baseUrl)
       .get(relativeUrl)
@@ -28,7 +28,7 @@ function getConversionRatesTestCases() {
     assert.equal(response.body.rates[btcSymbol], 1);
   });
 
-  it('should get result for PAN', async function() {
+  it('should get result for PAN', async () => {
     const symbol = 'PAN';
     const response = await request(baseUrl)
       .get(relativeUrl)
@@ -40,7 +40,7 @@ function getConversionRatesTestCases() {
     assert.notEqual(response.body.rates.BTC, 1);
   });
 
-  it('should hourly get successful result', async function() {
+  it('should hourly get successful result', async () => {
     const usdSymbol = 'USD';
     const hourlyInterval = 'hourly';
     const response = await request(baseUrl)
@@ -50,7 +50,7 @@ function getConversionRatesTestCases() {
     assert.exists(response.body.rate);
   });
 
-  it('should hourly get equal values for BTC and WBTC', async function() {
+  it('should hourly get equal values for BTC and WBTC', async () => {
     const wbtcSymbol = 'WBTC';
     const hourlyInterval = 'hourly';
     const response = await request(baseUrl)
@@ -61,7 +61,7 @@ function getConversionRatesTestCases() {
     assert.equal(Number(response.body.rate), 1);
   });
 
-  it('should hourly get equal values for WBTC and BTC', async function() {
+  it('should hourly get equal values for WBTC and BTC', async () => {
     const wbtcSymbol = 'WBTC';
     const hourlyInterval = 'hourly';
     const response = await request(baseUrl)
@@ -72,7 +72,7 @@ function getConversionRatesTestCases() {
     assert.equal(Number(response.body.rate), 1);
   });
 
-  it('should hourly get equal values for BTC and BTC', async function() {
+  it('should hourly get equal values for BTC and BTC', async () => {
     const hourlyInterval = 'hourly';
     const response = await request(baseUrl)
       .get(relativeUrl)
@@ -82,7 +82,7 @@ function getConversionRatesTestCases() {
     assert.equal(Number(response.body.rate), 1);
   });
 
-  it('should hourly get different values for BTC and USD', async function() {
+  it('should hourly get different values for BTC and USD', async () => {
     const usdSymbol = 'USD';
     const hourlyInterval = 'hourly';
     const response = await request(baseUrl)
@@ -93,7 +93,7 @@ function getConversionRatesTestCases() {
     assert.notEqual(Number(response.body.rate), 1);
   });
 
-  it('should multiple hourly get successful result', async function() {
+  it('should multiple hourly get successful result', async () => {
     const usdSymbol = 'USD';
     const eurSymbol = 'EUR';
     const hourlyInterval = 'hourly';
