@@ -25,13 +25,28 @@ const milestoneModel = require('../src/models/milestones.model').createModel(app
 
 const createAggregateQuery = ownerType => {
   const matchQuery = { homeTxHash: { $exists: true }, ownerType };
-  let projectForeignKey = 'ownerTypeId'
-  if (ownerType === 'giver'){
+  let projectForeignKey = 'ownerTypeId';
+  if (ownerType === 'giver') {
     ownerType = 'dac';
     projectForeignKey = 'delegateTypeId';
   }
   return [
     { $match: matchQuery },
+    {
+      $lookup: {
+        let: { giverAddress: '$giverAddress' },
+        from: 'users',
+        pipeline: [
+          {
+            $match: { $expr: { $eq: ['$address', '$$giverAddress'] } },
+          },
+        ],
+        as: 'giver',
+      },
+    },
+    {
+      $unwind: '$giver',
+    },
     {
       $lookup: {
         from: `${ownerType}s`,
@@ -51,23 +66,22 @@ const createAggregateQuery = ownerType => {
 };
 const normalizeDonation = donation => {
   const dappUrl = config.get('dappUrl');
-  const {campaign, dac, tokenAddress, milestone } = donation;
+  const { campaign, dac, tokenAddress, milestone } = donation;
   let { ownerType } = donation;
-  if (ownerType === 'giver'){
-    ownerType = 'dac'
+  if (ownerType === 'giver') {
+    ownerType = 'dac';
   }
   const token = getTokenByAddress(tokenAddress);
   const data = {
-    _id: donation._id,
     usdValue: donation.usdValue,
-    amount: Number(donation.amount).toExponential(),
-    amountHumanized: donation.amount / 10 ** 18,
+    amount: donation.amount / 10 ** 18,
     tokenSymbol: token.symbol,
     ownerType,
-    ownerTypeId: ownerType === 'dac' ? donation.delegateTypeId :donation.ownerTypeId,
     giverAddress: donation.giverAddress,
+    giverName: donation.giver && donation.giver.name,
     createdAt: donation.createdAt,
     homeTxHash: donation.homeTxHash,
+    etherscanLink: `https://etherscan.io/tx/${donation.homeTxHash}`,
     tokenAddress,
   };
   if (ownerType === 'milestone') {
@@ -96,15 +110,56 @@ const directDonationsReport = async () => {
       if (a.createdAt > b.createdAt) return 1;
       return 0;
     })
-    .map( donation => {return  normalizeDonation(donation) });
-
-  // const donations = [];
-  // for(const donation of donationsWithoutNormalization){
-  //   const result = await normalizeDonation(donation);
-  //   donations.push(result)
-  // }
-
-  const fields = Object.keys(donations[0]);
+    .map(donation => {
+      return normalizeDonation(donation);
+    });
+  // const fields = Object.keys(donations[0]);
+  const fields = [
+    {
+      label: 'Amount',
+      value: 'amount',
+    },
+    {
+      label: 'Token',
+      value: 'tokenSymbol',
+    },
+    {
+      label: 'USD value',
+      value: 'usdValue',
+    },
+    {
+      label: 'Owner Type',
+      value: 'ownerType',
+    },
+    {
+      label: 'Giver Address',
+      value: 'giverAddress',
+    },
+    {
+      label: 'Giver name',
+      value: 'giverName',
+    },
+    {
+      label: 'Project Id',
+      value: 'projectId',
+    },
+    {
+      label: 'Project Link',
+      value: 'projectLink',
+    },
+    // {
+    //   label: 'Transaction Hash',
+    //   value: 'homeTxHash',
+    // },
+    {
+      label: 'Etherscan link',
+      value: 'etherscanLink',
+    },
+    {
+      label: 'Time',
+      value: 'createdAt',
+    },
+  ];
   const opts = { fields };
   const parser = new Parser(opts);
   const csv = parser.parse(donations);
@@ -122,6 +177,11 @@ db.on('error', err => {
 });
 
 db.once('open', async () => {
-  await directDonationsReport();
-  process.exit(0);
+  try {
+    await directDonationsReport();
+    process.exit(0);
+  } catch (e) {
+    console.log('error ', e);
+    process.exit(0);
+  }
 });
