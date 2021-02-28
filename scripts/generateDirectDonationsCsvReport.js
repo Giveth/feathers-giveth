@@ -79,7 +79,7 @@ const normalizeDonation = donation => {
     ownerType,
     giverAddress: donation.giverAddress,
     giverName: donation.giver && donation.giver.name,
-    createdAt: donation.createdAt,
+    createdAt: donation.createdAt.toString(),
     homeTxHash: donation.homeTxHash,
     etherscanLink: `https://etherscan.io/tx/${donation.homeTxHash}`,
     tokenAddress,
