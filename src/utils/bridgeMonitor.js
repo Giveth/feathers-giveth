@@ -64,13 +64,13 @@ const updateMilestoneStatusToPaid = async (app, donation) => {
   }
 };
 
-const updateDonationsAndMilestoneStatusToBridgePaid = async ({ app, donation, bridgeEvent }) => {
+const updateDonationsAndMilestoneStatusToBridgePaid = async ({ app, donation, payment }) => {
   const donationService = app.service('donations');
   const bridgeStatus = DONATION_BRIDGE_STATUS.PAID;
-  const { timestamp } = await getTransaction(app, bridgeEvent.transactionHash, true);
+  const { timestamp } = await getTransaction(app, payment.paymentTransactionHash, true);
   await donationService.patch(donation._id, {
     bridgeStatus,
-    bridgeTxHash: bridgeEvent.transactionHash,
+    bridgeTxHash: payment.paymentTransactionHash,
     bridgeTransactionTime: timestamp,
   });
   logger.info('update donation bridge status', {
@@ -80,14 +80,11 @@ const updateDonationsAndMilestoneStatusToBridgePaid = async ({ app, donation, br
   });
   await updateMilestoneStatusToPaid(app, donation);
 };
-const updateDonationsAndMilestoneStatusToBridgeFailed = async ({ app, donation, bridgeEvent }) => {
+const updateDonationsAndMilestoneStatusToBridgeFailed = async ({ app, donation }) => {
   const donationService = app.service('donations');
   const bridgeStatus = DONATION_BRIDGE_STATUS.CANCELLED;
-  const { timestamp } = await getTransaction(app, bridgeEvent.transactionHash, true);
   await donationService.patch(donation._id, {
     bridgeStatus,
-    bridgeTxHash: bridgeEvent.transactionHash,
-    bridgeTransactionTime: timestamp,
   });
   logger.info('update donation bridge status', {
     donationId: donation._id,
@@ -124,13 +121,13 @@ const inquiryAndUpdateDonationStatusFromBridge = async ({ app, donation }) => {
     await updateDonationsAndMilestoneStatusToBridgePaid({
       app,
       donation,
-      bridgeEvent: payment.event,
+       payment,
     });
   } else if (payment && payment.canceled) {
     await updateDonationsAndMilestoneStatusToBridgeFailed({
       app,
       donation,
-      bridgeEvent: payment.event,
+       payment,
     });
   } else {
     await updateDonationsAndMilestoneStatusToBridgeUnknown({

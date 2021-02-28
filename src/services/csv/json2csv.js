@@ -94,11 +94,6 @@ module.exports = app => {
             default: '-',
           },
           {
-            label: `${token.symbol} bridgeStatus`,
-            value: `${token.symbol}-bridgeStatus`,
-            default: '-',
-          },
-          {
             label: `${token.symbol} bridgeTransactionTime`,
             value: `${token.symbol}-bridgeTransactionTime`,
             default: '-',

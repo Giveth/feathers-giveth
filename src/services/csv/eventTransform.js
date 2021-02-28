@@ -200,9 +200,9 @@ module.exports = app => {
           });
           if (donation) {
             const { bridgeStatus, bridgeTransactionTime, bridgeTxHash } = donation;
-            result[`${token.symbol}-bridgeStatus`] = bridgeStatus;
-            result[`${token.symbol}-bridgeTransactionTime`] = bridgeTransactionTime;
-            result[`${token.symbol}-bridgeTransactionLink`] = getHomeEtherscanLink(bridgeTxHash);
+            result[`${token.symbol}-bridgeTransactionTime`] = bridgeTransactionTime.toString();
+            result[`${token.symbol}-bridgeTransactionLink`] =
+              bridgeStatus === 'Paid' ? getHomeEtherscanLink(bridgeTxHash) : bridgeStatus;
           }
         }
 
