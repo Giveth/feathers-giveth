@@ -305,7 +305,7 @@ const handleMilestoneConversationAndEmail = () => async context => {
  * Conditionally sends a notification for a pledge
  *
  * */
-const handleDonationConversationAndEmail = async (app, pledge) => {
+const handleDonationConversationAndEmail = async (app, donation) => {
   const {
     amount,
     token,
@@ -322,7 +322,7 @@ const handleDonationConversationAndEmail = async (app, pledge) => {
     homeTxHash,
     giverAddress,
     parentDonations,
-  } = pledge;
+  } = donation;
 
   // paid donations are handled by the milestone notifications
   if ([DonationStatus.PAYING, DonationStatus.PAID].includes(status)) return;
@@ -417,6 +417,7 @@ const handleDonationConversationAndEmail = async (app, pledge) => {
       conversationModel = {
         milestoneId: pledgeAdmin._id,
         messageContext: CONVERSATION_MESSAGE_CONTEXT.DONATED,
+        donationId: donation._id,
         txHash: homeTxHash,
         payments: [
           {
@@ -448,6 +449,7 @@ const handleDonationConversationAndEmail = async (app, pledge) => {
       conversationModel = {
         milestoneId: pledgeAdmin._id,
         messageContext: CONVERSATION_MESSAGE_CONTEXT.DELEGATED,
+        donationId: donation._id,
         txHash,
         payments: [
           {
