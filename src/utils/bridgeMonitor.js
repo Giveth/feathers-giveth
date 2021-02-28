@@ -121,13 +121,13 @@ const inquiryAndUpdateDonationStatusFromBridge = async ({ app, donation }) => {
     await updateDonationsAndMilestoneStatusToBridgePaid({
       app,
       donation,
-       payment,
+      payment,
     });
   } else if (payment && payment.canceled) {
     await updateDonationsAndMilestoneStatusToBridgeFailed({
       app,
       donation,
-       payment,
+      payment,
     });
   } else {
     await updateDonationsAndMilestoneStatusToBridgeUnknown({
