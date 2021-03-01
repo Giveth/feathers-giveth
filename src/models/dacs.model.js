@@ -40,6 +40,8 @@ function createModel(app) {
       pluginAddress: { type: String },
       tokenAddress: { type: String },
       commitTime: { type: Number },
+      campaigns: { type: [String], default: [] },
+      milestones: { type: [String], default: [] },
       mined: { type: Boolean },
       url: { type: String },
       customThanksMessage: { type: String },
