@@ -22,6 +22,7 @@ const appFactory = () => {
 const app = appFactory();
 app.set('mongooseClient', mongoose);
 const milestoneModel = require('../src/models/milestones.model').createModel(app);
+const campaignModel = require('../src/models/campaigns.model').createModel(app);
 
 const createAggregateQuery = ownerType => {
   const matchQuery = { homeTxHash: { $exists: true }, ownerType };
@@ -67,7 +68,7 @@ const createAggregateQuery = ownerType => {
     },
   ];
 };
-const normalizeDonation = donation => {
+const normalizeDonation = async donation => {
   const dappUrl = config.get('dappUrl');
   // Currently dac and campaign dont used in CSV maybe other time we use them
   const { campaign, dac, tokenAddress, milestone } = donation;
@@ -90,8 +91,10 @@ const normalizeDonation = donation => {
   };
   if (ownerType === 'milestone') {
     data.projectLink = `${dappUrl}/campaigns/${milestone.campaignId}/milestones/${milestone._id}`;
+    data.campaignName = (await campaignModel.findOne({_id :milestone.campaignId})).title
   } else if (ownerType === 'campaign') {
     data.projectLink = `${dappUrl}/campaigns/${donation.ownerTypeId}`;
+    data.campaignName = campaign.title
   } else if (ownerType === 'dac') {
     data.projectLink = `${dappUrl}/dacs/${donation.delegateTypeId}`;
   }
@@ -103,7 +106,7 @@ const directDonationsReport = async () => {
   const campaignDonations = await donationModel.aggregate(createAggregateQuery('campaign'));
   const milestoneDonations = await donationModel.aggregate(createAggregateQuery('milestone'));
   const dacDonations = await donationModel.aggregate(createAggregateQuery('giver'));
-  const donations = milestoneDonations
+  const donationsWithoutNormalization = milestoneDonations
     .concat(...campaignDonations)
     .concat(...dacDonations)
     .sort((a, b) => {
@@ -111,9 +114,10 @@ const directDonationsReport = async () => {
       if (a.createdAt > b.createdAt) return 1;
       return 0;
     })
-    .map(donation => {
-      return normalizeDonation(donation);
-    });
+  const donations = [];
+  for (const donation of donationsWithoutNormalization){
+    donations.push(await normalizeDonation(donation))
+  }
   // const fields = Object.keys(donations[0]);
   const fields = [
     {
@@ -141,8 +145,8 @@ const directDonationsReport = async () => {
       value: 'giverName',
     },
     {
-      label: 'Project Id',
-      value: 'projectId',
+      label: 'Campaign name',
+      value: 'campaignName',
     },
     {
       label: 'Project Link',
