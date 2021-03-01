@@ -31,6 +31,7 @@ const createAggregateQuery = ownerType => {
     projectForeignKey = 'delegateTypeId';
   }
   return [
+    // Add giver
     { $match: matchQuery },
     {
       $lookup: {
@@ -47,6 +48,8 @@ const createAggregateQuery = ownerType => {
     {
       $unwind: '$giver',
     },
+
+    // Add project (DAC, Campaign, Milestone) but currently just the milestone will be used
     {
       $lookup: {
         from: `${ownerType}s`,
@@ -66,6 +69,7 @@ const createAggregateQuery = ownerType => {
 };
 const normalizeDonation = donation => {
   const dappUrl = config.get('dappUrl');
+  // Currently dac and campaign dont used in CSV maybe other time we use them
   const { campaign, dac, tokenAddress, milestone } = donation;
   let { ownerType } = donation;
   if (ownerType === 'giver') {
@@ -79,20 +83,17 @@ const normalizeDonation = donation => {
     ownerType,
     giverAddress: donation.giverAddress,
     giverName: donation.giver && donation.giver.name,
-    createdAt: donation.createdAt.toString(),
+    createdAt: donation.createdAt.toUTCString(),
     homeTxHash: donation.homeTxHash,
     etherscanLink: `https://etherscan.io/tx/${donation.homeTxHash}`,
     tokenAddress,
   };
   if (ownerType === 'milestone') {
     data.projectLink = `${dappUrl}/campaigns/${milestone.campaignId}/milestones/${milestone._id}`;
-    data.projectId = milestone.projectId;
   } else if (ownerType === 'campaign') {
     data.projectLink = `${dappUrl}/campaigns/${donation.ownerTypeId}`;
-    data.projectId = campaign.projectId;
   } else if (ownerType === 'dac') {
     data.projectLink = `${dappUrl}/dacs/${donation.delegateTypeId}`;
-    data.projectId = dac.delegateId;
   }
   return data;
 };
