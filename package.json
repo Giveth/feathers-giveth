@@ -76,7 +76,7 @@
     "helmet": "^3.8.1",
     "ipfs-api": "^24.0.0",
     "is-ipfs": "^0.4.2",
-    "json2csv": "^4.5.3",
+    "json2csv": "^4.5.4",
     "lodash.groupby": "^4.6.0",
     "lodash.merge": "^4.6.2",
     "lodash.omit": "^4.5.0",

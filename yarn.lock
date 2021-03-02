@@ -8923,7 +8923,7 @@
   dependencies:
     "delimit-stream" "0.1.0"
 
-"json2csv@^4.5.3":
+"json2csv@^4.5.4":
   "integrity" "sha512-YxBhY4Lmn8IvVZ36nqg5omxneLy9JlorkqW1j/EDCeqvmi+CQ4uM+wsvXlcIqvGDewIPXMC/O/oF8DX9EH5aoA=="
   "resolved" "https://registry.npmjs.org/json2csv/-/json2csv-4.5.4.tgz"
   "version" "4.5.4"
@@ -10757,14 +10757,6 @@
   "resolved" "https://registry.npmjs.org/node-addon-api/-/node-addon-api-2.0.2.tgz"
   "version" "2.0.2"
 
-"node-cron@^2.0.3":
-  "integrity" "sha512-eJI+QitXlwcgiZwNNSRbqsjeZMp5shyajMR81RZCqeW0ZDEj4zU9tpd4nTh/1JsBiKbF8d08FCewiipDmVIYjg=="
-  "resolved" "https://registry.npmjs.org/node-cron/-/node-cron-2.0.3.tgz"
-  "version" "2.0.3"
-  dependencies:
-    "opencollective-postinstall" "^2.0.0"
-    "tz-offset" "0.0.1"
-
 "node-dir@0.1.8":
   "integrity" "sha1-VfuN62mQcHB/tn+RpGDwRIKUx30="
   "resolved" "https://registry.npmjs.org/node-dir/-/node-dir-0.1.8.tgz"
@@ -11137,11 +11129,6 @@
   "version" "5.1.2"
   dependencies:
     "mimic-fn" "^2.1.0"
-
-"opencollective-postinstall@^2.0.0":
-  "integrity" "sha512-8AV/sCtuzUeTo8gQK5qDZzARrulB3egtLzFgteqB2tcT4Mw7B8Kt7JcDHmltjz6FOAHsvTevk70gZEbhM4ZS9Q=="
-  "resolved" "https://registry.npmjs.org/opencollective-postinstall/-/opencollective-postinstall-2.0.3.tgz"
-  "version" "2.0.3"
 
 "optimist@~0.3.5":
   "integrity" "sha1-yQlBrVnkJzMokjB00s8ufLxuwNk="
@@ -14497,11 +14484,6 @@
   "integrity" "sha1-hnrHTjhkGHsdPUfZlqeOxciDB3c="
   "resolved" "https://registry.npmjs.org/typedarray/-/typedarray-0.0.6.tgz"
   "version" "0.0.6"
-
-"tz-offset@0.0.1":
-  "integrity" "sha512-kMBmblijHJXyOpKzgDhKx9INYU4u4E1RPMB0HqmKSgWG8vEcf3exEfLh4FFfzd3xdQOw9EuIy/cP0akY6rHopQ=="
-  "resolved" "https://registry.npmjs.org/tz-offset/-/tz-offset-0.0.1.tgz"
-  "version" "0.0.1"
 
 "uberproto@^2.0.0", "uberproto@^2.0.1", "uberproto@^2.0.2", "uberproto@^2.0.6":
   "integrity" "sha512-68H97HffZoFaa3HFtpstahWorN9dSp5uTU6jo3GjIQ6JkJBR3hC2Nx/e/HFOoYHdUyT/Z1MRWfxN1EiQJZUyCQ=="
