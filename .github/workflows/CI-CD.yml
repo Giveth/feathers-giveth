@@ -11,7 +11,7 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: 10.x
-      - name: install dependencies
+      - name: install dependenciesz
         run: npm ci
       - name: run linter
         run: npm run eslint
@@ -43,7 +43,7 @@ jobs:
         if: github.ref == 'refs/heads/master'
         uses: garygrossgarten/github-action-ssh@v0.6.4
         with:
-          command: echo "It's not implemented"
+          command: cd feathers-giveth-beta && git checkout master && git pull origin master && [[ -s $HOME/.nvm/nvm.sh ]] && . $HOME/.nvm/nvm.sh && nvm use 10  && npm ci &&  NODE_ENV=production ./node_modules/.bin/migrate-mongo up && npm run serve
           host: ${{ secrets.BETA_HOST }}
           username: ${{ secrets.BETA_USERNAME }}
 #          passphrase: ${{ secrets.PASSPHRASE }}

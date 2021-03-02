@@ -432,22 +432,18 @@ const addProjectToDac = () => async context => {
   const projectObjectId = context.result.intendedProjectTypeId;
   const dacsService = context.app.service('dacs');
   const dacModel = dacsService.Model;
+  let campaignId;
   switch (context.result.intendedProjectType) {
     case 'campaign':
-      await dacModel.updateOne(
-        { _id: ObjectId(dacId) },
-        { $addToSet: { campaigns: projectObjectId } },
-      );
+      campaignId = projectObjectId;
       break;
     case 'milestone':
-      await dacModel.updateOne(
-        { _id: ObjectId(dacId) },
-        { $addToSet: { milestones: projectObjectId } },
-      );
+      campaignId = (await context.app.service('milestones').get(projectObjectId)).campaignId;
       break;
     default:
       return context;
   }
+  await dacModel.updateOne({ _id: ObjectId(dacId) }, { $addToSet: { campaigns: campaignId } });
   return context;
 };
 
