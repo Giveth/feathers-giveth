@@ -2,7 +2,6 @@ const config = require('config');
 const axios = require('axios');
 const logger = require('winston');
 const { DonationStatus, DONATION_BRIDGE_STATUS } = require('../models/donations.model');
-const { MilestoneStatus } = require('../models/milestones.model');
 const { getTransaction } = require('../blockchain/lib/web3Helpers');
 
 const bridgeMonitorBaseUrl = config.get('bridgeMonitorBaseUrl');
@@ -30,41 +29,7 @@ const getDonationStatusFromBridge = async ({ txHash, tokenAddress }) => {
   return undefined;
 };
 
-const updateMilestoneStatusToPaid = async (app, donation) => {
-  const donationService = app.service('donations');
-  const milestoneService = app.service('milestones');
-  const milestone = await milestoneService.get(donation.ownerTypeId);
-  if (milestone.status !== MilestoneStatus.PAID) return;
-  const donations = await donationService.find({
-    paginate: false,
-    query: {
-      ownerTypeId: donation.ownerTypeId,
-      status: { $in: [DonationStatus.COMMITTED, DonationStatus.PAYING, DonationStatus.PAID] },
-      amountRemaining: { $ne: '0' },
-    },
-  });
-
-  // if there are still committed and paying donations, don't mark the as paid or paying
-  if (
-    donations.some(d => d.status === DonationStatus.COMMITTED || d.status === DonationStatus.PAYING)
-  ) {
-    return;
-  }
-
-  const hasDonationWithPendingStatusInBridge = donations.some(
-    d =>
-      d.bridgeStatus !== DONATION_BRIDGE_STATUS.PAID &&
-      d.bridgeStatus !== DONATION_BRIDGE_STATUS.CANCELLED,
-  );
-  if (!hasDonationWithPendingStatusInBridge) {
-    await app.service('milestones').patch(donation.ownerTypeId, {
-      isAllDonationsPaidInBridge: true,
-    });
-    // TODO can email to milestone owner and says that the money went to their wallet
-  }
-};
-
-const updateDonationsAndMilestoneStatusToBridgePaid = async ({ app, donation, payment }) => {
+const updateDonationsStatusToBridgePaid = async ({ app, donation, payment }) => {
   const donationService = app.service('donations');
   const bridgeStatus = DONATION_BRIDGE_STATUS.PAID;
   const { timestamp } = await getTransaction(app, payment.paymentTransactionHash, true);
@@ -78,9 +43,8 @@ const updateDonationsAndMilestoneStatusToBridgePaid = async ({ app, donation, pa
     bridgeStatus,
     timestamp,
   });
-  await updateMilestoneStatusToPaid(app, donation);
 };
-const updateDonationsAndMilestoneStatusToBridgeFailed = async ({ app, donation }) => {
+const updateDonationsStatusToBridgeFailed = async ({ app, donation }) => {
   const donationService = app.service('donations');
   const bridgeStatus = DONATION_BRIDGE_STATUS.CANCELLED;
   await donationService.patch(donation._id, {
@@ -118,13 +82,13 @@ const inquiryAndUpdateDonationStatusFromBridge = async ({ app, donation }) => {
     tokenAddress: donation.tokenAddress,
   });
   if (payment && payment.paid) {
-    await updateDonationsAndMilestoneStatusToBridgePaid({
+    await updateDonationsStatusToBridgePaid({
       app,
       donation,
       payment,
     });
   } else if (payment && payment.canceled) {
-    await updateDonationsAndMilestoneStatusToBridgeFailed({
+    await updateDonationsStatusToBridgeFailed({
       app,
       donation,
       payment,
