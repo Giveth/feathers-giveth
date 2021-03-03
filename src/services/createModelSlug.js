@@ -6,6 +6,9 @@ const createModelSlug = modelName => async context => {
   if (data.slug) {
     return context;
   }
+  if (!data.title) {
+    return context;
+  }
   const service = app.service(modelName);
   const slug = slugify(data.title);
   let realSlug;
