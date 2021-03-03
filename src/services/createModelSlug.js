@@ -1,15 +1,12 @@
 const async = require('async');
-const slugify = require('../../utils/slugify');
+const slugify = require('../utils/slugify');
 
-/**
- * This function checks if milestones name is unique in the campaign scope
- * */
-const createMilestoneSlug = () => async context => {
+const createModelSlug = modelName => async context => {
   const { data, app } = context;
   if (data.slug) {
     return context;
   }
-  const service = app.service('milestones');
+  const service = app.service(modelName);
   const slug = slugify(data.title);
   let realSlug;
   let count = 0;
@@ -37,4 +34,4 @@ const createMilestoneSlug = () => async context => {
   data.slug = realSlug;
   return context;
 };
-module.exports = createMilestoneSlug;
+module.exports = createModelSlug;

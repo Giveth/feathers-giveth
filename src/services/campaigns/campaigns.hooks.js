@@ -8,7 +8,7 @@ const resolveFiles = require('../../hooks/resolveFiles');
 const { checkReviewer, checkOwner } = require('../../hooks/isProjectAllowed');
 const addConfirmations = require('../../hooks/addConfirmations');
 const { CampaignStatus } = require('../../models/campaigns.model');
-const createCampaignSlug = require('./createCampaignSlug');
+const createModelSlug = require('../createModelSlug');
 
 const schema = {
   include: [
@@ -117,14 +117,14 @@ module.exports = {
       checkReviewer(),
       checkOwner(),
       sanitizeHtml('description'),
-      createCampaignSlug(),
+      createModelSlug('campaigns'),
     ],
     update: [commons.disallow()],
     patch: [
       restrict(),
       sanitizeAddress('ownerAddress', { validate: true }),
       sanitizeHtml('description'),
-      createCampaignSlug(),
+      createModelSlug('campaigns'),
     ],
     remove: [commons.disallow()],
   },

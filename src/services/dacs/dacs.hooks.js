@@ -6,7 +6,7 @@ const setAddress = require('../../hooks/setAddress');
 const sanitizeHtml = require('../../hooks/sanitizeHtml');
 const addConfirmations = require('../../hooks/addConfirmations');
 const resolveFiles = require('../../hooks/resolveFiles');
-const createDacSlug = require('./createDacSlug');
+const createModelSlug = require('../createModelSlug');
 const { isUserInDelegateWhiteList } = require('../../utils/roleUtility');
 
 const restrict = [
@@ -89,14 +89,14 @@ module.exports = {
       isDacAllowed(),
       sanitizeAddress('ownerAddress', { required: true, validate: true }),
       sanitizeHtml('description'),
-      createDacSlug(),
+      createModelSlug('dacs'),
     ],
     update: [commons.disallow()],
     patch: [
       ...restrict,
       sanitizeAddress('ownerAddress', { validate: true }),
       sanitizeHtml('description'),
-      createDacSlug(),
+      createModelSlug('dacs'),
     ],
     remove: [commons.disallow()],
   },
