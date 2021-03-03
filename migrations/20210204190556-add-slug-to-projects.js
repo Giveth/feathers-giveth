@@ -42,6 +42,7 @@ module.exports = {
     const dacs = await db
       .collection('dacs')
       .find({})
+      .project({ title: true })
       .toArray();
     await async.eachLimit(dacs, 1, (dac, cb) => {
       const { title } = dac;
@@ -57,6 +58,7 @@ module.exports = {
     const campaigns = await db
       .collection('campaigns')
       .find({})
+      .project({ title: true })
       .toArray();
     await async.eachLimit(campaigns, 1, (campaign, cb) => {
       const { title } = campaign;
@@ -73,6 +75,7 @@ module.exports = {
     const milestones = await db
       .collection('milestones')
       .find({})
+      .project({ title: true })
       .toArray();
     await async.eachLimit(milestones, 1, (milestone, cb) => {
       const { title } = milestone;
