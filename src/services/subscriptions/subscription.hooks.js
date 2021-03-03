@@ -1,13 +1,9 @@
 const errors = require('@feathersjs/errors');
-const { PROJECT_TYPE } = require('../../models/subscription.model');
-const onlyInternal = require('../../hooks/onlyInternal');
+const commons = require('feathers-hooks-common');
+const { ProjectTypes } = require('../../models/subscription.model');
 
 const validatePayload = () => async context => {
-  const { app, data, params } = context;
-  const { user } = params;
-  if (!user) {
-    throw new errors.NotAuthenticated();
-  }
+  const { app, data } = context;
   const { projectTypeId, projectType, enabled } = data;
   if (!projectTypeId || !projectType || enabled === undefined) {
     throw new errors.BadRequest('projectTypeId and projectType and enabled are required');
@@ -15,28 +11,26 @@ const validatePayload = () => async context => {
 
   let service;
   switch (projectType) {
-    case PROJECT_TYPE.MILESTONE:
+    case ProjectTypes.MILESTONE:
       service = app.service('milestones');
       break;
-    case PROJECT_TYPE.CAMPAIGN:
+    case ProjectTypes.CAMPAIGN:
       service = app.service('campaigns');
       break;
-    case PROJECT_TYPE.DAC:
+    case ProjectTypes.DAC:
       service = app.service('dacs');
       break;
     default:
       throw new errors.BadRequest('Invalid projectType');
   }
-  const projects = await service.find({
+  const project = await service.get(projectTypeId, {
     query: {
-      _id: projectTypeId,
+      $select: ['_id'],
     },
-    paginate: false,
   });
-  if (projects.length === 0) {
+  if (!project) {
     throw new errors.NotFound();
   }
-  context.data.projectId = projects[0].projectId;
   return context;
 };
 
@@ -46,9 +40,9 @@ module.exports = {
     find: [],
     get: [],
     create: [validatePayload()],
-    update: [onlyInternal()],
-    patch: [onlyInternal()],
-    remove: [onlyInternal()],
+    update: [commons.disallow()],
+    patch: [commons.disallow()],
+    remove: [commons.disallow()],
   },
 
   after: {

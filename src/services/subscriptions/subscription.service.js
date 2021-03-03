@@ -23,7 +23,6 @@ module.exports = function subscribe() {
       enabled: data.enabled,
       projectType: data.projectType,
       projectTypeId: data.projectTypeId,
-      projectId: data.projectId,
     });
     return result;
   };

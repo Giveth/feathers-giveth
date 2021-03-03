@@ -3,7 +3,7 @@ const config = require('config');
 const { assert } = require('chai');
 const { getJwt, SAMPLE_DATA, generateRandomMongoId } = require('../../../test/testUtility');
 const { getFeatherAppInstance } = require('../../app');
-const { PROJECT_TYPE } = require('../../models/subscription.model');
+const { ProjectTypes } = require('../../models/subscription.model');
 
 const app = getFeatherAppInstance();
 const baseUrl = config.get('givethFathersBaseUrl');
@@ -26,7 +26,7 @@ function postSubscriptionsTestCases() {
 
   it('should return successful when subscribing milestone', async () => {
     const projectObjectId = SAMPLE_DATA.MILESTONE_ID;
-    const projectType = PROJECT_TYPE.MILESTONE;
+    const projectType = ProjectTypes.MILESTONE;
     const response = await request(baseUrl)
       .post(relativeUrl)
       .send({
@@ -43,7 +43,7 @@ function postSubscriptionsTestCases() {
 
   it('should return successful when unSubscribing milestone', async () => {
     const projectObjectId = SAMPLE_DATA.MILESTONE_ID;
-    const projectType = PROJECT_TYPE.MILESTONE;
+    const projectType = ProjectTypes.MILESTONE;
     const response = await request(baseUrl)
       .post(relativeUrl)
       .send({
@@ -60,7 +60,7 @@ function postSubscriptionsTestCases() {
 
   it('should return successful when subscribing campaign', async () => {
     const projectObjectId = SAMPLE_DATA.CAMPAIGN_ID;
-    const projectType = PROJECT_TYPE.CAMPAIGN;
+    const projectType = ProjectTypes.CAMPAIGN;
     const response = await request(baseUrl)
       .post(relativeUrl)
       .send({
@@ -76,7 +76,7 @@ function postSubscriptionsTestCases() {
   });
   it('should return successful when unSubscribing campaign', async () => {
     const projectObjectId = SAMPLE_DATA.CAMPAIGN_ID;
-    const projectType = PROJECT_TYPE.CAMPAIGN;
+    const projectType = ProjectTypes.CAMPAIGN;
     const response = await request(baseUrl)
       .post(relativeUrl)
       .send({
@@ -93,7 +93,7 @@ function postSubscriptionsTestCases() {
 
   it('should return successful when subscribing dac', async () => {
     const projectObjectId = SAMPLE_DATA.DAC_ID;
-    const projectType = PROJECT_TYPE.DAC;
+    const projectType = ProjectTypes.DAC;
     const response = await request(baseUrl)
       .post(relativeUrl)
       .send({
@@ -109,7 +109,7 @@ function postSubscriptionsTestCases() {
   });
   it('should return successful when unSubscribing dac', async () => {
     const projectObjectId = SAMPLE_DATA.DAC_ID;
-    const projectType = PROJECT_TYPE.DAC;
+    const projectType = ProjectTypes.DAC;
     const response = await request(baseUrl)
       .post(relativeUrl)
       .send({
@@ -138,7 +138,7 @@ function postSubscriptionsTestCases() {
   });
 
   it('should get 400, projectTypeId is required', async () => {
-    const projectType = PROJECT_TYPE.DAC;
+    const projectType = ProjectTypes.DAC;
     const response = await request(baseUrl)
       .post(relativeUrl)
       .send({
@@ -149,7 +149,7 @@ function postSubscriptionsTestCases() {
     assert.equal(response.statusCode, 400);
   });
   it('should get 400, projectTypeId is required', async () => {
-    const projectType = PROJECT_TYPE.DAC;
+    const projectType = ProjectTypes.DAC;
     const projectObjectId = SAMPLE_DATA.DAC_ID;
 
     const response = await request(baseUrl)
@@ -174,7 +174,7 @@ function postSubscriptionsTestCases() {
   });
 
   it('should get 400, invalid projectTypeId', async () => {
-    const projectType = PROJECT_TYPE.DAC;
+    const projectType = ProjectTypes.DAC;
     const response = await request(baseUrl)
       .post(relativeUrl)
       .send({
@@ -188,32 +188,32 @@ function postSubscriptionsTestCases() {
 }
 
 function putSubscriptionsTestCases() {
-  it('should return 403, PUT is disallowed', async () => {
+  it('should return 405, PUT is disallowed', async () => {
     const response = await request(baseUrl)
       .put(relativeUrl)
       .set({ Authorization: getJwt() });
-    assert.equal(response.statusCode, 403);
-    assert.equal(response.body.code, 403);
+    assert.equal(response.statusCode, 405);
+    assert.equal(response.body.code, 405);
   });
 }
 
 function deleteSubscriptionsTestCases() {
-  it('should return 403, DELETE is disallowed', async () => {
+  it('should return 405, DELETE is disallowed', async () => {
     const response = await request(baseUrl)
       .delete(relativeUrl)
       .set({ Authorization: getJwt() });
-    assert.equal(response.statusCode, 403);
-    assert.equal(response.body.code, 403);
+    assert.equal(response.statusCode, 405);
+    assert.equal(response.body.code, 405);
   });
 }
 
 function patchSubscriptionsTestCases() {
-  it('should return 403, PATCH is disallowed', async () => {
+  it('should return 405, PATCH is disallowed', async () => {
     const response = await request(baseUrl)
       .patch(relativeUrl)
       .set({ Authorization: getJwt() });
-    assert.equal(response.statusCode, 403);
-    assert.equal(response.body.code, 403);
+    assert.equal(response.statusCode, 405);
+    assert.equal(response.body.code, 405);
   });
 }
 

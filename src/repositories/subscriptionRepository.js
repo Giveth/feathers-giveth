@@ -1,12 +1,12 @@
 const updateSubscriptionProject = async (
   app,
-  { projectTypeId, enabled, projectType, userAddress, projectId },
+  { projectTypeId, enabled, projectType, userAddress },
 ) => {
   const subscribeService = app.service('subscriptions');
   const subscriptionModel = subscribeService.Model;
   return subscriptionModel.findOneAndUpdate(
-    { projectTypeId, projectType, userAddress },
-    { enabled, projectTypeId, projectType, userAddress, projectId },
+    { projectTypeId, userAddress },
+    { enabled, projectTypeId, projectType, userAddress },
     {
       new: true,
       upsert: true,
