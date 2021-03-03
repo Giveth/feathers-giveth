@@ -1,35 +1,25 @@
-const config = require('config');
-
-const isUserAdmin = address => {
-  const admins = config.get('admins');
-  return admins.some(adminAddress => adminAddress === address);
+const isUserAdmin = async (app, address) => {
+  const userService = app.service('users');
+  const user = await userService.get(address);
+  return Boolean(user.isAdmin);
 };
 
 const isUserInDelegateWhiteList = async (app, address) => {
-  if (isUserAdmin(address)) {
-    return true;
-  }
   const userService = app.service('users');
   const user = await userService.get(address);
-  return user.isDelegator;
+  return Boolean(user.isAdmin || user.isDelegator);
 };
 
 const isUserInProjectWhiteList = async (app, address) => {
-  if (isUserAdmin(address)) {
-    return true;
-  }
   const userService = app.service('users');
   const user = await userService.get(address);
-  return user.isProjectOwner;
+  return Boolean(user.isAdmin || user.isProjectOwner);
 };
 
 const isUserInReviewerWhiteList = async (app, address) => {
-  if (isUserAdmin(address)) {
-    return true;
-  }
   const userService = app.service('users');
   const user = await userService.get(address);
-  return user.isReviewer;
+  return Boolean(user.isAdmin || user.isReviewer);
 };
 
 module.exports = {

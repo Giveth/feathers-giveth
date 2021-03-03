@@ -16,40 +16,28 @@ const normalizeId = () => context => {
   }
   return context;
 };
-const addAdminField = () => context => {
-  const _addAdminField = item => {
-    if (isUserAdmin(item.address)) {
-      item.isAdmin = true;
-    }
-  };
-  const items = commons.getItems(context);
-
-  if (Array.isArray(items)) {
-    items.forEach(_addAdminField);
-  } else {
-    _addAdminField(items);
-  }
-  return context;
-};
 const roleAccessKeys = ['isReviewer', 'isProjectOwner', 'isDelegator'];
 
-const restrictUserdataAndAccess = () => context => {
+const restrictUserdataAndAccess = () => async context => {
   if (isRequestInternal(context)) {
     return context;
   }
   const { user } = context.params;
   const { data } = context;
   const sentUserAddress = context.id;
-  if (isUserAdmin(user.address) && user.address === sentUserAddress) {
+  // isAdmin just should update manually in DB
+  delete data.isAdmin;
+  const isAdmin = await isUserAdmin(context.app, user.address);
+  if (isAdmin && user.address === sentUserAddress) {
     return context;
   }
-  if (!isUserAdmin(user.address) && user.address === sentUserAddress) {
+  if (!isAdmin && user.address === sentUserAddress) {
     roleAccessKeys.forEach(key => {
       delete data[key];
     });
     return context;
   }
-  if (isUserAdmin(user.address) && user.address !== sentUserAddress) {
+  if (isAdmin && user.address !== sentUserAddress) {
     Object.keys(data).forEach(key => {
       if (!roleAccessKeys.includes(key)) {
         delete data[key];
@@ -98,7 +86,7 @@ module.exports = {
   },
 
   after: {
-    all: [commons.discard('_id'), addAdminField()],
+    all: [commons.discard('_id')],
     find: [resolveFiles('avatar')],
     get: [resolveFiles('avatar')],
     create: [fundWallet(), resolveFiles('avatar')],
