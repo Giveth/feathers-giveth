@@ -79,7 +79,7 @@ module.exports = app => {
     };
 
     // Get milestone balance items
-    const insertMilestoneBalanceItems = (id, result) => {
+    const insertMilestoneBalanceItems = (id, result, bridgeInfo) => {
       const balance = milestonesBalance[id.toString()];
       Object.keys(balance).forEach(symbol => {
         const tokenBalance = balance[symbol];
@@ -93,6 +93,10 @@ module.exports = app => {
             result[key] = 'Uncapped';
           }
         });
+        const transactionTimeKey = `${symbol}-bridgeTransactionTime`;
+        const transactionLinkKey = `${symbol}-bridgeTransactionLink`;
+        result[transactionTimeKey] = bridgeInfo && bridgeInfo[transactionTimeKey];
+        result[transactionLinkKey] = bridgeInfo && bridgeInfo[transactionLinkKey];
       });
     };
 
@@ -185,29 +189,9 @@ module.exports = app => {
           actionRecipientAddress: pluginAddress,
           etherscanLink: getEtherscanLink(transactionHash),
         };
-        // eslint-disable-next-line no-restricted-syntax
-        for (const token of tokenWhiteList) {
-          // eslint-disable-next-line no-await-in-loop
-          const [donation] = await donationService.find({
-            query: {
-              txHash: transactionHash,
-              tokenAddress: token.address,
-              status: 'Paid',
-              bridgeStatus: { $exists: true },
-            },
-            paginate: false,
-            schema: 'includeTypeDetails',
-          });
-          if (donation) {
-            const { bridgeStatus, bridgeTransactionTime, bridgeTxHash } = donation;
-            result[`${token.symbol}-bridgeTransactionTime`] = bridgeTransactionTime.toString();
-            result[`${token.symbol}-bridgeTransactionLink`] =
-              bridgeStatus === 'Paid' ? getHomeEtherscanLink(bridgeTxHash) : bridgeStatus;
-          }
-        }
 
         insertCampaignBalanceItems(result);
-        insertMilestoneBalanceItems(_id, result);
+        insertMilestoneBalanceItems(_id, result, payouts.bridgeInfo);
 
         // Clear payouts
         payouts = {};
@@ -218,7 +202,7 @@ module.exports = app => {
 
     const addPayout = async (stream, donation, createdAt) => {
       updateBalance({ donation });
-      const { transactionHash, balance = {} } = payouts;
+      const { transactionHash, balance = {}, bridgeInfo = {} } = payouts;
       const {
         amount,
         actionTakerAddress,
@@ -227,6 +211,9 @@ module.exports = app => {
         txHash,
         token,
         ownerTypeId,
+        bridgeTransactionTime,
+        bridgeTxHash,
+        bridgeStatus,
       } = donation;
       // Its a new payouts, the collected one should be printed
       if (transactionHash && transactionHash !== txHash) {
@@ -238,12 +225,16 @@ module.exports = app => {
       const tokenBalance = balance[symbol] || new BigNumber(0);
       tokenBalance.plus(amount);
       balance[symbol] = tokenBalance;
+      bridgeInfo[`${symbol}-bridgeTransactionTime`] = bridgeTransactionTime;
+      bridgeInfo[`${symbol}-bridgeTransactionLink`] =
+        bridgeStatus === 'Paid' ? getHomeEtherscanLink(bridgeTxHash) : bridgeStatus;
 
       // This is new payout, info should be filled.
       // Fill the info by the first donation only, all donations of one payout has the similar value;
       if (transactionHash !== txHash) {
         payouts.transactionHash = txHash;
         payouts.balance = balance;
+        payouts.bridgeInfo = bridgeInfo;
         payouts.ownerEntity = ownerEntity;
         payouts.actionTakerAddress = actionTakerAddress;
         payouts.commitTime = commitTime;
@@ -312,7 +303,7 @@ module.exports = app => {
                     etherscanLink: getEtherscanLink(transactionHash),
                   };
                   initializeMilestoneBalance(milestone);
-                  insertMilestoneBalanceItems(milestone._id, result);
+                  insertMilestoneBalanceItems(milestone._id, result, payouts.bridgeInfo);
                 } else {
                   logger.error(
                     `campaign csv could'nt find corresponding project to id ${projectId}`,
@@ -391,7 +382,7 @@ module.exports = app => {
                     etherscanLink: getEtherscanLink(transactionHash),
                   };
                   initializeMilestoneBalance(milestone);
-                  insertMilestoneBalanceItems(milestone._id, result);
+                  insertMilestoneBalanceItems(milestone._id, result, payouts.bridgeInfo);
                 } else {
                   logger.error(
                     `campaign csv could'nt find corresponding project to id ${projectId}`,
@@ -625,7 +616,7 @@ module.exports = app => {
                 homeEtherscanLink: getHomeEtherscanLink(homeTxHash),
               };
               if (insertMilestoneId) {
-                insertMilestoneBalanceItems(insertMilestoneId, result);
+                insertMilestoneBalanceItems(insertMilestoneId, result, payouts.bridgeInfo);
               }
             }
             break;
