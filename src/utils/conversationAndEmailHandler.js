@@ -332,14 +332,14 @@ const handleDonationConversationAndEmail = async (app, donation) => {
     delegateTypeId || ownerTypeId,
   );
 
-  // this is an initial donation
+  // this is an initial donationrequestDelegation
   if (homeTxHash) {
     try {
       const giver = await app.service('users').get(giverAddress);
 
       // thank giver if they are registered
       if (giver.email) {
-        Mailer.thanksFromDonationGiver(app, {
+        Mailer.donationReceipt(app, {
           recipient: giver.email,
           user: giver.name,
           amount,
@@ -379,7 +379,7 @@ const handleDonationConversationAndEmail = async (app, donation) => {
   } else if (delegateType || ownerType === AdminTypes.CAMPAIGN) {
     // notify the pledge admin
     // if this is a DAC or a campaign, then the donation needs delegation
-    Mailer.delegationRequired(app, {
+    Mailer.requestDelegation(app, {
       recipient: pledgeAdmin.owner.email,
       user: pledgeAdmin.owner.name,
       donationType: delegateType || ownerType, // dac / campaign
@@ -391,13 +391,8 @@ const handleDonationConversationAndEmail = async (app, donation) => {
     // if this is a milestone then no action is required
 
     // pledge = donation, pledgeAdmin= milestone,  performedByAddress:pledge.actionTakerAddress
-    const { owner } = pledgeAdmin;
-
-    Mailer.donationReceived(app, {
-      recipient: owner.email,
-      user: owner.name,
-      donationType: ownerType,
-      donatedToTitle: pledgeAdmin.title,
+    Mailer.milestoneReceivedDonation(app, {
+      milestone: pledgeAdmin,
       amount,
       token,
     });
