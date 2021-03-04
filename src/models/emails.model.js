@@ -1,4 +1,4 @@
-const EMAIL_IMAGES = {
+const EmailImages = {
   MILESTONE_REVIEW_APPROVED: 'Giveth-milestone-review-approved-banner-email.png',
   MILESTONE_REVIEW_REJECTED: 'Giveth-milestone-review-rejected-banner-email.png',
   MILESTONE_CANCELLED: 'Giveth-milestone-canceled-banner-email.png',
@@ -7,7 +7,7 @@ const EMAIL_IMAGES = {
   REVIEW_BANNER: 'Giveth-review-banner-email.png',
 };
 
-const EMAIL_SUBSCRIBE_TYPES = {
+const EmailSubscribeTypes = {
   DONATION_RECEIPT: 'donation-receipt',
   DONATION_RECEIVED: 'donation-received',
   REQUEST_DELEGATION: 'request-delegation',
@@ -40,14 +40,16 @@ function createModel(app) {
       secretIntro: { type: String, required: true },
       title: { type: String, required: true },
       text: { type: String, required: true },
-      image: { type: String, required: true, enum: Object.values(EMAIL_IMAGES) },
-      unsubscribeType: { type: String, required: true, enum: Object.values(EMAIL_SUBSCRIBE_TYPES) },
+      image: { type: String, required: true, enum: Object.values(EmailImages) },
+      unsubscribeType: { type: String, required: true, enum: Object.values(EmailSubscribeTypes) },
       unsubscribeReason: { type: String, required: true },
       cta: { type: String, required: true },
       ctaRelativeUrl: { type: String, required: true },
       message: { type: String, default: '' },
       dappMailerResponse: { type: Object },
       error: { type: String, default: '' },
+      milestoneId: { type: String },
+      campaignId: { type: String },
       status: { type: String, enum: Object.values(EMAIL_STATUS), default: EMAIL_STATUS.PENDING },
     },
     {
@@ -58,8 +60,8 @@ function createModel(app) {
 }
 
 module.exports = {
-  EMAIL_SUBSCRIBE_TYPES,
-  EMAIL_IMAGES,
+  EmailSubscribeTypes,
+  EmailImages,
   createModel,
   EMAIL_STATUS,
 };
