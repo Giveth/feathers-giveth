@@ -20,22 +20,10 @@ const getPledgeAdmin = (app, type, id) => {
   }
 };
 
-async function sendMilestoneProposedEmail(
-  app,
-  { milestoneTitle, _id, campaign, campaignId, maxAmount, token },
-) {
+async function sendMilestoneProposedEmail(app, { milestone }) {
   try {
-    const { owner: campaignOwner } = await app.service('campaigns').get(campaignId);
-    const { email, name } = campaignOwner;
-    Mailer.milestoneProposed(app, {
-      recipient: email,
-      user: name,
-      milestoneTitle,
-      milestoneId: _id,
-      campaignTitle: campaign.title,
-      campaignId,
-      amount: maxAmount,
-      token,
+    await Mailer.milestoneProposed(app, {
+      milestone,
     });
   } catch (e) {
     logger.error('error sending proposed milestone notification', e);
@@ -148,12 +136,7 @@ const handleMilestoneConversationAndEmail = () => async context => {
   logger.info('sendNotification', { owner, status, prevStatus });
   if (context.method === 'create' && status === PROPOSED) {
     await sendMilestoneProposedEmail(app, {
-      title,
-      _id,
-      campaign,
-      campaignId,
-      maxAmount,
-      token,
+      milestone: result,
     });
     return;
   }

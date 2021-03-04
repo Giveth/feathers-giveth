@@ -71,7 +71,7 @@ const milestoneReceivedDonation = (app, { milestone, amount, token }) => {
     text: `
         <p><span ${emailStyle}>Hi ${owner.name}</span></p>
         <p>
-          Your Milestone <em>${milestoneTitle}</em> has received a donation of
+          Your Milestone <strong>${milestoneTitle}</strong> has received a donation of
           <span>${normalizedAmount} ${token.symbol}.</span>
           Check to see how close you are to reaching your goal</em>.
         </p>
@@ -98,7 +98,7 @@ const milestoneReceivedDonation = (app, { milestone, amount, token }) => {
     text: `
         <p><span ${emailStyle}>Hi ${recipient.name}</span></p>
         <p>
-          Your Milestone <em>${milestoneTitle}</em> has received a donation of
+          Your Milestone <strong>${milestoneTitle}</strong> has received a donation of
           <span>${normalizedAmount} ${token.symbol}.</span>
           Check to see how close you are to reaching your goal</em>.
         </p>
@@ -205,21 +205,30 @@ const donationDelegated = (
   sendEmail(app, data);
 };
 
-const milestoneProposed = (
-  app,
-  { recipient, user, milestoneTitle, milestoneId, campaignTitle, campaignId, amount, token },
-) => {
-  const data = {
-    recipient,
+const milestoneProposed = async (app, { milestone }) => {
+  const {
+    owner: milestoneOwner,
+    title: milestoneTitle,
+    _id: milestoneId,
+    reviewer: milestoneReviewer,
+    campaign,
+    token,
+    maxAmount: amount,
+  } = milestone;
+  const { title: campaignTitle, _id: campaignId, ownerAddress: campaignOwnerAddress } = campaign;
+  const campaignOwner = await app.service('users').get(campaignOwnerAddress);
+
+  const campaignOwnerEmailData = {
+    recipient: campaignOwner.email,
     template: emailNotificationTemplate,
     subject: 'Giveth - A Milestone has been proposed!',
     secretIntro: `Take action! A Milestone has been proposed for your Campaign! Please accept or reject.`,
     title: 'Take action: Milestone proposed!',
     image: EmailImages.SUGGEST_MILESTONE,
     text: `
-        <p><span ${emailStyle}>Hi ${user}</span></p>
+        <p><span ${emailStyle}>Hi ${campaignOwner.name}</span></p>
         <p>
-          The Milestone <em>${milestoneTitle}</em> for <em>${normalizeAmount(amount)} ${
+          The Milestone <strong>${milestoneTitle}</strong> for <em>${normalizeAmount(amount)} ${
       token.symbol
     }</em> has been proposed to <em>${campaignTitle}</em> Campaign .
           If you think this is a great idea, then <strong>please approve this Milestone within 3 days</strong> to add it to your Campaign.
@@ -230,10 +239,36 @@ const milestoneProposed = (
     ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
     unsubscribeType: EmailSubscribeTypes.MILESTONE_PROPOSED,
     unsubscribeReason: `You receive this email because you run a Campaign`,
-    // message: message,
+    milestoneId,
+    campaignId,
   };
+  sendEmail(app, campaignOwnerEmailData);
 
-  sendEmail(app, data);
+  if (!milestoneReviewer) {
+    return;
+  }
+  const milestoneReviewerEmailData = {
+    recipient: milestoneReviewer.email,
+    template: emailNotificationTemplate,
+    subject: 'Giveth - Time to review!',
+    secretIntro: `Take action: A Milestone has been proposed for your review!`,
+    title: 'Take action: Milestone proposed!',
+    image: EmailImages.SUGGEST_MILESTONE,
+    text: `
+        <p><span ${emailStyle}>Hi ${milestoneReviewer.name || ''}</span></p>
+        <p>
+          The Milestone <strong>${milestoneTitle}</strong>  has been proposed for your review.
+           If you think this is a great idea, <strong>please approve this Milestone within 3
+           days</strong> to add it to your Campaign. If not, then please reject it with a comment.'</p>
+      `,
+    cta: `See the Milestone`,
+    ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
+    unsubscribeType: EmailSubscribeTypes.MILESTONE_PROPOSED,
+    unsubscribeReason: `You receive this email because you are milestone reviewer`,
+    campaignId,
+    milestoneId,
+  };
+  sendEmail(app, milestoneReviewerEmailData);
 };
 
 const proposedMilestoneAccepted = (
