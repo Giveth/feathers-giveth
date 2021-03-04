@@ -224,7 +224,7 @@ const milestoneProposed = async (app, { milestone }) => {
     subject: 'Giveth - A Milestone has been proposed!',
     secretIntro: `Take action! A Milestone has been proposed for your Campaign! Please accept or reject.`,
     title: 'Take action: Milestone proposed!',
-    image: EmailImages.SUGGEST_MILESTONE,
+    image: EmailImages.REVIEW_BANNER,
     text: `
         <p><span ${emailStyle}>Hi ${campaignOwner.name}</span></p>
         <p>
@@ -244,6 +244,30 @@ const milestoneProposed = async (app, { milestone }) => {
   };
   sendEmail(app, campaignOwnerEmailData);
 
+  const milestoneOwnerEmailData = {
+    recipient: milestoneOwner.email,
+    template: emailNotificationTemplate,
+    subject: 'Giveth - Your Milestone Proposal has been sent!',
+    secretIntro: `our proposed Milestone ${milestoneTitle} has been submitted for review!`,
+    title: 'Finger Crossed!',
+    image: EmailImages.SUGGEST_MILESTONE,
+    text: `
+        <p><span ${emailStyle}>Hi ${milestoneOwner.name}</span></p>
+        <p>
+          Your proposed Milestone <strong>${milestoneTitle}</strong>
+          has been submitted for review!
+          We’ll let you know if the Milestone is approved by
+          the reviewer so you can start raising funds.</p>
+      `,
+    cta: `Manage your Milestones`,
+    ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
+    unsubscribeType: EmailSubscribeTypes.MILESTONE_PROPOSED,
+    unsubscribeReason: `You receive this email because you proposed a milestone`,
+    milestoneId,
+    campaignId,
+  };
+  sendEmail(app, milestoneOwnerEmailData);
+
   if (!milestoneReviewer) {
     return;
   }
@@ -253,7 +277,7 @@ const milestoneProposed = async (app, { milestone }) => {
     subject: 'Giveth - Time to review!',
     secretIntro: `Take action: A Milestone has been proposed for your review!`,
     title: 'Take action: Milestone proposed!',
-    image: EmailImages.SUGGEST_MILESTONE,
+    image: EmailImages.REVIEW_BANNER,
     text: `
         <p><span ${emailStyle}>Hi ${milestoneReviewer.name || ''}</span></p>
         <p>
