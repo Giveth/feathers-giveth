@@ -323,13 +323,38 @@ const campaignOwnerEditedProposedMilestone = async (app, { milestone, campaignOw
   sendEmail(app, data);
 };
 
+const milestoneOwnerEditedProposedMilestone = async (app, { milestone }) => {
+  const { title: milestoneTitle, _id: milestoneId, campaign, owner: milestoneOwner } = milestone;
+  const { _id: campaignId } = campaign;
+
+  const data = {
+    recipient: milestoneOwner.email,
+    template: emailNotificationTemplate,
+    subject: 'Giveth - Your Milestone edits have been submitted',
+    secretIntro: `You have edited the proposed Milestone ${milestoneTitle}`,
+    title: 'Your Milestone edits have been submitted',
+    image: EmailImages.SUGGEST_MILESTONE,
+    text: `
+        <p><span ${emailStyle}>Hi ${milestoneOwner.name || ''}</span></p>
+        <p>
+          Your edits to the proposed Milestone  <strong>${milestoneTitle}</strong>
+            have been submitted. Check to review your edits.</p>
+      `,
+    cta: `See the Milestone`,
+    ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
+    unsubscribeType: EmailSubscribeTypes.PROPOSED_MILESTONE_EDITED,
+    unsubscribeReason: `You receive this email because you are milestone owner`,
+    campaignId,
+    milestoneId,
+  };
+  sendEmail(app, data);
+};
+
 const proposedMilestoneEdited = async (app, { milestone, user }) => {
-  console.log('proposedMilestoneEdited ', {
-    user,
-    owner: milestone.owner,
-  });
   if (user.address === milestone.owner.address) {
-    // TODO email to milestone owner
+    await milestoneOwnerEditedProposedMilestone(app, {
+      milestone,
+    });
   } else if (user.address === milestone.campaign.ownerAddress) {
     await campaignOwnerEditedProposedMilestone(app, {
       milestone,
