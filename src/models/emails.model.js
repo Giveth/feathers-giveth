@@ -13,6 +13,7 @@ const EmailSubscribeTypes = {
   REQUEST_DELEGATION: 'request-delegation',
   DONATION_DELEGATED: 'donation-delegated',
   MILESTONE_PROPOSED: 'milestone-proposed',
+  PROPOSED_MILESTONE_EDITED: 'proposed-milestone-edited',
   PROPOSED_MILESTONE_ACCEPTED: 'proposed-milestone-accepted',
   PROPOSED_MILESTONE_REJECTED: 'proposed-milestone-rejected',
   MILESTONE_REQUEST_REVIEW: 'milestone-request-review',

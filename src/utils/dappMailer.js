@@ -295,6 +295,49 @@ const milestoneProposed = async (app, { milestone }) => {
   sendEmail(app, milestoneReviewerEmailData);
 };
 
+const campaignOwnerEditedProposedMilestone = async (app, { milestone, campaignOwner }) => {
+  const { title: milestoneTitle, _id: milestoneId, campaign } = milestone;
+  const { title: campaignTitle, _id: campaignId } = campaign;
+
+  const data = {
+    recipient: campaignOwner.email,
+    template: emailNotificationTemplate,
+    subject: 'Giveth - Your Milestone edits have been submitted',
+    secretIntro: `You have edited the proposed Milestone ${milestoneTitle}`,
+    title: 'Your Milestone edits have been submitted',
+    image: EmailImages.SUGGEST_MILESTONE,
+    text: `
+        <p><span ${emailStyle}>Hi ${campaignOwner.name || ''}</span></p>
+        <p>
+          Your edits to the proposed Milestone  <strong>${milestoneTitle}</strong>
+           in your Campaign <strong>${campaignTitle}</strong>
+            have been submitted. Check to review your edits.</p>
+      `,
+    cta: `See the Milestone`,
+    ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
+    unsubscribeType: EmailSubscribeTypes.PROPOSED_MILESTONE_EDITED,
+    unsubscribeReason: `You receive this email because you are campaign manager`,
+    campaignId,
+    milestoneId,
+  };
+  sendEmail(app, data);
+};
+
+const proposedMilestoneEdited = async (app, { milestone, user }) => {
+  console.log('proposedMilestoneEdited ', {
+    user,
+    owner: milestone.owner,
+  });
+  if (user.address === milestone.owner.address) {
+    // TODO email to milestone owner
+  } else if (user.address === milestone.campaign.ownerAddress) {
+    await campaignOwnerEditedProposedMilestone(app, {
+      milestone,
+      campaignOwner: user,
+    });
+  }
+};
+
 const proposedMilestoneAccepted = (
   app,
   { recipient, user, milestoneTitle, milestoneId, campaignTitle, campaignId, message },
@@ -542,6 +585,7 @@ module.exports = {
   milestoneProposed,
   proposedMilestoneAccepted,
   proposedMilestoneRejected,
+  proposedMilestoneEdited,
   milestoneReviewRejected,
   milestoneMarkedCompleted,
   milestoneRequestReview,

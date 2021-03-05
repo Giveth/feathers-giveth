@@ -58,6 +58,7 @@ async function sendMilestoneCreatedEmail(
  * */
 const handleMilestoneConversationAndEmail = () => async context => {
   const { data, app, result, params } = context;
+  const { user } = params;
   const { performedByAddress, eventTxHash } = params;
 
   const _createConversation = async messageContext => {
@@ -120,7 +121,6 @@ const handleMilestoneConversationAndEmail = () => async context => {
     title,
     _id,
     campaignId,
-    maxAmount,
     token,
     prevStatus,
     owner,
@@ -133,7 +133,13 @@ const handleMilestoneConversationAndEmail = () => async context => {
     reviewer,
     // recipient,
   } = result;
-  logger.info('sendNotification', { owner, status, prevStatus });
+  logger.info('sendNotification', {
+    milestoneId: _id,
+    eventTxHash,
+    status,
+    prevStatus,
+    method: context.method,
+  });
   if (context.method === 'create' && status === PROPOSED) {
     await sendMilestoneProposedEmail(app, {
       milestone: result,
@@ -141,7 +147,7 @@ const handleMilestoneConversationAndEmail = () => async context => {
     return;
   }
 
-  if (context.method !== 'patch' || !data.status) {
+  if (context.method !== 'patch') {
     // The rest of code is for patch requests that update the status, so in this case we dont need to run it
     return;
   }
@@ -184,12 +190,7 @@ const handleMilestoneConversationAndEmail = () => async context => {
       }
     } else if (status === PROPOSED && prevStatus === REJECTED) {
       await sendMilestoneProposedEmail(app, {
-        title,
-        _id,
-        campaign,
-        campaignId,
-        maxAmount,
-        token,
+        milestone: result,
       });
     } else if (
       status === IN_PROGRESS &&
@@ -278,6 +279,11 @@ const handleMilestoneConversationAndEmail = () => async context => {
     });
   } else if (data.status === PROPOSED && prevStatus === REJECTED) {
     _createConversation(CONVERSATION_MESSAGE_CONTEXT.RE_PROPOSE);
+  } else if (result.status === PROPOSED && !prevStatus) {
+    Mailer.proposedMilestoneEdited(app, {
+      milestone: result,
+      user,
+    });
   } else if (data.status === ARCHIVED && prevStatus === IN_PROGRESS) {
     _createConversation(CONVERSATION_MESSAGE_CONTEXT.ARCHIVED);
   }
