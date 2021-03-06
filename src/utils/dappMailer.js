@@ -24,7 +24,8 @@ const sendEmail = (app, data) => {
   if (!app.get('host').includes('beta')) {
     data.subject = `[${app.get('host')}] - ${data.subject}`;
   }
-  emailService.create(data);
+  data.dappUrl = app.get('dappUrl');
+  return emailService.create(data);
 };
 
 const donationReceipt = (app, { recipient, user, amount, token, donationType, donatedToTitle }) => {
@@ -242,7 +243,7 @@ const milestoneProposed = async (app, { milestone }) => {
     milestoneId,
     campaignId,
   };
-  sendEmail(app, campaignOwnerEmailData);
+  await sendEmail(app, campaignOwnerEmailData);
 
   const milestoneOwnerEmailData = {
     recipient: milestoneOwner.email,
@@ -266,7 +267,7 @@ const milestoneProposed = async (app, { milestone }) => {
     milestoneId,
     campaignId,
   };
-  sendEmail(app, milestoneOwnerEmailData);
+  await sendEmail(app, milestoneOwnerEmailData);
 
   if (!milestoneReviewer) {
     return;
@@ -292,14 +293,14 @@ const milestoneProposed = async (app, { milestone }) => {
     campaignId,
     milestoneId,
   };
-  sendEmail(app, milestoneReviewerEmailData);
+  await sendEmail(app, milestoneReviewerEmailData);
 };
 
 const campaignOwnerEditedProposedMilestone = async (app, { milestone, campaignOwner }) => {
-  const { title: milestoneTitle, _id: milestoneId, campaign } = milestone;
+  const { title: milestoneTitle, _id: milestoneId, campaign, owner: milestoneOwner } = milestone;
   const { title: campaignTitle, _id: campaignId } = campaign;
 
-  const data = {
+  const campaignOwnerEmailData = {
     recipient: campaignOwner.email,
     template: emailNotificationTemplate,
     subject: 'Giveth - Your Milestone edits have been submitted',
@@ -320,7 +321,29 @@ const campaignOwnerEditedProposedMilestone = async (app, { milestone, campaignOw
     campaignId,
     milestoneId,
   };
-  sendEmail(app, data);
+  await sendEmail(app, campaignOwnerEmailData);
+  const milestoneOwnerEmailData = {
+    recipient: milestoneOwner.email,
+    template: emailNotificationTemplate,
+    subject: 'Giveth - Your Milestone has been edited',
+    secretIntro: `Your milestone ${milestoneTitle} has been edited by the Campaign Manager.`,
+    title: 'Your Milestone has been edited',
+    image: EmailImages.SUGGEST_MILESTONE,
+    text: `
+        <p><span ${emailStyle}>Hi ${milestoneOwner.name || ''}</span></p>
+        <p>
+          Your milestone  <strong>${milestoneTitle}</strong>
+          has been edited by the Campaign Manager.
+          Check to see what edits have been made.</p>
+      `,
+    cta: `See the Milestone`,
+    ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
+    unsubscribeType: EmailSubscribeTypes.PROPOSED_MILESTONE_EDITED,
+    unsubscribeReason: `You receive this email because you are milestone owner`,
+    campaignId,
+    milestoneId,
+  };
+  await sendEmail(app, milestoneOwnerEmailData);
 };
 
 const milestoneOwnerEditedProposedMilestone = async (app, { milestone }) => {

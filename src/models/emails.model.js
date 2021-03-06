@@ -48,6 +48,7 @@ function createModel(app) {
       ctaRelativeUrl: { type: String, required: true },
       message: { type: String, default: '' },
       dappMailerResponse: { type: Object },
+      dappUrl: { type: String },
       error: { type: String, default: '' },
       milestoneId: { type: String },
       campaignId: { type: String },

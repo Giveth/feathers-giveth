@@ -183,6 +183,8 @@
       "980": 0.4,
       "1000": 0.4
     }
-  }
+  },
+  "dappMailerUrl": "https://fake.dappmailer.giveth.io",
+  "dappMailerSecret": "fakeSecret"
 
 }
