@@ -438,7 +438,19 @@ const addProjectToDac = () => async context => {
       campaignId = projectObjectId;
       break;
     case 'milestone':
-      campaignId = (await context.app.service('milestones').get(projectObjectId)).campaignId;
+      // eslint-disable-next-line no-case-declarations
+      const milestone = await context.app.service('milestones').Model.findOne(
+        {
+          _id: ObjectId(projectObjectId),
+        },
+        {
+          campaignId: 1,
+        },
+      );
+      if (!milestone) {
+        return context;
+      }
+      campaignId = milestone.campaignId;
       break;
     default:
       return context;
