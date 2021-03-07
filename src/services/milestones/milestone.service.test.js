@@ -71,6 +71,19 @@ function postMilestoneTestCases() {
     assert.equal(response.statusCode, 401);
     assert.equal(response.body.code, 401);
   });
+  it('should get different slugs for two milestones with same title successfully', async function() {
+    const response1 = await request(baseUrl)
+      .post(relativeUrl)
+      .send(SAMPLE_DATA.CREATE_MILESTONE_DATA())
+      .set({ Authorization: getJwt() });
+    const response2 = await request(baseUrl)
+      .post(relativeUrl)
+      .send(SAMPLE_DATA.CREATE_MILESTONE_DATA())
+      .set({ Authorization: getJwt() });
+    assert.isNotNull(response1.body.slug);
+    assert.isNotNull(response2.body.slug);
+    assert.notEqual(response1.body.slug, response2.body.slug);
+  });
 }
 
 function patchMilestoneTestCases() {
