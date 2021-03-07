@@ -145,7 +145,7 @@ const handleMilestoneConversationAndEmail = () => async context => {
     reviewer,
     // recipient,
   } = result;
-  logger.info('sendNotification', { owner, status, prevStatus });
+  logger.info('handleMilestoneConversationAndEmail called', { owner, status, prevStatus });
   if (context.method === 'create' && status === PROPOSED) {
     await sendMilestoneProposedEmail(app, {
       title,
