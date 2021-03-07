@@ -2,6 +2,7 @@ const challenges = require('./challenges/challenges.service');
 const pledgeAdmins = require('./pledgeAdmins/pledgeAdmins.service');
 const events = require('./events/events.service');
 const emails = require('./emails/emails.service');
+const subscription = require('./subscriptions/subscription.service');
 
 const dacs = require('./dacs/dacs.service.js');
 const milestones = require('./milestones/milestones.service.js');
@@ -34,6 +35,7 @@ module.exports = function configure() {
   app.configure(conversionRates);
   app.configure(events);
   app.configure(emails);
+  app.configure(subscription);
   app.configure(conversations);
   app.configure(campaigncsv);
 };
