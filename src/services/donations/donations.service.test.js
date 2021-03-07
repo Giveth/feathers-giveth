@@ -169,7 +169,7 @@ function postDonationsAddCampaignsToDacTestCases() {
     const campaignId = campaign._id;
     let dac = await app.service('dacs').get(SAMPLE_DATA.DAC_ID);
     assert.isNotOk(dac.campaigns && dac.campaigns.includes(campaignId));
-    const milestone = await createMilestone({ ...SAMPLE_DATA.CREATE_MILESTONE_DATA(), campaignId });
+    const milestone = await createMilestone({ ...SAMPLE_DATA.createMilestoneData(), campaignId });
     assert.equal(milestone.campaignId, campaignId);
     const response = await request(baseUrl)
       .post(relativeUrl)
