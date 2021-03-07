@@ -1,7 +1,7 @@
 const config = require('config');
 const axios = require('axios');
 const logger = require('winston');
-const { DonationStatus, DONATION_BRIDGE_STATUS } = require('../models/donations.model');
+const { DonationStatus, DonationBridgeStatus } = require('../models/donations.model');
 const { getTransaction } = require('../blockchain/lib/web3Helpers');
 
 const bridgeMonitorBaseUrl = config.get('bridgeMonitorBaseUrl');
@@ -31,7 +31,7 @@ const getDonationStatusFromBridge = async ({ txHash, tokenAddress }) => {
 
 const updateDonationsStatusToBridgePaid = async ({ app, donation, payment }) => {
   const donationService = app.service('donations');
-  const bridgeStatus = DONATION_BRIDGE_STATUS.PAID;
+  const bridgeStatus = DonationBridgeStatus.PAID;
   const { timestamp } = await getTransaction(app, payment.paymentTransactionHash, true);
   await donationService.patch(donation._id, {
     bridgeStatus,
@@ -46,7 +46,7 @@ const updateDonationsStatusToBridgePaid = async ({ app, donation, payment }) => 
 };
 const updateDonationsStatusToBridgeFailed = async ({ app, donation }) => {
   const donationService = app.service('donations');
-  const bridgeStatus = DONATION_BRIDGE_STATUS.CANCELLED;
+  const bridgeStatus = DonationBridgeStatus.CANCELLED;
   await donationService.patch(donation._id, {
     bridgeStatus,
   });
@@ -57,7 +57,7 @@ const updateDonationsStatusToBridgeFailed = async ({ app, donation }) => {
 };
 const updateDonationsAndMilestoneStatusToBridgeUnknown = async ({ app, donation }) => {
   const donationService = app.service('donations');
-  let bridgeStatus = DONATION_BRIDGE_STATUS.UNKNOWN;
+  let bridgeStatus = DonationBridgeStatus.UNKNOWN;
 
   const timeBetweenCreatedDonationAndNow =
     new Date().getTime() - new Date(donation.createdAt).getTime();
@@ -65,7 +65,7 @@ const updateDonationsAndMilestoneStatusToBridgeUnknown = async ({ app, donation 
   if (timeBetweenCreatedDonationAndNow > expirationThreshold) {
     // If a donations is for more than two months ago and the bridge status is unknown
     // then we set the bridgeStatus Expired to not inquiry again for that donation
-    bridgeStatus = DONATION_BRIDGE_STATUS.EXPIRED;
+    bridgeStatus = DonationBridgeStatus.EXPIRED;
   }
   donationService.patch(donation._id, {
     bridgeStatus,
@@ -114,9 +114,9 @@ const syncDonationsWithBridge = async app => {
       bridgeStatus: {
         // $exists: true,
         $nin: [
-          DONATION_BRIDGE_STATUS.PAID,
-          DONATION_BRIDGE_STATUS.CANCELLED,
-          DONATION_BRIDGE_STATUS.EXPIRED,
+          DonationBridgeStatus.PAID,
+          DonationBridgeStatus.CANCELLED,
+          DonationBridgeStatus.EXPIRED,
         ],
       },
     },

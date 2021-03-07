@@ -15,7 +15,7 @@ const DonationStatus = {
   FAILED: 'Failed',
 };
 
-const DONATION_BRIDGE_STATUS = {
+const DonationBridgeStatus = {
   CANCELLED: 'Cancelled',
   EXPIRED: 'Expired',
   UNKNOWN: 'Unknown',
@@ -54,7 +54,7 @@ function Donation(app) {
       },
       bridgeStatus: {
         type: String,
-        enum: Object.values(DONATION_BRIDGE_STATUS),
+        enum: Object.values(DonationBridgeStatus),
       },
       bridgeTxHash: { type: String },
       bridgeTransactionTime: { type: Date },
@@ -139,6 +139,6 @@ function Donation(app) {
 
 module.exports = {
   DonationStatus,
-  DONATION_BRIDGE_STATUS,
+  DonationBridgeStatus,
   createModel: Donation,
 };
