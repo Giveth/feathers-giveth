@@ -106,7 +106,7 @@ const createMilestoneAndCampaign = async () => {
     await request(baseUrl)
       .post('/milestones')
       .send({
-        ...SAMPLE_DATA.CREATE_MILESTONE_DATA(),
+        ...SAMPLE_DATA.createMilestoneData(),
         campaignId: campaign._id,
         ownerAddress: milestoneOwner.address,
         reviewerAddress: milestoneReviewer.address,
