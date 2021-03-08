@@ -346,6 +346,35 @@ const campaignOwnerEditedProposedMilestone = async (app, { milestone, campaignOw
   await sendEmail(app, milestoneOwnerEmailData);
 };
 
+const milestoneReviewerEditedProposedMilestone = async (app, { milestone }) => {
+  const { title: milestoneTitle, _id: milestoneId, campaign } = milestone;
+  const { title: campaignTitle, _id: campaignId, ownerAddress: campaignOwnerAddress } = campaign;
+  const campaignOwner = await app.service('users').get(campaignOwnerAddress);
+
+  const campaignOwnerEmailData = {
+    recipient: campaignOwner.email,
+    template: emailNotificationTemplate,
+    subject: 'Giveth - A proposed Milestone in your Campaign has been edited',
+    secretIntro: `The proposed Milestone ${milestoneTitle} in your Campaign ${campaignTitle} has been edited.’`,
+    title: 'A proposed Milestone has been edited',
+    image: EmailImages.SUGGEST_MILESTONE,
+    text: `
+        <p><span ${emailStyle}>Hi ${campaignOwner.name || ''}</span></p>
+        <p>
+          The proposed Milestone <strong>${milestoneTitle}</strong>
+           in your Campaign <strong>${campaignTitle}</strong>
+            has been edited by the Milestone Reviewer. Check to review the edits.</p>
+      `,
+    cta: `See the Milestone`,
+    ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
+    unsubscribeType: EmailSubscribeTypes.PROPOSED_MILESTONE_EDITED,
+    unsubscribeReason: `You receive this email because you are campaign manager`,
+    campaignId,
+    milestoneId,
+  };
+  await sendEmail(app, campaignOwnerEmailData);
+};
+
 const milestoneOwnerEditedProposedMilestone = async (app, { milestone }) => {
   const { title: milestoneTitle, _id: milestoneId, campaign, owner: milestoneOwner } = milestone;
   const { _id: campaignId } = campaign;
@@ -382,6 +411,10 @@ const proposedMilestoneEdited = async (app, { milestone, user }) => {
     await campaignOwnerEditedProposedMilestone(app, {
       milestone,
       campaignOwner: user,
+    });
+  } else if (user.address === milestone.reviewer.address) {
+    await milestoneReviewerEditedProposedMilestone(app, {
+      milestone,
     });
   }
 };

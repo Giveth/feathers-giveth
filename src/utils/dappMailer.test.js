@@ -70,6 +70,13 @@ const createMilestoneAndCampaign = async () => {
     isAdmin: true,
     name: `milestoneOwner ${generateRandomNumber(0, 10000)}`,
   });
+  const milestoneReviewer = await userService.create({
+    address: generateRandomEtheriumAddress(),
+    email: `${generateRandomNumber(0, 10000)}-milestoneReviewer@test.giveth`,
+    isAdmin: true,
+    isReviewer: true,
+    name: `milestoneOwner ${generateRandomNumber(0, 10000)}`,
+  });
   const campaignOwner = await userService.create({
     address: generateRandomEtheriumAddress(),
     email: `${generateRandomNumber(0, 10000)}-milestoneOwner@test.giveth`,
@@ -90,12 +97,13 @@ const createMilestoneAndCampaign = async () => {
         ...SAMPLE_DATA.CREATE_MILESTONE_DATA(),
         campaignId: campaign._id,
         ownerAddress: milestoneOwner.address,
+        reviewerAddress: milestoneReviewer.address,
         // owner: milestoneOwner,
       })
       .set({ Authorization: getJwt(milestoneOwner.address) })
   ).body;
 
-  return { milestone, campaign, milestoneOwner, campaignOwner };
+  return { milestone, campaign, milestoneOwner, campaignOwner, milestoneReviewer };
 };
 
 function proposedMilestoneEditedTestCases() {
@@ -159,6 +167,44 @@ function proposedMilestoneEditedTestCases() {
       },
     });
     assert.isAtLeast(milestoneOwnerEmails.length, 1);
+
+    // in this case should not send email to campaign manager
+    const campaignOwnerEmails = await emailService.find({
+      paginate: false,
+      query: {
+        recipient: campaignOwner.email,
+        milestoneId: milestone._id,
+        campaignId: campaign._id,
+        unsubscribeType: EmailSubscribeTypes.PROPOSED_MILESTONE_EDITED,
+      },
+    });
+    assert.isAtLeast(campaignOwnerEmails.length, 1);
+  });
+  it('email to campaign owner after milestone reviewer edits proposed milestone', async () => {
+    const emailService = app.service('emails');
+    const {
+      campaign,
+      milestone,
+      milestoneReviewer,
+      campaignOwner,
+    } = await createMilestoneAndCampaign();
+    await proposedMilestoneEdited(app, {
+      milestone,
+      user: milestoneReviewer,
+    });
+    // because creating and sending email is async, we should wait to make sure the email hooks worked
+    await sleep(1000);
+
+    // const milestoneOwnerEmails = await emailService.find({
+    //   paginate: false,
+    //   query: {
+    //     recipient: milestoneOwner.email,
+    //     milestoneId: milestone._id,
+    //     campaignId: campaign._id,
+    //     unsubscribeType: EmailSubscribeTypes.PROPOSED_MILESTONE_EDITED,
+    //   },
+    // });
+    // assert.isAtLeast(milestoneOwnerEmails.length, 1);
 
     // in this case should not send email to campaign manager
     const campaignOwnerEmails = await emailService.find({
