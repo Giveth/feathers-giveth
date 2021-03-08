@@ -11,7 +11,7 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: 10.x
-      - name: install dependenciesz
+      - name: install dependencies
         run: npm ci
       - name: run linter
         run: npm run eslint
