@@ -2,9 +2,6 @@ const slugify = require('../utils/slugify');
 
 const createModelSlug = modelName => async context => {
   const { data, app } = context;
-  if (data.slug) {
-    return context;
-  }
   if (!data.title) {
     return context;
   }
