@@ -361,6 +361,7 @@ module.exports = {
       performedBy(),
       convertTokenToTokenAddress(),
       checkMilestoneName(),
+      createModelSlug('milestones'),
     ],
     remove: [
       restrictToOwner({
