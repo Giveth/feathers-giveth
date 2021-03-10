@@ -8,6 +8,7 @@ const emailStyle = `style='line-height: 33px; font-size: 22px;'`;
 const generateMilestoneCtaRelativeUrl = (campaignId, milestoneId) => {
   return `/campaigns/${campaignId}/milestones/${milestoneId}`;
 };
+const { ANY_TOKEN } = require('../blockchain/lib/web3Helpers');
 
 const capitalizeDelegateType = inputDelegateType => {
   if (inputDelegateType.toLowerCase() === 'dac') return 'DAC';
@@ -216,10 +217,14 @@ const milestoneProposed = async (app, { milestone }) => {
     reviewer: milestoneReviewer,
     campaign,
     token,
-    maxAmount: amount,
+    maxAmount,
   } = milestone;
   const { title: campaignTitle, _id: campaignId, ownerAddress: campaignOwnerAddress } = campaign;
   const campaignOwner = await app.service('users').get(campaignOwnerAddress);
+  const amount =
+    token.symbol === ANY_TOKEN.symbol
+      ? 'Unlimited amount of any token'
+      : `${normalizeAmount(maxAmount)}${token.symbol}`;
 
   const campaignOwnerEmailData = {
     recipient: campaignOwner.email,
@@ -231,9 +236,7 @@ const milestoneProposed = async (app, { milestone }) => {
     text: `
         <p><span ${emailStyle}>Hi ${campaignOwner.name}</span></p>
         <p>
-          The Milestone <strong>${milestoneTitle}</strong> for <strong>${normalizeAmount(amount)} ${
-      token.symbol
-    }</strong> has been proposed to <strong>${campaignTitle}</strong> Campaign .
+          The Milestone <strong>${milestoneTitle}</strong> for <strong>${amount}</strong> has been proposed to <strong>${campaignTitle}</strong> Campaign .
           If you think this is a great idea, then <strong>please approve this Milestone within 3 days</strong> to add it to your Campaign.
           If not, then please reject it with comment.
         </p>
@@ -433,6 +436,10 @@ const proposedMilestoneAccepted = (app, { milestone, message }) => {
     token,
   } = milestone;
   const { title: campaignTitle } = campaign;
+  const amount =
+    token.symbol === ANY_TOKEN.symbol
+      ? 'Unlimited amount of any token'
+      : `${normalizeAmount(maxAmount)}${token.symbol}`;
   const data = {
     recipient: milestoneOwner.email,
     template: emailNotificationTemplate,
@@ -458,9 +465,8 @@ const proposedMilestoneAccepted = (app, { milestone, message }) => {
   };
   sendEmail(app, data);
 
-  // Maybe recipient is campaign and doesnt have email
-  if (milestoneRecipient.email ||
-    milestoneRecipient.address === milestoneOwner.address) {
+  // Maybe recipient is campaign and doesnt have email, or recipient id the milestone owner
+  if (!milestoneRecipient.email || milestoneRecipient.address === milestoneOwner.address) {
     return;
   }
   const sendRecipientEmailData = {
@@ -474,9 +480,7 @@ const proposedMilestoneAccepted = (app, { milestone, message }) => {
     text: `
         <p><span ${emailStyle}>Hi ${milestoneRecipient.name}</span></p>
         <p>
-          A Milestone <strong>${milestoneTitle}</strong> for ${normalizeAmount(maxAmount)} ${
-      token.symbol
-    }
+          A Milestone <strong>${milestoneTitle}</strong> for ${amount}
            has been created with you as the recipient.
         </p>
       `,
