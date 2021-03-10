@@ -17,8 +17,7 @@ const sendEmailToDappMailer = () => async context => {
     ctaRelativeUrl: result.ctaRelativeUrl,
     unsubscribeType: result.unsubscribeType,
     unsubscribeReason: result.unsubscribeReason,
-    // add the dapp url that this feathers serves for
-    dappUrl: app.get('dappUrl'),
+    dappUrl: result.dappUrl,
     message: result.message,
   };
   const dappMailerUrl = app.get('dappMailerUrl');
@@ -38,29 +37,28 @@ const sendEmailToDappMailer = () => async context => {
     `sending email notification to ${emailData.recipient} > ${emailData.unsubscribeType}`,
   );
 
-  rp({
-    method: 'POST',
-    url: `${dappMailerUrl}/send`,
-    headers: {
-      Authorization: app.get('dappMailerSecret'),
-    },
-    form: emailData,
-    json: true,
-  })
-    .then(res => {
-      logger.info(`email sent to ${emailData.recipient}: `, res);
-      return emailService.patch(result._id, {
-        status: EMAIL_STATUS.SUCCESS,
-        dappMailerResponse: res,
-      });
-    })
-    .catch(err => {
-      logger.error(`error sending email to ${emailData.recipient}`, err);
-      return emailService.patch(result._id, {
-        status: EMAIL_STATUS.FAILED,
-        error: err.message,
-      });
+  try {
+    const res = await rp({
+      method: 'POST',
+      url: `${dappMailerUrl}/send`,
+      headers: {
+        Authorization: app.get('dappMailerSecret'),
+      },
+      form: emailData,
+      json: true,
     });
+    logger.info(`email sent to ${emailData.recipient}: `, res);
+    await emailService.patch(result._id, {
+      status: EMAIL_STATUS.SUCCESS,
+      dappMailerResponse: res,
+    });
+  } catch (err) {
+    logger.error(`error sending email to ${emailData.recipient}`, err);
+    emailService.patch(result._id, {
+      status: EMAIL_STATUS.FAILED,
+      error: err.message,
+    });
+  }
 };
 
 module.exports = {

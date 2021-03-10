@@ -219,7 +219,7 @@ function acceptedTestCases() {
 function reviewerChangedTestCases() {
   async function updateMileStoneByReviewerChangedEventData(status, reviewerAddress) {
     const transactionHash = generateRandomTransactionHash();
-    const from = generateRandomEtheriumAddress();
+    const from = SAMPLE_DATA.USER_ADDRESS;
     const Transaction = app.get('transactionsModel');
     await new Transaction({ hash: transactionHash, from }).save();
     const idProject = generateRandomNumber(10, 100000);
@@ -272,7 +272,7 @@ function reviewerChangedTestCases() {
 function recipientChangedTestCases() {
   async function updateMileStoneByRecipientChangedEventData(status, recipient) {
     const transactionHash = generateRandomTransactionHash();
-    const from = generateRandomEtheriumAddress();
+    const from = SAMPLE_DATA.USER_ADDRESS;
     const Transaction = app.get('transactionsModel');
     await new Transaction({ hash: transactionHash, from }).save();
     const idProject = generateRandomNumber(10, 100000);
