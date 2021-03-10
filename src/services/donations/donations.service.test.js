@@ -33,6 +33,22 @@ async function createDonation(data) {
   return response.body;
 }
 
+async function createCampaigns(data) {
+  const response = await request(baseUrl)
+    .post('/campaigns')
+    .set({ Authorization: getJwt() })
+    .send(data);
+  return response.body;
+}
+
+async function createMilestone(data) {
+  const response = await request(baseUrl)
+    .post('/milestones')
+    .set({ Authorization: getJwt() })
+    .send(data);
+  return response.body;
+}
+
 function getDonationsTestCases() {
   it('should return some values', async () => {
     const response = await request(baseUrl).get(relativeUrl);
@@ -128,6 +144,46 @@ function postDonationsTestCases() {
       .send(createDonationPayload);
     assert.equal(response.statusCode, 401);
     assert.equal(response.body.code, 401);
+  });
+}
+
+function postDonationsAddCampaignsToDacTestCases() {
+  it('should create delegate donation and connect campaign to dac', async () => {
+    const campaign = await createCampaigns(SAMPLE_DATA.CREATE_CAMPAIGN_DATA);
+    const campaignId = campaign._id;
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .set({ Authorization: getJwt() })
+      .send({
+        ...createDonationPayload,
+        delegateTypeId: SAMPLE_DATA.DAC_ID,
+        intendedProjectType: 'campaign',
+        intendedProjectTypeId: campaignId,
+      });
+    assert.equal(response.statusCode, 201);
+    const dac = await app.service('dacs').get(SAMPLE_DATA.DAC_ID);
+    assert.isTrue(dac.campaigns.includes(campaignId));
+  });
+  it('should create delegate donation and connect milestone parent campaign to dac', async () => {
+    const campaign = await createCampaigns(SAMPLE_DATA.CREATE_CAMPAIGN_DATA);
+    const campaignId = campaign._id;
+    let dac = await app.service('dacs').get(SAMPLE_DATA.DAC_ID);
+    assert.isNotOk(dac.campaigns && dac.campaigns.includes(campaignId));
+    const milestone = await createMilestone({ ...SAMPLE_DATA.createMilestoneData(), campaignId });
+    assert.equal(milestone.campaignId, campaignId);
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .set({ Authorization: getJwt() })
+      .send({
+        ...createDonationPayload,
+        delegateTypeId: SAMPLE_DATA.DAC_ID,
+        intendedProjectType: 'milestone',
+        intendedProjectTypeId: milestone._id,
+      });
+    assert.equal(response.statusCode, 201);
+
+    dac = await app.service('dacs').get(SAMPLE_DATA.DAC_ID);
+    assert.isTrue(dac.campaigns.includes(campaignId));
   });
 }
 
@@ -258,6 +314,10 @@ it('should donations service registration be ok', () => {
 });
 describe(`Test GET ${relativeUrl}`, getDonationsTestCases);
 describe(`Test POST ${relativeUrl}`, postDonationsTestCases);
+describe(
+  `Test POST ${relativeUrl} test adding campaigns to dacs`,
+  postDonationsAddCampaignsToDacTestCases,
+);
 describe(`Test DELETE ${relativeUrl}`, deleteDonationsTestCases);
 describe(`Test PUT ${relativeUrl}`, putDonationsTestCases);
 describe(`Test PATCH ${relativeUrl}`, patchDonationsTestCases);
