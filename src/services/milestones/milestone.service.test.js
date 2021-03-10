@@ -31,7 +31,7 @@ function getMilestoneTestCases() {
 }
 
 function postMilestoneTestCases() {
-  it('should create milestone successfully', async function() {
+  it('should create milestone successfully', async () => {
     const response = await request(baseUrl)
       .post(relativeUrl)
       .send(SAMPLE_DATA.createMilestoneData())

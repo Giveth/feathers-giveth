@@ -26,6 +26,10 @@ const assertThrowsAsync = async (fn, errorMessage) => {
   }
 };
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 const assertNotThrowsAsync = async fn => {
   let f = () => {
     // empty function
@@ -242,6 +246,7 @@ const SAMPLE_DATA = {
     image: 'This should be image :))',
     mined: false,
     reviewerAddress,
+    pluginAddress: '0x0000000000000000000000000000000000000001',
     ownerAddress: projectOwnerAddress,
     status: 'Pending',
     txHash: generateRandomTransactionHash(),
@@ -291,4 +296,5 @@ module.exports = {
   generateRandomNumber,
   generateRandomTransactionHash,
   padWithZero,
+  sleep,
 };
