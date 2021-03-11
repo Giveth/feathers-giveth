@@ -47,13 +47,16 @@ const sendEmailToDappMailer = () => async context => {
       form: emailData,
       json: true,
     });
-    logger.info(`email sent to ${emailData.recipient}: `, res);
+    logger.info(`email sent to ${emailData.recipient}: `, { response: res, emailId: result._id });
     await emailService.patch(result._id, {
       status: EMAIL_STATUS.SUCCESS,
       dappMailerResponse: res,
     });
   } catch (err) {
-    logger.error(`error sending email to ${emailData.recipient}`, err);
+    logger.error(`error sending email to ${emailData.recipient}`, {
+      error: err.message,
+      emailId: result._id,
+    });
     emailService.patch(result._id, {
       status: EMAIL_STATUS.FAILED,
       error: err.message,
