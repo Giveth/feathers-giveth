@@ -438,7 +438,9 @@ function milestoneCanceledTestCases() {
 function milestoneMarkedCompletedTestCases() {
   it('email to milestoneOwner, when proposed milestone marks as complete', async () => {
     const emailService = app.service('emails');
-    const { campaign, milestone, milestoneRecipient, milestoneOwner } = await createMilestoneAndCampaign();
+    const { campaign, milestone,
+      milestoneRecipient, milestoneOwner,
+    milestoneReviewer} = await createMilestoneAndCampaign();
     const message = `test message - ${new Date()}`;
     await milestoneMarkedCompleted(app, {
       milestone,
@@ -468,6 +470,17 @@ function milestoneMarkedCompletedTestCases() {
       },
     });
     assert.isAtLeast(milestoneRecipientEmails.length, 1);
+    const milestoneReviewerEmails = await emailService.find({
+      paginate: false,
+      query: {
+        recipient: milestoneReviewer.email,
+        milestoneId: milestone._id,
+        campaignId: campaign._id,
+        message,
+        unsubscribeType: EmailSubscribeTypes.MILESTONE_REVIEW_APPROVED,
+      },
+    });
+    assert.isAtLeast(milestoneReviewerEmails.length, 1);
   });
 }
 

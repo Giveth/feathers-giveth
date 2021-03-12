@@ -576,6 +576,7 @@ const milestoneMarkedCompleted = (app, { milestone, message }) => {
   const {
     owner: milestoneOwner,
     recipient : milestoneRecipient,
+    reviewer : milestoneReviewer,
     title: milestoneTitle,
     token,
     campaignId,
@@ -610,22 +611,45 @@ const milestoneMarkedCompleted = (app, { milestone, message }) => {
   };
   sendEmail(app, milestoneOwnerEmailData);
 
-  if (
-    !milestoneRecipient ||
-    !milestoneRecipient.email
-    //  || milestoneRecipient.address !== milestoneOwner.address
-  ){
-    return;
-  }
-
-  const milestoneRecipientEmailData = {
-    recipient: milestoneRecipient.email,
+  const milestoneReviewerEmailData = {
+    recipient: milestoneReviewer.email,
     template: emailNotificationTemplate,
-    subject: 'Giveth - Time to collect!',
-    secretIntro: `Your Milestone ${milestoneTitle} has been marked complete by the reviewer. The recipient can now collect the payment.`,
-    title: `Milestone completed! Time to collect ${tokenSymbol}.`,
+    subject: 'Giveth - You approved the completion of a Milestone',
+    secretIntro: `You have marked the Milestone ${milestoneTitle} as complete. The recipient can now collect the payment.`,
+    title: `Milestone completed!`,
     image: EmailImages.MILESTONE_REVIEW_APPROVED,
     text: `
+        <p><span ${emailStyle}>Hi ${milestoneReviewer.name || ''}</span></p>
+        <p>
+          You have marked the Milestone  <strong>${milestoneTitle}</strong> in the Campaign <strong>${campaignTitle}</strong> as complete! The recipient can now transfer the funds out of this Milestone.
+          <br/><br/>
+        </p>
+          The recipient can now transfer the funds out of this Milestone!
+        </p>
+      `,
+    cta: `Manage Milestone`,
+    ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
+    unsubscribeType: EmailSubscribeTypes.MILESTONE_REVIEW_APPROVED,
+    unsubscribeReason: `You receive this email because you are reviewer of a Milestone`,
+    campaignId,
+    milestoneId,
+    message,
+  };
+  sendEmail(app, milestoneReviewerEmailData);
+
+  if (
+    milestoneRecipient.email
+    //  || milestoneRecipient.address !== milestoneOwner.address
+  ){
+
+    const milestoneRecipientEmailData = {
+      recipient: milestoneRecipient.email,
+      template: emailNotificationTemplate,
+      subject: 'Giveth - Time to collect!',
+      secretIntro: `Your Milestone ${milestoneTitle} has been marked complete by the reviewer. The recipient can now collect the payment.`,
+      title: `Milestone completed! Time to collect ${tokenSymbol}.`,
+      image: EmailImages.MILESTONE_REVIEW_APPROVED,
+      text: `
         <p><span ${emailStyle}>Hi ${milestoneRecipient.name || ''}</span></p>
         <p>
           The Milestone <strong>${milestoneTitle}</strong> in the Campaign <strong>${campaignTitle}</strong> has been marked complete by the reviewer!.
@@ -634,15 +658,17 @@ const milestoneMarkedCompleted = (app, { milestone, message }) => {
           You can now transfer the funds out of this Milestone!
         </p>
       `,
-    cta: `Manage Milestone`,
-    ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
-    unsubscribeType: EmailSubscribeTypes.MILESTONE_REVIEW_APPROVED,
-    unsubscribeReason: `You receive this email because you are recipient of a Milestone`,
-    campaignId,
-    milestoneId,
-    message,
-  };
-  sendEmail(app, milestoneRecipientEmailData);
+      cta: `Manage Milestone`,
+      ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
+      unsubscribeType: EmailSubscribeTypes.MILESTONE_REVIEW_APPROVED,
+      unsubscribeReason: `You receive this email because you are recipient of a Milestone`,
+      campaignId,
+      milestoneId,
+      message,
+    };
+    sendEmail(app, milestoneRecipientEmailData);
+  }
+
 };
 
 const milestoneReviewRejected = (app, { milestone, message }) => {

@@ -1,5 +1,6 @@
 const { assert } = require('chai');
 const { getFeatherAppInstance } = require('../app');
+const {toChecksumAddress} = require('web3-utils')
 const milestoneFactory = require('./milestones');
 const {
   assertThrowsAsync,
@@ -226,6 +227,8 @@ function reviewerChangedTestCases() {
     await app.service('milestones').create({
       ...SAMPLE_DATA.createMilestoneData(),
       ownerAddress: from,
+      reviewerAddress : from,
+      recipientAddress : from,
       mined: false,
       status,
       projectId: idProject,
@@ -257,13 +260,13 @@ function reviewerChangedTestCases() {
   describe('should reviewerChanged()  update milestone successfully by eventData', async () => {
     for (const status of Object.values(SAMPLE_DATA.MILESTONE_STATUSES)) {
       it(`should update milestone with status: ${status} `, async () => {
-        const reviewerAddress = generateRandomEtheriumAddress();
+        const reviewerAddress = SAMPLE_DATA.SECOND_USER_ADDRESS;
         const upsertedMilestone = await updateMileStoneByReviewerChangedEventData(
           status,
           reviewerAddress,
         );
         assert.isOk(upsertedMilestone);
-        assert.equal(upsertedMilestone.reviewerAddress.toLowerCase(), reviewerAddress);
+        assert.equal(upsertedMilestone.reviewerAddress, reviewerAddress);
       });
     }
   });
@@ -279,6 +282,7 @@ function recipientChangedTestCases() {
     await app.service('milestones').create({
       ...SAMPLE_DATA.createMilestoneData(),
       ownerAddress: from,
+      recipientAddress: from,
       mined: false,
       status,
       projectId: idProject,
@@ -311,13 +315,13 @@ function recipientChangedTestCases() {
     /* eslint-disable no-restricted-syntax */
     for (const status of Object.values(SAMPLE_DATA.MILESTONE_STATUSES)) {
       it(`should recipientChanged update milestone with status: ${status} `, async () => {
-        const recipient = generateRandomEtheriumAddress();
+        const recipient = SAMPLE_DATA.SECOND_USER_ADDRESS;
         const upsertedMilestone = await updateMileStoneByRecipientChangedEventData(
           status,
           recipient,
         );
         assert.isOk(upsertedMilestone);
-        assert.equal(upsertedMilestone.recipientAddress.toLowerCase(), recipient);
+        assert.equal(upsertedMilestone.recipientAddress, recipient);
       });
     }
   });
