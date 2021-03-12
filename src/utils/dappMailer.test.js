@@ -409,30 +409,6 @@ function milestoneReviewRejectedTestCases() {
   });
 }
 
-function milestoneMarkedCompletedTestCases() {
-  it('email to milestoneOwner, when proposed milestone marks as complete', async () => {
-    const emailService = app.service('emails');
-    const { campaign, milestone, milestoneOwner } = await createMilestoneAndCampaign();
-    const message = `test message - ${new Date()}`;
-    await milestoneMarkedCompleted(app, {
-      milestone,
-      message,
-    });
-    // because creating and sending email is async, we should wait to make sure the email hooks worked
-    await sleep(200);
-    const milestoneOwnerEmails = await emailService.find({
-      paginate: false,
-      query: {
-        recipient: milestoneOwner.email,
-        milestoneId: milestone._id,
-        campaignId: campaign._id,
-        unsubscribeType: EmailSubscribeTypes.MILESTONE_REVIEW_APPROVED,
-      },
-    });
-    assert.isAtLeast(milestoneOwnerEmails.length, 1);
-    assert.equal(milestoneOwnerEmails[0].message, message);
-  });
-}
 
 function milestoneCanceledTestCases() {
   it('email to milestoneOwner, when proposed milestone marks as complete', async () => {
@@ -458,6 +434,43 @@ function milestoneCanceledTestCases() {
     assert.equal(milestoneOwnerEmails[0].message, message);
   });
 }
+
+function milestoneMarkedCompletedTestCases() {
+  it('email to milestoneOwner, when proposed milestone marks as complete', async () => {
+    const emailService = app.service('emails');
+    const { campaign, milestone, milestoneRecipient, milestoneOwner } = await createMilestoneAndCampaign();
+    const message = `test message - ${new Date()}`;
+    await milestoneMarkedCompleted(app, {
+      milestone,
+      message
+    });
+    // because creating and sending email is async, we should wait to make sure the email hooks worked
+    await sleep(200);
+    const milestoneOwnerEmails = await emailService.find({
+      paginate: false,
+      query: {
+        recipient: milestoneOwner.email,
+        milestoneId: milestone._id,
+        message,
+        campaignId: campaign._id,
+        unsubscribeType: EmailSubscribeTypes.MILESTONE_REVIEW_APPROVED,
+      },
+    });
+    assert.isAtLeast(milestoneOwnerEmails.length, 1);
+    const milestoneRecipientEmails = await emailService.find({
+      paginate: false,
+      query: {
+        recipient: milestoneRecipient.email,
+        milestoneId: milestone._id,
+        campaignId: campaign._id,
+        message,
+        unsubscribeType: EmailSubscribeTypes.MILESTONE_REVIEW_APPROVED,
+      },
+    });
+    assert.isAtLeast(milestoneRecipientEmails.length, 1);
+  });
+}
+
 
 function donationsCollectedTestCases() {
   it('email to milestoneOwner, when proposed milestone marks as complete', async () => {
