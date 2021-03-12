@@ -201,19 +201,10 @@ function acceptedTestCases() {
     );
   });
 
-  it('should throw exception because need owner for sending email that doesnt exist', async () => {
-    const badFunc = async () => {
-      await updateMileStoneByAcceptedEventData(SAMPLE_DATA.MILESTONE_STATUSES.PROPOSED);
-    };
+  it('should change milestone status to accepted', async () => {
+    const milestone = await updateMileStoneByAcceptedEventData(SAMPLE_DATA.MILESTONE_STATUSES.PROPOSED);
+    assert.equal(milestone.status, SAMPLE_DATA.MILESTONE_STATUSES.COMPLETED)
 
-    /**
-     * In this case we realy should not get exception but we got in test mode, because
-     * when the status changes to complete then in patch users hook , the app should
-     * send an email to owner, but because for getting owner need to get it from web3 API
-     * and our user addresses are fake so owner should be null , and we get below error
-     * I hope I can find a clean way to test success scenario for this
-     */
-    await assertThrowsAsync(badFunc, "Cannot read property 'email' of null");
   });
 }
 
@@ -229,6 +220,7 @@ function reviewerChangedTestCases() {
       ownerAddress: from,
       reviewerAddress : from,
       recipientAddress : from,
+
       mined: false,
       status,
       projectId: idProject,
