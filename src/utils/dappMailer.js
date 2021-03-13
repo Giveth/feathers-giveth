@@ -3,6 +3,7 @@
 const { AdminTypes } = require('../models/pledgeAdmins.model');
 const { EmailImages, EmailSubscribeTypes } = require('../models/emails.model');
 const { findParentDacs } = require('../repositories/dacRepository');
+
 const emailNotificationTemplate = 'notification';
 const emailStyle = `style='line-height: 33px; font-size: 22px;'`;
 const generateMilestoneCtaRelativeUrl = (campaignId, milestoneId) => {
@@ -697,6 +698,7 @@ const milestoneMarkedCompleted = async (app, { milestone, message }) => {
   };
   sendEmail(app, campaignReviewerEmailData);
 
+  /* eslint-disable no-await-in-loop, no-restricted-syntax */
   for (const dac of dacs) {
     const dacOwner = await app.service('users').get(dac.ownerAddress);
     const dacOwnerEmailData = {

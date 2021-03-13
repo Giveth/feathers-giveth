@@ -14,53 +14,46 @@ const updateSubscriptionProject = async (
   );
 };
 
-
 /**
  * This function return all users that subscribe a project and have emails
  * @param app : feather instance
  * @param projectTypeId : dacId, campaignId or milestoneId
  * @returns {Promise<*>}
  */
-const findProjectSubscribers = async (
-  app,
-  { projectTypeId },
-) => {
+const findProjectSubscribers = async (app, { projectTypeId }) => {
   const subscribeService = app.service('subscriptions');
   const subscriptionModel = subscribeService.Model;
   return subscriptionModel.aggregate([
-      {
-        $match :{
-          projectTypeId,
-          enabled:true
-        }
-      } ,
-      {
-        $lookup:{
-          from:'users',
-          let: {userAddress: "$userAddress"},
-          pipeline: [
-            {
-              $match: {
-                email:{$exists:true},
-                $expr: {
-                  $eq: ["$address", "$$userAddress"]
-                },
-              }
-            }
-          ],
-          as: "user"
-        }
-      }
-      ,
-      {
-        $unwind: '$user'
-      }
-    ]
-  )
+    {
+      $match: {
+        projectTypeId,
+        enabled: true,
+      },
+    },
+    {
+      $lookup: {
+        from: 'users',
+        let: { userAddress: '$userAddress' },
+        pipeline: [
+          {
+            $match: {
+              email: { $exists: true },
+              $expr: {
+                $eq: ['$address', '$$userAddress'],
+              },
+            },
+          },
+        ],
+        as: 'user',
+      },
+    },
+    {
+      $unwind: '$user',
+    },
+  ]);
 };
-
 
 module.exports = {
   updateSubscriptionProject,
-  findProjectSubscribers
+  findProjectSubscribers,
 };
