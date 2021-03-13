@@ -575,8 +575,8 @@ const milestoneRequestReview = (app, { milestone, message }) => {
 const milestoneMarkedCompleted = async (app, { milestone, message }) => {
   const {
     owner: milestoneOwner,
-    recipient : milestoneRecipient,
-    reviewer : milestoneReviewer,
+    recipient: milestoneRecipient,
+    reviewer: milestoneReviewer,
     title: milestoneTitle,
     token,
     campaignId,
@@ -584,8 +584,8 @@ const milestoneMarkedCompleted = async (app, { milestone, message }) => {
     _id: milestoneId,
   } = milestone;
   const { title: campaignTitle, ownerAddress: campaignOwnerAddress } = campaign;
-  const campaignOwner = await app.service('users').get(campaignOwnerAddress)
-  const tokenSymbol = token.symbol === ANY_TOKEN.symbol ?'':token.symbol
+  const campaignOwner = await app.service('users').get(campaignOwnerAddress);
+  const tokenSymbol = token.symbol === ANY_TOKEN.symbol ? '' : token.symbol;
   const milestoneOwnerEmailData = {
     recipient: milestoneOwner.email,
     template: emailNotificationTemplate,
@@ -667,7 +667,7 @@ const milestoneMarkedCompleted = async (app, { milestone, message }) => {
   if (
     !milestoneRecipient.email
     //  || milestoneRecipient.address === milestoneOwner.address
-  ){
+  ) {
     return;
   }
   const milestoneRecipientEmailData = {
@@ -695,7 +695,6 @@ const milestoneMarkedCompleted = async (app, { milestone, message }) => {
     message,
   };
   sendEmail(app, milestoneRecipientEmailData);
-
 };
 
 const milestoneReviewRejected = (app, { milestone, message }) => {

@@ -409,7 +409,6 @@ function milestoneReviewRejectedTestCases() {
   });
 }
 
-
 function milestoneCanceledTestCases() {
   it('email to milestoneOwner, when proposed milestone marks as complete', async () => {
     const emailService = app.service('emails');
@@ -438,13 +437,18 @@ function milestoneCanceledTestCases() {
 function milestoneMarkedCompletedTestCases() {
   it('email to milestoneOwner, when proposed milestone marks as complete', async () => {
     const emailService = app.service('emails');
-    const { campaign, campaignOwner, milestone,
-      milestoneRecipient, milestoneOwner,
-    milestoneReviewer} = await createMilestoneAndCampaign();
+    const {
+      campaign,
+      campaignOwner,
+      milestone,
+      milestoneRecipient,
+      milestoneOwner,
+      milestoneReviewer,
+    } = await createMilestoneAndCampaign();
     const message = `test message - ${new Date()}`;
     await milestoneMarkedCompleted(app, {
       milestone,
-      message
+      message,
     });
     // because creating and sending email is async, we should wait to make sure the email hooks worked
     await sleep(200);
@@ -494,7 +498,6 @@ function milestoneMarkedCompletedTestCases() {
     assert.isAtLeast(campaignOwnerEmails.length, 1);
   });
 }
-
 
 function donationsCollectedTestCases() {
   it('email to milestoneOwner, when proposed milestone marks as complete', async () => {

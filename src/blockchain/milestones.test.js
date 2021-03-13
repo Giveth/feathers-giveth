@@ -1,6 +1,5 @@
 const { assert } = require('chai');
 const { getFeatherAppInstance } = require('../app');
-const {toChecksumAddress} = require('web3-utils')
 const milestoneFactory = require('./milestones');
 const {
   assertThrowsAsync,
@@ -202,9 +201,10 @@ function acceptedTestCases() {
   });
 
   it('should change milestone status to accepted', async () => {
-    const milestone = await updateMileStoneByAcceptedEventData(SAMPLE_DATA.MILESTONE_STATUSES.PROPOSED);
-    assert.equal(milestone.status, SAMPLE_DATA.MILESTONE_STATUSES.COMPLETED)
-
+    const milestone = await updateMileStoneByAcceptedEventData(
+      SAMPLE_DATA.MILESTONE_STATUSES.PROPOSED,
+    );
+    assert.equal(milestone.status, SAMPLE_DATA.MILESTONE_STATUSES.COMPLETED);
   });
 }
 
@@ -218,8 +218,8 @@ function reviewerChangedTestCases() {
     await app.service('milestones').create({
       ...SAMPLE_DATA.createMilestoneData(),
       ownerAddress: from,
-      reviewerAddress : from,
-      recipientAddress : from,
+      reviewerAddress: from,
+      recipientAddress: from,
 
       mined: false,
       status,
