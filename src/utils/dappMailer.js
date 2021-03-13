@@ -1,15 +1,13 @@
-/* eslint-disable no-param-reassign */
-
 const { AdminTypes } = require('../models/pledgeAdmins.model');
 const { EmailImages, EmailSubscribeTypes } = require('../models/emails.model');
 const { findParentDacs } = require('../repositories/dacRepository');
+const { ANY_TOKEN } = require('../blockchain/lib/web3Helpers');
 
 const emailNotificationTemplate = 'notification';
 const emailStyle = `style='line-height: 33px; font-size: 22px;'`;
 const generateMilestoneCtaRelativeUrl = (campaignId, milestoneId) => {
   return `/campaigns/${campaignId}/milestones/${milestoneId}`;
 };
-const { ANY_TOKEN } = require('../blockchain/lib/web3Helpers');
 
 const capitalizeDelegateType = inputDelegateType => {
   if (inputDelegateType.toLowerCase() === 'dac') return 'DAC';
@@ -466,6 +464,8 @@ const proposedMilestoneAccepted = (app, { milestone, message }) => {
     unsubscribeReason: `You receive this email because you run a Milestone`,
   };
   sendEmail(app, milestoneOwnerEmailData);
+
+  // Maybe recipient is campaign and doesnt have email, or recipient id the milestone owner
 
   // Maybe recipient is campaign and doesnt have email, or recipient id the milestone owner
   if (!milestoneRecipient.email || milestoneRecipient.address === milestoneOwner.address) {
