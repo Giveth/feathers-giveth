@@ -2,7 +2,7 @@
 
 const { AdminTypes } = require('../models/pledgeAdmins.model');
 const { EmailImages, EmailSubscribeTypes } = require('../models/emails.model');
-
+const { findParentDacs } = require('../repositories/dacRepository');
 const emailNotificationTemplate = 'notification';
 const emailStyle = `style='line-height: 33px; font-size: 22px;'`;
 const generateMilestoneCtaRelativeUrl = (campaignId, milestoneId) => {
@@ -440,7 +440,8 @@ const proposedMilestoneAccepted = (app, { milestone, message }) => {
     token.symbol === ANY_TOKEN.symbol
       ? 'Unlimited amount of any token'
       : `${normalizeAmount(maxAmount)}${token.symbol}`;
-  const data = {
+
+  const milestoneOwnerEmailData = {
     recipient: milestoneOwner.email,
     template: emailNotificationTemplate,
     subject: 'Giveth - Your proposed Milestone is accepted!',
@@ -463,7 +464,7 @@ const proposedMilestoneAccepted = (app, { milestone, message }) => {
     unsubscribeType: EmailSubscribeTypes.PROPOSED_MILESTONE_ACCEPTED,
     unsubscribeReason: `You receive this email because you run a Milestone`,
   };
-  sendEmail(app, data);
+  sendEmail(app, milestoneOwnerEmailData);
 
   // Maybe recipient is campaign and doesnt have email, or recipient id the milestone owner
   if (!milestoneRecipient.email || milestoneRecipient.address === milestoneOwner.address) {
@@ -588,6 +589,7 @@ const milestoneMarkedCompleted = async (app, { milestone, message }) => {
     reviewerAddress: campaignReviewerAddress,
     ownerAddress: campaignOwnerAddress,
   } = campaign;
+  const dacs = await findParentDacs(app, { campaignId });
   const campaignOwner = await app.service('users').get(campaignOwnerAddress);
   const campaignReviewer = await app.service('users').get(campaignReviewerAddress);
   const tokenSymbol = token.symbol === ANY_TOKEN.symbol ? '' : token.symbol;
@@ -694,6 +696,38 @@ const milestoneMarkedCompleted = async (app, { milestone, message }) => {
     message,
   };
   sendEmail(app, campaignReviewerEmailData);
+
+  for (const dac of dacs) {
+    const dacOwner = await app.service('users').get(dac.ownerAddress);
+    const dacOwnerEmailData = {
+      recipient: dacOwner.email,
+      template: emailNotificationTemplate,
+      subject: 'Giveth - A Milestone in your Campaign is finished!',
+      secretIntro: `The Milestone ${milestoneTitle} in your Campaign ${campaignTitle}
+       that you support has been marked complete by the Milestone reviewer.`,
+      title: `Milestone completed!`,
+      image: EmailImages.MILESTONE_REVIEW_APPROVED,
+      text: `
+        <p><span ${emailStyle}>Hi ${dacOwner.name || ''}</span></p>
+        <p>
+          The Milestone  <strong>${milestoneTitle}</strong> for the Campaign <strong>${campaignTitle}</strong>
+          that you support has been marked complete by the Milestone reviewer.
+          The recipient can now transfer funds out of this Milestone.
+          <br/><br/>
+        </p>
+          The recipient can now transfer the funds out of this Milestone!
+        </p>
+      `,
+      cta: `Manage Milestone`,
+      ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
+      unsubscribeType: EmailSubscribeTypes.MILESTONE_REVIEW_APPROVED,
+      unsubscribeReason: `You receive this email because you run a dac`,
+      campaignId,
+      milestoneId,
+      message,
+    };
+    sendEmail(app, dacOwnerEmailData);
+  }
 
   if (
     !milestoneRecipient.email
