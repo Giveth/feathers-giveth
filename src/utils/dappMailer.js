@@ -583,8 +583,13 @@ const milestoneMarkedCompleted = async (app, { milestone, message }) => {
     campaign,
     _id: milestoneId,
   } = milestone;
-  const { title: campaignTitle, ownerAddress: campaignOwnerAddress } = campaign;
+  const {
+    title: campaignTitle,
+    reviewerAddress: campaignReviewerAddress,
+    ownerAddress: campaignOwnerAddress,
+  } = campaign;
   const campaignOwner = await app.service('users').get(campaignOwnerAddress);
+  const campaignReviewer = await app.service('users').get(campaignReviewerAddress);
   const tokenSymbol = token.symbol === ANY_TOKEN.symbol ? '' : token.symbol;
   const milestoneOwnerEmailData = {
     recipient: milestoneOwner.email,
@@ -663,6 +668,32 @@ const milestoneMarkedCompleted = async (app, { milestone, message }) => {
     message,
   };
   sendEmail(app, campaignOwnerEmailData);
+
+  const campaignReviewerEmailData = {
+    recipient: campaignReviewer.email,
+    template: emailNotificationTemplate,
+    subject: 'Giveth - A Milestone in your Campaign is finished!',
+    secretIntro: `The Milestone ${milestoneTitle} in your Campaign ${campaignTitle} has been marked complete by the Milestone reviewer.`,
+    title: `Milestone completed!`,
+    image: EmailImages.MILESTONE_REVIEW_APPROVED,
+    text: `
+        <p><span ${emailStyle}>Hi ${campaignReviewer.name || ''}</span></p>
+        <p>
+          The Milestone  <strong>${milestoneTitle}</strong> in your Campaign <strong>${campaignTitle}</strong> has been marked complete by the Milestone reviewer. The recipient can now transfer funds out of this Milestone.
+          <br/><br/>
+        </p>
+          The recipient can now transfer the funds out of this Milestone!
+        </p>
+      `,
+    cta: `Manage Milestone`,
+    ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
+    unsubscribeType: EmailSubscribeTypes.MILESTONE_REVIEW_APPROVED,
+    unsubscribeReason: `You receive this email because you are reviewer of a campaign`,
+    campaignId,
+    milestoneId,
+    message,
+  };
+  sendEmail(app, campaignReviewerEmailData);
 
   if (
     !milestoneRecipient.email

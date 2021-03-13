@@ -86,9 +86,15 @@ const createMilestoneAndCampaign = async () => {
   });
   const campaignOwner = await userService.create({
     address: generateRandomEtheriumAddress(),
-    email: `${new Date().getTime()}-milestoneOwner@test.giveth`,
+    email: `${new Date().getTime()}-campaignOwner@test.giveth`,
     isAdmin: true,
-    name: `milestoneOwner ${new Date()}`,
+    name: `campaignOwner ${new Date()}`,
+  });
+  const campaignReviewer = await userService.create({
+    address: generateRandomEtheriumAddress(),
+    email: `${new Date().getTime()}-campaignReviewer@test.giveth`,
+    isAdmin: true,
+    name: `campaignReviewer ${new Date()}`,
   });
   const milestoneRecipient = await userService.create({
     address: generateRandomEtheriumAddress(),
@@ -99,7 +105,11 @@ const createMilestoneAndCampaign = async () => {
   const campaign = (
     await request(baseUrl)
       .post('/campaigns')
-      .send({ ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA, ownerAddress: campaignOwner.address })
+      .send({
+        ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
+        ownerAddress: campaignOwner.address,
+        reviewerAddress: campaignReviewer.address,
+      })
       .set({ Authorization: getJwt(campaignOwner.address) })
   ).body;
   const milestone = (
@@ -121,6 +131,7 @@ const createMilestoneAndCampaign = async () => {
     campaign,
     milestoneOwner,
     campaignOwner,
+    campaignReviewer,
     milestoneReviewer,
     milestoneRecipient,
   };
@@ -440,6 +451,7 @@ function milestoneMarkedCompletedTestCases() {
     const {
       campaign,
       campaignOwner,
+      campaignReviewer,
       milestone,
       milestoneRecipient,
       milestoneOwner,
@@ -496,6 +508,17 @@ function milestoneMarkedCompletedTestCases() {
       },
     });
     assert.isAtLeast(campaignOwnerEmails.length, 1);
+    const campaignReviewerEmails = await emailService.find({
+      paginate: false,
+      query: {
+        recipient: campaignReviewer.email,
+        milestoneId: milestone._id,
+        campaignId: campaign._id,
+        message,
+        unsubscribeType: EmailSubscribeTypes.MILESTONE_REVIEW_APPROVED,
+      },
+    });
+    assert.isAtLeast(campaignReviewerEmails.length, 1);
   });
 }
 
