@@ -2,9 +2,7 @@ const { AdminTypes } = require('../models/pledgeAdmins.model');
 const { EmailImages, EmailSubscribeTypes } = require('../models/emails.model');
 const { findParentDacs } = require('../repositories/dacRepository');
 const { ANY_TOKEN } = require('../blockchain/lib/web3Helpers');
-const {
-  findParentDacSubscribersForCampaign,
-} = require('../repositories/subscriptionRepository');
+const { findParentDacSubscribersForCampaign } = require('../repositories/subscriptionRepository');
 
 const emailNotificationTemplate = 'notification';
 const emailStyle = `style='line-height: 33px; font-size: 22px;'`;
@@ -438,6 +436,7 @@ const proposedMilestoneAccepted = async (app, { milestone, message }) => {
     token,
   } = milestone;
   const { title: campaignTitle } = campaign;
+
   const amount =
     token.symbol === ANY_TOKEN.symbol
       ? 'Unlimited amount of any token'
@@ -470,7 +469,8 @@ const proposedMilestoneAccepted = async (app, { milestone, message }) => {
   const dacWithSubscriptions = await findParentDacSubscribersForCampaign(app, {
     campaignId,
   });
-  for (const dac of dacWithSubscriptions){
+  // eslint-disable-next-line no-restricted-syntax
+  for (const dac of dacWithSubscriptions) {
     const dacTitle = dac.title;
     dac.subscriptions.forEach(subscription => {
       const subscriberUser = subscription.user;
@@ -496,9 +496,10 @@ const proposedMilestoneAccepted = async (app, { milestone, message }) => {
         unsubscribeReason: `You receive this email because you are subscribing a dac`,
       };
       sendEmail(app, dacSubscriber);
-    })
+    });
   }
 
+  // Maybe recipient is campaign and doesnt have email, or recipient id the milestone owner
 
   // Maybe recipient is campaign and doesnt have email, or recipient id the milestone owner
   if (!milestoneRecipient.email || milestoneRecipient.address === milestoneOwner.address) {

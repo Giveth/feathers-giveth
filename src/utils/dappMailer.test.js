@@ -676,10 +676,10 @@ function milestoneReceivedDonationTestCases() {
     const { campaign, milestone, milestoneRecipient } = await createMilestoneAndCampaign();
     await milestoneReceivedDonation(app, {
       milestone,
-      token:{
+      token: {
         symbol: 'ETH',
       },
-      amount:"1000000000"
+      amount: '1000000000',
     });
     // because creating and sending email is async, we should wait to make sure the email hooks worked
     await sleep(50);
@@ -699,10 +699,10 @@ function milestoneReceivedDonationTestCases() {
     const { campaign, milestone, milestoneOwner } = await createMilestoneAndCampaign();
     await milestoneReceivedDonation(app, {
       milestone,
-      token:{
+      token: {
         symbol: 'ETH',
       },
-      amount:"1000000000"
+      amount: '1000000000',
     });
     // because creating and sending email is async, we should wait to make sure the email hooks worked
     await sleep(50);
