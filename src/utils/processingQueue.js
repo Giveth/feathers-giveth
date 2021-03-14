@@ -29,11 +29,12 @@ const factory = name => {
   setInterval(() => {
     if (q.get().length > 0) {
       logger.info(
-        `current "${name}" QUEUE -> isProcessing: ${q.isProcessing()} -> status:`,
-        JSON.stringify(q.get(), null, 2),
+        `current "${name}" QUEUE -> isProcessing: ${q.isProcessing()} -> queue length:`,
+        q.get().length,
       );
     }
-  }, 1000 * 60 * 5);
+    // temporarily I decreased the time to check on develop to see if problem resolved or not
+  }, 1000 * 60 * 0.5);
   return q;
 };
 
