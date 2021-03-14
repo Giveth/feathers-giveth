@@ -14,6 +14,7 @@ const {
   milestoneMarkedCompleted,
   milestoneCanceled,
   donationsCollected,
+  milestoneReceivedDonation,
 } = require('./dappMailer');
 const { EmailSubscribeTypes } = require('../models/emails.model');
 const {
@@ -155,7 +156,7 @@ const createMilestoneAndCampaign = async () => {
     .Model({
       userAddress: dacSubscriber.address,
       projectType: 'dac',
-      projectTypeId: dac._id,
+      projectTypeId: String(dac._id),
       enabled: true,
     })
     .save();
@@ -399,7 +400,7 @@ function proposedMilestoneAcceptedTestCases() {
         recipient: dacSubscriber.email,
         milestoneId: milestone._id,
         campaignId: campaign._id,
-        unsubscribeType: EmailSubscribeTypes.MILESTONE_CREATED,
+        unsubscribeType: EmailSubscribeTypes.PROPOSED_MILESTONE_ACCEPTED,
       },
     });
     assert.isAtLeast(dacSubscriberEmails.length, 1);
@@ -641,7 +642,7 @@ const milestoneMarkedCompletedTestCases = () => {
 };
 
 function donationsCollectedTestCases() {
-  it('email to milestoneOwner, when proposed milestone marks as complete', async () => {
+  it('email to milestoneRecipient, when colelct milestone donations', async () => {
     const emailService = app.service('emails');
     const { campaign, milestone, milestoneRecipient } = await createMilestoneAndCampaign();
     await donationsCollected(app, {
@@ -669,6 +670,54 @@ function donationsCollectedTestCases() {
     assert.isAtLeast(milestoneRecipientEmails.length, 1);
   });
 }
+function milestoneReceivedDonationTestCases() {
+  it('email to milestoneRecipient, when someone donate/delagate to milestone', async () => {
+    const emailService = app.service('emails');
+    const { campaign, milestone, milestoneRecipient } = await createMilestoneAndCampaign();
+    await milestoneReceivedDonation(app, {
+      milestone,
+      token:{
+        symbol: 'ETH',
+      },
+      amount:"1000000000"
+    });
+    // because creating and sending email is async, we should wait to make sure the email hooks worked
+    await sleep(50);
+    const milestoneRecipientEmails = await emailService.find({
+      paginate: false,
+      query: {
+        recipient: milestoneRecipient.email,
+        milestoneId: milestone._id,
+        campaignId: campaign._id,
+        unsubscribeType: EmailSubscribeTypes.DONATION_RECEIVED,
+      },
+    });
+    assert.isAtLeast(milestoneRecipientEmails.length, 1);
+  });
+  it('email to milestoneOwner, when someone donate/delagate to milestone', async () => {
+    const emailService = app.service('emails');
+    const { campaign, milestone, milestoneOwner } = await createMilestoneAndCampaign();
+    await milestoneReceivedDonation(app, {
+      milestone,
+      token:{
+        symbol: 'ETH',
+      },
+      amount:"1000000000"
+    });
+    // because creating and sending email is async, we should wait to make sure the email hooks worked
+    await sleep(50);
+    const milestoneOwnerEmails = await emailService.find({
+      paginate: false,
+      query: {
+        recipient: milestoneOwner.email,
+        milestoneId: milestone._id,
+        campaignId: campaign._id,
+        unsubscribeType: EmailSubscribeTypes.DONATION_RECEIVED,
+      },
+    });
+    assert.isAtLeast(milestoneOwnerEmails.length, 1);
+  });
+}
 
 describe('test normalizeAmount', normalizeAmountTestCases);
 describe('test capitalizeDelegateType', capitalizeDelegateTypeTestCases);
@@ -683,3 +732,4 @@ describe('test milestoneReviewRejected', milestoneReviewRejectedTestCases);
 describe('test milestoneMarkedCompleted', milestoneMarkedCompletedTestCases);
 describe('test milestoneCanceled', milestoneCanceledTestCases);
 describe('test donationsCollected', donationsCollectedTestCases);
+describe('test milestoneReceivedDonation', milestoneReceivedDonationTestCases);
