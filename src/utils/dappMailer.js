@@ -2,6 +2,9 @@ const { AdminTypes } = require('../models/pledgeAdmins.model');
 const { EmailImages, EmailSubscribeTypes } = require('../models/emails.model');
 const { findParentDacs } = require('../repositories/dacRepository');
 const { ANY_TOKEN } = require('../blockchain/lib/web3Helpers');
+const {
+  findParentDacSubscribersForCampaign,
+} = require('../repositories/subscriptionRepository');
 
 const emailNotificationTemplate = 'notification';
 const emailStyle = `style='line-height: 33px; font-size: 22px;'`;
@@ -92,7 +95,7 @@ const milestoneReceivedDonation = (app, { milestone, amount, token }) => {
     return;
   }
   const recipientEmailData = {
-    recipient: owner.email,
+    recipient: recipient.email,
     template: emailNotificationTemplate,
     subject,
     secretIntro: description,
@@ -423,7 +426,7 @@ const proposedMilestoneEdited = async (app, { milestone, user }) => {
   }
 };
 
-const proposedMilestoneAccepted = (app, { milestone, message }) => {
+const proposedMilestoneAccepted = async (app, { milestone, message }) => {
   const {
     title: milestoneTitle,
     _id: milestoneId,
@@ -464,8 +467,38 @@ const proposedMilestoneAccepted = (app, { milestone, message }) => {
     unsubscribeReason: `You receive this email because you run a Milestone`,
   };
   sendEmail(app, milestoneOwnerEmailData);
+  const dacWithSubscriptions = await findParentDacSubscribersForCampaign(app, {
+    campaignId,
+  });
+  for (const dac of dacWithSubscriptions){
+    const dacTitle = dac.title;
+    dac.subscriptions.forEach(subscription => {
+      const subscriberUser = subscription.user;
+      const dacSubscriber = {
+        recipient: subscriberUser.email,
+        template: emailNotificationTemplate,
+        subject: `Giveth - ${dacTitle} has added a new milestone!`,
+        secretIntro: `Check out what ${dacTitle} has been up to!`,
+        title: `${dacTitle} has expanded!`,
+        image: EmailImages.MILESTONE_REVIEW_APPROVED,
+        text: `
+        <p><span ${emailStyle}>Hi ${subscription.user.name || ''}</span></p>
+        <p>
+         ${dacTitle} added a new milestone. Come see what awesome things they have planned!
+        </p>
+      `,
+        cta: `See Milestone`,
+        ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
+        milestoneId,
+        campaignId,
+        message,
+        unsubscribeType: EmailSubscribeTypes.PROPOSED_MILESTONE_ACCEPTED,
+        unsubscribeReason: `You receive this email because you are subscribing a dac`,
+      };
+      sendEmail(app, dacSubscriber);
+    })
+  }
 
-  // Maybe recipient is campaign and doesnt have email, or recipient id the milestone owner
 
   // Maybe recipient is campaign and doesnt have email, or recipient id the milestone owner
   if (!milestoneRecipient.email || milestoneRecipient.address === milestoneOwner.address) {

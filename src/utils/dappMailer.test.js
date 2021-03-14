@@ -97,6 +97,12 @@ const createMilestoneAndCampaign = async () => {
     isAdmin: true,
     name: `dacOwner ${new Date()}`,
   });
+  const dacSubscriber = await userService.create({
+    address: generateRandomEtheriumAddress(),
+    email: `${new Date().getTime()}-dacSubscriber@test.giveth`,
+    isAdmin: true,
+    name: `dacSubscriber ${new Date()}`,
+  });
   const campaignReviewer = await userService.create({
     address: generateRandomEtheriumAddress(),
     email: `${new Date().getTime()}-campaignReviewer@test.giveth`,
@@ -133,24 +139,26 @@ const createMilestoneAndCampaign = async () => {
       .set({ Authorization: getJwt(milestoneOwner.address) })
   ).body;
 
-  // const dac = (
-  //   await request(baseUrl)
-  //     .post('/dacs')
-  //     .send({
-  //       ...SAMPLE_DATA.CREATE_DAC_DATA,
-  //       ownerAddress: dacOwner.address,
-  //       campaigns: [campaign._id],
-  //     })
-  //     .set({ Authorization: getJwt(dacOwner.address) })
-  // ).body;
-  await request(baseUrl)
-    .post('/dacs')
-    .send({
-      ...SAMPLE_DATA.CREATE_DAC_DATA,
-      ownerAddress: dacOwner.address,
-      campaigns: [campaign._id],
+  const dac = (
+    await request(baseUrl)
+      .post('/dacs')
+      .send({
+        ...SAMPLE_DATA.CREATE_DAC_DATA,
+        ownerAddress: dacOwner.address,
+        campaigns: [campaign._id],
+      })
+      .set({ Authorization: getJwt(dacOwner.address) })
+  ).body;
+
+  await app
+    .service('subscriptions')
+    .Model({
+      userAddress: dacSubscriber.address,
+      projectType: 'dac',
+      projectTypeId: dac._id,
+      enabled: true,
     })
-    .set({ Authorization: getJwt(dacOwner.address) });
+    .save();
 
   return {
     milestone,
@@ -161,6 +169,7 @@ const createMilestoneAndCampaign = async () => {
     milestoneReviewer,
     milestoneRecipient,
     dacOwner,
+    dacSubscriber,
   };
 };
 
@@ -373,6 +382,28 @@ function proposedMilestoneAcceptedTestCases() {
     });
     assert.isAtLeast(recipientEmails.length, 1);
     assert.equal(recipientEmails[0].message, message);
+  });
+  it('email to campaigns parent dac subscriber, after proposed Milestone Accepted', async () => {
+    const emailService = app.service('emails');
+    const { campaign, milestone, dacSubscriber } = await createMilestoneAndCampaign();
+    const message = `test message - ${new Date()}`;
+    await proposedMilestoneAccepted(app, {
+      milestone,
+      message,
+    });
+    // because creating and sending email is async, we should wait to make sure the email hooks worked
+    await sleep(50);
+    const dacSubscriberEmails = await emailService.find({
+      paginate: false,
+      query: {
+        recipient: dacSubscriber.email,
+        milestoneId: milestone._id,
+        campaignId: campaign._id,
+        unsubscribeType: EmailSubscribeTypes.MILESTONE_CREATED,
+      },
+    });
+    assert.isAtLeast(dacSubscriberEmails.length, 1);
+    assert.equal(dacSubscriberEmails[0].message, message);
   });
 }
 
