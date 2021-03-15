@@ -11,12 +11,12 @@ const { getFeatherAppInstance } = require('../app');
 let app;
 
 function isUserAdminTestCases() {
-  it('should return true for an admin address', () => {
-    const isAdmin = isUserAdmin(SAMPLE_DATA.ADMIN_USER_ADDRESS);
+  it('should return true for an admin address', async () => {
+    const isAdmin = await isUserAdmin(app, SAMPLE_DATA.ADMIN_USER_ADDRESS);
     assert.isTrue(isAdmin);
   });
-  it('should return false for a  non-admin address', () => {
-    const isAdmin = isUserAdmin(SAMPLE_DATA.SECOND_USER_ADDRESS);
+  it('should return false for a  non-admin address', async () => {
+    const isAdmin = await isUserAdmin(app, SAMPLE_DATA.SECOND_USER_ADDRESS);
     assert.isFalse(isAdmin);
   });
 }

@@ -5,9 +5,6 @@
   "useProjectOwnerWhitelist": true,
   "useReviewerWhitelist": true,
   "useDelegateWhitelist": true,
-  "admins": [
-    "0xb192Ade5c76209655380285d3D2F3AfA16C44727"
-  ],
   "blockchain": {
     "nodeUrl": "ws://localhost:8547",
     "homeNodeUrl": "ws://localhost:8547",
@@ -186,6 +183,8 @@
       "980": 0.4,
       "1000": 0.4
     }
-  }
+  },
+  "dappMailerUrl": "https://fake.dappmailer.giveth.io",
+  "dappMailerSecret": "fakeSecret"
 
 }

@@ -26,6 +26,10 @@ const assertThrowsAsync = async (fn, errorMessage) => {
   }
 };
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 const assertNotThrowsAsync = async fn => {
   let f = () => {
     // empty function
@@ -136,6 +140,7 @@ const SAMPLE_DATA = {
   IN_REVIEWER_WHITELIST_USER_ADDRESS: reviewerAddress,
   IN_DELEGATE_WHITELIST_USER_ADDRESS: '0x84DD429D2A54176A971e0993E11020e4Aa81aB13',
   MILESTONE_ID: '5fd3424c3e403d0c0f9e4487',
+  MILESTONE_PROJECT_ID: 5,
   CAMPAIGN_ID: campaignAddress,
   FAKE_USER_ADDRESS: generateRandomEtheriumAddress(),
   DAC_ID: '5fd339eaa5ffa2a6198ecd70',
@@ -199,7 +204,7 @@ const SAMPLE_DATA = {
     },
     confirmations: 6,
   },
-  CREATE_MILESTONE_DATA() {
+  createMilestoneData() {
     return {
       fullyFunded: false,
       mined: true,
@@ -241,6 +246,7 @@ const SAMPLE_DATA = {
     image: 'This should be image :))',
     mined: false,
     reviewerAddress,
+    pluginAddress: '0x0000000000000000000000000000000000000001',
     ownerAddress: projectOwnerAddress,
     status: 'Pending',
     txHash: generateRandomTransactionHash(),
@@ -290,4 +296,5 @@ module.exports = {
   generateRandomNumber,
   generateRandomTransactionHash,
   padWithZero,
+  sleep,
 };

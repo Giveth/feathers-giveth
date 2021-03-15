@@ -8,15 +8,13 @@
     "max": 100
   },
   "mongodb": "mongodb://localhost:27017/giveth",
+  "bridgeMonitorBaseUrl": "https://feathers.bridge.beta.giveth.io",
   "nedb": "../data",
   "uploads": "../uploads",
   "uploadsBaseUrl": "http://localhost:3030/uploads/",
   "logDir": "",
   "ipfsGateway": "http://localhost:8080/ipfs/",
   "ipfsApi": "/ip4/127.0.0.1/tcp/5001",
-  "admins": [
-    "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1"
-  ],
   "blockchain": {
     "nodeUrl": "ws://localhost:8546",
     "homeNodeUrl": "ws://localhost:8545",

@@ -20,7 +20,7 @@ function reviewRequestedTestCases() {
     await new Transaction({ hash: transactionHash, from }).save();
     const idProject = generateRandomNumber(10, 100000);
     await app.service('milestones').create({
-      ...SAMPLE_DATA.CREATE_MILESTONE_DATA(),
+      ...SAMPLE_DATA.createMilestoneData(),
       ownerAddress: from,
       mined: false,
       status,
@@ -95,7 +95,7 @@ function rejectTestCases() {
     await new Transaction({ hash: transactionHash, from }).save();
     const idProject = generateRandomNumber(10, 100000);
     await app.service('milestones').create({
-      ...SAMPLE_DATA.CREATE_MILESTONE_DATA(),
+      ...SAMPLE_DATA.createMilestoneData(),
       ownerAddress: from,
       mined: false,
       status,
@@ -171,7 +171,7 @@ function acceptedTestCases() {
     await new Transaction({ hash: transactionHash, from }).save();
     const idProject = generateRandomNumber(10, 100000);
     await app.service('milestones').create({
-      ...SAMPLE_DATA.CREATE_MILESTONE_DATA(),
+      ...SAMPLE_DATA.createMilestoneData(),
       ownerAddress: from,
       mined: false,
       status,
@@ -219,12 +219,12 @@ function acceptedTestCases() {
 function reviewerChangedTestCases() {
   async function updateMileStoneByReviewerChangedEventData(status, reviewerAddress) {
     const transactionHash = generateRandomTransactionHash();
-    const from = generateRandomEtheriumAddress();
+    const from = SAMPLE_DATA.USER_ADDRESS;
     const Transaction = app.get('transactionsModel');
     await new Transaction({ hash: transactionHash, from }).save();
     const idProject = generateRandomNumber(10, 100000);
     await app.service('milestones').create({
-      ...SAMPLE_DATA.CREATE_MILESTONE_DATA(),
+      ...SAMPLE_DATA.createMilestoneData(),
       ownerAddress: from,
       mined: false,
       status,
@@ -272,12 +272,12 @@ function reviewerChangedTestCases() {
 function recipientChangedTestCases() {
   async function updateMileStoneByRecipientChangedEventData(status, recipient) {
     const transactionHash = generateRandomTransactionHash();
-    const from = generateRandomEtheriumAddress();
+    const from = SAMPLE_DATA.USER_ADDRESS;
     const Transaction = app.get('transactionsModel');
     await new Transaction({ hash: transactionHash, from }).save();
     const idProject = generateRandomNumber(10, 100000);
     await app.service('milestones').create({
-      ...SAMPLE_DATA.CREATE_MILESTONE_DATA(),
+      ...SAMPLE_DATA.createMilestoneData(),
       ownerAddress: from,
       mined: false,
       status,
@@ -331,7 +331,7 @@ function paymentCollectedTestCases() {
   //   await new Transaction({ hash: transactionHash, from }).save();
   //   const idProject = generateRandomNumber(10, 100000);
   //   const milestone = await app.service('milestones').create({
-  //     ...SAMPLE_DATA.CREATE_MILESTONE_DATA(),
+  //     ...SAMPLE_DATA.createMilestoneData(),
   //     ownerAddress: from,
   //     fullyFunded: true,
   //     maxAmount: '700',

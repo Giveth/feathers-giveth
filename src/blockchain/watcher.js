@@ -97,27 +97,30 @@ const watcher = (app, eventHandler) => {
    * @param {object} event the web3 log to process
    */
   async function processNewPendingEvent(event) {
-    const { logIndex, transactionHash } = event;
+    try {
+      const { logIndex, transactionHash } = event;
+      const data = await eventService.find({
+        paginate: false,
+        query: { logIndex, transactionHash },
+      });
 
-    const data = await eventService.find({ paginate: false, query: { logIndex, transactionHash } });
-
-    if (data.some(e => [EventStatus.WAITING, EventStatus.PENDING].includes(e.status))) {
-      logger.error(
-        'RE-ORG ERROR: attempting to process newEvent, however the matching event has already started processing. Consider increasing the requiredConfirmations.',
-        event,
-        data,
-      );
-    } else if (data.length > 0) {
-      logger.error(
-        'attempting to process new event but found existing event with matching logIndex and transactionHash.',
-        event,
-        data,
-      );
+      if (data.some(e => [EventStatus.WAITING, EventStatus.PENDING].includes(e.status))) {
+        logger.error(
+          'RE-ORG ERROR: attempting to process newEvent, however the matching event has already started processing. Consider increasing the requiredConfirmations.',
+          event,
+          data,
+        );
+      } else if (data.length > 0) {
+        logger.error(
+          'attempting to process new event but found existing event with matching logIndex and transactionHash.',
+          event,
+          data,
+        );
+      }
+      await eventService.create({ ...event, confirmations: 0, status: EventStatus.PENDING });
+    } finally {
+      queue.purge();
     }
-
-    await eventService.create({ ...event, confirmations: 0, status: EventStatus.PENDING });
-
-    queue.purge();
   }
 
   async function getPendingEventsByConfirmations(currentBlock) {
@@ -488,9 +491,8 @@ const watcher = (app, eventHandler) => {
    * Add newEvent to the database if they don't already exist
    *
    * @param {Object} event Event to be added to the database for processing
-   * @param {boolean} isReprocess are we reprocessing the event?
    */
-  async function newEvent(event, isReprocess = false) {
+  async function newEvent(event) {
     logger.info('newEvent called', event.id);
 
     if (!event || !event.event || !event.signature || !event.returnValues || !event.raw) {
@@ -512,7 +514,7 @@ const watcher = (app, eventHandler) => {
       };
       const events = await eventService.find({ paginate: false, query });
 
-      if (!isReprocess && events.length > 0 && events[0].status !== EventStatus.PENDING) {
+      if (events.length > 0 && events[0].status !== EventStatus.PENDING) {
         logger.error(
           `Attempt to add an event that already exists. Blocknumber: ${event.blockNumber}, logIndex: ${event.logIndex}, transactionHash: ${event.transactionHash}, status: ${events[0].status}`,
         );
@@ -615,7 +617,7 @@ const watcher = (app, eventHandler) => {
      * @param {object} event web3 event object
      */
     addEvent(event) {
-      newEvent(event, true);
+      newEvent(event);
     },
 
     /**

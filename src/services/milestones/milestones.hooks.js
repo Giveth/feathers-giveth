@@ -22,6 +22,7 @@ const checkMilestoneDates = require('./checkMilestoneDates');
 const checkMilestoneName = require('./checkMilestoneName');
 const { getBlockTimestamp, ZERO_ADDRESS } = require('../../blockchain/lib/web3Helpers');
 const { getTokenByAddress } = require('../../utils/tokenHelper');
+const createModelSlug = require('../createModelSlug');
 
 const milestoneResolvers = {
   before: context => {
@@ -339,6 +340,7 @@ module.exports = {
       isTokenAllowed(),
       sanitizeHtml('description'),
       convertTokenToTokenAddress(),
+      createModelSlug('milestones'),
     ],
     update: [
       restrict(),
@@ -359,6 +361,7 @@ module.exports = {
       performedBy(),
       convertTokenToTokenAddress(),
       checkMilestoneName(),
+      createModelSlug('milestones'),
     ],
     remove: [
       restrictToOwner({
@@ -383,6 +386,7 @@ module.exports = {
       handleMilestoneConversationAndEmail(),
       resolveFiles(['image', 'items']),
       updateCampaign(),
+      createModelSlug('milestones'),
     ],
     remove: [],
   },

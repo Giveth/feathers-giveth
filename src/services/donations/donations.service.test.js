@@ -3,6 +3,7 @@ const config = require('config');
 const { assert, expect } = require('chai');
 const { getJwt, SAMPLE_DATA } = require('../../../test/testUtility');
 const { getFeatherAppInstance } = require('../../app');
+const { DonationStatus } = require('../../models/donations.model');
 
 const app = getFeatherAppInstance();
 const baseUrl = config.get('givethFathersBaseUrl');
@@ -32,8 +33,24 @@ async function createDonation(data) {
   return response.body;
 }
 
+async function createCampaigns(data) {
+  const response = await request(baseUrl)
+    .post('/campaigns')
+    .set({ Authorization: getJwt() })
+    .send(data);
+  return response.body;
+}
+
+async function createMilestone(data) {
+  const response = await request(baseUrl)
+    .post('/milestones')
+    .set({ Authorization: getJwt() })
+    .send(data);
+  return response.body;
+}
+
 function getDonationsTestCases() {
-  it('should return some values', async function() {
+  it('should return some values', async () => {
     const response = await request(baseUrl).get(relativeUrl);
     assert.equal(response.statusCode, 200);
     assert.isArray(response.body.data);
@@ -41,7 +58,7 @@ function getDonationsTestCases() {
 }
 
 function postDonationsTestCases() {
-  it('should return create donation successfully', async function() {
+  it('should return create donation successfully', async () => {
     const response = await request(baseUrl)
       .post(relativeUrl)
       .set({ Authorization: getJwt() })
@@ -53,7 +70,7 @@ function postDonationsTestCases() {
     assert.equal(response.body.status, SAMPLE_DATA.DonationStatus.PENDING);
   });
 
-  it('should return create donation successfully, and and add token to donation', async function() {
+  it('should return create donation successfully, and add token to donation', async () => {
     const ethToken = config.get('tokenWhitelist').find(token => token.symbol === 'ETH');
     const response = await request(baseUrl)
       .post(relativeUrl)
@@ -71,7 +88,57 @@ function postDonationsTestCases() {
     expect(response.body.token).to.be.deep.equal(ethToken);
   });
 
-  it('should throw exception without bearer token', async function() {
+  it('should server delete mined from donation', async () => {
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .set({ Authorization: getJwt() })
+      .send({
+        ...createDonationPayload,
+        mined: true,
+      });
+    assert.equal(response.statusCode, 201);
+    assert.isFalse(response.body.mined);
+  });
+
+  it('User cant create donation with status Paid', async () => {
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .set({ Authorization: getJwt() })
+      .send({
+        ...createDonationPayload,
+        status: DonationStatus.PAID,
+      });
+    assert.equal(response.statusCode, 201);
+    assert.equal(response.body.status, DonationStatus.PENDING);
+  });
+
+  it('User cant create donation with lessThanCutoff', async () => {
+    // if donations are with status like 'Committed' then the lessThanCutoff became true in some hooks
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .set({ Authorization: getJwt() })
+      .send({
+        ...createDonationPayload,
+        lessThanCutoff: true,
+      });
+    assert.equal(response.statusCode, 201);
+    assert.isFalse(response.body.lessThanCutoff);
+  });
+
+  it('Can send every data for creating donations in internal requests', async () => {
+    const donationsService = app.service('donations');
+    const result = await donationsService.create({
+      ...createDonationPayload,
+      lessThanCutoff: true,
+      mined: true,
+      status: DonationStatus.PAID,
+    });
+    assert.equal(result.status, DonationStatus.PAID);
+    assert.isTrue(result.mined);
+    assert.isTrue(result.lessThanCutoff);
+  });
+
+  it('should throw exception without bearer token', async () => {
     const response = await request(baseUrl)
       .post(relativeUrl)
       .send(createDonationPayload);
@@ -80,8 +147,48 @@ function postDonationsTestCases() {
   });
 }
 
+function postDonationsAddCampaignsToDacTestCases() {
+  it('should create delegate donation and connect campaign to dac', async () => {
+    const campaign = await createCampaigns(SAMPLE_DATA.CREATE_CAMPAIGN_DATA);
+    const campaignId = campaign._id;
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .set({ Authorization: getJwt() })
+      .send({
+        ...createDonationPayload,
+        delegateTypeId: SAMPLE_DATA.DAC_ID,
+        intendedProjectType: 'campaign',
+        intendedProjectTypeId: campaignId,
+      });
+    assert.equal(response.statusCode, 201);
+    const dac = await app.service('dacs').get(SAMPLE_DATA.DAC_ID);
+    assert.isTrue(dac.campaigns.includes(campaignId));
+  });
+  it('should create delegate donation and connect milestone parent campaign to dac', async () => {
+    const campaign = await createCampaigns(SAMPLE_DATA.CREATE_CAMPAIGN_DATA);
+    const campaignId = campaign._id;
+    let dac = await app.service('dacs').get(SAMPLE_DATA.DAC_ID);
+    assert.isNotOk(dac.campaigns && dac.campaigns.includes(campaignId));
+    const milestone = await createMilestone({ ...SAMPLE_DATA.createMilestoneData(), campaignId });
+    assert.equal(milestone.campaignId, campaignId);
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .set({ Authorization: getJwt() })
+      .send({
+        ...createDonationPayload,
+        delegateTypeId: SAMPLE_DATA.DAC_ID,
+        intendedProjectType: 'milestone',
+        intendedProjectTypeId: milestone._id,
+      });
+    assert.equal(response.statusCode, 201);
+
+    dac = await app.service('dacs').get(SAMPLE_DATA.DAC_ID);
+    assert.isTrue(dac.campaigns.includes(campaignId));
+  });
+}
+
 function patchDonationsTestCases() {
-  it('Should be successful update the status by patch method', async function() {
+  it('Should be successful update the status by patch method', async () => {
     const donation = await createDonation(createDonationPayload);
     const response = await request(baseUrl)
       .patch(`${relativeUrl}/${donation._id}`)
@@ -93,7 +200,7 @@ function patchDonationsTestCases() {
     assert.equal(response.body.status, SAMPLE_DATA.DonationStatus.TO_APPROVE);
   });
 
-  it('Should be successful update the ToApprove status to Rejected', async function() {
+  it('Should be successful update the ToApprove status to Rejected', async () => {
     const donation = await createDonation({
       ...createDonationPayload,
       status: SAMPLE_DATA.DonationStatus.TO_APPROVE,
@@ -108,7 +215,7 @@ function patchDonationsTestCases() {
     assert.equal(response.body.status, SAMPLE_DATA.DonationStatus.REJECTED);
   });
 
-  it('Should be successful update the ToApprove status to Commited', async function() {
+  it('Should be successful update the ToApprove status to Commited', async () => {
     const donation = await createDonation({
       ...createDonationPayload,
       status: SAMPLE_DATA.DonationStatus.TO_APPROVE,
@@ -123,7 +230,7 @@ function patchDonationsTestCases() {
     assert.equal(response.body.status, SAMPLE_DATA.DonationStatus.COMMITTED);
   });
 
-  it("Should throw error, update another user's donation", async function() {
+  it("Should throw error, update another user's donation", async () => {
     const donation = await createDonation({
       ...createDonationPayload,
     });
@@ -136,8 +243,21 @@ function patchDonationsTestCases() {
     assert.equal(response.statusCode, 403);
     assert.equal(response.body.code, 403);
   });
+  it('mined Field cant be update with external requests', async () => {
+    const donation = await createDonation({
+      ...createDonationPayload,
+    });
+    const response = await request(baseUrl)
+      .patch(`${relativeUrl}/${donation._id}`)
+      .set({ Authorization: getJwt() })
+      .send({
+        mined: true,
+      });
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.body.mined, false);
+  });
 
-  it('Should throw forbidden error, updating donation with ToApprove status ', async function() {
+  it('Should throw forbidden error, updating donation with ToApprove status ', async () => {
     const donation = await createDonation({
       ...createDonationPayload,
       status: SAMPLE_DATA.DonationStatus.TO_APPROVE,
@@ -169,7 +289,7 @@ function patchDonationsTestCases() {
 }
 
 function deleteDonationsTestCases() {
-  it('should get 405, DEELTE method is no allowed', async function() {
+  it('should get 405, DEELTE method is no allowed', async () => {
     const response = await request(baseUrl)
       .delete(relativeUrl)
       .set({ Authorization: getJwt() });
@@ -179,7 +299,7 @@ function deleteDonationsTestCases() {
 }
 
 function putDonationsTestCases() {
-  it('should get 405, PUT method is no allowed', async function() {
+  it('should get 405, PUT method is no allowed', async () => {
     const response = await request(baseUrl)
       .put(relativeUrl)
       .set({ Authorization: getJwt() });
@@ -194,6 +314,10 @@ it('should donations service registration be ok', () => {
 });
 describe(`Test GET ${relativeUrl}`, getDonationsTestCases);
 describe(`Test POST ${relativeUrl}`, postDonationsTestCases);
+describe(
+  `Test POST ${relativeUrl} test adding campaigns to dacs`,
+  postDonationsAddCampaignsToDacTestCases,
+);
 describe(`Test DELETE ${relativeUrl}`, deleteDonationsTestCases);
 describe(`Test PUT ${relativeUrl}`, putDonationsTestCases);
 describe(`Test PATCH ${relativeUrl}`, patchDonationsTestCases);
