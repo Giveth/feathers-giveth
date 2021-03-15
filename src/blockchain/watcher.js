@@ -97,27 +97,30 @@ const watcher = (app, eventHandler) => {
    * @param {object} event the web3 log to process
    */
   async function processNewPendingEvent(event) {
-    const { logIndex, transactionHash } = event;
+    try {
+      const { logIndex, transactionHash } = event;
+      const data = await eventService.find({
+        paginate: false,
+        query: { logIndex, transactionHash },
+      });
 
-    const data = await eventService.find({ paginate: false, query: { logIndex, transactionHash } });
-
-    if (data.some(e => [EventStatus.WAITING, EventStatus.PENDING].includes(e.status))) {
-      logger.error(
-        'RE-ORG ERROR: attempting to process newEvent, however the matching event has already started processing. Consider increasing the requiredConfirmations.',
-        event,
-        data,
-      );
-    } else if (data.length > 0) {
-      logger.error(
-        'attempting to process new event but found existing event with matching logIndex and transactionHash.',
-        event,
-        data,
-      );
+      if (data.some(e => [EventStatus.WAITING, EventStatus.PENDING].includes(e.status))) {
+        logger.error(
+          'RE-ORG ERROR: attempting to process newEvent, however the matching event has already started processing. Consider increasing the requiredConfirmations.',
+          event,
+          data,
+        );
+      } else if (data.length > 0) {
+        logger.error(
+          'attempting to process new event but found existing event with matching logIndex and transactionHash.',
+          event,
+          data,
+        );
+      }
+      await eventService.create({ ...event, confirmations: 0, status: EventStatus.PENDING });
+    } finally {
+      queue.purge();
     }
-
-    await eventService.create({ ...event, confirmations: 0, status: EventStatus.PENDING });
-
-    queue.purge();
   }
 
   async function getPendingEventsByConfirmations(currentBlock) {
