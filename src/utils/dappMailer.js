@@ -1,3 +1,4 @@
+const logger = require('winston');
 const { AdminTypes } = require('../models/pledgeAdmins.model');
 const { EmailImages, EmailSubscribeTypes } = require('../models/emails.model');
 const { findParentDacs } = require('../repositories/dacRepository');
@@ -502,7 +503,11 @@ const proposedMilestoneAccepted = async (app, { milestone, message }) => {
   // Maybe recipient is campaign and doesnt have email, or recipient id the milestone owner
 
   // Maybe recipient is campaign and doesnt have email, or recipient id the milestone owner
-  if (!milestoneRecipient.email || milestoneRecipient.address === milestoneOwner.address) {
+  if (
+    !milestoneRecipient ||
+    !milestoneRecipient.email ||
+    milestoneRecipient.address === milestoneOwner.address
+  ) {
     return;
   }
   const sendRecipientEmailData = {
@@ -766,6 +771,7 @@ const milestoneMarkedCompleted = async (app, { milestone, message }) => {
   }
 
   if (
+    !milestoneRecipient ||
     !milestoneRecipient.email
     //  || milestoneRecipient.address === milestoneOwner.address
   ) {
@@ -875,6 +881,12 @@ const donationsCollected = (app, { milestone, conversation }) => {
     _id: milestoneId,
     campaignId,
   } = milestone;
+  if (!milestoneRecipient || !milestoneRecipient.email) {
+    logger.info(
+      `Currently we dont send email for milestones who doesnt have recipient, milestoneId: ${milestoneId}`,
+    );
+    return;
+  }
   const data = {
     recipient: milestoneRecipient.email,
     template: emailNotificationTemplate,
