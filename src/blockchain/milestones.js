@@ -72,17 +72,10 @@ const createPaymentConversationAndSendEmail = async ({ app, milestone, txHash })
       },
       { performedByAddress: donations[0].actionTakerAddress },
     );
-    if (recipient && recipient.email) {
-      // now we dont send donations-collected email for milestones that don't have recipient
-      await donationsCollected(app, {
-        milestone,
-        conversation,
-      });
-    } else {
-      logger.info(
-        `Currently we dont send email for milestones who doesnt have recipient, milestoneId: ${milestoneId}`,
-      );
-    }
+    await donationsCollected(app, {
+      milestone,
+      conversation,
+    });
   } catch (e) {
     logger.error('createConversation and send collectedEmail error', e);
   }
