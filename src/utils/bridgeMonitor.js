@@ -2,7 +2,40 @@ const config = require('config');
 const axios = require('axios');
 const logger = require('winston');
 const { DonationStatus, DonationBridgeStatus } = require('../models/donations.model');
+const { CONVERSATION_MESSAGE_CONTEXT } = require('../models/conversations.model');
+const { AdminTypes } = require('../models/pledgeAdmins.model');
 const { getTransaction } = require('../blockchain/lib/web3Helpers');
+
+async function createPayoutConversation({
+  app,
+  milestone,
+  donation,
+  timestamp,
+  token,
+  amount,
+  txHash,
+}) {
+  const conversationModel = {
+    milestoneId: milestone._id,
+    messageContext: CONVERSATION_MESSAGE_CONTEXT.PAYOUT,
+    donationId: donation._id,
+    txHash,
+    payments: [
+      {
+        symbol: token.symbol,
+        amount,
+        tokenDecimals: token.decimals,
+      },
+    ],
+    donorId: donation.giverAddress,
+    donorType: AdminTypes.GIVER,
+  };
+  conversationModel.createdAt = timestamp;
+
+  await app
+    .service('conversations')
+    .create(conversationModel, { performedByAddress: milestone.recipientAddress });
+}
 
 const bridgeMonitorBaseUrl = config.get('bridgeMonitorBaseUrl');
 const getDonationStatusFromBridge = async ({ txHash, tokenAddress }) => {
@@ -30,13 +63,24 @@ const getDonationStatusFromBridge = async ({ txHash, tokenAddress }) => {
 };
 
 const updateDonationsStatusToBridgePaid = async ({ app, donation, payment }) => {
-  const donationService = app.service('donations');
   const bridgeStatus = DonationBridgeStatus.PAID;
+  const { token, amount } = donation;
   const { timestamp } = await getTransaction(app, payment.paymentTransactionHash, true);
-  await donationService.patch(donation._id, {
+  await app.service('donations').patch(donation._id, {
     bridgeStatus,
     bridgeTxHash: payment.paymentTransactionHash,
+    bridgeEarliestPayTime : new Date(payment.earliestPayTime),
     bridgeTransactionTime: timestamp,
+  });
+  const milestone = await app.service('milestones').get(donation.ownerTypeId);
+  createPayoutConversation({
+    app,
+    milestone,
+    donation,
+    timestamp,
+    token,
+    amount,
+    txHash: payment.paymentTransactionHash,
   });
   logger.info('update donation bridge status', {
     donationId: donation._id,
@@ -93,6 +137,10 @@ const inquiryAndUpdateDonationStatusFromBridge = async ({ app, donation }) => {
       donation,
       payment,
     });
+  } else if (!donation.bridgeEarliestPayTime) {
+    await app.service('donations').patch(donation._id, {
+      bridgeEarliestPayTime: new Date(payment.earliestPayTime),
+    });
   } else {
     await updateDonationsAndMilestoneStatusToBridgeUnknown({
       app,
@@ -103,22 +151,39 @@ const inquiryAndUpdateDonationStatusFromBridge = async ({ app, donation }) => {
 
 const syncDonationsWithBridge = async app => {
   const donationService = app.service('donations');
+  const query = {
+    status: DonationStatus.PAID,
+    txHash: { $exists: true },
+    bridgeStatus: {
+      // $exists: true,
+      $nin: [
+        DonationBridgeStatus.PAID,
+        DonationBridgeStatus.CANCELLED,
+        DonationBridgeStatus.EXPIRED,
+      ],
+    },
+  };
   const donations = await donationService.find({
     paginate: false,
     query: {
       $limit: 100,
-      // 3 * 24 * 60 * 60 * 1000 means 3 days
-      createdAt: { $lte: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) },
-      status: DonationStatus.PAID,
-      txHash: { $exists: true },
-      bridgeStatus: {
-        // $exists: true,
-        $nin: [
-          DonationBridgeStatus.PAID,
-          DonationBridgeStatus.CANCELLED,
-          DonationBridgeStatus.EXPIRED,
-        ],
-      },
+      $or: [
+        {
+          ...query,
+          // 3 * 24 * 60 * 60 * 1000 means 3 days
+          createdAt: { $lte: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) },
+        },
+        {
+          ...query,
+          bridgeEarliestPayTime: {
+            $exists: false,
+          },
+        },
+        {
+          ...query,
+          bridgeEarliestPayTime: { $lte: new Date() },
+        },
+      ],
     },
   });
   logger.info(
