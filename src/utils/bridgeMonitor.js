@@ -69,7 +69,7 @@ const updateDonationsStatusToBridgePaid = async ({ app, donation, payment }) => 
   await app.service('donations').patch(donation._id, {
     bridgeStatus,
     bridgeTxHash: payment.paymentTransactionHash,
-    bridgeEarliestPayTime : new Date(payment.earliestPayTime),
+    bridgeEarliestPayTime: new Date(payment.earliestPayTime),
     bridgeTransactionTime: timestamp,
   });
   const milestone = await app.service('milestones').get(donation.ownerTypeId);
