@@ -925,6 +925,49 @@ const donationsCollected = (app, { milestone, conversation }) => {
   sendEmail(app, data);
 };
 
+const moneyWentToRecipientWallet = (app, { milestone, token, amount }) => {
+  const {
+    recipient: milestoneRecipient,
+    title: milestoneTitle,
+    _id: milestoneId,
+    campaignId,
+  } = milestone;
+  if (!milestoneRecipient || !milestoneRecipient.email) {
+    logger.info(
+      `Currently we dont send email for milestones who doesnt have recipient, milestoneId: ${milestoneId}`,
+    );
+    return;
+  }
+  const data = {
+    recipient: milestoneRecipient.email,
+    template: emailNotificationTemplate,
+    subject: 'Giveth - Your funds have been sent!',
+    type: 'milestone-donations-transferred',
+    secretIntro: `The funds from your Milestone ${milestoneTitle} have been sent to your wallet.`,
+    title: 'Time to Celebrate!',
+    image: EmailImages.DONATION_BANNER,
+    text: `
+        <p><span ${emailStyle}>Hi ${milestoneRecipient.name || ''}</span></p>
+        <p>The funds from your Milestone <strong>${milestoneTitle}</strong>
+        of the amount ${amount} ${
+      token.symbol
+    } have been sent to your wallet. It’s time to take action to build a brighter future!
+        </p>
+
+        <p>You can expect to see these payment(s) to arrive in your wallet <strong>
+           ${milestoneRecipient.address}
+        </strong> within 48 - 72 hrs.</p>
+      `,
+    cta: `See your Milestones`,
+    ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
+    milestoneId,
+    campaignId,
+    unsubscribeType: EmailSubscribeTypes.DONATIONS_COLLECTED,
+    unsubscribeReason: `You receive this email because you are the recipient of a Milestone`,
+  };
+  sendEmail(app, data);
+};
+
 module.exports = {
   capitalizeDelegateType,
   normalizeAmount,
@@ -943,4 +986,5 @@ module.exports = {
   milestoneMarkedCompleted,
   milestoneRequestReview,
   milestoneCanceled,
+  moneyWentToRecipientWallet,
 };
