@@ -74,7 +74,7 @@ const checkConversionRates = () => context => {
     const promises = items.map(item =>
       app
         .service('conversionRates')
-        .find({ query: { date: item.date, symbol: fromSymbol } })
+        .find({ query: { date: new Date(item.date).valueOf(), symbol: fromSymbol } })
         .then(conversionRate => {
           calculateCorrectEther(conversionRate, item.fiatAmount, item.wei, item.selectedFiatType);
         }),
@@ -85,7 +85,7 @@ const checkConversionRates = () => context => {
   // check that the conversion rate for the milestone is correct
   return app
     .service('conversionRates')
-    .find({ query: { date: data.date, symbol: fromSymbol } })
+    .find({ query: { date: new Date(data.date).valueOf(), symbol: fromSymbol } })
     .then(conversionRate => {
       calculateCorrectEther(conversionRate, data.fiatAmount, data.maxAmount, selectedFiatSymbol);
       return context;
