@@ -64,7 +64,7 @@ const checkConversionRates = () => context => {
     // check total amount of milestone, make sure it is correct
     const totalItemWeiAmount = items
       .reduce((sum, item) => sum.plus(new BigNumber(item.wei)), new BigNumber('0'))
-      .toString();
+      .toFixed();
 
     if (totalItemWeiAmount !== data.maxAmount) {
       throw new errors.Forbidden('Total amount in ether is incorrect');
