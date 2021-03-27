@@ -5,6 +5,7 @@ const { DonationStatus, DonationBridgeStatus } = require('../models/donations.mo
 const { CONVERSATION_MESSAGE_CONTEXT } = require('../models/conversations.model');
 const { AdminTypes } = require('../models/pledgeAdmins.model');
 const { getTransaction } = require('../blockchain/lib/web3Helpers');
+const { moneyWentToRecipientWallet } = require('./dappMailer');
 
 async function createPayoutConversation({
   app,
@@ -81,6 +82,11 @@ const updateDonationsStatusToBridgePaid = async ({ app, donation, payment }) => 
     token,
     amount,
     txHash: payment.paymentTransactionHash,
+  });
+  moneyWentToRecipientWallet(app, {
+    milestone,
+    token: donation.token,
+    amount: donation.amount,
   });
   logger.info('update donation bridge status', {
     donationId: donation._id,

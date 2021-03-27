@@ -15,6 +15,7 @@ const {
   milestoneCanceled,
   donationsCollected,
   milestoneReceivedDonation,
+  moneyWentToRecipientWallet,
 } = require('./dappMailer');
 const { EmailSubscribeTypes } = require('../models/emails.model');
 const {
@@ -719,6 +720,55 @@ function milestoneReceivedDonationTestCases() {
   });
 }
 
+function moneyWentToRecipientWalletTestCases() {
+  it('email to milestoneRecipient, when money goes to recipient wallet', async () => {
+    const emailService = app.service('emails');
+    const { campaign, milestone, milestoneRecipient } = await createMilestoneAndCampaign();
+    await moneyWentToRecipientWallet(app, {
+      milestone,
+      token: {
+        symbol: 'ETH',
+      },
+      amount: '1000000000',
+    });
+    // because creating and sending email is async, we should wait to make sure the email hooks worked
+    await sleep(50);
+    const milestoneRecipientEmails = await emailService.find({
+      paginate: false,
+      query: {
+        recipient: milestoneRecipient.email,
+        milestoneId: milestone._id,
+        campaignId: campaign._id,
+        unsubscribeType: EmailSubscribeTypes.DONATIONS_COLLECTED,
+      },
+    });
+    assert.isAtLeast(milestoneRecipientEmails.length, 1);
+  });
+  it('email to milestoneOwner, when someone donate/delagate to milestone', async () => {
+    const emailService = app.service('emails');
+    const { campaign, milestone, milestoneOwner } = await createMilestoneAndCampaign();
+    await milestoneReceivedDonation(app, {
+      milestone,
+      token: {
+        symbol: 'ETH',
+      },
+      amount: '1000000000',
+    });
+    // because creating and sending email is async, we should wait to make sure the email hooks worked
+    await sleep(50);
+    const milestoneOwnerEmails = await emailService.find({
+      paginate: false,
+      query: {
+        recipient: milestoneOwner.email,
+        milestoneId: milestone._id,
+        campaignId: campaign._id,
+        unsubscribeType: EmailSubscribeTypes.DONATION_RECEIVED,
+      },
+    });
+    assert.isAtLeast(milestoneOwnerEmails.length, 1);
+  });
+}
+
 describe('test normalizeAmount', normalizeAmountTestCases);
 describe('test capitalizeDelegateType', capitalizeDelegateTypeTestCases);
 describe('test generateMilestoneCtaRelativeUrl', generateMilestoneCtaRelativeUrlTestCases);
@@ -733,3 +783,4 @@ describe('test milestoneMarkedCompleted', milestoneMarkedCompletedTestCases);
 describe('test milestoneCanceled', milestoneCanceledTestCases);
 describe('test donationsCollected', donationsCollectedTestCases);
 describe('test milestoneReceivedDonation', milestoneReceivedDonationTestCases);
+describe('test moneyWentToRecipientWallet', moneyWentToRecipientWalletTestCases);
