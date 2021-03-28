@@ -73,7 +73,7 @@ module.exports = app => {
       });
       Object.keys(milestonesCommitted).forEach(symbol => {
         result[tokenKey(symbol, 'milestones', TokenKeyType.BALANCE)] = Number(
-          milestonesCommitted.DAI,
+          milestonesCommitted[symbol],
         )
           ? Web3.utils.fromWei(milestonesCommitted[symbol].toFixed())
           : 0;
