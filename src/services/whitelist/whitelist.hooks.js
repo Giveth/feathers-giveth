@@ -1,6 +1,28 @@
+const logger = require('winston');
 const { getTokenBySymbol } = require('../../utils/tokenHelper');
 
-const getWhitelist = () => context => {
+async function fillPayoutValue(app, nativeCurrencyWhitelist, minimumPayoutUsdValue) {
+  const minimumPayoutValue = {
+    USD: minimumPayoutUsdValue,
+  };
+  try {
+    const currenciesRateValues = await app.service('conversionRates').find({
+      query: {
+        from: 'USD',
+        to: nativeCurrencyWhitelist.map(c => c.symbol),
+        interval: 'hourly',
+      },
+    });
+    Object.keys(currenciesRateValues.rates).forEach(symbol => {
+      minimumPayoutValue[symbol] = currenciesRateValues.rates[symbol] * minimumPayoutUsdValue;
+    });
+  } catch (e) {
+    logger.error('fillPayoutValue error', e);
+  }
+  return minimumPayoutValue;
+}
+
+const getWhitelist = () => async context => {
   const { app } = context;
 
   // fetch whitelisted addresses from default.json
@@ -18,6 +40,11 @@ const getWhitelist = () => context => {
   }
   const fiatWhitelist = app.get('fiatWhitelist');
   const nativeCurrencyWhitelist = app.get('nativeCurrencyWhitelist');
+  const minimumPayoutUsdValue = app.get('minimumPayoutUsdValue');
+  let minimumPayoutValue;
+  if (minimumPayoutUsdValue) {
+    minimumPayoutValue = await fillPayoutValue(app, nativeCurrencyWhitelist, minimumPayoutUsdValue);
+  }
   context.result = {
     reviewerWhitelistEnabled,
     delegateWhitelistEnabled,
@@ -26,6 +53,7 @@ const getWhitelist = () => context => {
     activeTokenWhitelist,
     fiatWhitelist,
     nativeCurrencyWhitelist,
+    minimumPayoutValue,
   };
   return context;
 };

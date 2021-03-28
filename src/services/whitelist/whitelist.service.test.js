@@ -6,7 +6,7 @@ const baseUrl = config.get('givethFathersBaseUrl');
 const relativeUrl = '/whitelist';
 
 function getWhiteListTestCases() {
-  it('should return the value that some of them are in the config', async function() {
+  it('should return the value that some of them are in the config', async () => {
     const response = await request(baseUrl).get(relativeUrl);
 
     assert.equal(response.statusCode, 200);
@@ -14,7 +14,7 @@ function getWhiteListTestCases() {
     expect(response.body.tokenWhitelist).to.deep.equal(config.get('tokenWhitelist'));
   });
 
-  it('should fill activeTokenWhitelist with tokenInfo ', async function() {
+  it('should fill activeTokenWhitelist with tokenInfo ', async () => {
     const response = await request(baseUrl).get(relativeUrl);
     assert.equal(response.statusCode, 200);
     const { activeTokenWhitelist } = response.body;
@@ -28,6 +28,18 @@ function getWhiteListTestCases() {
       assert.isOk(token.address);
       assert.isOk(token.name);
     });
+  });
+  it('should fill minimumPayoutValue ', async () => {
+    const minimumPayoutUsdValue = config.get('minimumPayoutUsdValue');
+    const nativeCurrencyWhitelist = config.get('nativeCurrencyWhitelist');
+
+    const response = await request(baseUrl).get(relativeUrl);
+    assert.equal(response.statusCode, 200);
+    const { minimumPayoutValue } = response.body;
+    assert.isOk(minimumPayoutValue);
+    assert.equal(Object.keys(minimumPayoutValue).length, nativeCurrencyWhitelist.length);
+    assert.equal(minimumPayoutValue.USD, minimumPayoutUsdValue);
+    assert.isBelow(minimumPayoutValue.EUR, minimumPayoutValue.USD);
   });
 }
 
