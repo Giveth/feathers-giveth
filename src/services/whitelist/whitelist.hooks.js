@@ -19,7 +19,8 @@ async function fillPayoutValue(app, nativeCurrencyWhitelist) {
       cachedMinimumPayoutValue.time === lastHourUTC &&
       // if fetching coin values from cryptocompare fails, then minimumPayoutValue should have just
       // USD so next time we should try getting coin values
-      cachedMinimumPayoutValue.minimumPayoutValue.length === nativeCurrencyWhitelist.length
+      Object.keys(cachedMinimumPayoutValue.minimumPayoutValue).length ===
+        nativeCurrencyWhitelist.length
     ) {
       // if we dont cache minimumPayoutValue the response time will increase from 60 ms to 1300ms
       return cachedMinimumPayoutValue.minimumPayoutValue;
