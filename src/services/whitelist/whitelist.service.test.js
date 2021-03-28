@@ -33,7 +33,7 @@ function getWhiteListTestCases() {
     const minimumPayoutUsdValue = config.get('minimumPayoutUsdValue');
     const response = await request(baseUrl).get(relativeUrl);
     assert.equal(response.statusCode, 200);
-    assert.equal(response.minimumPayoutUsdValue, minimumPayoutUsdValue);
+    assert.equal(response.body.minimumPayoutUsdValue, minimumPayoutUsdValue);
   });
 }
 
