@@ -72,15 +72,20 @@ module.exports = app => {
         );
       });
       Object.keys(milestonesCommitted).forEach(symbol => {
-        result[tokenKey(symbol, 'milestones', TokenKeyType.BALANCE)] = Web3.utils.fromWei(
-          milestonesCommitted[symbol].toFixed(),
-        );
+        result[tokenKey(symbol, 'milestones', TokenKeyType.BALANCE)] = Number(
+          milestonesCommitted.DAI,
+        )
+          ? Web3.utils.fromWei(milestonesCommitted[symbol].toFixed())
+          : 0;
       });
     };
 
     // Get milestone balance items
     const insertMilestoneBalanceItems = (id, result, bridgeInfo) => {
       const balance = milestonesBalance[id.toString()];
+      if (!balance) {
+        return;
+      }
       Object.keys(balance).forEach(symbol => {
         const tokenBalance = balance[symbol];
         [TokenKeyType.REQUESTED, TokenKeyType.HOLD, TokenKeyType.PAID].forEach(type => {
@@ -135,11 +140,11 @@ module.exports = app => {
       if (ownerType === AdminTypes.MILESTONE) {
         updateMilestoneCommitted = true;
         const balance = milestonesBalance[ownerTypeId];
-        if (status === DonationStatus.PAID) {
+        if (balance && status === DonationStatus.PAID) {
           balance[symbol][TokenKeyType.HOLD] = balance[symbol][TokenKeyType.HOLD].minus(amount);
           balance[symbol][TokenKeyType.PAID] = balance[symbol][TokenKeyType.PAID].plus(amount);
           balanceChange = new BigNumber(amount.toString()).negated();
-        } else {
+        } else if (balance) {
           balance[symbol][TokenKeyType.HOLD] = balance[symbol][TokenKeyType.HOLD].plus(amount);
           balanceChange = new BigNumber(amount.toString());
         }
