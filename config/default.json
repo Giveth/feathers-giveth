@@ -166,5 +166,5 @@
   ],
   "dappMailerUrl": "http://127.0.0.1:3050",
   "dappMailerSecret": "xxMv8a13I3YOZSKq9XmX285N0o4m1qHyKjgQWb2g83daGtPI4VmEw7dImu8kvO2ovG4EMC1bvjO906o365BaJBZtArpnxJCoYsCJ",
-  "minimumPayoutUsdValue": 1
+  "minimumPayoutUsdValue": 100
 }
