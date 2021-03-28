@@ -29,19 +29,11 @@ function getWhiteListTestCases() {
       assert.isOk(token.name);
     });
   });
-  it('should fill minimumPayoutValue ', async () => {
+  it('should fill minimumPayoutUsdValue ', async () => {
     const minimumPayoutUsdValue = config.get('minimumPayoutUsdValue');
-
     const response = await request(baseUrl).get(relativeUrl);
     assert.equal(response.statusCode, 200);
-    const { minimumPayoutValue } = response.body;
-    assert.isOk(minimumPayoutValue);
-    assert.equal(minimumPayoutValue.USD, minimumPayoutUsdValue);
-
-    // Sometimes cryptocompare got error when getting hourly rate conversion, so the minimumPayoutValue just have USD
-    // const nativeCurrencyWhitelist = config.get('nativeCurrencyWhitelist');
-    // assert.equal(Object.keys(minimumPayoutValue).length, nativeCurrencyWhitelist.length);
-    // assert.isBelow(minimumPayoutValue.EUR, minimumPayoutValue.USD);
+    assert.equal(response.minimumPayoutUsdValue, minimumPayoutUsdValue);
   });
 }
 
