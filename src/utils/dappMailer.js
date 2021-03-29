@@ -87,8 +87,8 @@ const milestoneReceivedDonation = (app, { milestone, amount, token }) => {
   };
   sendEmail(app, ownerEmailData);
 
-  // Maybe recipient is a user without email or a Campaign
-  if (!recipient.email || recipient.email === owner.email) {
+  // Maybe recipient is null or a user without email or a Campaign
+  if (!recipient || !recipient.email || recipient.email === owner.email) {
     // To not sending donation email twice for user
     return;
   }
@@ -465,8 +465,12 @@ const proposedMilestoneAccepted = (app, { milestone, message }) => {
   };
   sendEmail(app, data);
 
-  // Maybe recipient is campaign and doesnt have email, or recipient id the milestone owner
-  if (!milestoneRecipient.email || milestoneRecipient.address === milestoneOwner.address) {
+  // Maybe recipient is null or is campaign and doesnt have email, or recipient id the milestone owner
+  if (
+    !milestoneRecipient ||
+    !milestoneRecipient.email ||
+    milestoneRecipient.address === milestoneOwner.address
+  ) {
     return;
   }
   const sendRecipientEmailData = {
@@ -687,6 +691,9 @@ const donationsCollected = (app, { milestone, conversation }) => {
     _id: milestoneId,
     campaignId,
   } = milestone;
+  if (!milestoneRecipient || !milestoneRecipient.email) {
+    return;
+  }
   const data = {
     recipient: milestoneRecipient.email,
     template: emailNotificationTemplate,
