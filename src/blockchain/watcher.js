@@ -491,8 +491,9 @@ const watcher = (app, eventHandler) => {
    * Add newEvent to the database if they don't already exist
    *
    * @param {Object} event Event to be added to the database for processing
+   * @param {boolean} isReprocess are we reprocessing the event?
    */
-  async function newEvent(event) {
+  async function newEvent(event, isReprocess = false) {
     logger.info('newEvent called', event.id);
 
     if (!event || !event.event || !event.signature || !event.returnValues || !event.raw) {
@@ -514,7 +515,11 @@ const watcher = (app, eventHandler) => {
       };
       const events = await eventService.find({ paginate: false, query });
 
-      if (events.length > 0 && events[0].status !== EventStatus.PENDING) {
+      if (
+        (!isReprocess || event.event === 'Transfer') &&
+        events.length > 0 &&
+        events[0].status !== EventStatus.PENDING
+      ) {
         logger.error(
           `Attempt to add an event that already exists. Blocknumber: ${event.blockNumber}, logIndex: ${event.logIndex}, transactionHash: ${event.transactionHash}, status: ${events[0].status}`,
         );
@@ -617,7 +622,7 @@ const watcher = (app, eventHandler) => {
      * @param {object} event web3 event object
      */
     addEvent(event) {
-      newEvent(event);
+      newEvent(event, true);
     },
 
     /**
