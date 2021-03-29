@@ -3,6 +3,7 @@ const axios = require('axios');
 const logger = require('winston');
 const { DonationStatus, DonationBridgeStatus } = require('../models/donations.model');
 const { getTransaction } = require('../blockchain/lib/web3Helpers');
+const { moneyWentToRecipientWallet } = require('./dappMailer');
 
 const bridgeMonitorBaseUrl = config.get('bridgeMonitorBaseUrl');
 const getDonationStatusFromBridge = async ({ txHash, tokenAddress }) => {
@@ -37,6 +38,12 @@ const updateDonationsStatusToBridgePaid = async ({ app, donation, payment }) => 
     bridgeStatus,
     bridgeTxHash: payment.paymentTransactionHash,
     bridgeTransactionTime: timestamp,
+  });
+  const milestone = await app.service('milestones').get(donation.ownerTypeId);
+  moneyWentToRecipientWallet(app, {
+    milestone,
+    token: donation.token,
+    amount: donation.amount,
   });
   logger.info('update donation bridge status', {
     donationId: donation._id,

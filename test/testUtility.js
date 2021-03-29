@@ -83,6 +83,7 @@ async function dropDb() {
     });
   });
 }
+
 async function seedData() {
   await dropDb();
   console.log('test db dropped');
@@ -251,6 +252,22 @@ const SAMPLE_DATA = {
     status: 'Pending',
     txHash: generateRandomTransactionHash(),
     description: 'test description for campaign',
+  },
+  DONATION_DATA: {
+    status: 'Committed',
+    parentDonations: [],
+    usdValue: 19,
+    txHash: '0xc58ba07cd7ad6a324d203d95b38205f3c9d1d9cc07aeed2031027eda58c3a9b7',
+    pledgeId: '321',
+    amount: '300000000000000',
+    amountRemaining: '0',
+    ownerId: 481,
+    giverAddress: '0xA6012eA4284433baC05e96d352f435265eFa5860',
+    homeTxHash: '0xb0cd61d8b5aa3420b860d7985f83451ef0758adee993de038507b89d4a244219',
+    ownerTypeId: '5f22b2f69e4f03782453b658',
+    ownerType: 'milestone',
+    tokenAddress: '0x0',
+    actionTakerAddress: '0x5AC583Feb2b1f288C0A51d6Cdca2e8c814BFE93B',
   },
   DacStatus: {
     ACTIVE: 'Active',
