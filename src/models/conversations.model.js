@@ -38,7 +38,7 @@ const createModel = function Conversations(app) {
       messageContext: { type: String, required: true },
       message: { type: String },
       replyToId: { type: String },
-      performedByRole: { type: String, required: true, default: '' },
+      performedByRole: { type: String, default: '' },
       ownerAddress: { type: String, required: true },
       recipientAddress: { type: String },
       payments: [
