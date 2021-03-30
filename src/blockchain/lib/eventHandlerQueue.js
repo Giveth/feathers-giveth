@@ -1,5 +1,6 @@
 const { LiquidPledging } = require('giveth-liquidpledging');
 const logger = require('winston');
+const config = require('config');
 const Queue = require('bull');
 const paymentsFactory = require('../payments');
 const adminsFactory = require('../admins');
@@ -7,8 +8,8 @@ const pledgesFactory = require('../pledges');
 const milestonesFactory = require('../milestones');
 const { EventStatus } = require('../../models/events.model');
 
-const handleEventQueue = new Queue('eventHandler');
-const pendingEventQueue = new Queue('NewEventQueue');
+const handleEventQueue = new Queue('eventHandler', { redis: config.get('redis') });
+const pendingEventQueue = new Queue('NewEventQueue', { redis: config.get('redis') });
 
 setInterval(async () => {
   const eventHandlerQueueCount = await handleEventQueue.count();
@@ -179,7 +180,7 @@ const addEventToQueue = async (app, { event }) => {
     event,
   });
 };
-const addCreateOrRemoveEventToQueue =  (app, { event, remove = false }) => {
+const addCreateOrRemoveEventToQueue = (app, { event, remove = false }) => {
   if (!isNewEventQueueInitialized) {
     initNewEventQueue(app);
   }
