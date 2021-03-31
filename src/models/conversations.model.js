@@ -18,6 +18,7 @@ const CONVERSATION_MESSAGE_CONTEXT = {
   COMMENT: 'comment',
   DELEGATED: 'delegated',
   DONATED: 'donated',
+  PAYOUT: 'payout',
   PAYMENT: 'payment',
   PROPOSED_ACCEPTED: 'proposedAccepted',
   PROPOSED_REJECTED: 'proposedRejected',
@@ -37,7 +38,7 @@ const createModel = function Conversations(app) {
       messageContext: { type: String, required: true },
       message: { type: String },
       replyToId: { type: String },
-      performedByRole: { type: String, required: true },
+      performedByRole: { type: String, required: true, default: '' },
       ownerAddress: { type: String, required: true },
       recipientAddress: { type: String },
       payments: [

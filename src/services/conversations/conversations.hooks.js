@@ -69,7 +69,7 @@ const restrictAndSetOwner = () => context => {
         default:
           if (isRequestInternal(context)) {
             //  It's created when someone donated, so maybe he/she is not involved with milestone
-            context.data.performedByRole = ' ';
+            context.data.performedByRole = '';
           } else {
             throw new errors.Forbidden(
               'Only people involved with the milestone can create conversation',

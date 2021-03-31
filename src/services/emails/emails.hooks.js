@@ -56,6 +56,7 @@ const sendEmailToDappMailer = () => async context => {
     logger.error(`error sending email to ${emailData.recipient}`, {
       error: err.message,
       emailId: result._id,
+      unsubscribeType: result.unsubscribeType,
     });
     emailService.patch(result._id, {
       status: EMAIL_STATUS.FAILED,

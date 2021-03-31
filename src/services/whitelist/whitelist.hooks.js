@@ -18,6 +18,8 @@ const getWhitelist = () => context => {
   }
   const fiatWhitelist = app.get('fiatWhitelist');
   const nativeCurrencyWhitelist = app.get('nativeCurrencyWhitelist');
+  const minimumPayoutUsdValue = app.get('minimumPayoutUsdValue');
+
   context.result = {
     reviewerWhitelistEnabled,
     delegateWhitelistEnabled,
@@ -26,6 +28,7 @@ const getWhitelist = () => context => {
     activeTokenWhitelist,
     fiatWhitelist,
     nativeCurrencyWhitelist,
+    minimumPayoutUsdValue,
   };
   return context;
 };
