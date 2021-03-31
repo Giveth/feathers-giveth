@@ -143,7 +143,7 @@ const inquiryAndUpdateDonationStatusFromBridge = async ({ app, donation }) => {
       donation,
       payment,
     });
-  } else if (!donation.bridgeEarliestPayTime) {
+  } else if (payment && !donation.bridgeEarliestPayTime) {
     await app.service('donations').patch(donation._id, {
       bridgeEarliestPayTime: new Date(payment.earliestPayTime),
     });
