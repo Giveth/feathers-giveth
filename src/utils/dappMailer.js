@@ -22,12 +22,16 @@ const normalizeAmount = amount => {
 };
 
 const sendEmail = (app, data) => {
+  if (data.recipient) {
+    return;
+  }
   const emailService = app.service('/emails');
   // add host to subject for development
   if (!app.get('host').includes('beta')) {
     data.subject = `[${app.get('host')}] - ${data.subject}`;
   }
   data.dappUrl = app.get('dappUrl');
+  // eslint-disable-next-line consistent-return
   return emailService.create(data);
 };
 
