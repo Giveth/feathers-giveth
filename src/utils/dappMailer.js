@@ -22,7 +22,7 @@ const normalizeAmount = amount => {
 };
 
 const sendEmail = (app, data) => {
-  if (data.recipient) {
+  if (!data.recipient) {
     return;
   }
   const emailService = app.service('/emails');
