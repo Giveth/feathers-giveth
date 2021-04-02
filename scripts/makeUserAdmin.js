@@ -1,17 +1,15 @@
 /**
  * You can run this script like this:
- * NODE_ENV=develop USER_ADDRESS=0x5AC583Feb2b1f288C0A51d6Cdca2e8c814BFE93B node scripts/makeUserAdmin.js
+ * NODE_ENV=develop  node scripts/makeUserAdmin.js 0x5AC583Feb2b1f288C0A51d6Cdca2e8c814BFE93B
  */
 
 const config = require('config');
 const mongoose = require('mongoose');
 
-const userAddress = process.env.USER_ADDRESS;
-if (!process.env.NODE_ENV) {
-  throw new Error('NODE_ENV is required and should pass it in environment variables');
-}
+const userAddress = process.argv[2];
+
 if (!userAddress) {
-  throw new Error('USER_ADDRESS is required and should pass it in environment variables');
+  throw new Error('USER_ADDRESS is required and should pass it');
 }
 const mongoUrl = config.mongodb;
 mongoose.connect(mongoUrl);
