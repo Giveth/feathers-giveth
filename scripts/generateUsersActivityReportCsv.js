@@ -1,3 +1,7 @@
+/**
+ * NODE_ENV=beta node ./scripts/generateUsersActivityReportCsv.js
+ */
+
 const { writeFileSync } = require('fs');
 const config = require('config');
 const { Parser } = require('json2csv');
@@ -104,6 +108,7 @@ const aggregteQuery = [
       as: 'dacsCounts',
     },
   },
+
   {
     $addFields: {
       dacsCount: { $sum: '$dacsCounts.count' },
@@ -132,6 +137,63 @@ const aggregteQuery = [
     },
   },
   {
+    $lookup: {
+      from: 'transactions',
+      let: { from: '$address' },
+      pipeline: [
+        {
+          $match: {
+            $expr: {
+              $eq: ['$$from', '$from'],
+            },
+          },
+        },
+      ],
+      as: 'ascendingTransactions',
+    },
+  },
+  {
+    $addFields: {
+      firstTransaction: { $arrayElemAt: ['$ascendingTransactions', 0] },
+    },
+  },
+  {
+    $addFields: {
+      firstUse: '$firstTransaction.timestamp',
+    },
+  },
+  {
+    $lookup: {
+      from: 'transactions',
+      let: { from: '$address' },
+      pipeline: [
+        {
+          $match: {
+            $expr: {
+              $eq: ['$$from', '$from'],
+            },
+          },
+        },
+        {
+          $sort: {
+            timestamp: -1,
+          },
+        },
+      ],
+      as: 'descendingTransactions',
+    },
+  },
+  {
+    $addFields: {
+      lastTransaction: { $arrayElemAt: ['$descendingTransactions', 0] },
+    },
+  },
+  {
+    $addFields: {
+      lastUse: '$lastTransaction.timestamp',
+    },
+  },
+  {
     $project: {
       createdMilestonesCount: 1,
       receivedMilestonesCount: 1,
@@ -140,6 +202,8 @@ const aggregteQuery = [
       campaignsCount: 1,
       address: 1,
       name: 1,
+      firstUse: 1,
+      lastUse: 1,
     },
   },
 ];
@@ -148,7 +212,16 @@ const mongoUrl = config.mongodb;
 mongoose.connect(mongoUrl);
 const db = mongoose.connection;
 const directDonationsReport = async () => {
-  const users = await db.collection('users').aggregate(aggregteQuery).toArray();
+  const users = await db
+    .collection('users')
+    .aggregate(aggregteQuery)
+    .toArray();
+  users.forEach((user, i) => {
+    if (user.firstUse) {
+      users[i].firstUse = user.firstUse.toUTCString();
+      users[i].lastUse = user.lastUse.toUTCString();
+    }
+  });
   const fields = [
     {
       label: 'Address',
@@ -177,6 +250,14 @@ const directDonationsReport = async () => {
     {
       label: '# of Milestones Recieved',
       value: 'receivedMilestonesCount',
+    },
+    {
+      label: 'first use',
+      value: 'firstUse',
+    },
+    {
+      label: 'last use',
+      value: 'lastUse',
     },
   ];
   const opts = { fields };
