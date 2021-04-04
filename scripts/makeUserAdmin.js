@@ -9,7 +9,9 @@ const mongoose = require('mongoose');
 const userAddress = process.argv[2];
 
 if (!userAddress) {
-  throw new Error('USER_ADDRESS is required and should pass it');
+  console.error('Usage: makeUserAdmin.js USER_ADDRESS');
+  console.error('USER_ADDRESS should be passed as an argument');
+  process.exit(1);
 }
 const mongoUrl = config.mongodb;
 mongoose.connect(mongoUrl);
