@@ -111,12 +111,13 @@ Video tutorial walkthrough here: https://tinyurl.com/y9lx6jrl
 
 The `feathers-giveth/scripts` directory contains a few scripts to help development.
 
-`deploy.js` - deploys a new vault & liquidPledging contract
+* `deploy.js` - deploys a new vault & liquidPledging contract
 
-`getState.js` - prints the current state of the deployed vault & liquidPledging contracts.
+* `getState.js` - prints the current state of the deployed vault & liquidPledging contracts.
 
-`confirm.js` - confirms any payments that are pending in the vault 
+* `confirm.js` - confirms any payments that are pending in the vault
 
+* `makeUserAdmin.js` - make a user admin
 ## Testing
 
 Simply run `yarn test` and all your tests in the `test/` directory will be run.
