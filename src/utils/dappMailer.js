@@ -953,7 +953,7 @@ const moneyWentToRecipientWallet = (app, { milestone, token, amount }) => {
     text: `
         <p><span ${emailStyle}>Hi ${milestoneRecipient.name || ''}</span></p>
         <p>The funds from your Milestone <strong>${milestoneTitle}</strong>
-        of the amount ${amount} ${
+        of the amount ${normalizeAmount(amount)} ${
       token.symbol
     } have been sent to your wallet. It’s time to take action to build a brighter future!
         </p>
