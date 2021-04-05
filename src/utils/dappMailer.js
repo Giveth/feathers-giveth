@@ -1,5 +1,4 @@
 const logger = require('winston');
-const Web3 = require('web3');
 const { AdminTypes } = require('../models/pledgeAdmins.model');
 const { EmailImages, EmailSubscribeTypes } = require('../models/emails.model');
 const { findParentDacs } = require('../repositories/dacRepository');
@@ -954,7 +953,7 @@ const moneyWentToRecipientWallet = (app, { milestone, token, amount }) => {
     text: `
         <p><span ${emailStyle}>Hi ${milestoneRecipient.name || ''}</span></p>
         <p>The funds from your Milestone <strong>${milestoneTitle}</strong>
-        of the amount ${Web3.utils.fromWei(amount)} ${
+        of the amount ${normalizeAmount(amount)} ${
       token.symbol
     } have been sent to your wallet. It’s time to take action to build a brighter future!
         </p>
