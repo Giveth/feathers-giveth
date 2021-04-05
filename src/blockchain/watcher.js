@@ -515,11 +515,7 @@ const watcher = (app, eventHandler) => {
       };
       const events = await eventService.find({ paginate: false, query });
 
-      if (
-        (!isReprocess || event.event === 'Transfer') &&
-        events.length > 0 &&
-        events[0].status !== EventStatus.PENDING
-      ) {
+      if (!isReprocess && events.length > 0 && events[0].status !== EventStatus.PENDING) {
         logger.error(
           `Attempt to add an event that already exists. Blocknumber: ${event.blockNumber}, logIndex: ${event.logIndex}, transactionHash: ${event.transactionHash}, status: ${events[0].status}`,
         );
