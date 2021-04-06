@@ -957,6 +957,10 @@ const moneyWentToRecipientWallet = (app, { milestone, token, amount }) => {
       token.symbol
     } have been sent to your wallet. It’s time to take action to build a brighter future!
         </p>
+
+        <p>You have these payment(s) in your wallet <strong>
+           ${milestoneRecipient.address}
+        </strong> now.</p>
       `,
     cta: `See your Milestones`,
     ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
