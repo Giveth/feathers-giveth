@@ -1,9 +1,9 @@
 const config = require('config');
 const axios = require('axios');
 const logger = require('winston');
+const { toBN } = require('web3-utils');
 const { DonationStatus, DonationBridgeStatus } = require('../models/donations.model');
 const { CONVERSATION_MESSAGE_CONTEXT } = require('../models/conversations.model');
-const { AdminTypes } = require('../models/pledgeAdmins.model');
 const { getTransaction } = require('../blockchain/lib/web3Helpers');
 const { moneyWentToRecipientWallet } = require('./dappMailer');
 
@@ -16,26 +16,52 @@ async function createPayoutConversation({
   amount,
   txHash,
 }) {
-  const conversationModel = {
-    milestoneId: milestone._id,
-    messageContext: CONVERSATION_MESSAGE_CONTEXT.PAYOUT,
-    donationId: donation._id,
-    txHash,
-    payments: [
-      {
+  const service = app.service('conversations');
+  const [sameTxPayoutConversation] = await service.find({
+    paginate: false,
+    query: {
+      milestoneId: milestone._id,
+      txHash,
+      messageContext: CONVERSATION_MESSAGE_CONTEXT.PAYOUT,
+    },
+  });
+
+  if (sameTxPayoutConversation) {
+    const { payments } = sameTxPayoutConversation;
+    const payment = payments.find(p => p.symbol === token.symbol);
+    if (payment) {
+      payment.amount = toBN(payment.amount)
+        .add(toBN(amount))
+        .toString();
+    } else {
+      payments.push({
         symbol: token.symbol,
         amount,
         tokenDecimals: token.decimals,
-      },
-    ],
-    donorId: donation.giverAddress,
-    donorType: AdminTypes.GIVER,
-  };
-  conversationModel.createdAt = timestamp;
+      });
+    }
 
-  await app
-    .service('conversations')
-    .create(conversationModel, { performedByAddress: milestone.recipientAddress });
+    await service.patch(sameTxPayoutConversation._id, {
+      payments,
+    });
+  } else {
+    const conversationModel = {
+      milestoneId: milestone._id,
+      messageContext: CONVERSATION_MESSAGE_CONTEXT.PAYOUT,
+      donationId: donation._id,
+      txHash,
+      payments: [
+        {
+          symbol: token.symbol,
+          amount,
+          tokenDecimals: token.decimals,
+        },
+      ],
+    };
+    conversationModel.createdAt = timestamp;
+
+    await service.create(conversationModel, { performedByAddress: milestone.recipientAddress });
+  }
 }
 
 const bridgeMonitorBaseUrl = config.get('bridgeMonitorBaseUrl');
@@ -197,11 +223,12 @@ const syncDonationsWithBridge = async app => {
     'updateDonationsStatusesWithBridge cronjob executed, donationsCount:',
     donations.length,
   );
-  const promises = [];
-  donations.forEach(donation => {
-    promises.push(inquiryAndUpdateDonationStatusFromBridge({ app, donation }));
-  });
-  await Promise.all(promises);
+
+  // eslint-disable-next-line no-restricted-syntax
+  for (const donation of donations) {
+    // eslint-disable-next-line no-await-in-loop
+    await inquiryAndUpdateDonationStatusFromBridge({ app, donation });
+  }
 };
 
 const updateDonationsStatusesWithBridge = async app => {
