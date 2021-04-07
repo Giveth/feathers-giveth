@@ -260,7 +260,7 @@ const milestoneProposed = async (app, { milestone }) => {
     recipient: milestoneOwner.email,
     template: emailNotificationTemplate,
     subject: 'Giveth - Your Milestone Proposal has been sent!',
-    secretIntro: `our proposed Milestone ${milestoneTitle} has been submitted for review!`,
+    secretIntro: `Your proposed Milestone ${milestoneTitle} has been submitted for review!`,
     title: 'Finger Crossed!',
     image: EmailImages.SUGGEST_MILESTONE,
     text: `
@@ -268,8 +268,8 @@ const milestoneProposed = async (app, { milestone }) => {
         <p>
           Your proposed Milestone <strong>${milestoneTitle}</strong>
           has been submitted for review!
-          We’ll let you know if the Milestone is approved by
-          the reviewer so you can start raising funds.</p>
+          We’ll let you know if the Milestone is accepted by the Campaign Manager
+          so you can start raising funds</p>
       `,
     cta: `Manage your Milestones`,
     ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
