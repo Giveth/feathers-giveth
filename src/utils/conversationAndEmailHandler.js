@@ -286,19 +286,17 @@ const handleDonationConversationAndEmail = async (app, donation) => {
       token,
     });
     const directDonation = Boolean(homeTxHash);
-    const payments = [
-      {
-        symbol: token.symbol,
-        amount,
-        decimals: token.decimals,
-      },
-    ];
+    const payment = {
+      symbol: token.symbol,
+      amount,
+      decimals: token.decimals,
+    };
     if (directDonation) {
       await createDonatedConversation(app, {
         milestoneId: pledgeAdmin._id,
         donationId: donation._id,
         homeTxHash,
-        payments,
+        payment,
         giverAddress,
         actionTakerAddress,
       });
@@ -307,7 +305,7 @@ const handleDonationConversationAndEmail = async (app, donation) => {
         milestoneId: pledgeAdmin._id,
         donationId: donation._id,
         txHash,
-        payments,
+        payment,
         parentDonations,
         actionTakerAddress,
       });
