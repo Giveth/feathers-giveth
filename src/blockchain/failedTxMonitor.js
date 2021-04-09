@@ -12,8 +12,10 @@ const { DacStatus } = require('../models/dacs.model');
 const { DonationStatus } = require('../models/donations.model');
 const { CampaignStatus } = require('../models/campaigns.model');
 const { MilestoneStatus } = require('../models/milestones.model');
+const { EventStatus } = require('../models/events.model');
 
 const FIFTEEN_MINUTES = 1000 * 60 * 15;
+const HALF_HOUR = 1000 * 60 * 30;
 const TWO_HOURS = 1000 * 60 * 60 * 2;
 
 /**
@@ -441,7 +443,6 @@ const failedTxMonitor = (app, eventWatcher) => {
         web3.eth.getBlockNumber(),
         getPendingDonations(app),
       ]);
-
       pendingDonations.forEach(d =>
         d.txHash
           ? updateDonationIfFailed(blockNumber, d)
@@ -449,6 +450,29 @@ const failedTxMonitor = (app, eventWatcher) => {
       );
     } catch (e) {
       logger.error('Check pending donations error:', e);
+    }
+  }
+  async function convertProcessingEventsToWaiting() {
+    // There is a problem that some events stuck in Processing status, we can
+    // change the status of events that created 30 minutes ago in our DB and they are Processing
+    // to Waiting then theuy should reprocess immediately
+    try {
+      await app.service('events').Model.updateMany(
+        {
+          status: EventStatus.PROCESSING,
+          createdAt: { $lte: new Date(Date.now() - HALF_HOUR) },
+        },
+        {
+          $set: {
+            status: EventStatus.WAITING,
+          },
+        },
+        {
+          multi: true,
+        },
+      );
+    } catch (e) {
+      logger.error('convertProcessingEventsToWaiting error:', e);
     }
   }
 
@@ -497,7 +521,9 @@ const failedTxMonitor = (app, eventWatcher) => {
      * start monitor to check for failed transactions. If any failed txs are found,
      * the ui state is reverted
      */
-    start() {
+    async start() {
+      await convertProcessingEventsToWaiting();
+      intervals.push(setInterval(convertProcessingEventsToWaiting, FIFTEEN_MINUTES));
       intervals.push(setInterval(checkPendingDonations, FIFTEEN_MINUTES));
       intervals.push(setInterval(checkPendingDACS, FIFTEEN_MINUTES));
       intervals.push(setInterval(checkPendingCampaigns, FIFTEEN_MINUTES));
