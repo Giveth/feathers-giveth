@@ -269,7 +269,7 @@ const milestoneProposed = async (app, { milestone }) => {
           Your proposed Milestone <strong>${milestoneTitle}</strong>
           has been submitted for review!
           We’ll let you know if the Milestone is accepted by the Campaign Manager
-          so you can start raising funds</p>
+          so you can start raising funds.</p>
       `,
     cta: `Manage your Milestones`,
     ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
