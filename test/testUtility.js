@@ -6,6 +6,7 @@ const restore = require('mongodb-restore-dump');
 const { ObjectID } = require('bson');
 const { assert } = require('chai');
 const mongoose = require('mongoose');
+const crypto = require('crypto');
 
 const assertThrowsAsync = async (fn, errorMessage) => {
   let f = () => {
@@ -127,6 +128,10 @@ function generateRandomEtheriumAddress() {
 function generateRandomTransactionHash() {
   return `0x${generateHexNumber(62)}`;
 }
+
+const generateRandomTxHash = () => {
+  return `0x${crypto.randomBytes(16).toString('hex')}`;
+};
 
 let milestoneCounter = 1;
 
@@ -314,4 +319,5 @@ module.exports = {
   generateRandomTransactionHash,
   padWithZero,
   sleep,
+  generateRandomTxHash,
 };

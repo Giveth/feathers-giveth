@@ -6,6 +6,7 @@ const { CONVERSATION_MESSAGE_CONTEXT } = require('../models/conversations.model'
 const Mailer = require('./dappMailer');
 const { getTransaction } = require('../blockchain/lib/web3Helpers');
 const { MilestoneStatus } = require('../models/milestones.model');
+const { createDonatedConversation, createDelegatedConversation } = require('./conversationCreator');
 
 const getPledgeAdmin = (app, type, id) => {
   switch (type) {
@@ -284,79 +285,31 @@ const handleDonationConversationAndEmail = async (app, donation) => {
       amount,
       token,
     });
-
-    // Create conversation
-
-    let conversationModel;
-    // Original event made the donation. For direct donations user makes donation in home network
-    // but for delegate in foreign network
-    let eventTxHash;
-
     const directDonation = Boolean(homeTxHash);
-
-    // Direct donation
+    const payment = {
+      symbol: token.symbol,
+      amount,
+      decimals: token.decimals,
+    };
     if (directDonation) {
-      eventTxHash = homeTxHash;
-      conversationModel = {
+      await createDonatedConversation(app, {
         milestoneId: pledgeAdmin._id,
-        messageContext: CONVERSATION_MESSAGE_CONTEXT.DONATED,
         donationId: donation._id,
-        txHash: homeTxHash,
-        payments: [
-          {
-            symbol: token.symbol,
-            amount,
-            decimals: token.decimals,
-          },
-        ],
-        donorId: giverAddress,
-        donorType: AdminTypes.GIVER,
-      };
-    }
-    // Delegate
-    else {
-      eventTxHash = txHash;
-
-      const [firstParentId] = parentDonations;
-      const firstParent = await app.service('donations').get(firstParentId);
-      let donorType;
-      let donorId;
-      if (firstParent.delegateTypeId) {
-        donorType = AdminTypes.DAC;
-        donorId = firstParent.delegateTypeId;
-      } else {
-        donorType = firstParent.ownerType;
-        donorId = firstParent.ownerTypeId;
-      }
-
-      conversationModel = {
+        homeTxHash,
+        payment,
+        giverAddress,
+        actionTakerAddress,
+      });
+    } else {
+      await createDelegatedConversation(app, {
         milestoneId: pledgeAdmin._id,
-        messageContext: CONVERSATION_MESSAGE_CONTEXT.DELEGATED,
         donationId: donation._id,
         txHash,
-        payments: [
-          {
-            symbol: token.symbol,
-            amount,
-            decimals: token.decimals,
-          },
-        ],
-        donorType,
-        donorId,
-      };
+        payment,
+        parentDonations,
+        actionTakerAddress,
+      });
     }
-
-    try {
-      const { timestamp } = await getTransaction(app, eventTxHash, directDonation);
-      conversationModel.createdAt = timestamp;
-    } catch (e) {
-      conversationModel.createdAt = new Date();
-      logger.error(`Error on getting tx ${eventTxHash} info`, e);
-    }
-
-    await app
-      .service('conversations')
-      .create(conversationModel, { performedByAddress: actionTakerAddress });
   }
 };
 
