@@ -1,8 +1,68 @@
 const config = require('config');
 const axios = require('axios');
 const logger = require('winston');
+const { toBN } = require('web3-utils');
 const { DonationStatus, DonationBridgeStatus } = require('../models/donations.model');
+const { CONVERSATION_MESSAGE_CONTEXT } = require('../models/conversations.model');
 const { getTransaction } = require('../blockchain/lib/web3Helpers');
+const { moneyWentToRecipientWallet } = require('./dappMailer');
+
+async function createPayoutConversation({
+  app,
+  milestone,
+  donation,
+  timestamp,
+  token,
+  amount,
+  txHash,
+}) {
+  const service = app.service('conversations');
+  const [sameTxPayoutConversation] = await service.find({
+    paginate: false,
+    query: {
+      milestoneId: milestone._id,
+      txHash,
+      messageContext: CONVERSATION_MESSAGE_CONTEXT.PAYOUT,
+    },
+  });
+
+  if (sameTxPayoutConversation) {
+    const { payments } = sameTxPayoutConversation;
+    const payment = payments.find(p => p.symbol === token.symbol);
+    if (payment) {
+      payment.amount = toBN(payment.amount)
+        .add(toBN(amount))
+        .toString();
+    } else {
+      payments.push({
+        symbol: token.symbol,
+        amount,
+        tokenDecimals: token.decimals,
+      });
+    }
+
+    await service.patch(sameTxPayoutConversation._id, {
+      payments,
+    });
+  } else {
+    const conversationModel = {
+      milestoneId: milestone._id,
+      messageContext: CONVERSATION_MESSAGE_CONTEXT.PAYOUT,
+      donationId: donation._id,
+      txHash,
+      payments: [
+        {
+          symbol: token.symbol,
+          amount,
+          tokenDecimals: token.decimals,
+        },
+      ],
+    };
+    conversationModel.createdAt = timestamp;
+
+    await service.create(conversationModel, { performedByAddress: milestone.recipientAddress });
+  }
+}
 
 const bridgeMonitorBaseUrl = config.get('bridgeMonitorBaseUrl');
 const getDonationStatusFromBridge = async ({ txHash, tokenAddress }) => {
@@ -30,13 +90,32 @@ const getDonationStatusFromBridge = async ({ txHash, tokenAddress }) => {
 };
 
 const updateDonationsStatusToBridgePaid = async ({ app, donation, payment }) => {
-  const donationService = app.service('donations');
   const bridgeStatus = DonationBridgeStatus.PAID;
-  const { timestamp } = await getTransaction(app, payment.paymentTransactionHash, true);
-  await donationService.patch(donation._id, {
+  const { token, amount } = donation;
+  const { earliestPayTime, paymentTransactionHash } = payment;
+  const { timestamp } = paymentTransactionHash
+    ? await getTransaction(app, paymentTransactionHash, true)
+    : { timestamp: new Date(earliestPayTime) };
+  await app.service('donations').patch(donation._id, {
     bridgeStatus,
-    bridgeTxHash: payment.paymentTransactionHash,
+    bridgeTxHash: paymentTransactionHash,
+    bridgeEarliestPayTime: new Date(earliestPayTime),
     bridgeTransactionTime: timestamp,
+  });
+  const milestone = await app.service('milestones').get(donation.ownerTypeId);
+  createPayoutConversation({
+    app,
+    milestone,
+    donation,
+    timestamp,
+    token,
+    amount,
+    txHash: paymentTransactionHash,
+  });
+  moneyWentToRecipientWallet(app, {
+    milestone,
+    token: donation.token,
+    amount: donation.amount,
   });
   logger.info('update donation bridge status', {
     donationId: donation._id,
@@ -57,7 +136,6 @@ const updateDonationsStatusToBridgeFailed = async ({ app, donation }) => {
 };
 const updateDonationsAndMilestoneStatusToBridgeUnknown = async ({ app, donation }) => {
   const donationService = app.service('donations');
-  let bridgeStatus = DonationBridgeStatus.UNKNOWN;
 
   const timeBetweenCreatedDonationAndNow =
     new Date().getTime() - new Date(donation.createdAt).getTime();
@@ -65,15 +143,14 @@ const updateDonationsAndMilestoneStatusToBridgeUnknown = async ({ app, donation 
   if (timeBetweenCreatedDonationAndNow > expirationThreshold) {
     // If a donations is for more than two months ago and the bridge status is unknown
     // then we set the bridgeStatus Expired to not inquiry again for that donation
-    bridgeStatus = DonationBridgeStatus.EXPIRED;
+    donationService.patch(donation._id, {
+      bridgeStatus: DonationBridgeStatus.EXPIRED,
+    });
+    logger.info('update donation bridge status', {
+      donationId: donation._id,
+      bridgeStatus: DonationBridgeStatus.EXPIRED,
+    });
   }
-  donationService.patch(donation._id, {
-    bridgeStatus,
-  });
-  logger.info('update donation bridge status', {
-    donationId: donation._id,
-    bridgeStatus,
-  });
 };
 
 const inquiryAndUpdateDonationStatusFromBridge = async ({ app, donation }) => {
@@ -93,6 +170,10 @@ const inquiryAndUpdateDonationStatusFromBridge = async ({ app, donation }) => {
       donation,
       payment,
     });
+  } else if (payment && !donation.bridgeEarliestPayTime) {
+    await app.service('donations').patch(donation._id, {
+      bridgeEarliestPayTime: new Date(payment.earliestPayTime),
+    });
   } else {
     await updateDonationsAndMilestoneStatusToBridgeUnknown({
       app,
@@ -103,33 +184,51 @@ const inquiryAndUpdateDonationStatusFromBridge = async ({ app, donation }) => {
 
 const syncDonationsWithBridge = async app => {
   const donationService = app.service('donations');
+  const query = {
+    status: DonationStatus.PAID,
+    txHash: { $exists: true },
+    bridgeStatus: {
+      // $exists: true,
+      $nin: [
+        DonationBridgeStatus.PAID,
+        DonationBridgeStatus.CANCELLED,
+        DonationBridgeStatus.EXPIRED,
+      ],
+    },
+  };
   const donations = await donationService.find({
     paginate: false,
     query: {
       $limit: 100,
-      // 3 * 24 * 60 * 60 * 1000 means 3 days
-      createdAt: { $lte: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) },
-      status: DonationStatus.PAID,
-      txHash: { $exists: true },
-      bridgeStatus: {
-        // $exists: true,
-        $nin: [
-          DonationBridgeStatus.PAID,
-          DonationBridgeStatus.CANCELLED,
-          DonationBridgeStatus.EXPIRED,
-        ],
-      },
+      $or: [
+        {
+          ...query,
+          // 3 * 24 * 60 * 60 * 1000 means 3 days
+          createdAt: { $lte: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000) },
+        },
+        {
+          ...query,
+          bridgeEarliestPayTime: {
+            $exists: false,
+          },
+        },
+        {
+          ...query,
+          bridgeEarliestPayTime: { $lte: new Date() },
+        },
+      ],
     },
   });
   logger.info(
     'updateDonationsStatusesWithBridge cronjob executed, donationsCount:',
     donations.length,
   );
-  const promises = [];
-  donations.forEach(donation => {
-    promises.push(inquiryAndUpdateDonationStatusFromBridge({ app, donation }));
-  });
-  await Promise.all(promises);
+
+  // eslint-disable-next-line no-restricted-syntax
+  for (const donation of donations) {
+    // eslint-disable-next-line no-await-in-loop
+    await inquiryAndUpdateDonationStatusFromBridge({ app, donation });
+  }
 };
 
 const updateDonationsStatusesWithBridge = async app => {

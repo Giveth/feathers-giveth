@@ -35,7 +35,7 @@ function createModel(app) {
   const { Schema } = mongooseClient;
   const email = new Schema(
     {
-      recipient: { type: String, required: true },
+      recipient: { type: String },
       template: { type: String, required: true },
       subject: { type: String, required: true },
       secretIntro: { type: String, required: true },
