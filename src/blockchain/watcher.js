@@ -1,6 +1,7 @@
 const { LiquidPledging, LPVault, Kernel } = require('giveth-liquidpledging');
 const { LPPCappedMilestone } = require('lpp-capped-milestone');
 const { BridgedMilestone, LPMilestone } = require('lpp-milestones');
+const { GivethBridge } = require('giveth-bridge');
 const semaphore = require('semaphore');
 const { keccak256, padLeft, toHex } = require('web3-utils');
 const logger = require('winston');
@@ -15,12 +16,14 @@ const { DonationStatus } = require('../models/donations.model');
  * get the last block that we have gotten logs from
  *
  * @param {object} app feathers app instance
+ * @param {boolean} isHome network is home flag
  */
-const getLastBlock = async app => {
+const getLastBlock = async (app, isHome = false) => {
   const opts = {
     paginate: false,
     query: {
       status: { $ne: EventStatus.PENDING },
+      isHomeEvent: isHome,
       $limit: 1,
       $sort: {
         blockNumber: -1,
@@ -74,6 +77,7 @@ function subscribeLogs(web3, topics) {
  */
 const watcher = (app, eventHandler) => {
   const web3 = app.getWeb3();
+  const homeWeb3 = app.getHomeWeb3();
   const requiredConfirmations = app.get('blockchain').requiredConfirmations || 0;
   const queue = processingQueue('NewEventQueue');
   const eventService = app.service('events');
@@ -83,11 +87,16 @@ const watcher = (app, eventHandler) => {
   const lpVault = new LPVault(web3, vaultAddress);
   let kernel;
 
-  let isFetchingPastEvents = false; // To indicate if the fetching process of past events is in progress or not.
-  let lastBlock = 0;
+  let isFetchingPastForeignEvents = false; // To indicate if the fetching process of past events is in progress or not.
+  let isFetchingPastHomeEvents = false; // To indicate if the fetching process of past events is in progress or not.
+  let lastForeignBlock = 0;
+  let lastHomeBlock = 0;
 
-  function setLastBlock(blockNumber) {
-    if (blockNumber > lastBlock) lastBlock = blockNumber;
+  function setLastForeignBlock(blockNumber) {
+    if (blockNumber > lastForeignBlock) lastForeignBlock = blockNumber;
+  }
+  function setLastHomeBlock(blockNumber) {
+    if (blockNumber > lastHomeBlock) lastHomeBlock = blockNumber;
   }
 
   /**
@@ -117,7 +126,12 @@ const watcher = (app, eventHandler) => {
           data,
         );
       }
-      await eventService.create({ ...event, confirmations: 0, status: EventStatus.PENDING });
+      await eventService.create({
+        ...event,
+        isHomeEvent: false,
+        confirmations: 0,
+        status: EventStatus.PENDING,
+      });
     } finally {
       queue.purge();
     }
@@ -249,7 +263,7 @@ const watcher = (app, eventHandler) => {
     );
   }
 
-  const { liquidPledgingAddress } = app.get('blockchain');
+  const { liquidPledgingAddress, givethBridgeAddress } = app.get('blockchain');
   const liquidPledging = new LiquidPledging(web3, liquidPledgingAddress);
   const lppCappedMilestone = new LPPCappedMilestone(web3).$contract;
   const lpMilestone = new LPMilestone(web3).$contract;
@@ -262,6 +276,13 @@ const watcher = (app, eventHandler) => {
       ...bridgedMilestone._jsonInterface,
     ],
   });
+
+  const enableHomeEvent = !!givethBridgeAddress;
+  let givethBridge;
+
+  if (enableHomeEvent) {
+    givethBridge = new GivethBridge(homeWeb3, givethBridgeAddress);
+  }
 
   function getMilestoneTopics() {
     return [
@@ -389,12 +410,15 @@ const watcher = (app, eventHandler) => {
   /**
    * Fetch all events between now and the latest block
    *
-   * @param  {Number} [fromBlockNum=lastBlock] The block from which onwards should the events be checked
-   * @param  {Number} [toBlockNum=lastBlock+1] No events after this block should be returned
+   * @param  {Number} [fromBlockNum=lastForeignBlock] The block from which onwards should the events be checked
+   * @param  {Number} [toBlockNum=lastForeignBlock+1] No events after this block should be returned
    *
    * @return {Promise} Resolves to an array of events between speciefied block and latest known block.
    */
-  async function fetchPastEvents(fromBlockNum = lastBlock, toBlockNum = lastBlock + 1) {
+  async function fetchPastForeignEvents(
+    fromBlockNum = lastForeignBlock,
+    toBlockNum = lastForeignBlock + 1,
+  ) {
     const fromBlock = toHex(fromBlockNum) || toHex(1); // convert to hex due to web3 bug https://github.com/ethereum/web3.js/issues/1097
     const toBlock = toHex(toBlockNum) || toHex(1); // convert to hex due to web3 bug https://github.com/ethereum/web3.js/issues/1097
 
@@ -424,7 +448,29 @@ const watcher = (app, eventHandler) => {
       await lpVault.$contract.getPastEvents({ fromBlock, toBlock }),
     );
 
-    return events;
+    return events.map(e => {
+      return { ...e, isHomeEvent: false };
+    });
+  }
+
+  /**
+   * Fetch all events between now and the latest block
+   *
+   * @param  {Number} [fromBlockNum=lastForeignBlock] The block from which onwards should the events be checked
+   * @param  {Number} [toBlockNum=lastForeignBlock+1] No events after this block should be returned
+   *
+   * @return {Promise} Resolves to an array of events between speciefied block and latest known block.
+   */
+  async function fetchPastHomeEvents(fromBlockNum = lastHomeBlock, toBlockNum = lastHomeBlock + 1) {
+    const fromBlock = fromBlockNum || 1; // convert to hex due to web3 bug https://github.com/ethereum/web3.js/issues/1097
+    const toBlock = toBlockNum || 1; // convert to hex due to web3 bug https://github.com/ethereum/web3.js/issues/1097
+
+    // Get the events from contracts
+    const events = await givethBridge.$contract.getPastEvents({ fromBlock, toBlock });
+
+    return events.map(e => {
+      return { ...e, isHomeEvent: true };
+    });
   }
 
   /**
@@ -545,25 +591,49 @@ const watcher = (app, eventHandler) => {
    */
   const retrieveAndProcessPastEvents = async () => {
     try {
-      const fetchBlockNum = (await web3.eth.getBlockNumber()) - requiredConfirmations;
+      const foreignFetchBlockNum = (await web3.eth.getBlockNumber()) - requiredConfirmations;
+      const homeFetchBlockNum = (await homeWeb3.eth.getBlockNumber()) - requiredConfirmations;
 
-      if (lastBlock < fetchBlockNum && !isFetchingPastEvents) {
+      if (lastForeignBlock < foreignFetchBlockNum && !isFetchingPastForeignEvents) {
         // FIXME: This should likely use semaphore when setting the variable or maybe even better extracted into different loop
-        isFetchingPastEvents = true;
-        lastBlock += 1;
+        isFetchingPastForeignEvents = true;
+        lastForeignBlock += 1;
 
         try {
-          logger.info(`Checking new events between blocks ${lastBlock}-${fetchBlockNum}`);
+          logger.info(
+            `Checking new foreign events between blocks ${lastForeignBlock}-${foreignFetchBlockNum}`,
+          );
 
-          const events = await fetchPastEvents(lastBlock, fetchBlockNum);
+          const events = await fetchPastForeignEvents(lastForeignBlock, foreignFetchBlockNum);
 
           await Promise.all(events.map(newEvent));
 
-          setLastBlock(fetchBlockNum);
+          setLastForeignBlock(foreignFetchBlockNum);
         } catch (err) {
           logger.error('Fetching past events failed: ', err);
         }
-        isFetchingPastEvents = false;
+        isFetchingPastForeignEvents = false;
+      }
+
+      if (enableHomeEvent && lastHomeBlock < homeFetchBlockNum && !isFetchingPastHomeEvents) {
+        // FIXME: This should likely use semaphore when setting the variable or maybe even better extracted into different loop
+        isFetchingPastHomeEvents = true;
+        lastHomeBlock += 1;
+
+        try {
+          logger.info(
+            `Checking new home events between blocks ${lastHomeBlock}-${homeFetchBlockNum}`,
+          );
+
+          const events = await fetchPastHomeEvents(lastHomeBlock, homeFetchBlockNum);
+
+          await Promise.all(events.map(newEvent));
+
+          setLastHomeBlock(homeFetchBlockNum);
+        } catch (err) {
+          logger.error('Fetching past events failed: ', err);
+        }
+        isFetchingPastHomeEvents = false;
       }
 
       // Process next event. This is purposely synchronous with awaits to ensure events are processed in order
@@ -584,7 +654,7 @@ const watcher = (app, eventHandler) => {
      * This runs interval that checks every x miliseconds (as set in config) for new block and if there are new events processes them
      */
     async start() {
-      setLastBlock(await getLastBlock(app));
+      setLastForeignBlock(await getLastBlock(app));
 
       const kernelAddress = await liquidPledging.kernel();
       kernel = new Kernel(web3, kernelAddress);

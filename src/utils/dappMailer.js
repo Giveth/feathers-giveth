@@ -940,7 +940,7 @@ const moneyWentToRecipientWallet = (app, { milestone, token, amount }) => {
     logger.info(
       `Currently we dont send email for milestones who doesnt have recipient, milestoneId: ${milestoneId}`,
     );
-    return;
+    return Promise.resolve();
   }
   const data = {
     recipient: milestoneRecipient.email,
@@ -969,7 +969,7 @@ const moneyWentToRecipientWallet = (app, { milestone, token, amount }) => {
     unsubscribeType: EmailSubscribeTypes.DONATIONS_COLLECTED,
     unsubscribeReason: `You receive this email because you are the recipient of a Milestone`,
   };
-  sendEmail(app, data);
+  return sendEmail(app, data);
 };
 
 module.exports = {
