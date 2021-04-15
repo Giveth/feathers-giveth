@@ -40,8 +40,11 @@ const handleEvents = async () => {
     .cursor()
     .eachAsync(
       async ({ transactionHash }) => {
-        await getTransaction(app, transactionHash);
-        console.log('Getting event transaction');
+        try {
+          await getTransaction(app, transactionHash);
+        } catch (e) {
+          console.log('getTransaction for event error');
+        }
       },
       {
         parallel: 50,
@@ -51,13 +54,18 @@ const handleEvents = async () => {
     .cursor()
     .eachAsync(
       async ({ txHash, homeTxHash }) => {
-        if (txHash) {
-          await getTransaction(app, txHash);
+        try {
+          if (txHash) {
+            await getTransaction(app, txHash);
+          }
+          if (homeTxHash) {
+            // console.log('Getting donation transaction homeTxHash before');
+            await getTransaction(app, homeTxHash, true);
+            // console.log('Getting donation transaction homeTxHash after');
+          }
+        } catch (e) {
+          console.log('getTransaction for donations error', e);
         }
-        if (homeTxHash) {
-          await getTransaction(app, homeTxHash, true);
-        }
-        console.log('Getting donation transaction');
       },
       {
         parallel: 50,
