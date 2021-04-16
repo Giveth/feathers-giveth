@@ -23,7 +23,11 @@ const app = appFactory();
 app.set('mongooseClient', mongoose);
 const aggregteQuery = [
   {
-    $match: {},
+    $match: {
+      giverId: {
+        $exists: true,
+      },
+    },
   },
   {
     $lookup: {
