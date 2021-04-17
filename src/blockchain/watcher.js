@@ -38,8 +38,8 @@ const getLastBlock = async (app, isHome = false) => {
   if (events && events.length > 0) return events[0].blockNumber;
 
   // default to blockchain.startingBlock in config
-  const { startingBlock } = app.get('blockchain');
-  return startingBlock || 0;
+  const { startingBlock, startingHomeBlock } = app.get('blockchain');
+  return (isHome ? startingHomeBlock : startingBlock) || 0;
 };
 
 /**
@@ -466,7 +466,10 @@ const watcher = (app, eventHandler) => {
     const toBlock = toBlockNum || 1; // convert to hex due to web3 bug https://github.com/ethereum/web3.js/issues/1097
 
     // Get the events from contracts
-    const events = await givethBridge.$contract.getPastEvents({ fromBlock, toBlock });
+    const events = await givethBridge.$contract.getPastEvents('PaymentAuthorized', {
+      fromBlock,
+      toBlock,
+    });
 
     return events.map(e => {
       return { ...e, isHomeEvent: true };
@@ -655,6 +658,7 @@ const watcher = (app, eventHandler) => {
      */
     async start() {
       setLastForeignBlock(await getLastBlock(app));
+      setLastHomeBlock(await getLastBlock(app, true));
 
       const kernelAddress = await liquidPledging.kernel();
       kernel = new Kernel(web3, kernelAddress);

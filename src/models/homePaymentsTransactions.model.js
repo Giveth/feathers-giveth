@@ -18,9 +18,11 @@ function HomePaymentsTransactions(app) {
       },
     ],
     paidByGiveth: { type: Boolean, required: true },
+    paymentId: { type: Schema.Types.BN },
   });
 
   homePaymentsTransactions.index({ hash: 1, recipientAddress: 1 }, { unique: true });
+  homePaymentsTransactions.index({ hash: 1, event: 1 });
   homePaymentsTransactions.index({ recipientAddress: 1, paidByGiveth: 1 });
   homePaymentsTransactions.index({ milestoneId: 1, paidByGiveth: 1 });
   homePaymentsTransactions.index({ campaignId: 1, paidByGiveth: 1 });
