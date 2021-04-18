@@ -1,3 +1,4 @@
+/* eslint-disable import/no-unresolved */
 const authentication = require('@feathersjs/authentication');
 const jwt = require('@feathersjs/authentication-jwt');
 const { web3 } = require('./authenticationService');
