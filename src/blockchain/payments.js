@@ -1,6 +1,7 @@
 const logger = require('winston');
 const { hexToNumberString } = require('web3-utils');
 const BigNumber = require('bignumber.js');
+const { getTransaction } = require('./lib/web3Helpers');
 
 /**
  * object factory to keep feathers cache in sync with LPVault payments contracts
@@ -49,7 +50,7 @@ const payments = app => ({
       throw new Error('paymentAuthorized only handles PaymentAuthorized events');
     }
 
-    const { transactionHash, returnValues, blockNumber } = event;
+    const { transactionHash, returnValues } = event;
     const service = app.service('homePaymentsTransactions');
 
     const result = await service.find({
@@ -67,10 +68,8 @@ const payments = app => ({
     const donationModel = app.service('donations').Model;
     const milestoneModel = app.service('milestones').Model;
 
-    const [block, transaction, transactionReceipt, donation] = await Promise.all([
-      web3.eth.getBlock(blockNumber),
-      web3.eth.getTransaction(transactionHash),
-      web3.eth.getTransactionReceipt(transactionHash),
+    const [{ timestamp, gasPrice, gasUsed, from }, donation] = await Promise.all([
+      getTransaction(app, transactionHash, true, true),
       donationModel.findOne({ txHash: reference }, ['ownerTypeId']),
     ]);
 
@@ -82,10 +81,6 @@ const payments = app => ({
     const { ownerTypeId: milestoneId } = donation;
 
     const { campaignId } = await milestoneModel.findById(milestoneId, ['campaignId']);
-
-    const { timestamp } = block;
-    const { gasPrice } = transaction;
-    const { from, gasUsed } = transactionReceipt;
 
     const conversionRate = await app
       .service('conversionRates')
