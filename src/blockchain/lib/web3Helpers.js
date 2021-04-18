@@ -167,9 +167,14 @@ const getTransaction = async (app, hash, isHome = false, fetchGasInfo = false) =
   }
   const Transaction = app.get('transactionsModel');
   const query = { hash, isHome };
-  const result = await Transaction.find(query).exec();
-  if (result.length > 0) {
-    return result[0];
+  const result = await Transaction.findOne(query);
+  if (result) {
+    if (fetchGasInfo && (!result.gasPrice || !result.gasUsed)) {
+      // Let's clean it and create again
+      await Transaction.findByIdAndDelete(result.id);
+    } else {
+      return result;
+    }
   }
 
   // if we are already fetching the transaction, don't do it twice

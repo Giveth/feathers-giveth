@@ -51,6 +51,7 @@ const eventHandler = app => {
 
         // giveth bridge events
         PaymentAuthorized: payments.paymentAuthorized,
+        PaymentExecuted: payments.paymentExecuted,
 
         // lpp-capped-milestone events
         MilestoneCompleteRequested: milestones.reviewRequested,

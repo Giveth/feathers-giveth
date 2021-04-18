@@ -466,10 +466,17 @@ const watcher = (app, eventHandler) => {
     const toBlock = toBlockNum || 1; // convert to hex due to web3 bug https://github.com/ethereum/web3.js/issues/1097
 
     // Get the events from contracts
-    const events = await givethBridge.$contract.getPastEvents('PaymentAuthorized', {
-      fromBlock,
-      toBlock,
-    });
+    const events = [].concat(
+      await givethBridge.$contract.getPastEvents('PaymentAuthorized', {
+        fromBlock,
+        toBlock,
+      }),
+
+      await givethBridge.$contract.getPastEvents('PaymentExecuted', {
+        fromBlock,
+        toBlock,
+      }),
+    );
 
     return events.map(e => {
       return { ...e, isHomeEvent: true };
