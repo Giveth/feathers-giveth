@@ -1,10 +1,14 @@
-const Debug = require('debug');
-const Strategy = require('passport-strategy');
-
-const Accounts = require('web3-eth-accounts');
+const { AuthenticationBaseStrategy } = require('@feathersjs/authentication');
+const { NotAuthenticated } = require('@feathersjs/errors');
+const { sign } = require('jsonwebtoken');
+const merge = require('lodash.merge');
+const omit = require('lodash.omit');
+const pick = require('lodash.pick');
+const supertest = require('supertest');
 const { isAddress, toChecksumAddress } = require('web3-utils');
-
+const Debug = require('debug');
 const debug = Debug('passportjs:Web3Strategy');
+const Accounts = require('web3-eth-accounts');
 
 // TODO clean this up and split to separate package
 
@@ -15,83 +19,183 @@ function recoverAddress(message, signature) {
 
   return toChecksumAddress(address);
 }
-
-/**
- * The Web3 authentication strategy authenticates requests based on a signed message from an ethereum account.
- *
- * Applications must supply a challenger which implements 3 methods...
- *   - getMessage(address, done)      This is called to get the message the user should have signed to verify their
- *                                    identity. `done` is an error first callback, with the 2nd arg expected to be
- *                                    the message
- *   - createMessage(address, done)   This is called when issuing a challenge and should pass a message that the
- *                                    user needs to sign to authenticate to the done callback. `done` is an error first
- *                                    callback, with the 2nd arg expected to be the message
- *   - verify(address, done)          This is called when a user has successfully signed a message. done is an error
- *                                    first callback, the 2nd arg should be a truthy value if the verification succeeded,
- *                                    and the 3rd arg should be any additional info to pass on.
- *
- * The done callback in the above methods is an error first callback.
- *
- */
-class Web3Strategy extends Strategy {
-  constructor(challenger) {
-    super();
-    this.challenger = challenger;
-
-    if (!this.challenger || !this.challenger.getMessage || !this.challenger.generateMessage) {
-      throw new Error(
-        "Web3Strategy was given an invalid challenger. Expected an object implementing 'verify', 'getMessage' and 'setMessage'",
-      );
-    }
-  }
-
-  // authenticate(req, options) {
-  authenticate(req) {
-    const { address, signature } = req.query;
-
-    if (!address) return this.fail(400);
-
-    if (!isAddress(address)) {
-      debug(`${address} is an invalid address`);
-      return this.fail('invalid address', 400);
-    }
-
-    // no signature, then they need a challenge msg to sign
-    if (!signature) return this.issueChallenge(address);
-
-    return this.challenger.getMessage(address, (err, message) => {
-      if (err) {
-        if (err.name === 'NotFound') return this.issueChallenge(address);
-
-        return this.fail(err.message, 500);
+class Web3Challenger {
+    constructor(app, options = {}) {
+      this.app = app;
+      this.options = options;
+      this.service =
+        typeof options.service === 'string' ? app.service(options.service) : options.service;
+      this.challengeService =
+        typeof options.challengeService === 'string'
+          ? app.service(options.challengeService)
+          : options.challengeService;
+  
+      if (!this.service) {
+        throw new Error(
+          'options.service does not exist.\n\tMake sure you are passing a valid service path or service instance and it is initialized before feathers-authentication-web3.',
+        );
       }
+      if (!this.challengeService) {
+        throw new Error(
+          'options.challengeService does not exist.\n\tMake sure you are passing a valid service path or service instance and it is initialized before feathers-authentication-web3.',
+        );
+      }
+    }
+  
+    async verify(address) {
+      debug(`Fetching user for address: ${address}`);
+      return new Promise((resolve, reject) => {
+        const returnPayload = (entity, newUser) => {
+          // try to remove the challenge for this user, ignoring any errors
+          this.challengeService.remove(address).catch();
+    
+          const id = entity[this.service.id];
+          const payload = { [`${this.options.entity}Id`]: id };
+    
+          if (newUser) {
+            payload.newUser = true;
+          }
+    
+          resolve({user: entity, info: payload});
+        };
+    
+        return this.service
+          .get(address)
+          .then(user => returnPayload(user, !user.name)) // assuming this is a newUser if no name has been set
+          .catch(err => {
+            if (err.name === 'NotFound') {
+              this.service
+                .create({ address })
+                .then(addr => returnPayload(addr, true))
+                .catch(reject);
+    
+              return;
+            }
+            reject(err);
+          });
+      })
+    }
+  
+    getMessage(address, done) {
+      debug(`Fetching challenge message for address: ${address}`);
+  
+      this.challengeService
+        .get(address)
+        .then(message => {
+          debug(`Found challenge message: ${message}`);
+          done(null, message);
+        })
+        .catch(done);
+    }
 
-      // issue a challenge if there is not a valid message
-      if (!message) return this.issueChallenge(address);
-
-      const recoveredAddress = recoverAddress(message, signature);
-      const cAddress = toChecksumAddress(address);
-
-      if (recoveredAddress !== cAddress)
-        return this.fail('Recovered address does not match provided address');
-
-      return this.challenger.verify(cAddress, (e, user, info) => {
-        if (!user) return this.fail('Recovered address rejected');
-
-        return this.success(user, info);
-      });
-    });
+    async getMessageAsync(address) {
+      debug(`Fetching challenge message for address: ${address}`);
+  
+      return this.challengeService
+        .get(address)
+        .then(message => {
+          debug(`Found challenge message: ${message}`);
+          return message;
+        });
+    }
+  
+    generateMessage(address, done) {
+      debug(`Generating challenge message for address: ${address}`);
+      this.challengeService
+        .create({ address })
+        .then(message => {
+          debug(`Created challenge message: ${message}`);
+          return done(null, message);
+        })
+        .catch(done);
+    }
   }
+  
+  const defaults = {
+    name: 'web3',
+  };
 
-  issueChallenge(address) {
-    this.challenger.generateMessage(address, (err, message) => {
-      if (err) return this.fail('Error generating challenge', 500);
+class Web3Strategy extends AuthenticationBaseStrategy {
+    constructor() {
+        super(...arguments);
+    }
+    verifyConfiguration() {
+        if (!this.configuration) {
+            throw new Error(`Invalid Web3Strategy option 'authentication.${this.name}'. Did you mean to set it in 'authentication.web3'?`);
+        }
+    }
+    
+    async authenticate(authentication, params) {
+        this.setChallenger();
+        const { address, signature } = authentication;
 
-      if (!message) return this.fail('Failed to generate challenge message', 500);
+        if (!address) throw new NotAuthenticated();
 
-      return this.fail(`Challenge = ${message}`);
-    });
-  }
+        if (!isAddress(address)) {
+        debug(`${address} is an invalid address`);
+        throw new NotAuthenticated('invalid address');
+        }
+        // no signature, then they need a challenge msg to sign
+        if (!signature) return this.issueChallenge(address);
+        let message = null;
+        try {
+          message = await this.challenger.getMessageAsync(address);
+        }
+        catch(err) {
+          if (err.name === 'NotFound') return this.issueChallenge(address);
+          throw new Error(err.message);
+        }
+
+        // issue a challenge if there is not a valid message
+        if (!message) return this.issueChallenge(address);
+
+        const recoveredAddress = recoverAddress(message, signature);
+        const cAddress = toChecksumAddress(address);
+
+        if (recoveredAddress !== cAddress)
+            throw new Error('Recovered address does not match provided address');
+        const {user, info} = await this.challenger.verify(cAddress);
+        if (!user) throw new Error('Recovered address rejected');
+        return {user, info};
+    }
+    parse(req, res) {
+      const { address, signature, strategy } = req.query;
+      if (!strategy) {
+        return null;
+      }
+        return {
+            address,
+            signature,
+            strategy: 'web3'
+        }
+    }
+    async issueChallenge(address) {
+      return new Promise((resolve, reject) => {
+        this.challenger.generateMessage(address, (err, message) => {
+            if (err) return reject('Error generating challenge: ' + err);
+
+            if (!message) return reject('Failed to generate challenge message');
+
+            reject(new NotAuthenticated(`Challenge = ${message}`));
+        });
+      })
+    }
+    setChallenger() {
+      if (this.challenger) {
+        return;
+      }
+      const KEYS = ['secret', 'header', 'entity', 'service', 'passReqToCallback', 'session', 'jwt'];
+        const authOptions = this.app.get('auth') || this.app.get('authentication') || {};
+        const web3Options = authOptions[this.name] || {};
+        web3Options.challengeService = 'authentication/challenges';
+
+        const web3Settings = merge(
+          {},
+          defaults,
+          pick(authOptions, KEYS),
+          web3Options,
+        );
+        this.challenger = new Web3Challenger(this.app, web3Settings);
+    }
 }
-
-module.exports = Web3Strategy;
+exports.Web3Strategy = Web3Strategy;
