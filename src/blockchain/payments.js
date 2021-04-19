@@ -1,5 +1,8 @@
 const logger = require('winston');
 const { hexToNumberString } = require('web3-utils');
+const BigNumber = require('bignumber.js');
+const { getTokenByAddress } = require('../utils/tokenHelper');
+const { getTransaction } = require('./lib/web3Helpers');
 
 /**
  * object factory to keep feathers cache in sync with LPVault payments contracts
@@ -36,6 +39,177 @@ const payments = app => ({
       logger.error('authorizePayment error ->', error);
       return null;
     }
+  },
+
+  /**
+   * handle `PaymentAuthorized` events
+   *
+   * @param {object} event Web3 event object
+   */
+  async paymentAuthorized(event) {
+    if (event.event !== 'PaymentAuthorized') {
+      throw new Error('paymentAuthorized only handles PaymentAuthorized events');
+    }
+
+    const { transactionHash, returnValues } = event;
+
+    const service = app.service('homePaymentsTransactions');
+
+    const result = await service.Model.countDocuments({
+      hash: transactionHash,
+      event: 'PaymentAuthorized',
+    });
+
+    if (result !== 0) {
+      logger.error('Attempt to process PaymentAuthorized event that has already processed', event);
+      return;
+    }
+
+    const { idPayment, recipient, amount, token: tokenAddress, reference } = returnValues;
+
+    const donationModel = app.service('donations').Model;
+    const milestoneModel = app.service('milestones').Model;
+
+    const [{ timestamp, gasPrice, gasUsed, from }, donation] = await Promise.all([
+      getTransaction(app, transactionHash, true, true),
+      donationModel.findOne({ txHash: reference }, ['ownerTypeId']),
+    ]);
+
+    if (!donation) {
+      throw new Error(`No donation found with reference: ${reference}`);
+    }
+
+    const { ownerTypeId: milestoneId } = donation;
+
+    const { campaignId } = await milestoneModel.findById(milestoneId, ['campaignId']);
+
+    const conversionRate = await app
+      .service('conversionRates')
+      .find({ query: { date: timestamp * 1000, symbol: 'ETH', to: 'USD' } });
+
+    const rate = conversionRate.rates.USD;
+    const transactionFee = new BigNumber(gasUsed).times(gasPrice);
+    const usdValue = transactionFee
+      .div(10 ** 18)
+      .times(rate)
+      .toFixed(2);
+
+    const tokenNormalizedAddress =
+      tokenAddress === '0x0000000000000000000000000000000000000000'
+        ? '0x0'
+        : tokenAddress.toLowerCase();
+
+    const token = getTokenByAddress(tokenNormalizedAddress);
+
+    if (!token) {
+      throw new Error(`No token found for address: ${tokenAddress}`);
+    }
+
+    await service.create({
+      hash: transactionHash,
+      event: event.event,
+      usdValue,
+      recipientAddress: recipient,
+      milestoneId,
+      campaignId,
+      transactionFee,
+      timestamp,
+      from,
+      payments: [{ amount, symbol: token.symbol }],
+      paidByGiveth: true,
+      paymentId: idPayment,
+    });
+  },
+
+  /**
+   * handle `PaymentExecuted` events
+   *
+   * @param {object} event Web3 event object
+   */
+  async paymentExecuted(event) {
+    if (event.event !== 'PaymentExecuted') {
+      throw new Error('paymentExecuted only handles PaymentExecuted events');
+    }
+
+    const { transactionHash, returnValues } = event;
+    const tx = await getTransaction(app, transactionHash, true, true);
+    const { timestamp, gasPrice, gasUsed, from } = tx;
+
+    const givethAccounts = app.get('givethAccounts');
+
+    // If gas is not paid by Giveth we can skip
+    if (!givethAccounts.includes(from)) {
+      return;
+    }
+
+    const { idPayment, recipient, amount, token: tokenAddress } = returnValues;
+
+    const service = app.service('homePaymentsTransactions');
+
+    const result = await service.Model.countDocuments({
+      hash: transactionHash,
+      event: 'PaymentAuthorized',
+      paymentId: idPayment,
+    });
+
+    if (result !== 0) {
+      logger.error('Attempt to process PaymentExecuted event that has already processed', event);
+      return;
+    }
+
+    const [
+      paymentAuthorizedTransaction,
+      numberOfPaymentsExecutedInTx,
+      conversionRate,
+    ] = await Promise.all([
+      service.Model.findOne({
+        event: 'PaymentAuthorized',
+        paymentId: idPayment,
+      }),
+      app.service('events').Model.countDocuments({ event: 'PaymentExecuted', transactionHash }),
+      app
+        .service('conversionRates')
+        .find({ query: { date: timestamp * 1000, symbol: 'ETH', to: 'USD' } }),
+    ]);
+
+    if (!paymentAuthorizedTransaction) {
+      throw new Error(`NoPaymentAuthorized event is found with paymentId ${idPayment}`);
+    }
+
+    const rate = conversionRate.rates.USD;
+    const transactionFee = new BigNumber(gasUsed).times(gasPrice);
+    const usdValue = transactionFee
+      .times(rate)
+      .div(10 ** 18)
+      .div(numberOfPaymentsExecutedInTx)
+      .toFixed(2);
+
+    const tokenNormalizedAddress =
+      tokenAddress === '0x0000000000000000000000000000000000000000'
+        ? '0x0'
+        : tokenAddress.toLowerCase();
+    const token = getTokenByAddress(tokenNormalizedAddress);
+
+    if (!token) {
+      throw new Error(`No token found for address: ${tokenAddress}`);
+    }
+
+    const { milestoneId, campaignId } = paymentAuthorizedTransaction;
+
+    await service.create({
+      hash: transactionHash,
+      event: event.event,
+      usdValue,
+      recipientAddress: recipient,
+      milestoneId,
+      campaignId,
+      transactionFee,
+      timestamp,
+      from,
+      payments: [{ amount, symbol: token.symbol }],
+      paidByGiveth: true,
+      paymentId: idPayment,
+    });
   },
 });
 
