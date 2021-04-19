@@ -33,17 +33,22 @@ const updateEntitiesGasPayments = () => async context => {
       {
         $set: { gasPaidUsdValue: recipientTotalGasUsed.totalAmount, address: recipientAddress },
       },
-      { upsert: true },
+      { upsert: true, timestamps: false },
     ),
     app
       .service('milestones')
       .Model.updateOne(
         { _id: milestoneId },
         { gasPaidUsdValue: milestoneTotalGasUsed.totalAmount },
+        { timestamps: false },
       ),
     app
       .service('campaigns')
-      .Model.updateOne({ _id: campaignId }, { gasPaidUsdValue: campaignTotalGasUsed.totalAmount }),
+      .Model.updateOne(
+        { _id: campaignId },
+        { gasPaidUsdValue: campaignTotalGasUsed.totalAmount },
+        { timestamps: false },
+      ),
   ]);
 
   return context;
