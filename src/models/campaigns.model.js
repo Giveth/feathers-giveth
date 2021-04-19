@@ -45,6 +45,7 @@ function createModel(app) {
       commitTime: { type: Number },
       communityUrl: { type: String },
       archivedMilestones: { type: [Schema.Types.Long] },
+      gasPaidUsdValue: { type: Number, default: 0 },
     },
     {
       timestamps: true,
