@@ -148,7 +148,7 @@ const payments = app => ({
 
     const result = await service.Model.countDocuments({
       hash: transactionHash,
-      event: 'PaymentAuthorized',
+      event: 'PaymentExecuted',
       paymentId: idPayment,
     });
 
