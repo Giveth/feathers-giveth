@@ -94,8 +94,8 @@ module.exports = app => {
             default: '-',
           },
           {
-            label: `${token.symbol} bridgeTransactionTime`,
-            value: `${token.symbol}-bridgeTransactionTime`,
+            label: `${token.symbol} bridgePaymentExecutedTime`,
+            value: `${token.symbol}-bridgePaymentExecutedTime`,
             default: '-',
           },
           {

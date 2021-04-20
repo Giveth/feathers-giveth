@@ -1,9 +1,9 @@
 const config = require('config');
 const axios = require('axios');
 const logger = require('winston');
+const { toBN } = require('web3-utils');
 const { DonationStatus, DonationBridgeStatus } = require('../models/donations.model');
 const { CONVERSATION_MESSAGE_CONTEXT } = require('../models/conversations.model');
-const { AdminTypes } = require('../models/pledgeAdmins.model');
 const { getTransaction } = require('../blockchain/lib/web3Helpers');
 const { moneyWentToRecipientWallet } = require('./dappMailer');
 
@@ -16,26 +16,52 @@ async function createPayoutConversation({
   amount,
   txHash,
 }) {
-  const conversationModel = {
-    milestoneId: milestone._id,
-    messageContext: CONVERSATION_MESSAGE_CONTEXT.PAYOUT,
-    donationId: donation._id,
-    txHash,
-    payments: [
-      {
+  const service = app.service('conversations');
+  const [sameTxPayoutConversation] = await service.find({
+    paginate: false,
+    query: {
+      milestoneId: milestone._id,
+      txHash,
+      messageContext: CONVERSATION_MESSAGE_CONTEXT.PAYOUT,
+    },
+  });
+
+  if (sameTxPayoutConversation) {
+    const { payments } = sameTxPayoutConversation;
+    const payment = payments.find(p => p.symbol === token.symbol);
+    if (payment) {
+      payment.amount = toBN(payment.amount)
+        .add(toBN(amount))
+        .toString();
+    } else {
+      payments.push({
         symbol: token.symbol,
         amount,
         tokenDecimals: token.decimals,
-      },
-    ],
-    donorId: donation.giverAddress,
-    donorType: AdminTypes.GIVER,
-  };
-  conversationModel.createdAt = timestamp;
+      });
+    }
 
-  await app
-    .service('conversations')
-    .create(conversationModel, { performedByAddress: milestone.recipientAddress });
+    await service.patch(sameTxPayoutConversation._id, {
+      payments,
+    });
+  } else {
+    const conversationModel = {
+      milestoneId: milestone._id,
+      messageContext: CONVERSATION_MESSAGE_CONTEXT.PAYOUT,
+      donationId: donation._id,
+      txHash,
+      payments: [
+        {
+          symbol: token.symbol,
+          amount,
+          tokenDecimals: token.decimals,
+        },
+      ],
+    };
+    conversationModel.createdAt = timestamp;
+
+    await service.create(conversationModel, { performedByAddress: milestone.recipientAddress });
+  }
 }
 
 const bridgeMonitorBaseUrl = config.get('bridgeMonitorBaseUrl');
@@ -66,28 +92,33 @@ const getDonationStatusFromBridge = async ({ txHash, tokenAddress }) => {
 const updateDonationsStatusToBridgePaid = async ({ app, donation, payment }) => {
   const bridgeStatus = DonationBridgeStatus.PAID;
   const { token, amount } = donation;
-  const { timestamp } = await getTransaction(app, payment.paymentTransactionHash, true);
+  const { earliestPayTime, paymentTransactionHash } = payment;
+  const { timestamp } = paymentTransactionHash
+    ? await getTransaction(app, paymentTransactionHash, true)
+    : { timestamp: new Date(earliestPayTime) };
   await app.service('donations').patch(donation._id, {
     bridgeStatus,
-    bridgeTxHash: payment.paymentTransactionHash,
-    bridgeEarliestPayTime: new Date(payment.earliestPayTime),
-    bridgeTransactionTime: timestamp,
+    bridgePaymentExecutedTxHash: paymentTransactionHash,
+    bridgeEarliestPayTime: new Date(earliestPayTime),
+    bridgePaymentExecutedTime: timestamp,
   });
   const milestone = await app.service('milestones').get(donation.ownerTypeId);
-  createPayoutConversation({
-    app,
-    milestone,
-    donation,
-    timestamp,
-    token,
-    amount,
-    txHash: payment.paymentTransactionHash,
-  });
-  moneyWentToRecipientWallet(app, {
-    milestone,
-    token: donation.token,
-    amount: donation.amount,
-  });
+  await Promise.all([
+    createPayoutConversation({
+      app,
+      milestone,
+      donation,
+      timestamp,
+      token,
+      amount,
+      txHash: paymentTransactionHash,
+    }),
+    moneyWentToRecipientWallet(app, {
+      milestone,
+      token: donation.token,
+      amount: donation.amount,
+    }),
+  ]);
   logger.info('update donation bridge status', {
     donationId: donation._id,
     bridgeStatus,
@@ -107,7 +138,6 @@ const updateDonationsStatusToBridgeFailed = async ({ app, donation }) => {
 };
 const updateDonationsAndMilestoneStatusToBridgeUnknown = async ({ app, donation }) => {
   const donationService = app.service('donations');
-  let bridgeStatus = DonationBridgeStatus.UNKNOWN;
 
   const timeBetweenCreatedDonationAndNow =
     new Date().getTime() - new Date(donation.createdAt).getTime();
@@ -115,15 +145,14 @@ const updateDonationsAndMilestoneStatusToBridgeUnknown = async ({ app, donation 
   if (timeBetweenCreatedDonationAndNow > expirationThreshold) {
     // If a donations is for more than two months ago and the bridge status is unknown
     // then we set the bridgeStatus Expired to not inquiry again for that donation
-    bridgeStatus = DonationBridgeStatus.EXPIRED;
+    donationService.patch(donation._id, {
+      bridgeStatus: DonationBridgeStatus.EXPIRED,
+    });
+    logger.info('update donation bridge status', {
+      donationId: donation._id,
+      bridgeStatus: DonationBridgeStatus.EXPIRED,
+    });
   }
-  donationService.patch(donation._id, {
-    bridgeStatus,
-  });
-  logger.info('update donation bridge status', {
-    donationId: donation._id,
-    bridgeStatus,
-  });
 };
 
 const inquiryAndUpdateDonationStatusFromBridge = async ({ app, donation }) => {
@@ -143,7 +172,7 @@ const inquiryAndUpdateDonationStatusFromBridge = async ({ app, donation }) => {
       donation,
       payment,
     });
-  } else if (!donation.bridgeEarliestPayTime) {
+  } else if (payment && !donation.bridgeEarliestPayTime) {
     await app.service('donations').patch(donation._id, {
       bridgeEarliestPayTime: new Date(payment.earliestPayTime),
     });
@@ -196,11 +225,12 @@ const syncDonationsWithBridge = async app => {
     'updateDonationsStatusesWithBridge cronjob executed, donationsCount:',
     donations.length,
   );
-  const promises = [];
-  donations.forEach(donation => {
-    promises.push(inquiryAndUpdateDonationStatusFromBridge({ app, donation }));
-  });
-  await Promise.all(promises);
+
+  // eslint-disable-next-line no-restricted-syntax
+  for (const donation of donations) {
+    // eslint-disable-next-line no-await-in-loop
+    await inquiryAndUpdateDonationStatusFromBridge({ app, donation });
+  }
 };
 
 const updateDonationsStatusesWithBridge = async app => {
