@@ -119,6 +119,10 @@ const initEventHandlerQueue = app => {
     ConfirmPayment: undefined,
     CancelPayment: undefined,
 
+    // giveth bridge events
+    PaymentAuthorized: payments.paymentAuthorized,
+    PaymentExecuted: payments.paymentExecuted,
+
     // lpp-capped-milestone events
     MilestoneCompleteRequested: milestones.reviewRequested,
     MilestoneCompleteRequestRejected: milestones.rejected,
