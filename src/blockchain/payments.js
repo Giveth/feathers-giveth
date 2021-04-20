@@ -3,6 +3,8 @@ const { hexToNumberString } = require('web3-utils');
 const BigNumber = require('bignumber.js');
 const { getTokenByAddress } = require('../utils/tokenHelper');
 const { getTransaction } = require('./lib/web3Helpers');
+const { moneyWentToRecipientWallet } = require('../utils/dappMailer');
+const { createPayoutConversation } = require('../utils/conversationCreator');
 
 /**
  * object factory to keep feathers cache in sync with LPVault payments contracts
@@ -79,9 +81,10 @@ const payments = app => ({
       throw new Error(`No donation found with reference: ${reference}`);
     }
 
-    const { ownerTypeId: milestoneId } = donation;
+    const { ownerTypeId: milestoneId, _id: donationId } = donation;
 
-    const { campaignId } = await milestoneModel.findById(milestoneId, ['campaignId']);
+    const milestone = await milestoneModel.findById(milestoneId);
+    const { campaignId } = milestone;
 
     const conversionRate = await app
       .service('conversionRates')
@@ -112,6 +115,7 @@ const payments = app => ({
       recipientAddress: recipient,
       milestoneId,
       campaignId,
+      donationId,
       transactionFee,
       timestamp,
       from,
@@ -130,7 +134,7 @@ const payments = app => ({
     if (event.event !== 'PaymentExecuted') {
       throw new Error('paymentExecuted only handles PaymentExecuted events');
     }
-
+    const milestoneModel = app.service('milestones').Model;
     const { transactionHash, returnValues } = event;
     const tx = await getTransaction(app, transactionHash, true, true);
     const { timestamp, gasPrice, gasUsed, from } = tx;
@@ -194,7 +198,7 @@ const payments = app => ({
       throw new Error(`No token found for address: ${tokenAddress}`);
     }
 
-    const { milestoneId, campaignId } = paymentAuthorizedTransaction;
+    const { milestoneId, campaignId, donationId } = paymentAuthorizedTransaction;
 
     await service.create({
       hash: transactionHash,
@@ -209,6 +213,25 @@ const payments = app => ({
       payments: [{ amount, symbol: token.symbol }],
       paidByGiveth: true,
       paymentId: idPayment,
+    });
+    const milestone = await milestoneModel.findById(milestoneId);
+    const payment = {
+      amount,
+      symbol: token.symbol,
+      decimals: token.decimals,
+    };
+    await createPayoutConversation(app, {
+      milestoneId,
+      recipientAddress: milestone.recipientAddress,
+      donationId,
+      timestamp,
+      payment,
+      txHash: transactionHash,
+    });
+    await moneyWentToRecipientWallet(app, {
+      milestone,
+      token,
+      amount,
     });
   },
 });
