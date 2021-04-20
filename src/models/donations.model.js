@@ -16,9 +16,6 @@ const DonationStatus = {
 };
 
 const DonationBridgeStatus = {
-  CANCELLED: 'Cancelled',
-  EXPIRED: 'Expired',
-  UNKNOWN: 'Unknown',
   PAID: 'Paid',
 };
 
@@ -59,7 +56,6 @@ function Donation(app) {
       bridgePaymentAuthorizedTxHash: { type: String }, // The first transaction made by bridge on payment
       bridgePaymentExecutedTxHash: { type: String }, // The second one which transfer money to user wallet
       bridgePaymentExecutedTime: { type: Date },
-      bridgeEarliestPayTime: { type: Date },
       txHash: { type: String, index: true },
       homeTxHash: { type: String },
       commitTime: { type: Date },

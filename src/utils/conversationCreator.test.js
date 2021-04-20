@@ -242,7 +242,7 @@ function createPayoutConversationTestCases() {
     });
     assert.equal(conversations.length, 1);
     assert.equal(conversations[0].payments[0].amount, secondPayment.amount);
-    assert.equal(conversations[0].performedByAddress, milestone.recipientAddress);
+    assert.equal(conversations[0].ownerAddress, milestone.recipientAddress);
   });
 }
 
