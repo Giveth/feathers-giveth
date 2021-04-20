@@ -64,7 +64,12 @@ const addPendingEvent = async (app, event) => {
       data,
     );
   }
-  await eventService.create({ ...event, confirmations: 0, status: EventStatus.PENDING });
+  await eventService.create({
+    ...event,
+    confirmations: 0,
+    status: EventStatus.PENDING,
+    isHomeEvent: false, // Just events of foreign network can be fetched in pending state (not have enough confirmation)
+  });
 };
 
 const initNewEventQueue = app => {
