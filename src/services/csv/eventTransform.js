@@ -96,7 +96,7 @@ module.exports = app => {
             result[key] = 'Uncapped';
           }
         });
-        const transactionTimeKey = `${symbol}-bridgeTransactionTime`;
+        const transactionTimeKey = `${symbol}-bridgePaymentExecutedTime`;
         const transactionLinkKey = `${symbol}-bridgeTransactionLink`;
         result[transactionTimeKey] = bridgeInfo && bridgeInfo[transactionTimeKey];
         result[transactionLinkKey] = bridgeInfo && bridgeInfo[transactionLinkKey];
@@ -225,8 +225,8 @@ module.exports = app => {
         txHash,
         token,
         ownerTypeId,
-        bridgeTransactionTime,
-        bridgeTxHash,
+        bridgePaymentExecutedTime,
+        bridgePaymentExecutedTxHash,
         bridgeStatus,
       } = donation;
       // Its a new payouts, the collected one should be printed
@@ -239,9 +239,9 @@ module.exports = app => {
       const tokenBalance = balance[symbol] || new BigNumber(0);
       tokenBalance.plus(amount);
       balance[symbol] = tokenBalance;
-      bridgeInfo[`${symbol}-bridgeTransactionTime`] = bridgeTransactionTime;
+      bridgeInfo[`${symbol}-bridgePaymentExecutedTime`] = bridgePaymentExecutedTime;
       bridgeInfo[`${symbol}-bridgeTransactionLink`] =
-        bridgeStatus === 'Paid' ? getHomeEtherscanLink(bridgeTxHash) : bridgeStatus;
+        bridgeStatus === 'Paid' ? getHomeEtherscanLink(bridgePaymentExecutedTxHash) : bridgeStatus;
 
       // This is new payout, info should be filled.
       // Fill the info by the first donation only, all donations of one payout has the similar value;

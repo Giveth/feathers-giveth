@@ -22,6 +22,7 @@ module.exports = function User(app) {
       isAdmin: { type: Boolean, default: false },
       prevUrl: { type: String }, // To store deleted/cleared lost ipfs values
       currency: { type: String }, // Users's native currency
+      gasPaidUsdValue: { type: Number, default: 0 },
     },
     {
       timestamps: true,
