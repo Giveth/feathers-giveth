@@ -5,6 +5,8 @@ function Transaction(app) {
     {
       hash: { type: String, required: true, index: true },
       from: { type: String },
+      gasPrice: { type: Number },
+      gasUsed: { type: Number },
       blockNumber: { type: Number },
       isHome: { type: Boolean, default: false },
       timestamp: { type: Date },

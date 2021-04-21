@@ -22,12 +22,16 @@ const normalizeAmount = amount => {
 };
 
 const sendEmail = (app, data) => {
+  if (!data.recipient) {
+    return;
+  }
   const emailService = app.service('/emails');
   // add host to subject for development
   if (!app.get('host').includes('beta')) {
     data.subject = `[${app.get('host')}] - ${data.subject}`;
   }
   data.dappUrl = app.get('dappUrl');
+  // eslint-disable-next-line consistent-return
   return emailService.create(data);
 };
 
@@ -256,7 +260,7 @@ const milestoneProposed = async (app, { milestone }) => {
     recipient: milestoneOwner.email,
     template: emailNotificationTemplate,
     subject: 'Giveth - Your Milestone Proposal has been sent!',
-    secretIntro: `our proposed Milestone ${milestoneTitle} has been submitted for review!`,
+    secretIntro: `Your proposed Milestone ${milestoneTitle} has been submitted for review!`,
     title: 'Finger Crossed!',
     image: EmailImages.SUGGEST_MILESTONE,
     text: `
@@ -264,8 +268,8 @@ const milestoneProposed = async (app, { milestone }) => {
         <p>
           Your proposed Milestone <strong>${milestoneTitle}</strong>
           has been submitted for review!
-          We’ll let you know if the Milestone is approved by
-          the reviewer so you can start raising funds.</p>
+          We’ll let you know if the Milestone is accepted by the Campaign Manager
+          so you can start raising funds.</p>
       `,
     cta: `Manage your Milestones`,
     ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
@@ -936,7 +940,7 @@ const moneyWentToRecipientWallet = (app, { milestone, token, amount }) => {
     logger.info(
       `Currently we dont send email for milestones who doesnt have recipient, milestoneId: ${milestoneId}`,
     );
-    return;
+    return Promise.resolve();
   }
   const data = {
     recipient: milestoneRecipient.email,
@@ -949,14 +953,14 @@ const moneyWentToRecipientWallet = (app, { milestone, token, amount }) => {
     text: `
         <p><span ${emailStyle}>Hi ${milestoneRecipient.name || ''}</span></p>
         <p>The funds from your Milestone <strong>${milestoneTitle}</strong>
-        of the amount ${amount} ${
+        of the amount ${normalizeAmount(amount)} ${
       token.symbol
     } have been sent to your wallet. It’s time to take action to build a brighter future!
         </p>
 
-        <p>You can expect to see these payment(s) to arrive in your wallet <strong>
+        <p>You have these payment(s) in your wallet <strong>
            ${milestoneRecipient.address}
-        </strong> within 48 - 72 hrs.</p>
+        </strong> now.</p>
       `,
     cta: `See your Milestones`,
     ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
@@ -965,7 +969,7 @@ const moneyWentToRecipientWallet = (app, { milestone, token, amount }) => {
     unsubscribeType: EmailSubscribeTypes.DONATIONS_COLLECTED,
     unsubscribeReason: `You receive this email because you are the recipient of a Milestone`,
   };
-  sendEmail(app, data);
+  return sendEmail(app, data);
 };
 
 module.exports = {
