@@ -145,11 +145,11 @@ const initEventHandlerQueue = app => {
         logIndex: event.logIndex,
         _id: event._id,
       });
-      if (typeof handler !== 'function') {
+      if (typeof handler === 'function') {
+        await handler(event);
+      } else {
         logger.error('Unknown event: ', event.event);
-        return;
       }
-      await handler(event);
       await eventService.patch(event._id, { status: EventStatus.PROCESSED });
     } catch (e) {
       logger.error('processing event failed ', {
