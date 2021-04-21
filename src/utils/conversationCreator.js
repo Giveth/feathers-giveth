@@ -37,6 +37,7 @@ async function updateSimilarDelegatedConversationPayments(payment, similarDelega
   });
 }
 
+// eslint-disable-next-line consistent-return
 async function createPayoutConversation(
   app,
   { milestoneId, recipientAddress, donationId, timestamp, payment, txHash },
@@ -119,7 +120,7 @@ const createDelegatedConversation = async (
     logger.error(`Error on getting tx ${txHash} info`, e);
   }
 
-  return  app.service('conversations').create(data, { performedByAddress: actionTakerAddress });
+  return app.service('conversations').create(data, { performedByAddress: actionTakerAddress });
 };
 
 module.exports = {

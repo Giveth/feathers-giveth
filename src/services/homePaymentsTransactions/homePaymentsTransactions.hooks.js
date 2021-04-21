@@ -1,5 +1,8 @@
 const { disallow } = require('feathers-hooks-common');
-const { updateBridgePaymentExecutedTxHash, updateBridgePaymentAuthorizedTxHash } = require('../../repositories/donationRepository');
+const {
+  updateBridgePaymentExecutedTxHash,
+  updateBridgePaymentAuthorizedTxHash,
+} = require('../../repositories/donationRepository');
 const { HomePaymentsEventTypes } = require('../../models/homePaymentsTransactions.model');
 
 const getEntityGasUsedPrice = (app, fieldName, id) => {
