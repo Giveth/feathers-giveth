@@ -145,9 +145,10 @@ const payments = app => ({
 
     // If gas is not paid by Giveth we can skip
     if (!givethAccounts.includes(from)) {
-      logger.error('The from of transaction is not a giveth account' ,{
-        from, givethAccounts
-      })
+      logger.error('The from of transaction is not a giveth account', {
+        from,
+        givethAccounts,
+      });
       return;
     }
 
