@@ -43,6 +43,12 @@ const removeEvent = async (app, event) => {
     );
   }
 };
+
+function similarEventNotFoundOrAllEventsAreFailed(data) {
+  // check there are no similar events or if there are some, all of them should have Failed status
+  return data.length === 0 || !data.find(e => e.status !== EventStatus.FAILED);
+}
+
 const addPendingEvent = async (app, event) => {
   const eventService = app.service('events');
   const { logIndex, transactionHash } = event;
@@ -50,8 +56,16 @@ const addPendingEvent = async (app, event) => {
     paginate: false,
     query: { logIndex, transactionHash },
   });
-
-  if (data.some(e => [EventStatus.WAITING, EventStatus.PENDING].includes(e.status))) {
+  if (
+    data.some(e =>
+      [
+        EventStatus.WAITING,
+        EventStatus.PROCESSING,
+        EventStatus.PENDING,
+        EventStatus.PROCESSED,
+      ].includes(e.status),
+    )
+  ) {
     logger.error(
       'RE-ORG ERROR: attempting to process newEvent, however the matching event has already started processing. Consider increasing the requiredConfirmations.',
       event,
@@ -63,13 +77,14 @@ const addPendingEvent = async (app, event) => {
       event,
       data,
     );
+  } else if (similarEventNotFoundOrAllEventsAreFailed(data)) {
+    await eventService.create({
+      ...event,
+      confirmations: 0,
+      status: EventStatus.PENDING,
+      isHomeEvent: false, // Just events of foreign network can be fetched in pending state (not have enough confirmation)
+    });
   }
-  await eventService.create({
-    ...event,
-    confirmations: 0,
-    status: EventStatus.PENDING,
-    isHomeEvent: false, // Just events of foreign network can be fetched in pending state (not have enough confirmation)
-  });
 };
 
 const initNewEventQueue = app => {
