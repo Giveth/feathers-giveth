@@ -53,7 +53,7 @@
     ],
     "jwtOptions": {
       "header": {
-        "type": "access"
+        "typ": "access"
       },
       "audience": "https://feathers.giveth.io",
       "subject": "anonymous",
