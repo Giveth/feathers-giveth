@@ -40,9 +40,9 @@
       "0xd03ea8624c8c5987235048901fb614fdca89b117"
     ]
   },
-  "useReviewerWhitelist": false,
-  "useDelegateWhitelist": false,
-  "useProjectOwnerWhitelist": false,
+  "useReviewerWhitelist": true,
+  "useDelegateWhitelist": true,
+  "useProjectOwnerWhitelist": true,
   "authentication": {
     "entity": "user",
     "service": "users",
@@ -53,7 +53,7 @@
     ],
     "jwtOptions": {
       "header": {
-        "typ": "access"
+        "type": "access"
       },
       "audience": "https://feathers.giveth.io",
       "subject": "anonymous",
