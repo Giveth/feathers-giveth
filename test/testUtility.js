@@ -64,7 +64,7 @@ function getJwt(address = testAddress) {
       algorithm: jwtData.algorithm,
       expiresIn: jwtData.expiresIn,
       issuer: jwtData.issuer,
-      subject: jwtData.subject,
+      subject: address,
       header: jwtData.header,
     },
   );

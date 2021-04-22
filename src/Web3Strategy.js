@@ -30,7 +30,6 @@ class Web3Strategy extends AuthenticationBaseStrategy {
   async authenticate(authentication) {
     this.setChallenger();
     const { address, signature } = authentication;
-
     if (!address) throw new NotAuthenticated();
 
     if (!isAddress(address)) {
@@ -46,13 +45,11 @@ class Web3Strategy extends AuthenticationBaseStrategy {
       if (err.name === 'NotFound') return this.issueChallenge(address);
       throw new Error(err.message);
     }
-
     // issue a challenge if there is not a valid message
     if (!message) return this.issueChallenge(address);
 
     const recoveredAddress = recoverAddress(message, signature);
     const cAddress = toChecksumAddress(address);
-
     if (recoveredAddress !== cAddress)
       throw new Error('Recovered address does not match provided address');
     const { user, info } = await this.challenger.verify(cAddress);
@@ -89,13 +86,21 @@ class Web3Strategy extends AuthenticationBaseStrategy {
     if (this.challenger) {
       return;
     }
-    const KEYS = ['secret', 'header', 'entity', 'service', 'passReqToCallback', 'session', 'jwt'];
+    const KEYS = [
+      'secret',
+      'header',
+      'entity',
+      'service',
+      'passReqToCallback',
+      'session',
+      'jwtOptions',
+    ];
     const authOptions = this.app.get('auth') || this.app.get('authentication') || {};
     const web3Options = authOptions[this.name] || {};
     web3Options.challengeService = 'authentication/challenges';
 
     // eslint-disable-next-line no-undef
-    const web3Settings = merge({}, defaults, pick(authOptions, KEYS), web3Options);
+    const web3Settings = merge({}, pick(authOptions, KEYS), web3Options);
     this.challenger = new Web3Challenger(this.app, web3Settings);
   }
 }

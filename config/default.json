@@ -56,7 +56,6 @@
         "typ": "access"
       },
       "audience": "https://feathers.giveth.io",
-      "subject": "anonymous",
       "issuer": "feathers",
       "algorithm": "HS256",
       "expiresIn": "1d"
