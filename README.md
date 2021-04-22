@@ -54,7 +54,9 @@ Welcome to the server code for Giveth's [dapp](https://github.com/Giveth/giveth-
       * note: due to a bug in yarn, `yarn install` currently does not work
   7. Install Mongo (we recommend installing via [Brew](https://treehouse.github.io/installation-guides/mac/mongo-mac.html))
   8. Run Mongo in a terminal window `mongod` or in the background `mongod --fork --syslog`
-  9. (optionally) Install [IPFS](https://ipfs.io/docs/install/) (we recommend installing via [Brew](https://brew.sh/))
+  9. Install Redis (we recommend install via Brew `brew install redis`)   
+  10. Run Redis in terminal window `redis-server` or in the background `redis-server --daemonize yes`   
+  11. (optionally) Install [IPFS](https://ipfs.io/docs/install/) (we recommend installing via [Brew](https://brew.sh/))
     - If you don't install ipfs, image uploading will be affected. You can update the config `ipfsGateway` value to use a public ipfs gateway ex. [https://ipfs.io/ipfs/](https://ipfs.io/ipfs/), however your uploads will be removed at some point
 
 ### Run server
