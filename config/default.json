@@ -8,6 +8,10 @@
     "max": 100
   },
   "mongodb": "mongodb://localhost:27017/giveth",
+  "redis": {
+    "host": "localhost",
+    "port": 6379
+  },
   "bridgeMonitorBaseUrl": "https://feathers.bridge.beta.giveth.io",
   "nedb": "../data",
   "uploads": "../uploads",

@@ -3,7 +3,6 @@ const balanceMonitor = require('./balanceMonitor');
 const failedTxMonitor = require('./failedTxMonitor');
 const pledgeNormalizer = require('./normalizer');
 const eventWatcher = require('./watcher');
-const eventHandler = require('./lib/eventHandler');
 const { getWeb3, getHomeWeb3 } = require('./lib/web3Helpers');
 
 let { START_WATCHERS = true } = process.env;
@@ -27,16 +26,13 @@ module.exports = function init() {
 
   logger.info('starting blockchain watchers');
 
-  // initialize the event listeners
-  const handler = eventHandler(app);
-
   const balMonitor = balanceMonitor(app);
   balMonitor.start();
 
   const normalizer = pledgeNormalizer(app);
   normalizer.start();
 
-  const watcher = eventWatcher(app, handler);
+  const watcher = eventWatcher(app);
   watcher.start();
 
   const txMonitor = failedTxMonitor(app, watcher);
