@@ -63,7 +63,10 @@ const payments = app => ({
     });
 
     if (result !== 0) {
-      logger.error('Attempt to process PaymentAuthorized event that has already processed', event);
+      logger.error('Attempt to process PaymentAuthorized event that has already processed', {
+        result,
+        event,
+      });
       return;
     }
 
@@ -134,7 +137,6 @@ const payments = app => ({
     if (event.event !== 'PaymentExecuted') {
       throw new Error('paymentExecuted only handles PaymentExecuted events');
     }
-    const milestoneModel = app.service('milestones').Model;
     const { transactionHash, returnValues } = event;
     const tx = await getTransaction(app, transactionHash, true, true);
     const { timestamp, gasPrice, gasUsed, from } = tx;
@@ -143,6 +145,9 @@ const payments = app => ({
 
     // If gas is not paid by Giveth we can skip
     if (!givethAccounts.includes(from)) {
+      logger.error('The from of transaction is not a giveth account' ,{
+        from, givethAccounts
+      })
       return;
     }
 
@@ -152,12 +157,14 @@ const payments = app => ({
 
     const result = await service.Model.countDocuments({
       hash: transactionHash,
-      event: 'PaymentAuthorized',
+      event: 'PaymentExecuted',
       paymentId: idPayment,
     });
 
     if (result !== 0) {
-      logger.error('Attempt to process PaymentExecuted event that has already processed', event);
+      logger.error('Attempt to process PaymentExecuted event that has already processed', {
+        event,
+      });
       return;
     }
 
@@ -214,7 +221,7 @@ const payments = app => ({
       paidByGiveth: true,
       paymentId: idPayment,
     });
-    const milestone = await milestoneModel.findById(milestoneId);
+    const milestone = await app.service('milestones').get(milestoneId);
     const payment = {
       amount,
       symbol: token.symbol,
