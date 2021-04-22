@@ -5,12 +5,11 @@ const { GivethBridge } = require('giveth-bridge');
 const semaphore = require('semaphore');
 const { keccak256, padLeft, toHex } = require('web3-utils');
 const logger = require('winston');
-
-const processingQueue = require('../utils/processingQueue');
 const to = require('../utils/to');
 const { removeHexPrefix } = require('./lib/web3Helpers');
 const { EventStatus } = require('../models/events.model');
 const { DonationStatus } = require('../models/donations.model');
+const { addEventToQueue, addCreateOrRemoveEventToQueue } = require('./lib/eventHandlerQueue');
 
 /**
  * get the last block that we have gotten logs from
@@ -73,13 +72,11 @@ function subscribeLogs(web3, topics) {
  * factory function for generating an event watcher
  *
  * @param {object} app feathersjs app instance
- * @param {object} eventHandler eventHandler instance
  */
-const watcher = (app, eventHandler) => {
+const watcher = app => {
   const web3 = app.getWeb3();
   const homeWeb3 = app.getHomeWeb3();
   const requiredConfirmations = app.get('blockchain').requiredConfirmations || 0;
-  const queue = processingQueue('NewEventQueue');
   const eventService = app.service('events');
   const sem = semaphore();
 
@@ -97,44 +94,6 @@ const watcher = (app, eventHandler) => {
   }
   function setLastHomeBlock(blockNumber) {
     if (blockNumber > lastHomeBlock) lastHomeBlock = blockNumber;
-  }
-
-  /**
-   * Here we save the event so that they can be processed
-   * later after waiting for x number of confirmations (defined in config).
-   *
-   * @param {object} event the web3 log to process
-   */
-  async function processNewPendingEvent(event) {
-    try {
-      const { logIndex, transactionHash } = event;
-      const data = await eventService.find({
-        paginate: false,
-        query: { logIndex, transactionHash },
-      });
-
-      if (data.some(e => [EventStatus.WAITING, EventStatus.PENDING].includes(e.status))) {
-        logger.error(
-          'RE-ORG ERROR: attempting to process newEvent, however the matching event has already started processing. Consider increasing the requiredConfirmations.',
-          event,
-          data,
-        );
-      } else if (data.length > 0) {
-        logger.error(
-          'attempting to process new event but found existing event with matching logIndex and transactionHash.',
-          event,
-          data,
-        );
-      }
-      await eventService.create({
-        ...event,
-        isHomeEvent: false,
-        confirmations: 0,
-        status: EventStatus.PENDING,
-      });
-    } finally {
-      queue.purge();
-    }
   }
 
   async function getPendingEventsByConfirmations(currentBlock) {
@@ -155,45 +114,15 @@ const watcher = (app, eventHandler) => {
   }
 
   /**
-   * Handle new events as they are emitted, and add them to a queue for sequential
-   * processing of events with the same id.
+   * Add new events to queue to be process sequentially
    */
   function newPendingEvent(event) {
     logger.info(
       `newPendingEvent called. Block: ${event.blockNumber} log: ${event.logIndex} transactionHash: ${event.transactionHash}`,
     );
-    // during a reorg, the same event can occur in quick succession, so we add everything to a
-    // queue so they are processed synchronously
-    queue.add(() => processNewPendingEvent(event));
-
-    // start processing the queued events if we haven't already
-    if (!queue.isProcessing()) queue.purge();
-  }
-
-  /**
-   * Here we remove the event
-   *
-   * @param {object} event the web3 log to process
-   */
-  async function processRemoveEvent(event) {
-    const { id, transactionHash } = event;
-
-    await eventService.remove(null, {
-      query: { id, transactionHash, status: { $in: [EventStatus.PENDING, EventStatus.WAITING] } },
+    addCreateOrRemoveEventToQueue(app, {
+      event,
     });
-
-    const data = await eventService.find({
-      paginate: false,
-      query: { id, transactionHash, status: { $nin: [EventStatus.PENDING, EventStatus.WAITING] } },
-    });
-    if (data.length > 0) {
-      logger.error(
-        'RE-ORG ERROR: removeEvent was called, however the matching event is already processing/processed so we did not remove it. Consider increasing the requiredConfirmations.',
-        event,
-        data,
-      );
-    }
-    queue.purge();
   }
 
   /**
@@ -205,10 +134,10 @@ const watcher = (app, eventHandler) => {
     );
     // during a reorg, the same event can occur in quick succession, so we add everything to a
     // queue so they are processed synchronously
-    queue.add(() => processRemoveEvent(event));
-
-    // start processing the queued events if we haven't already
-    if (!queue.isProcessing()) queue.purge();
+    addCreateOrRemoveEventToQueue(app, {
+      event,
+      remove: true,
+    });
   }
 
   /**
@@ -497,52 +426,6 @@ const watcher = (app, eventHandler) => {
     return eventService.find({ paginate: false, query });
   }
 
-  // TODO: Use real mutex
-  let lock = false;
-  /**
-   * Retrieve and process a single event from the database that has not yet been processed and is next in line
-   *
-   * @return {Promise} Resolves to the event that was processed of false if there was no event to be processed
-   */
-  function processNextEvent() {
-    //  TODO: Fix this anti-pattern
-    // eslint-disable-next-line no-async-promise-executor
-    return new Promise(async (resolve, reject) => {
-      let event;
-      try {
-        if (lock) return;
-        lock = true;
-        [event] = await getUnProcessedEvent();
-
-        // There is no event to be processed, return false
-        if (!event || !event._id) {
-          lock = false;
-          resolve(false);
-        }
-
-        // Process the event
-        await eventService.patch(event._id, {
-          status: EventStatus.PROCESSING,
-          confirmations: requiredConfirmations,
-        });
-        await eventHandler.handle(event);
-        await eventService.patch(event._id, { status: EventStatus.PROCESSED });
-
-        event.status = EventStatus.PROCESSED;
-        lock = false;
-        resolve(event);
-      } catch (error) {
-        if (event)
-          eventService.patch(event._id, {
-            status: EventStatus.FAILED,
-            processingError: error.toString(),
-          });
-        lock = false;
-        reject(error);
-      }
-    });
-  }
-
   /**
    * Add newEvent to the database if they don't already exist
    *
@@ -646,11 +529,8 @@ const watcher = (app, eventHandler) => {
         isFetchingPastHomeEvents = false;
       }
 
-      // Process next event. This is purposely synchronous with awaits to ensure events are processed in order
-      // eslint-disable-next-line no-await-in-loop
-      while (await processNextEvent()) {
-        /* empty */
-      }
+      const unprocessedEvents = await getUnProcessedEvent();
+      unprocessedEvents.forEach(event => addEventToQueue(app, { event }));
     } catch (e) {
       logger.error('error in the processing loop: ', e);
     }
