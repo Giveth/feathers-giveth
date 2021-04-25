@@ -160,8 +160,9 @@ const milestonesFactory = app => {
       if (data.length === 1) {
         const m = data[0];
         const { from, timestamp } = await getTransaction(app, txHash);
+        const milestoneId = m._id;
         const milestone = await milestones.patch(
-          m._id,
+          milestoneId,
           {
             recipientAddress: recipient,
             $unset: { pendingRecipientAddress: true },
@@ -173,7 +174,7 @@ const milestonesFactory = app => {
           },
         );
         await createRecipientChangedConversation(app, {
-          milestoneId: data._id,
+          milestoneId,
           newRecipientAddress: recipient,
           timestamp,
           txHash,
