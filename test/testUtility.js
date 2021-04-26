@@ -53,7 +53,7 @@ const projectOwnerAddress = '0x839395e20bbB182fa440d08F850E6c7A8f6F0780';
 
 function getJwt(address = testAddress) {
   const authentication = config.get('authentication');
-  const jwtData = authentication.jwt;
+  const jwtData = authentication.jwtOptions;
   const token = jwt.sign(
     {
       userId: address,
@@ -64,7 +64,7 @@ function getJwt(address = testAddress) {
       algorithm: jwtData.algorithm,
       expiresIn: jwtData.expiresIn,
       issuer: jwtData.issuer,
-      subject: jwtData.subject,
+      subject: address,
       header: jwtData.header,
     },
   );
