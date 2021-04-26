@@ -86,8 +86,7 @@ const payments = app => ({
 
     const { ownerTypeId: milestoneId, _id: donationId } = donation;
 
-    const milestone = await milestoneModel.findById(milestoneId);
-    const { campaignId } = milestone;
+    const { campaignId } = await milestoneModel.findById(milestoneId, ['campaignId']);
 
     const conversionRate = await app
       .service('conversionRates')
