@@ -81,4 +81,22 @@ const createDelegatedConversation = async (
   await app.service('conversations').create(data, { performedByAddress: actionTakerAddress });
 };
 
-module.exports = { createDonatedConversation, createDelegatedConversation };
+const createRecipientChangedConversation = async (
+  app,
+  { milestoneId, newRecipientAddress, timestamp, txHash, from },
+) => {
+  const data = {
+    milestoneId,
+    messageContext: CONVERSATION_MESSAGE_CONTEXT.RECIPIENT_CHANGED,
+    recipientAddress: newRecipientAddress,
+    txHash,
+    createdAt: timestamp,
+  };
+  return app.service('conversations').create(data, { performedByAddress: from });
+};
+
+module.exports = {
+  createDonatedConversation,
+  createDelegatedConversation,
+  createRecipientChangedConversation,
+};
