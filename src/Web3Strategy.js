@@ -1,10 +1,13 @@
-const Debug = require('debug');
-const Strategy = require('passport-strategy');
-
-const Accounts = require('web3-eth-accounts');
+const { AuthenticationBaseStrategy } = require('@feathersjs/authentication');
+const { NotAuthenticated } = require('@feathersjs/errors');
+const merge = require('lodash.merge');
+const pick = require('lodash.pick');
 const { isAddress, toChecksumAddress } = require('web3-utils');
+const Debug = require('debug');
 
-const debug = Debug('passportjs:Web3Strategy');
+const debug = Debug('auth:Web3Strategy');
+const Accounts = require('web3-eth-accounts');
+const { Web3Challenger } = require('./Web3Challenger');
 
 // TODO clean this up and split to separate package
 
@@ -15,83 +18,90 @@ function recoverAddress(message, signature) {
 
   return toChecksumAddress(address);
 }
-
-/**
- * The Web3 authentication strategy authenticates requests based on a signed message from an ethereum account.
- *
- * Applications must supply a challenger which implements 3 methods...
- *   - getMessage(address, done)      This is called to get the message the user should have signed to verify their
- *                                    identity. `done` is an error first callback, with the 2nd arg expected to be
- *                                    the message
- *   - createMessage(address, done)   This is called when issuing a challenge and should pass a message that the
- *                                    user needs to sign to authenticate to the done callback. `done` is an error first
- *                                    callback, with the 2nd arg expected to be the message
- *   - verify(address, done)          This is called when a user has successfully signed a message. done is an error
- *                                    first callback, the 2nd arg should be a truthy value if the verification succeeded,
- *                                    and the 3rd arg should be any additional info to pass on.
- *
- * The done callback in the above methods is an error first callback.
- *
- */
-class Web3Strategy extends Strategy {
-  constructor(challenger) {
-    super();
-    this.challenger = challenger;
-
-    if (!this.challenger || !this.challenger.getMessage || !this.challenger.generateMessage) {
+class Web3Strategy extends AuthenticationBaseStrategy {
+  verifyConfiguration() {
+    if (!this.configuration) {
       throw new Error(
-        "Web3Strategy was given an invalid challenger. Expected an object implementing 'verify', 'getMessage' and 'setMessage'",
+        `Invalid Web3Strategy option 'authentication.${this.name}'. Did you mean to set it in 'authentication.web3'?`,
       );
     }
   }
 
-  // authenticate(req, options) {
-  authenticate(req) {
-    const { address, signature } = req.query;
-
-    if (!address) return this.fail(400);
+  async authenticate(authentication) {
+    this.setChallenger();
+    const { address, signature } = authentication;
+    if (!address) throw new NotAuthenticated();
 
     if (!isAddress(address)) {
       debug(`${address} is an invalid address`);
-      return this.fail('invalid address', 400);
+      throw new NotAuthenticated('invalid address');
     }
-
     // no signature, then they need a challenge msg to sign
     if (!signature) return this.issueChallenge(address);
+    let message = null;
+    try {
+      message = await this.challenger.getMessageAsync(address);
+    } catch (err) {
+      if (err.name === 'NotFound') return this.issueChallenge(address);
+      throw new Error(err.message);
+    }
+    // issue a challenge if there is not a valid message
+    if (!message) return this.issueChallenge(address);
 
-    return this.challenger.getMessage(address, (err, message) => {
-      if (err) {
-        if (err.name === 'NotFound') return this.issueChallenge(address);
+    const recoveredAddress = recoverAddress(message, signature);
+    const cAddress = toChecksumAddress(address);
+    if (recoveredAddress !== cAddress)
+      throw new Error('Recovered address does not match provided address');
+    const { user, info } = await this.challenger.verify(cAddress);
+    if (!user) throw new Error('Recovered address rejected');
+    return { user, info };
+  }
 
-        return this.fail(err.message, 500);
-      }
+  // eslint-disable-next-line class-methods-use-this
+  parse(req) {
+    const { address, signature, strategy } = req.query;
+    if (!strategy) {
+      return null;
+    }
+    return {
+      address,
+      signature,
+      strategy: 'web3',
+    };
+  }
 
-      // issue a challenge if there is not a valid message
-      if (!message) return this.issueChallenge(address);
+  async issueChallenge(address) {
+    return new Promise((resolve, reject) => {
+      this.challenger.generateMessage(address, (err, message) => {
+        if (err) return reject(new Error(`Error generating challenge: ${err}`));
 
-      const recoveredAddress = recoverAddress(message, signature);
-      const cAddress = toChecksumAddress(address);
+        if (!message) return reject(new Error('Failed to generate challenge message'));
 
-      if (recoveredAddress !== cAddress)
-        return this.fail('Recovered address does not match provided address');
-
-      return this.challenger.verify(cAddress, (e, user, info) => {
-        if (!user) return this.fail('Recovered address rejected');
-
-        return this.success(user, info);
+        return reject(new NotAuthenticated(`Challenge = ${message}`));
       });
     });
   }
 
-  issueChallenge(address) {
-    this.challenger.generateMessage(address, (err, message) => {
-      if (err) return this.fail('Error generating challenge', 500);
+  setChallenger() {
+    if (this.challenger) {
+      return;
+    }
+    const KEYS = [
+      'secret',
+      'header',
+      'entity',
+      'service',
+      'passReqToCallback',
+      'session',
+      'jwtOptions',
+    ];
+    const authOptions = this.app.get('auth') || this.app.get('authentication') || {};
+    const web3Options = authOptions[this.name] || {};
+    web3Options.challengeService = 'authentication/challenges';
 
-      if (!message) return this.fail('Failed to generate challenge message', 500);
-
-      return this.fail(`Challenge = ${message}`);
-    });
+    // eslint-disable-next-line no-undef
+    const web3Settings = merge({}, pick(authOptions, KEYS), web3Options);
+    this.challenger = new Web3Challenger(this.app, web3Settings);
   }
 }
-
-module.exports = Web3Strategy;
+exports.Web3Strategy = Web3Strategy;
