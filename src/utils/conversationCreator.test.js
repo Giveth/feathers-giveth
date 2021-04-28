@@ -15,6 +15,7 @@ const relativeUrl = '/conversations';
 
 const {
   createDelegatedConversation,
+  aggregatePayments,
   createPayoutConversation,
   createDonatedConversation,
   createRecipientChangedConversation,
@@ -320,6 +321,48 @@ function createRecipientChangedConversationTestCases() {
   });
 }
 
+function aggregatePaymentsTestCases() {
+  it('should add amounts for existing payment currency', () => {
+    const oldPayments = [
+      {
+        amount: '10000000000',
+        symbol: 'ETH',
+      },
+    ];
+    const newPayment = {
+      amount: '20000000000',
+      symbol: 'ETH',
+    };
+
+    const newPayments = aggregatePayments({
+      payments: oldPayments,
+      newPayment,
+    });
+    assert.equal(newPayments.length, 1);
+    assert.equal(newPayments[0].amount, '30000000000');
+  });
+  it('should add new payment in array for new currency', () => {
+    const oldPayments = [
+      {
+        amount: '10000000000',
+        symbol: 'ETH',
+      },
+    ];
+    const newPayment = {
+      amount: '20000000000',
+      symbol: 'DAI',
+    };
+
+    const newPayments = aggregatePayments({
+      payments: oldPayments,
+      newPayment,
+    });
+    assert.equal(newPayments.length, 2);
+    assert.equal(newPayments[0].amount, '10000000000');
+    assert.equal(newPayments[1].amount, '20000000000');
+  });
+}
+
 describe('createDelegatedConversation() test cases', createDelegatedConversationTestCases);
 describe('createPayoutConversation() test cases', createPayoutConversationTestCases);
 describe('createDonatedConversation() test cases', createDonatedConversationTestCases);
@@ -327,6 +370,7 @@ describe(
   'createRecipientChangedConversation() test cases',
   createRecipientChangedConversationTestCases,
 );
+describe('aggregatePayments() test cases', aggregatePaymentsTestCases);
 
 before(() => {
   app = getFeatherAppInstance();

@@ -9,17 +9,22 @@ const {
   updateConversationPayments,
 } = require('../repositories/conversationRepository');
 
+const aggregatePayments = ({ payments, newPayment }) => {
+  const similarPaymentIndex = payments.findIndex(p => p.symbol === newPayment.symbol);
+  if (similarPaymentIndex >= 0) {
+    payments[similarPaymentIndex].amount = toBN(payments[similarPaymentIndex].amount)
+      .add(toBN(newPayment.amount))
+      .toString();
+  } else {
+    payments.push(newPayment);
+  }
+  return payments;
+};
 async function addPaymentToExistingPayoutConversation({ payment, similarPayout, app }) {
-  const newPayment = {
-    symbol: payment.symbol,
-    decimals: payment.decimals,
-    amount: toBN(payment.amount)
-      .add(toBN(similarPayout.payments[0].amount))
-      .toString(),
-  };
   await updateConversationPayments(app, {
     conversationId: similarPayout._id,
-    payments: [newPayment],
+    payments: aggregatePayments({ payments: similarPayout.payments,
+    newPayment:payment}),
   });
 }
 
@@ -141,5 +146,5 @@ module.exports = {
   createDelegatedConversation,
   createPayoutConversation,
   createRecipientChangedConversation,
-  updateSimilarPayoutConversationPayments: addPaymentToExistingPayoutConversation,
+  aggregatePayments,
 };
