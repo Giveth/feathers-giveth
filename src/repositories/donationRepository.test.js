@@ -1,15 +1,11 @@
 const { assert } = require('chai');
-const request = require('supertest');
-const config = require('config');
 const { getFeatherAppInstance } = require('../app');
-const { SAMPLE_DATA, getJwt, generateRandomTxHash } = require('../../test/testUtility');
+const { SAMPLE_DATA, generateRandomTxHash } = require('../../test/testUtility');
 const {
   updateBridgePaymentExecutedTxHash,
   updateBridgePaymentAuthorizedTxHash,
 } = require('./donationRepository');
 
-const baseUrl = config.get('givethFathersBaseUrl');
-const relativeUrl = '/donations';
 let app;
 
 before(() => {

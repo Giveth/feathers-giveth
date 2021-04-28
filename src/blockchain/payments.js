@@ -3,7 +3,7 @@ const { hexToNumberString } = require('web3-utils');
 const BigNumber = require('bignumber.js');
 const { getTokenByAddress } = require('../utils/tokenHelper');
 const { getTransaction } = require('./lib/web3Helpers');
-const { moneyWentToRecipientWallet } = require('../utils/dappMailer');
+// const { moneyWentToRecipientWallet } = require('../utils/dappMailer');
 const { createPayoutConversation } = require('../utils/conversationCreator');
 
 /**

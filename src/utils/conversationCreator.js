@@ -9,7 +9,7 @@ const {
   updateConversationPayments,
 } = require('../repositories/conversationRepository');
 
-async function updateSimilarPayoutConversationPayments({ payment, similarPayout, app }) {
+async function addPaymentToExistingPayoutConversation({ payment, similarPayout, app }) {
   const newPayment = {
     symbol: payment.symbol,
     decimals: payment.decimals,
@@ -23,7 +23,7 @@ async function updateSimilarPayoutConversationPayments({ payment, similarPayout,
   });
 }
 
-async function updateSimilarDelegatedConversationPayments(payment, similarDelegation, app) {
+async function addPaymentToExistingDelegatedConversation(payment, similarDelegation, app) {
   const newPayment = {
     symbol: payment.symbol,
     decimals: payment.decimals,
@@ -49,7 +49,7 @@ async function createPayoutConversation(
       txHash,
     });
     if (similarPayout) {
-      return updateSimilarPayoutConversationPayments({ payment, similarPayout, app });
+      return addPaymentToExistingPayoutConversation({ payment, similarPayout, app });
     }
     const data = {
       milestoneId,
@@ -98,7 +98,7 @@ const createDelegatedConversation = async (
     currencySymbol: payment.symbol,
   });
   if (similarDelegation) {
-    return updateSimilarDelegatedConversationPayments(payment, similarDelegation, app);
+    return addPaymentToExistingDelegatedConversation(payment, similarDelegation, app);
   }
   const [firstParentId] = parentDonations;
   const firstParent = await app.service('donations').get(firstParentId);
@@ -141,5 +141,5 @@ module.exports = {
   createDelegatedConversation,
   createPayoutConversation,
   createRecipientChangedConversation,
-  updateSimilarPayoutConversationPayments,
+  updateSimilarPayoutConversationPayments: addPaymentToExistingPayoutConversation,
 };
