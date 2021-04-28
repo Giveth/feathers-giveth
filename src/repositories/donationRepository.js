@@ -1,4 +1,4 @@
-const { DonationBridgeStatus } = require('../models/donations.model');
+const { DonationBridgeStatus, DonationStatus } = require('../models/donations.model');
 
 const updateBridgePaymentExecutedTxHash = async (
   app,
@@ -6,7 +6,7 @@ const updateBridgePaymentExecutedTxHash = async (
 ) => {
   const donationModel = app.service('donations').Model;
   return donationModel.updateMany(
-    { txHash },
+    { txHash, status: DonationStatus.PAID },
     {
       $set: {
         bridgeStatus: DonationBridgeStatus.PAID,
@@ -22,7 +22,7 @@ const updateBridgePaymentAuthorizedTxHash = async (
 ) => {
   const donationModel = app.service('donations').Model;
   return donationModel.updateMany(
-    { txHash },
+    { txHash, status: DonationStatus.PAID },
     {
       $set: {
         bridgePaymentAuthorizedTxHash,

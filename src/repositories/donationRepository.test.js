@@ -19,22 +19,19 @@ before(() => {
 function updateBridgePaymentExecutedTxHashTests() {
   it('should update bridgeStatus and paymentExecutedTxHash', async () => {
     const txHash = generateRandomTxHash();
-    await request(baseUrl)
-      .post(relativeUrl)
-      .set({ Authorization: getJwt() })
-      .send({
-        ...SAMPLE_DATA.DONATION_DATA,
-        ownerTypeId: SAMPLE_DATA.MILESTONE_ID,
-        txHash,
-      });
-    await request(baseUrl)
-      .post(relativeUrl)
-      .set({ Authorization: getJwt() })
-      .send({
-        ...SAMPLE_DATA.DONATION_DATA,
-        ownerTypeId: SAMPLE_DATA.MILESTONE_ID,
-        txHash,
-      });
+    const DonationModel = app.service('donations').Model;
+    await new DonationModel({
+      ...SAMPLE_DATA.DONATION_DATA,
+      ownerTypeId: SAMPLE_DATA.MILESTONE_ID,
+      status: 'Paid',
+      txHash,
+    }).save();
+    await new DonationModel({
+      ...SAMPLE_DATA.DONATION_DATA,
+      ownerTypeId: SAMPLE_DATA.MILESTONE_ID,
+      status: 'Paid',
+      txHash,
+    }).save();
     const bridgePaymentExecutedTxHash = generateRandomTxHash();
     await updateBridgePaymentExecutedTxHash(app, {
       txHash,
@@ -43,6 +40,7 @@ function updateBridgePaymentExecutedTxHashTests() {
     });
     const donations = await app.service('donations').find({
       paginate: false,
+      status: 'Paid',
       query: {
         txHash,
       },
@@ -57,22 +55,19 @@ function updateBridgePaymentExecutedTxHashTests() {
 function updateBridgePaymentAuthorizedTxHashTests() {
   it('should update paymentAuthorizedTxHash', async () => {
     const txHash = generateRandomTxHash();
-    await request(baseUrl)
-      .post(relativeUrl)
-      .set({ Authorization: getJwt() })
-      .send({
-        ...SAMPLE_DATA.DONATION_DATA,
-        ownerTypeId: SAMPLE_DATA.MILESTONE_ID,
-        txHash,
-      });
-    await request(baseUrl)
-      .post(relativeUrl)
-      .set({ Authorization: getJwt() })
-      .send({
-        ...SAMPLE_DATA.DONATION_DATA,
-        ownerTypeId: SAMPLE_DATA.MILESTONE_ID,
-        txHash,
-      });
+    const DonationModel = app.service('donations').Model;
+    await new DonationModel({
+      ...SAMPLE_DATA.DONATION_DATA,
+      ownerTypeId: SAMPLE_DATA.MILESTONE_ID,
+      status: 'Paid',
+      txHash,
+    }).save();
+    await new DonationModel({
+      ...SAMPLE_DATA.DONATION_DATA,
+      ownerTypeId: SAMPLE_DATA.MILESTONE_ID,
+      status: 'Paid',
+      txHash,
+    }).save();
     const bridgePaymentAuthorizedTxHash = generateRandomTxHash();
     await updateBridgePaymentAuthorizedTxHash(app, {
       txHash,
@@ -80,6 +75,7 @@ function updateBridgePaymentAuthorizedTxHashTests() {
     });
     const donations = await app.service('donations').find({
       paginate: false,
+      status: 'Paid',
       query: {
         txHash,
       },
