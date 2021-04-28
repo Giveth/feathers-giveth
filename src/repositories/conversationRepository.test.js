@@ -6,6 +6,7 @@ const { SAMPLE_DATA, getJwt, generateRandomTxHash } = require('../../test/testUt
 const {
   findSimilarDelegatedConversation,
   updateConversationPayments,
+  findSimilarPayoutConversation,
 } = require('./conversationRepository');
 
 const baseUrl = config.get('givethFathersBaseUrl');
@@ -16,6 +17,66 @@ before(() => {
   app = getFeatherAppInstance();
 });
 
+function findSimilarPayoutConversationTests() {
+  it('should find appropriate delegated conversation', async () => {
+    const currencySymbol = 'ETH';
+    const txHash = generateRandomTxHash();
+    const milestoneId = SAMPLE_DATA.MILESTONE_ID;
+    const payload = {
+      milestoneId,
+      ownerAddress: SAMPLE_DATA.USER_ADDRESS,
+      performedByRole: 'Milestone owner',
+      messageContext: 'payout',
+      txHash,
+      payments: [
+        {
+          symbol: currencySymbol,
+          decimals: 6,
+          amount: '100000000000000000',
+        },
+      ],
+    };
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .set({ Authorization: getJwt() })
+      .send(payload);
+    const payoutConversation = await findSimilarPayoutConversation(app, {
+      currencySymbol,
+      milestoneId,
+      txHash,
+    });
+    assert.equal(payoutConversation._id, response.body._id);
+  });
+  it('should not find appropriate payout conversation because txHash is different', async () => {
+    const currencySymbol = 'ETH';
+    const txHash = generateRandomTxHash();
+    const milestoneId = SAMPLE_DATA.MILESTONE_ID;
+    const payload = {
+      milestoneId,
+      ownerAddress: SAMPLE_DATA.USER_ADDRESS,
+      performedByRole: 'Milestone owner',
+      messageContext: 'payout',
+      txHash,
+      payments: [
+        {
+          symbol: currencySymbol,
+          decimals: 6,
+          amount: '100000000000000000',
+        },
+      ],
+    };
+    await request(baseUrl)
+      .post(relativeUrl)
+      .set({ Authorization: getJwt() })
+      .send(payload);
+    const payoutConversation = await findSimilarPayoutConversation(app, {
+      currencySymbol,
+      milestoneId,
+      txHash: generateRandomTxHash(),
+    });
+    assert.notOk(payoutConversation);
+  });
+}
 function findSimilarDelegatedConversationTests() {
   it('should find appropriate delegated conversation', async () => {
     const currencySymbol = 'ETH';
@@ -145,5 +206,6 @@ async function updateConversationPaymentsTests() {
   });
 }
 
+describe(`findSimilarPayoutConversation test cases`, findSimilarPayoutConversationTests);
 describe(`findSimilarDelegatedConversation test cases`, findSimilarDelegatedConversationTests);
 describe(`updateConversationPayments test cases`, updateConversationPaymentsTests);

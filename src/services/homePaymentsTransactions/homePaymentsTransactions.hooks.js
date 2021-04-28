@@ -1,4 +1,9 @@
 const { disallow } = require('feathers-hooks-common');
+const {
+  updateBridgePaymentExecutedTxHash,
+  updateBridgePaymentAuthorizedTxHash,
+} = require('../../repositories/donationRepository');
+const { HomePaymentsEventTypes } = require('../../models/homePaymentsTransactions.model');
 
 const getEntityGasUsedPrice = (app, fieldName, id) => {
   return app
@@ -14,9 +19,7 @@ const getEntityGasUsedPrice = (app, fieldName, id) => {
 };
 const updateEntitiesGasPayments = () => async context => {
   const { app, result } = context;
-
-  const { recipientAddress, milestoneId, campaignId } = result;
-
+  const { recipientAddress, milestoneId, campaignId, donationTxHash, hash, timestamp } = result;
   const [
     [recipientTotalGasUsed],
     [milestoneTotalGasUsed],
@@ -50,7 +53,18 @@ const updateEntitiesGasPayments = () => async context => {
         { timestamps: false },
       ),
   ]);
-
+  if (result.event === HomePaymentsEventTypes.PaymentExecuted) {
+    await updateBridgePaymentExecutedTxHash(app, {
+      txHash: donationTxHash,
+      bridgePaymentExecutedTxHash: hash,
+      bridgePaymentExecutedTime: timestamp,
+    });
+  } else if (result.event === HomePaymentsEventTypes.PaymentAuthorized) {
+    await updateBridgePaymentAuthorizedTxHash(app, {
+      txHash: donationTxHash,
+      bridgePaymentAuthorizedTxHash: hash,
+    });
+  }
   return context;
 };
 
