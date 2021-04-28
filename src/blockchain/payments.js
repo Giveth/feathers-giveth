@@ -70,7 +70,13 @@ const payments = app => ({
       return;
     }
 
-    const { idPayment, recipient, amount, token: tokenAddress, reference:donationTxHash } = returnValues;
+    const {
+      idPayment,
+      recipient,
+      amount,
+      token: tokenAddress,
+      reference: donationTxHash,
+    } = returnValues;
 
     const donationModel = app.service('donations').Model;
     const milestoneModel = app.service('milestones').Model;
@@ -235,11 +241,13 @@ const payments = app => ({
       payment,
       txHash: transactionHash,
     });
-    await moneyWentToRecipientWallet(app, {
-      milestone,
-      token,
-      amount,
-    });
+
+    // TODO should uncomment this after data synced with PaymentAuthorized and PaymentExecuted on beta server
+    // await moneyWentToRecipientWallet(app, {
+    //   milestone,
+    //   token,
+    //   amount,
+    // });
   },
 });
 
