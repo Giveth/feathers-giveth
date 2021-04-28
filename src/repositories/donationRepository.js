@@ -1,4 +1,3 @@
-const { ObjectId } = require('mongoose').Types;
 const { DonationBridgeStatus } = require('../models/donations.model');
 
 const updateBridgePaymentExecutedTxHash = async (
@@ -6,15 +5,14 @@ const updateBridgePaymentExecutedTxHash = async (
   { txHash, bridgePaymentExecutedTxHash, bridgePaymentExecutedTime },
 ) => {
   const donationModel = app.service('donations').Model;
-  return donationModel.findOneAndUpdate(
+  return donationModel.updateMany(
     { txHash },
     {
-      bridgeStatus: DonationBridgeStatus.PAID,
-      bridgePaymentExecutedTxHash,
-      bridgePaymentExecutedTime,
-    },
-    {
-      new: true,
+      $set: {
+        bridgeStatus: DonationBridgeStatus.PAID,
+        bridgePaymentExecutedTxHash,
+        bridgePaymentExecutedTime,
+      },
     },
   );
 };
@@ -23,13 +21,12 @@ const updateBridgePaymentAuthorizedTxHash = async (
   { txHash, bridgePaymentAuthorizedTxHash },
 ) => {
   const donationModel = app.service('donations').Model;
-  return donationModel.findOneAndUpdate(
+  return donationModel.updateMany(
     { txHash },
     {
-      bridgePaymentAuthorizedTxHash,
-    },
-    {
-      new: true,
+      $set: {
+        bridgePaymentAuthorizedTxHash,
+      },
     },
   );
 };
