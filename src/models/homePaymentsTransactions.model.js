@@ -11,7 +11,7 @@ function HomePaymentsTransactions(app) {
     usdValue: { type: Number, required: true },
     recipientAddress: { type: String, required: true },
     milestoneId: { type: String, require: true },
-    donationId: { type: String, require: true },
+    donationTxHash: { type: String, require: true },
     campaignId: { type: String, require: true },
     transactionFee: { type: Schema.Types.BN, required: true, min: 0 },
     timestamp: { type: Date, require: true },

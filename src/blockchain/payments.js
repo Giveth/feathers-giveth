@@ -70,21 +70,21 @@ const payments = app => ({
       return;
     }
 
-    const { idPayment, recipient, amount, token: tokenAddress, reference } = returnValues;
+    const { idPayment, recipient, amount, token: tokenAddress, reference:donationTxHash } = returnValues;
 
     const donationModel = app.service('donations').Model;
     const milestoneModel = app.service('milestones').Model;
 
     const [{ timestamp, gasPrice, gasUsed, from }, donation] = await Promise.all([
       getTransaction(app, transactionHash, true, true),
-      donationModel.findOne({ txHash: reference }, ['ownerTypeId']),
+      donationModel.findOne({ txHash: donationTxHash }, ['ownerTypeId']),
     ]);
 
     if (!donation) {
-      throw new Error(`No donation found with reference: ${reference}`);
+      throw new Error(`No donation found with reference: ${donationTxHash}`);
     }
 
-    const { ownerTypeId: milestoneId, _id: donationId } = donation;
+    const { ownerTypeId: milestoneId } = donation;
 
     const { campaignId } = await milestoneModel.findById(milestoneId, ['campaignId']);
 
@@ -117,7 +117,7 @@ const payments = app => ({
       recipientAddress: recipient,
       milestoneId,
       campaignId,
-      donationId,
+      donationTxHash,
       transactionFee,
       timestamp,
       from,
@@ -205,7 +205,7 @@ const payments = app => ({
       throw new Error(`No token found for address: ${tokenAddress}`);
     }
 
-    const { milestoneId, campaignId, donationId } = paymentAuthorizedTransaction;
+    const { milestoneId, campaignId, donationTxHash } = paymentAuthorizedTransaction;
 
     await service.create({
       hash: transactionHash,
@@ -215,6 +215,7 @@ const payments = app => ({
       milestoneId,
       campaignId,
       transactionFee,
+      donationTxHash,
       timestamp,
       from,
       payments: [{ amount, symbol: token.symbol }],
@@ -230,7 +231,6 @@ const payments = app => ({
     await createPayoutConversation(app, {
       milestoneId,
       recipientAddress: milestone.recipientAddress,
-      donationId,
       timestamp,
       payment,
       txHash: transactionHash,

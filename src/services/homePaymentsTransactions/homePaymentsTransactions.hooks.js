@@ -19,7 +19,7 @@ const getEntityGasUsedPrice = (app, fieldName, id) => {
 };
 const updateEntitiesGasPayments = () => async context => {
   const { app, result } = context;
-  const { recipientAddress, milestoneId, campaignId, donationId, hash, timestamp } = result;
+  const { recipientAddress, milestoneId, campaignId, donationTxHash, hash, timestamp } = result;
   const [
     [recipientTotalGasUsed],
     [milestoneTotalGasUsed],
@@ -53,15 +53,15 @@ const updateEntitiesGasPayments = () => async context => {
         { timestamps: false },
       ),
   ]);
-  if (result.event === HomePaymentsEventTypes.PaymentAuthorized) {
+  if (result.event === HomePaymentsEventTypes.PaymentExecuted) {
     await updateBridgePaymentExecutedTxHash(app, {
-      donationId,
+      txHash: donationTxHash,
       bridgePaymentExecutedTxHash: hash,
       bridgePaymentExecutedTime: timestamp,
     });
-  } else if (result.event === HomePaymentsEventTypes.PaymentExecuted) {
+  } else if (result.event === HomePaymentsEventTypes.PaymentAuthorized) {
     await updateBridgePaymentAuthorizedTxHash(app, {
-      donationId,
+      txHash: donationTxHash,
       bridgePaymentAuthorizedTxHash: hash,
     });
   }

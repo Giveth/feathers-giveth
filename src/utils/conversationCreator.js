@@ -40,7 +40,7 @@ async function updateSimilarDelegatedConversationPayments(payment, similarDelega
 // eslint-disable-next-line consistent-return
 async function createPayoutConversation(
   app,
-  { milestoneId, recipientAddress, donationId, timestamp, payment, txHash },
+  { milestoneId, recipientAddress, timestamp, payment, txHash },
 ) {
   try {
     const service = app.service('conversations');
@@ -54,7 +54,6 @@ async function createPayoutConversation(
     const data = {
       milestoneId,
       messageContext: CONVERSATION_MESSAGE_CONTEXT.PAYOUT,
-      donationId,
       createdAt: timestamp,
       txHash,
       payments: [payment],

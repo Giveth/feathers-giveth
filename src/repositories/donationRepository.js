@@ -3,11 +3,11 @@ const { DonationBridgeStatus } = require('../models/donations.model');
 
 const updateBridgePaymentExecutedTxHash = async (
   app,
-  { donationId, bridgePaymentExecutedTxHash, bridgePaymentExecutedTime },
+  { txHash, bridgePaymentExecutedTxHash, bridgePaymentExecutedTime },
 ) => {
   const donationModel = app.service('donations').Model;
   return donationModel.findOneAndUpdate(
-    { _id: ObjectId(donationId) },
+    { txHash },
     {
       bridgeStatus: DonationBridgeStatus.PAID,
       bridgePaymentExecutedTxHash,
@@ -20,11 +20,11 @@ const updateBridgePaymentExecutedTxHash = async (
 };
 const updateBridgePaymentAuthorizedTxHash = async (
   app,
-  { donationId, bridgePaymentAuthorizedTxHash },
+  { txHash, bridgePaymentAuthorizedTxHash },
 ) => {
   const donationModel = app.service('donations').Model;
   return donationModel.findOneAndUpdate(
-    { _id: ObjectId(donationId) },
+    { txHash },
     {
       bridgePaymentAuthorizedTxHash,
     },
