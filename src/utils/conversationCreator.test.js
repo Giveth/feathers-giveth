@@ -183,7 +183,7 @@ function createPayoutConversationTestCases() {
       txHash,
       payment: secondPayment,
       timestamp: new Date(),
-      recipientAddress: milestone.recipientAddress,
+      performedByAddress: milestone.recipientAddress,
     });
     const conversations = await app.service('conversations').find({
       paginate: false,
@@ -237,7 +237,7 @@ function createPayoutConversationTestCases() {
       txHash: secondTxHash,
       payment: secondPayment,
       timestamp: new Date(),
-      recipientAddress: milestone.recipientAddress,
+      performedByAddress: milestone.recipientAddress,
     });
     assert.ok(result);
     const conversations = await app.service('conversations').find({

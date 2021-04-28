@@ -40,7 +40,7 @@ async function addPaymentToExistingDelegatedConversation(payment, similarDelegat
 // eslint-disable-next-line consistent-return
 async function createPayoutConversation(
   app,
-  { milestoneId, recipientAddress, timestamp, payment, txHash },
+  { milestoneId, performedByAddress, timestamp, payment, txHash },
 ) {
   try {
     const service = app.service('conversations');
@@ -58,7 +58,7 @@ async function createPayoutConversation(
       txHash,
       payments: [payment],
     };
-    return service.create(data, { performedByAddress: recipientAddress });
+    return service.create(data, { performedByAddress });
   } catch (e) {
     logger.error('createPayoutConversation error', e);
   }

@@ -5,7 +5,6 @@ const { getTokenByAddress } = require('../utils/tokenHelper');
 const { getTransaction } = require('./lib/web3Helpers');
 // const { moneyWentToRecipientWallet } = require('../utils/dappMailer');
 const { createPayoutConversation } = require('../utils/conversationCreator');
-
 /**
  * object factory to keep feathers cache in sync with LPVault payments contracts
  */
@@ -236,7 +235,7 @@ const payments = app => ({
     };
     await createPayoutConversation(app, {
       milestoneId,
-      recipientAddress: tx.from,
+      performedByAddress: tx.from,
       timestamp,
       payment,
       txHash: transactionHash,
