@@ -2,15 +2,22 @@ const { assert } = require('chai');
 const request = require('supertest');
 const config = require('config');
 const { getFeatherAppInstance } = require('../app');
-const { SAMPLE_DATA, getJwt, generateRandomTxHash } = require('../../test/testUtility');
+const {
+  SAMPLE_DATA,
+  getJwt,
+  generateRandomTxHash,
+  generateRandomEtheriumAddress,
+} = require('../../test/testUtility');
 const { CONVERSATION_MESSAGE_CONTEXT } = require('../models/conversations.model');
 
 const baseUrl = config.get('givethFathersBaseUrl');
 const relativeUrl = '/conversations';
+
 const {
   createDelegatedConversation,
   createPayoutConversation,
   createDonatedConversation,
+  createRecipientChangedConversation,
 } = require('./conversationCreator');
 
 let app;
@@ -285,10 +292,41 @@ function createDonatedConversationTestCases() {
     assert.equal(conversations.length, 1);
   });
 }
+function createRecipientChangedConversationTestCases() {
+  it('should create a recipientChanged conversation', async () => {
+    const txHash = generateRandomTxHash();
+    const milestoneId = SAMPLE_DATA.MILESTONE_ID;
+    const { body: donation } = await request(baseUrl)
+      .post('/donations')
+      .set({ Authorization: getJwt() })
+      .send({
+        ...SAMPLE_DATA.DONATION_DATA,
+        ownerTypeId: milestoneId,
+      });
+    const recipientAddress = generateRandomEtheriumAddress();
+    const from = generateRandomEtheriumAddress();
+    const conversation = await createRecipientChangedConversation(app, {
+      milestoneId,
+      donationId: donation._id,
+      newRecipientAddress: recipientAddress,
+      from,
+      timestamp: new Date(),
+      txHash,
+    });
+    assert.ok(conversation);
+    assert.equal(conversation.ownerAddress, from);
+    assert.equal(conversation.recipientAddress, recipientAddress);
+    assert.equal(conversation.messageContext, 'recipientChanged');
+  });
+}
 
 describe('createDelegatedConversation() test cases', createDelegatedConversationTestCases);
 describe('createPayoutConversation() test cases', createPayoutConversationTestCases);
 describe('createDonatedConversation() test cases', createDonatedConversationTestCases);
+describe(
+  'createRecipientChangedConversation() test cases',
+  createRecipientChangedConversationTestCases,
+);
 
 before(() => {
   app = getFeatherAppInstance();

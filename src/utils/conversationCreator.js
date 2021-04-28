@@ -122,9 +122,24 @@ const createDelegatedConversation = async (
   return app.service('conversations').create(data, { performedByAddress: actionTakerAddress });
 };
 
+const createRecipientChangedConversation = async (
+  app,
+  { milestoneId, newRecipientAddress, timestamp, txHash, from },
+) => {
+  const data = {
+    milestoneId,
+    messageContext: CONVERSATION_MESSAGE_CONTEXT.RECIPIENT_CHANGED,
+    recipientAddress: newRecipientAddress,
+    txHash,
+    createdAt: timestamp,
+  };
+  return app.service('conversations').create(data, { performedByAddress: from });
+};
+
 module.exports = {
   createDonatedConversation,
   createDelegatedConversation,
   createPayoutConversation,
+  createRecipientChangedConversation,
   updateSimilarPayoutConversationPayments,
 };
