@@ -228,7 +228,7 @@ const payments = app => ({
       paidByGiveth: true,
       paymentId: idPayment,
     });
-    const milestone = await app.service('milestones').get(milestoneId);
+    // const milestone = await app.service('milestones').get(milestoneId);
     const payment = {
       amount,
       symbol: token.symbol,
@@ -236,7 +236,7 @@ const payments = app => ({
     };
     await createPayoutConversation(app, {
       milestoneId,
-      recipientAddress: milestone.recipientAddress,
+      recipientAddress: tx.from,
       timestamp,
       payment,
       txHash: transactionHash,
