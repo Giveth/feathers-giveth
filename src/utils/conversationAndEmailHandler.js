@@ -62,9 +62,11 @@ const handleMilestoneConversationAndEmail = () => async context => {
     }
 
     let createdAt;
+    let transactionFrom;
     try {
-      const { timestamp } = await getTransaction(app, eventTxHash, false);
+      const { timestamp, from } = await getTransaction(app, eventTxHash, false);
       createdAt = timestamp;
+      transactionFrom = from;
     } catch (e) {
       createdAt = new Date();
       logger.error(`Error on getting tx ${eventTxHash} info`, e);
@@ -80,7 +82,9 @@ const handleMilestoneConversationAndEmail = () => async context => {
           txHash: eventTxHash,
           createdAt,
         },
-        { performedByAddress },
+        // performedByAddress filled when user calls endpoint so it would be extracted from user's JWT
+        // but when handling events the user doesnt call endpoints so we should use transactionFrom
+        { performedByAddress: performedByAddress || transactionFrom },
       );
       logger.info('created conversation!', res._id);
     } catch (e) {

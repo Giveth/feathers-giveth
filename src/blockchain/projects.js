@@ -418,7 +418,7 @@ const projects = (app, liquidPledging) => {
     return data[0];
   }
 
-  async function updateMilestone(project, projectId) {
+  async function updateMilestone(project, projectId, txHash) {
     try {
       let milestone = await getMilestoneById(projectId);
       if (!milestone) {
@@ -440,7 +440,7 @@ const projects = (app, liquidPledging) => {
         url: project.url,
       });
 
-      return milestones.patch(milestone._id, mutation);
+      return milestones.patch(milestone._id, mutation, { eventTxHash: txHash });
     } catch (err) {
       logger.error('updateMilestone error ->', err);
     }
@@ -634,13 +634,14 @@ const projects = (app, liquidPledging) => {
       }
 
       const projectId = event.returnValues.idProject;
+      const txHash = event.transactionHash;
 
       const project = await liquidPledging.getPledgeAdmin(projectId);
 
       // we make the assumption that if there is a parentProject, then the
       // project is a milestone, otherwise it is a campaign
       return project.parentProject > 0
-        ? updateMilestone(project, projectId)
+        ? updateMilestone(project, projectId, txHash)
         : updateCampaign(project, projectId);
     },
 
