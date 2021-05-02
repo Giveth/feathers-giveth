@@ -25,7 +25,7 @@ const MilestoneTypes = {
   LPMilestone: 'LPMilestone',
 };
 
-const MilestoneCategories = {
+const MilestoneFormTypes = {
   BOUNTY: 'bounty',
   PAYMENT: 'payment',
   EXPENSE: 'expense',
@@ -58,9 +58,9 @@ function Milestone(app) {
         require: true,
         enum: Object.values(MilestoneStatus),
       },
-      category: {
+      formType: {
         type: String,
-        enum: Object.values(MilestoneCategories),
+        enum: Object.values(MilestoneFormTypes),
       },
       items: [Item],
       conversionRateTimestamp: { type: Date },
