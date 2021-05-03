@@ -143,7 +143,7 @@ const getApprovedKeys = (milestone, data, user) => {
       }
 
       // Archive milestone by Milestone Manager or Campaign Manager
-      if (!milestone.maxAmount && data.status === MilestoneStatus.ARCHIVED) {
+      if (data.status === MilestoneStatus.ARCHIVED) {
         if (
           ![
             milestone.campaign.ownerAddress,
