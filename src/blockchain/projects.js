@@ -709,6 +709,7 @@ const projects = (app, liquidPledging) => {
         const query = {
           $or: [{ ownerTypeId: pledgeAdmin.typeId }, { intendedProjectTypeId: pledgeAdmin.typeId }],
           amountRemaining: { $ne: 0 },
+          status: { $ne: DonationStatus.PAID },
         };
         try {
           const donationsToRevert = await donations.find({ paginate: false, query });
