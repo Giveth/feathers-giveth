@@ -269,7 +269,14 @@ const pledges = (app, liquidPledging) => {
       mined: true,
       token,
     };
-
+    if (
+      mutation.status === DonationStatus.WAITING ||
+      mutation.status === DonationStatus.COMMITTED ||
+      mutation.status === DonationStatus.TO_APPROVE
+    ) {
+      // should unset pendingAmountRemaining when delegation donation is mined
+      mutation.pendingAmountRemaining = undefined;
+    }
     // Propagate comment and actionTakerAddress for donations created by direct donating
     if (
       donations.length === 1 &&
