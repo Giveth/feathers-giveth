@@ -18,7 +18,31 @@ const updateSubscriptionProject = async (
  * This function return all users that subscribe a project and have emails
  * @param app : feather instance
  * @param projectTypeId : dacId, campaignId or milestoneId
- * @returns {Promise<*>}
+ * @returns {Promise<[
+      {
+        "_id": {"$oid": "604d025bf3084e6a0bae608d"},
+        "enabled": true,
+        "userAddress": "0x28F12d62B5D42ecEf69eAb668A79DD79D762f1cD",
+        "projectType": "dac",
+        "projectTypeId": "604d025bf3084e6a0bae608c",
+        "createdAt": {"$date": "2021-03-13T18:20:11.182Z"},
+        "updatedAt": {"$date": "2021-03-13T18:20:11.182Z"},
+        "__v": 0,
+        "user": {
+          "_id": {"$oid": "604d025bf3084e6a0bae608b"},
+          "isReviewer": false,
+          "isDelegator": false,
+          "isProjectOwner": false,
+          "isAdmin": true,
+          "address": "0x28F12d62B5D42ecEf69eAb668A79DD79D762f1cD",
+          "email": "1615659611075-dacSubscriber@test.giveth",
+          "name": "dac subscriber Sat Mar 13 2021 21:50:11 GMT+0330 (Iran Standard Time)",
+          "createdAt": {"$date": "2021-03-13T18:20:11.076Z"},
+          "updatedAt": {"$date": "2021-03-13T18:20:11.076Z"},
+          "__v": 0
+        }
+      }
+    ]>}
  */
 const findProjectSubscribers = async (app, { projectTypeId }) => {
   const subscribeService = app.service('subscriptions');
