@@ -206,6 +206,9 @@ async function updateConversationPaymentsTests() {
   });
 }
 
-describe(`findPayoutConversationByTxHashAndMilestoneId test cases`, findSimilarPayoutConversationTests);
+describe(
+  `findPayoutConversationByTxHashAndMilestoneId test cases`,
+  findSimilarPayoutConversationTests,
+);
 describe(`findSimilarDelegatedConversation test cases`, findSimilarDelegatedConversationTests);
 describe(`updateConversationPayments test cases`, updateConversationPaymentsTests);
