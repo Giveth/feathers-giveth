@@ -4,6 +4,7 @@ const { SAMPLE_DATA, generateRandomTxHash } = require('../../test/testUtility');
 const {
   updateBridgePaymentExecutedTxHash,
   updateBridgePaymentAuthorizedTxHash,
+  isAllDonationsPaidOutForMilestoneAndTxHash,
 } = require('./donationRepository');
 
 let app;
@@ -81,8 +82,61 @@ function updateBridgePaymentAuthorizedTxHashTests() {
     assert.equal(donations[1].bridgePaymentAuthorizedTxHash, bridgePaymentAuthorizedTxHash);
   });
 }
+function isAllDonationsPaidOutForMilestoneAndTxHashTests() {
+  it('should return false,  when all donations are not paid out', async () => {
+    const txHash = generateRandomTxHash();
+    const DonationModel = app.service('donations').Model;
+    await new DonationModel({
+      ...SAMPLE_DATA.DONATION_DATA,
+      ownerTypeId: SAMPLE_DATA.MILESTONE_ID,
+      status: 'Paid',
+      txHash,
+      bridgePaymentExecutedTxHash: generateRandomTxHash(),
+    }).save();
+    await new DonationModel({
+      ...SAMPLE_DATA.DONATION_DATA,
+      ownerTypeId: SAMPLE_DATA.MILESTONE_ID,
+      status: 'Paid',
+      txHash,
+    }).save();
+    const bridgePaymentAuthorizedTxHash = generateRandomTxHash();
+    const isAllDonationsPaidOut = await isAllDonationsPaidOutForMilestoneAndTxHash(app, {
+      txHash,
+      bridgePaymentAuthorizedTxHash,
+    });
+    assert.isFalse(isAllDonationsPaidOut);
+  });
+  it('should return true  when all donations are paid out', async () => {
+    const txHash = generateRandomTxHash();
+    const DonationModel = app.service('donations').Model;
+    await new DonationModel({
+      ...SAMPLE_DATA.DONATION_DATA,
+      ownerTypeId: SAMPLE_DATA.MILESTONE_ID,
+      status: 'Paid',
+      txHash,
+      bridgePaymentExecutedTxHash: generateRandomTxHash(),
+    }).save();
+    await new DonationModel({
+      ...SAMPLE_DATA.DONATION_DATA,
+      ownerTypeId: SAMPLE_DATA.MILESTONE_ID,
+      status: 'Paid',
+      txHash,
+    }).save();
+    const bridgePaymentAuthorizedTxHash = generateRandomTxHash();
+    const isAllDonationsPaidOut = await isAllDonationsPaidOutForMilestoneAndTxHash(app, {
+      txHash,
+      bridgePaymentAuthorizedTxHash,
+    });
+    assert.isTrue(isAllDonationsPaidOut);
+  });
+}
 describe(`updateBridgePaymentExecutedTxHash test cases`, updateBridgePaymentExecutedTxHashTests);
 describe(
   `updateBridgePaymentAuthorizedTxHash test cases`,
   updateBridgePaymentAuthorizedTxHashTests,
+);
+
+describe(
+  `isAllDonationsPaidOutForMilestoneAndTxHash test cases`,
+  isAllDonationsPaidOutForMilestoneAndTxHashTests,
 );
