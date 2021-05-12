@@ -32,6 +32,7 @@ const getApprovedKeys = (milestone, data, user) => {
     'image',
     'token',
     'type',
+    'dacId',
   ];
 
   // Fields that can be edited once milestone stored on the blockchain
