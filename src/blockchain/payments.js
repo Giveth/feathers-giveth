@@ -251,6 +251,8 @@ const payments = app => ({
     // When running first time on beta, all donations syncing so if we dont set
     // option for disabling payout email, users would get emails for old donations
     if (app.get('enablePayoutEmail') && isAllDonationsPaidOut) {
+      // We send email when we are sure all milestone's paid donations
+      // with this txHash have filled with bridgePaymentExecutedTxHash
       const milestone = await app.service('milestones').get(milestoneId);
       moneyWentToRecipientWallet(app, {
         milestone,

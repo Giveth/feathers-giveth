@@ -99,10 +99,9 @@ function isAllDonationsPaidOutForMilestoneAndTxHashTests() {
       status: 'Paid',
       txHash,
     }).save();
-    const bridgePaymentAuthorizedTxHash = generateRandomTxHash();
     const isAllDonationsPaidOut = await isAllDonationsPaidOutForMilestoneAndTxHash(app, {
       txHash,
-      bridgePaymentAuthorizedTxHash,
+      milestoneId: SAMPLE_DATA.MILESTONE_ID,
     });
     assert.isFalse(isAllDonationsPaidOut);
   });
@@ -121,11 +120,11 @@ function isAllDonationsPaidOutForMilestoneAndTxHashTests() {
       ownerTypeId: SAMPLE_DATA.MILESTONE_ID,
       status: 'Paid',
       txHash,
+      bridgePaymentExecutedTxHash: generateRandomTxHash(),
     }).save();
-    const bridgePaymentAuthorizedTxHash = generateRandomTxHash();
     const isAllDonationsPaidOut = await isAllDonationsPaidOutForMilestoneAndTxHash(app, {
       txHash,
-      bridgePaymentAuthorizedTxHash,
+      milestoneId: SAMPLE_DATA.MILESTONE_ID,
     });
     assert.isTrue(isAllDonationsPaidOut);
   });
