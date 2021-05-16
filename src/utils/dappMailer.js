@@ -962,7 +962,7 @@ const donationsCollected = (app, { milestone, conversation }) => {
   sendEmail(app, data);
 };
 
-const moneyWentToRecipientWallet = (app, { milestone, token, amount }) => {
+const moneyWentToRecipientWallet = (app, { milestone, payments }) => {
   const {
     recipient: milestoneRecipient,
     title: milestoneTitle,
@@ -986,9 +986,11 @@ const moneyWentToRecipientWallet = (app, { milestone, token, amount }) => {
     text: `
         <p><span ${emailStyle}>Hi ${milestoneRecipient.name || ''}</span></p>
         <p>The funds from your Milestone <strong>${milestoneTitle}</strong>
-        of the amount ${normalizeAmount(amount)} ${
-      token.symbol
-    } have been sent to your wallet. It’s time to take action to build a brighter future!
+        of the amount
+        <p></p>
+        ${payments.map(p => `<p>${normalizeAmount(p.amount)} ${p.symbol}</p>`)}
+        <p></p>
+         have been sent to your wallet. It’s time to take action to build a brighter future!
         </p>
 
         <p>You have these payment(s) in your wallet <strong>

@@ -185,6 +185,6 @@
     }
   },
   "dappMailerUrl": "https://fake.dappmailer.giveth.io",
-  "dappMailerSecret": "fakeSecret"
-
+  "dappMailerSecret": "fakeSecret",
+  "enablePayoutEmail": true
 }

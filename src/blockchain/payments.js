@@ -3,8 +3,10 @@ const { hexToNumberString } = require('web3-utils');
 const BigNumber = require('bignumber.js');
 const { getTokenByAddress } = require('../utils/tokenHelper');
 const { getTransaction } = require('./lib/web3Helpers');
-// const { moneyWentToRecipientWallet } = require('../utils/dappMailer');
 const { createPayoutConversation } = require('../utils/conversationCreator');
+const { moneyWentToRecipientWallet } = require('../utils/dappMailer');
+const { isAllDonationsPaidOut } = require('../repositories/donationRepository');
+
 /**
  * object factory to keep feathers cache in sync with LPVault payments contracts
  */
@@ -227,26 +229,34 @@ const payments = app => ({
       paidByGiveth: true,
       paymentId: idPayment,
     });
-    // const milestone = await app.service('milestones').get(milestoneId);
     const payment = {
       amount,
       symbol: token.symbol,
       decimals: token.decimals,
     };
-    await createPayoutConversation(app, {
+    const payoutConversation = await createPayoutConversation(app, {
       milestoneId,
       performedByAddress: tx.from,
       timestamp,
       payment,
       txHash: transactionHash,
     });
+    const isAllDonationsPaidOutForTxHash = await isAllDonationsPaidOut(app, {
+      txHash: donationTxHash,
+      milestoneId,
+    });
 
-    // TODO should uncomment this after data synced with PaymentAuthorized and PaymentExecuted on beta server
-    // await moneyWentToRecipientWallet(app, {
-    //   milestone,
-    //   token,
-    //   amount,
-    // });
+    // When running first time on beta, all donations syncing so if we dont set
+    // option for disabling payout email, users would get emails for old donations
+    if (app.get('enablePayoutEmail') && isAllDonationsPaidOutForTxHash) {
+      // We send email when we are sure all milestone's paid donations
+      // with this txHash have filled with bridgePaymentExecutedTxHash
+      const milestone = await app.service('milestones').get(milestoneId);
+      moneyWentToRecipientWallet(app, {
+        milestone,
+        payments: payoutConversation.payments,
+      });
+    }
   },
 });
 

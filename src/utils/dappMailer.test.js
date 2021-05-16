@@ -765,10 +765,12 @@ function moneyWentToRecipientWalletTestCases() {
     const { campaign, milestone, milestoneRecipient } = await createMilestoneAndCampaign();
     await moneyWentToRecipientWallet(app, {
       milestone,
-      token: {
-        symbol: 'ETH',
-      },
-      amount: '1000000000',
+      payments: [
+        {
+          symbol: 'ETH',
+          amount: '1000000000',
+        },
+      ],
     });
     // because creating and sending email is async, we should wait to make sure the email hooks worked
     await sleep(50);

@@ -21,7 +21,7 @@ const aggregatePayments = ({ payments, newPayment }) => {
   return payments;
 };
 async function addPaymentToExistingPayoutConversation({ payment, similarPayout, app }) {
-  await updateConversationPayments(app, {
+  return updateConversationPayments(app, {
     conversationId: similarPayout._id,
     payments: aggregatePayments({ payments: similarPayout.payments, newPayment: payment }),
   });
