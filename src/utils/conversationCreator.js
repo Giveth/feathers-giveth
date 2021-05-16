@@ -5,7 +5,7 @@ const { CONVERSATION_MESSAGE_CONTEXT } = require('../models/conversations.model'
 const { getTransaction } = require('../blockchain/lib/web3Helpers');
 const {
   findSimilarDelegatedConversation,
-  findPayoutConversationByTxHashAndMilestoneId,
+  findSimilarPayoutConversation,
   updateConversationPayments,
 } = require('../repositories/conversationRepository');
 
@@ -48,7 +48,7 @@ async function createPayoutConversation(
 ) {
   try {
     const service = app.service('conversations');
-    const similarPayout = await findPayoutConversationByTxHashAndMilestoneId(app, {
+    const similarPayout = await findSimilarPayoutConversation(app, {
       milestoneId,
       txHash,
     });

@@ -4,7 +4,7 @@ const { SAMPLE_DATA, generateRandomTxHash } = require('../../test/testUtility');
 const {
   updateBridgePaymentExecutedTxHash,
   updateBridgePaymentAuthorizedTxHash,
-  isAllDonationsPaidOutForMilestoneAndTxHash,
+  isAllDonationsPaidOut,
 } = require('./donationRepository');
 
 let app;
@@ -99,11 +99,11 @@ function isAllDonationsPaidOutForMilestoneAndTxHashTests() {
       status: 'Paid',
       txHash,
     }).save();
-    const isAllDonationsPaidOut = await isAllDonationsPaidOutForMilestoneAndTxHash(app, {
+    const isAllDonationsPaidOutForTxHash = await isAllDonationsPaidOut(app, {
       txHash,
       milestoneId: SAMPLE_DATA.MILESTONE_ID,
     });
-    assert.isFalse(isAllDonationsPaidOut);
+    assert.isFalse(isAllDonationsPaidOutForTxHash);
   });
   it('should return true  when all donations are paid out', async () => {
     const txHash = generateRandomTxHash();
@@ -122,11 +122,11 @@ function isAllDonationsPaidOutForMilestoneAndTxHashTests() {
       txHash,
       bridgePaymentExecutedTxHash: generateRandomTxHash(),
     }).save();
-    const isAllDonationsPaidOut = await isAllDonationsPaidOutForMilestoneAndTxHash(app, {
+    const isAllDonationsPaidOutForTxHash = await isAllDonationsPaidOut(app, {
       txHash,
       milestoneId: SAMPLE_DATA.MILESTONE_ID,
     });
-    assert.isTrue(isAllDonationsPaidOut);
+    assert.isTrue(isAllDonationsPaidOutForTxHash);
   });
 }
 describe(`updateBridgePaymentExecutedTxHash test cases`, updateBridgePaymentExecutedTxHashTests);
@@ -135,7 +135,4 @@ describe(
   updateBridgePaymentAuthorizedTxHashTests,
 );
 
-describe(
-  `isAllDonationsPaidOutForMilestoneAndTxHash test cases`,
-  isAllDonationsPaidOutForMilestoneAndTxHashTests,
-);
+describe(`isAllDonationsPaidOut test cases`, isAllDonationsPaidOutForMilestoneAndTxHashTests);

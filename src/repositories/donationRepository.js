@@ -31,7 +31,7 @@ const updateBridgePaymentAuthorizedTxHash = async (
   );
 };
 
-const isAllDonationsPaidOutForMilestoneAndTxHash = async (app, { txHash, milestoneId }) => {
+const isAllDonationsPaidOut = async (app, { txHash, milestoneId }) => {
   const donationModel = app.service('donations').Model;
   const notPaidOutDonationsCount = await donationModel.count({
     txHash,
@@ -48,5 +48,5 @@ const isAllDonationsPaidOutForMilestoneAndTxHash = async (app, { txHash, milesto
 module.exports = {
   updateBridgePaymentExecutedTxHash,
   updateBridgePaymentAuthorizedTxHash,
-  isAllDonationsPaidOutForMilestoneAndTxHash,
+  isAllDonationsPaidOut,
 };

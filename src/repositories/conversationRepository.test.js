@@ -6,7 +6,7 @@ const { SAMPLE_DATA, getJwt, generateRandomTxHash } = require('../../test/testUt
 const {
   findSimilarDelegatedConversation,
   updateConversationPayments,
-  findPayoutConversationByTxHashAndMilestoneId,
+  findSimilarPayoutConversation,
 } = require('./conversationRepository');
 
 const baseUrl = config.get('givethFathersBaseUrl');
@@ -40,7 +40,7 @@ function findSimilarPayoutConversationTests() {
       .post(relativeUrl)
       .set({ Authorization: getJwt() })
       .send(payload);
-    const payoutConversation = await findPayoutConversationByTxHashAndMilestoneId(app, {
+    const payoutConversation = await findSimilarPayoutConversation(app, {
       currencySymbol,
       milestoneId,
       txHash,
@@ -69,7 +69,7 @@ function findSimilarPayoutConversationTests() {
       .post(relativeUrl)
       .set({ Authorization: getJwt() })
       .send(payload);
-    const payoutConversation = await findPayoutConversationByTxHashAndMilestoneId(app, {
+    const payoutConversation = await findSimilarPayoutConversation(app, {
       currencySymbol,
       milestoneId,
       txHash: generateRandomTxHash(),
@@ -206,9 +206,6 @@ async function updateConversationPaymentsTests() {
   });
 }
 
-describe(
-  `findPayoutConversationByTxHashAndMilestoneId test cases`,
-  findSimilarPayoutConversationTests,
-);
+describe(`findSimilarPayoutConversation test cases`, findSimilarPayoutConversationTests);
 describe(`findSimilarDelegatedConversation test cases`, findSimilarDelegatedConversationTests);
 describe(`updateConversationPayments test cases`, updateConversationPaymentsTests);
