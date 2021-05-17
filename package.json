@@ -1,7 +1,7 @@
 {
   "name": "feathers-giveth",
   "description": "Real-time json cache for blockchain data.",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "homepage": "",
   "main": "src",
   "keywords": [
