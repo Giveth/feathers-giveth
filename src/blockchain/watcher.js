@@ -420,7 +420,13 @@ const watcher = app => {
   function getUnProcessedEvent() {
     const query = {
       status: EventStatus.WAITING,
-      $sort: { blockNumber: 1, transactionIndex: 1, transactionHash: 1, logIndex: 1 },
+      $sort: {
+        isHomeEvent: 1,
+        blockNumber: 1,
+        transactionIndex: 1,
+        transactionHash: 1,
+        logIndex: 1,
+      },
       $limit: 1,
     };
     return eventService.find({ paginate: false, query });
