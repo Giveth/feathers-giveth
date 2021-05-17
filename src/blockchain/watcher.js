@@ -1,26 +1,28 @@
 const { LiquidPledging, LPVault, Kernel } = require('giveth-liquidpledging');
 const { LPPCappedMilestone } = require('lpp-capped-milestone');
 const { BridgedMilestone, LPMilestone } = require('lpp-milestones');
+const { GivethBridge } = require('giveth-bridge');
 const semaphore = require('semaphore');
 const { keccak256, padLeft, toHex } = require('web3-utils');
 const logger = require('winston');
-
-const processingQueue = require('../utils/processingQueue');
 const to = require('../utils/to');
 const { removeHexPrefix } = require('./lib/web3Helpers');
 const { EventStatus } = require('../models/events.model');
 const { DonationStatus } = require('../models/donations.model');
+const { addEventToQueue, addCreateOrRemoveEventToQueue } = require('./lib/eventHandlerQueue');
 
 /**
  * get the last block that we have gotten logs from
  *
  * @param {object} app feathers app instance
+ * @param {boolean} isHome network is home flag
  */
-const getLastBlock = async app => {
+const getLastBlock = async (app, isHome = false) => {
   const opts = {
     paginate: false,
     query: {
       status: { $ne: EventStatus.PENDING },
+      isHomeEvent: isHome,
       $limit: 1,
       $sort: {
         blockNumber: -1,
@@ -35,8 +37,8 @@ const getLastBlock = async app => {
   if (events && events.length > 0) return events[0].blockNumber;
 
   // default to blockchain.startingBlock in config
-  const { startingBlock } = app.get('blockchain');
-  return startingBlock || 0;
+  const { startingBlock, startingHomeBlock } = app.get('blockchain');
+  return (isHome ? startingHomeBlock : startingBlock) || 0;
 };
 
 /**
@@ -70,12 +72,11 @@ function subscribeLogs(web3, topics) {
  * factory function for generating an event watcher
  *
  * @param {object} app feathersjs app instance
- * @param {object} eventHandler eventHandler instance
  */
-const watcher = (app, eventHandler) => {
+const watcher = app => {
   const web3 = app.getWeb3();
+  const homeWeb3 = app.getHomeWeb3();
   const requiredConfirmations = app.get('blockchain').requiredConfirmations || 0;
-  const queue = processingQueue('NewEventQueue');
   const eventService = app.service('events');
   const sem = semaphore();
 
@@ -83,44 +84,16 @@ const watcher = (app, eventHandler) => {
   const lpVault = new LPVault(web3, vaultAddress);
   let kernel;
 
-  let isFetchingPastEvents = false; // To indicate if the fetching process of past events is in progress or not.
-  let lastBlock = 0;
+  let isFetchingPastForeignEvents = false; // To indicate if the fetching process of past events is in progress or not.
+  let isFetchingPastHomeEvents = false; // To indicate if the fetching process of past events is in progress or not.
+  let lastForeignBlock = 0;
+  let lastHomeBlock = 0;
 
-  function setLastBlock(blockNumber) {
-    if (blockNumber > lastBlock) lastBlock = blockNumber;
+  function setLastForeignBlock(blockNumber) {
+    if (blockNumber > lastForeignBlock) lastForeignBlock = blockNumber;
   }
-
-  /**
-   * Here we save the event so that they can be processed
-   * later after waiting for x number of confirmations (defined in config).
-   *
-   * @param {object} event the web3 log to process
-   */
-  async function processNewPendingEvent(event) {
-    try {
-      const { logIndex, transactionHash } = event;
-      const data = await eventService.find({
-        paginate: false,
-        query: { logIndex, transactionHash },
-      });
-
-      if (data.some(e => [EventStatus.WAITING, EventStatus.PENDING].includes(e.status))) {
-        logger.error(
-          'RE-ORG ERROR: attempting to process newEvent, however the matching event has already started processing. Consider increasing the requiredConfirmations.',
-          event,
-          data,
-        );
-      } else if (data.length > 0) {
-        logger.error(
-          'attempting to process new event but found existing event with matching logIndex and transactionHash.',
-          event,
-          data,
-        );
-      }
-      await eventService.create({ ...event, confirmations: 0, status: EventStatus.PENDING });
-    } finally {
-      queue.purge();
-    }
+  function setLastHomeBlock(blockNumber) {
+    if (blockNumber > lastHomeBlock) lastHomeBlock = blockNumber;
   }
 
   async function getPendingEventsByConfirmations(currentBlock) {
@@ -141,45 +114,15 @@ const watcher = (app, eventHandler) => {
   }
 
   /**
-   * Handle new events as they are emitted, and add them to a queue for sequential
-   * processing of events with the same id.
+   * Add new events to queue to be process sequentially
    */
   function newPendingEvent(event) {
     logger.info(
       `newPendingEvent called. Block: ${event.blockNumber} log: ${event.logIndex} transactionHash: ${event.transactionHash}`,
     );
-    // during a reorg, the same event can occur in quick succession, so we add everything to a
-    // queue so they are processed synchronously
-    queue.add(() => processNewPendingEvent(event));
-
-    // start processing the queued events if we haven't already
-    if (!queue.isProcessing()) queue.purge();
-  }
-
-  /**
-   * Here we remove the event
-   *
-   * @param {object} event the web3 log to process
-   */
-  async function processRemoveEvent(event) {
-    const { id, transactionHash } = event;
-
-    await eventService.remove(null, {
-      query: { id, transactionHash, status: { $in: [EventStatus.PENDING, EventStatus.WAITING] } },
+    addCreateOrRemoveEventToQueue(app, {
+      event,
     });
-
-    const data = await eventService.find({
-      paginate: false,
-      query: { id, transactionHash, status: { $nin: [EventStatus.PENDING, EventStatus.WAITING] } },
-    });
-    if (data.length > 0) {
-      logger.error(
-        'RE-ORG ERROR: removeEvent was called, however the matching event is already processing/processed so we did not remove it. Consider increasing the requiredConfirmations.',
-        event,
-        data,
-      );
-    }
-    queue.purge();
   }
 
   /**
@@ -191,10 +134,10 @@ const watcher = (app, eventHandler) => {
     );
     // during a reorg, the same event can occur in quick succession, so we add everything to a
     // queue so they are processed synchronously
-    queue.add(() => processRemoveEvent(event));
-
-    // start processing the queued events if we haven't already
-    if (!queue.isProcessing()) queue.purge();
+    addCreateOrRemoveEventToQueue(app, {
+      event,
+      remove: true,
+    });
   }
 
   /**
@@ -249,7 +192,7 @@ const watcher = (app, eventHandler) => {
     );
   }
 
-  const { liquidPledgingAddress } = app.get('blockchain');
+  const { liquidPledgingAddress, givethBridgeAddress } = app.get('blockchain');
   const liquidPledging = new LiquidPledging(web3, liquidPledgingAddress);
   const lppCappedMilestone = new LPPCappedMilestone(web3).$contract;
   const lpMilestone = new LPMilestone(web3).$contract;
@@ -262,6 +205,13 @@ const watcher = (app, eventHandler) => {
       ...bridgedMilestone._jsonInterface,
     ],
   });
+
+  const enableHomeEvent = !!givethBridgeAddress;
+  let givethBridge;
+
+  if (enableHomeEvent) {
+    givethBridge = new GivethBridge(homeWeb3, givethBridgeAddress);
+  }
 
   function getMilestoneTopics() {
     return [
@@ -389,12 +339,15 @@ const watcher = (app, eventHandler) => {
   /**
    * Fetch all events between now and the latest block
    *
-   * @param  {Number} [fromBlockNum=lastBlock] The block from which onwards should the events be checked
-   * @param  {Number} [toBlockNum=lastBlock+1] No events after this block should be returned
+   * @param  {Number} [fromBlockNum=lastForeignBlock] The block from which onwards should the events be checked
+   * @param  {Number} [toBlockNum=lastForeignBlock+1] No events after this block should be returned
    *
    * @return {Promise} Resolves to an array of events between speciefied block and latest known block.
    */
-  async function fetchPastEvents(fromBlockNum = lastBlock, toBlockNum = lastBlock + 1) {
+  async function fetchPastForeignEvents(
+    fromBlockNum = lastForeignBlock,
+    toBlockNum = lastForeignBlock + 1,
+  ) {
     const fromBlock = toHex(fromBlockNum) || toHex(1); // convert to hex due to web3 bug https://github.com/ethereum/web3.js/issues/1097
     const toBlock = toHex(toBlockNum) || toHex(1); // convert to hex due to web3 bug https://github.com/ethereum/web3.js/issues/1097
 
@@ -424,7 +377,39 @@ const watcher = (app, eventHandler) => {
       await lpVault.$contract.getPastEvents({ fromBlock, toBlock }),
     );
 
-    return events;
+    return events.map(e => {
+      return { ...e, isHomeEvent: false };
+    });
+  }
+
+  /**
+   * Fetch all events between now and the latest block
+   *
+   * @param  {Number} [fromBlockNum=lastForeignBlock] The block from which onwards should the events be checked
+   * @param  {Number} [toBlockNum=lastForeignBlock+1] No events after this block should be returned
+   *
+   * @return {Promise} Resolves to an array of events between speciefied block and latest known block.
+   */
+  async function fetchPastHomeEvents(fromBlockNum = lastHomeBlock, toBlockNum = lastHomeBlock + 1) {
+    const fromBlock = fromBlockNum || 1; // convert to hex due to web3 bug https://github.com/ethereum/web3.js/issues/1097
+    const toBlock = toBlockNum || 1; // convert to hex due to web3 bug https://github.com/ethereum/web3.js/issues/1097
+
+    // Get the events from contracts
+    const events = [].concat(
+      await givethBridge.$contract.getPastEvents('PaymentAuthorized', {
+        fromBlock,
+        toBlock,
+      }),
+
+      await givethBridge.$contract.getPastEvents('PaymentExecuted', {
+        fromBlock,
+        toBlock,
+      }),
+    );
+
+    return events.map(e => {
+      return { ...e, isHomeEvent: true };
+    });
   }
 
   /**
@@ -439,52 +424,6 @@ const watcher = (app, eventHandler) => {
       $limit: 1,
     };
     return eventService.find({ paginate: false, query });
-  }
-
-  // TODO: Use real mutex
-  let lock = false;
-  /**
-   * Retrieve and process a single event from the database that has not yet been processed and is next in line
-   *
-   * @return {Promise} Resolves to the event that was processed of false if there was no event to be processed
-   */
-  function processNextEvent() {
-    //  TODO: Fix this anti-pattern
-    // eslint-disable-next-line no-async-promise-executor
-    return new Promise(async (resolve, reject) => {
-      let event;
-      try {
-        if (lock) return;
-        lock = true;
-        [event] = await getUnProcessedEvent();
-
-        // There is no event to be processed, return false
-        if (!event || !event._id) {
-          lock = false;
-          resolve(false);
-        }
-
-        // Process the event
-        await eventService.patch(event._id, {
-          status: EventStatus.PROCESSING,
-          confirmations: requiredConfirmations,
-        });
-        await eventHandler.handle(event);
-        await eventService.patch(event._id, { status: EventStatus.PROCESSED });
-
-        event.status = EventStatus.PROCESSED;
-        lock = false;
-        resolve(event);
-      } catch (error) {
-        if (event)
-          eventService.patch(event._id, {
-            status: EventStatus.FAILED,
-            processingError: error.toString(),
-          });
-        lock = false;
-        reject(error);
-      }
-    });
   }
 
   /**
@@ -545,32 +484,53 @@ const watcher = (app, eventHandler) => {
    */
   const retrieveAndProcessPastEvents = async () => {
     try {
-      const fetchBlockNum = (await web3.eth.getBlockNumber()) - requiredConfirmations;
+      const foreignFetchBlockNum = (await web3.eth.getBlockNumber()) - requiredConfirmations;
+      const homeFetchBlockNum = (await homeWeb3.eth.getBlockNumber()) - requiredConfirmations;
 
-      if (lastBlock < fetchBlockNum && !isFetchingPastEvents) {
+      if (lastForeignBlock < foreignFetchBlockNum && !isFetchingPastForeignEvents) {
         // FIXME: This should likely use semaphore when setting the variable or maybe even better extracted into different loop
-        isFetchingPastEvents = true;
-        lastBlock += 1;
+        isFetchingPastForeignEvents = true;
+        lastForeignBlock += 1;
 
         try {
-          logger.info(`Checking new events between blocks ${lastBlock}-${fetchBlockNum}`);
+          logger.info(
+            `Checking new foreign events between blocks ${lastForeignBlock}-${foreignFetchBlockNum}`,
+          );
 
-          const events = await fetchPastEvents(lastBlock, fetchBlockNum);
+          const events = await fetchPastForeignEvents(lastForeignBlock, foreignFetchBlockNum);
 
           await Promise.all(events.map(newEvent));
 
-          setLastBlock(fetchBlockNum);
+          setLastForeignBlock(foreignFetchBlockNum);
         } catch (err) {
           logger.error('Fetching past events failed: ', err);
         }
-        isFetchingPastEvents = false;
+        isFetchingPastForeignEvents = false;
       }
 
-      // Process next event. This is purposely synchronous with awaits to ensure events are processed in order
-      // eslint-disable-next-line no-await-in-loop
-      while (await processNextEvent()) {
-        /* empty */
+      if (enableHomeEvent && lastHomeBlock < homeFetchBlockNum && !isFetchingPastHomeEvents) {
+        // FIXME: This should likely use semaphore when setting the variable or maybe even better extracted into different loop
+        isFetchingPastHomeEvents = true;
+        lastHomeBlock += 1;
+
+        try {
+          logger.info(
+            `Checking new home events between blocks ${lastHomeBlock}-${homeFetchBlockNum}`,
+          );
+
+          const events = await fetchPastHomeEvents(lastHomeBlock, homeFetchBlockNum);
+
+          await Promise.all(events.map(newEvent));
+
+          setLastHomeBlock(homeFetchBlockNum);
+        } catch (err) {
+          logger.error('Fetching past events failed: ', err);
+        }
+        isFetchingPastHomeEvents = false;
       }
+
+      const unprocessedEvents = await getUnProcessedEvent();
+      unprocessedEvents.forEach(event => addEventToQueue(app, { event }));
     } catch (e) {
       logger.error('error in the processing loop: ', e);
     }
@@ -584,7 +544,8 @@ const watcher = (app, eventHandler) => {
      * This runs interval that checks every x miliseconds (as set in config) for new block and if there are new events processes them
      */
     async start() {
-      setLastBlock(await getLastBlock(app));
+      setLastForeignBlock(await getLastBlock(app));
+      setLastHomeBlock(await getLastBlock(app, true));
 
       const kernelAddress = await liquidPledging.kernel();
       kernel = new Kernel(web3, kernelAddress);

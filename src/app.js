@@ -7,7 +7,6 @@ const helmet = require('helmet');
 const feathers = require('@feathersjs/feathers');
 const express = require('@feathersjs/express');
 const configuration = require('@feathersjs/configuration');
-const notFound = require('@feathersjs/errors/not-found');
 const socketsConfig = require('./socketsConfig');
 const configureLogger = require('./utils/configureLogger');
 
@@ -61,11 +60,18 @@ function initFeatherApp() {
   app.configure(ipfsFetcher);
   app.configure(ipfsPinner);
   // Configure a middleware for 404s and the error handler
-  app.use(notFound());
+  app.use(express.notFound());
   app.use(
     express.errorHandler({
       logger: {
         error: e => {
+          if (e.name === 'NotFound') {
+            logger.warn(`404 - NotFound - ${e.data.url}`);
+          } else {
+            logger.error('Express error handler:', e);
+          }
+        },
+        info: e => {
           if (e.name === 'NotFound') {
             logger.warn(`404 - NotFound - ${e.data.url}`);
           } else {

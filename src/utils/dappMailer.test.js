@@ -105,6 +105,12 @@ const createMilestoneAndCampaign = async () => {
     isAdmin: true,
     name: `dacSubscriber ${new Date()}`,
   });
+  const campaignSubscriber = await userService.create({
+    address: generateRandomEtheriumAddress(),
+    email: `${new Date().getTime()}-campaignSubscriber@test.giveth`,
+    isAdmin: true,
+    name: `campaignSubscriber ${new Date()}`,
+  });
   const campaignReviewer = await userService.create({
     address: generateRandomEtheriumAddress(),
     email: `${new Date().getTime()}-campaignReviewer@test.giveth`,
@@ -162,6 +168,16 @@ const createMilestoneAndCampaign = async () => {
     })
     .save();
 
+  await app
+    .service('subscriptions')
+    .Model({
+      userAddress: campaignSubscriber.address,
+      projectType: 'campaign',
+      projectTypeId: String(campaign._id),
+      enabled: true,
+    })
+    .save();
+
   return {
     milestone,
     campaign,
@@ -172,6 +188,7 @@ const createMilestoneAndCampaign = async () => {
     milestoneRecipient,
     dacOwner,
     dacSubscriber,
+    campaignSubscriber,
   };
 };
 
@@ -399,6 +416,28 @@ function proposedMilestoneAcceptedTestCases() {
       paginate: false,
       query: {
         recipient: dacSubscriber.email,
+        milestoneId: milestone._id,
+        campaignId: campaign._id,
+        unsubscribeType: EmailSubscribeTypes.PROPOSED_MILESTONE_ACCEPTED,
+      },
+    });
+    assert.isAtLeast(dacSubscriberEmails.length, 1);
+    assert.equal(dacSubscriberEmails[0].message, message);
+  });
+  it('email to campaigns subscriber, after proposed Milestone Accepted', async () => {
+    const emailService = app.service('emails');
+    const { campaign, milestone, campaignSubscriber } = await createMilestoneAndCampaign();
+    const message = `test message - ${new Date()}`;
+    await proposedMilestoneAccepted(app, {
+      milestone,
+      message,
+    });
+    // because creating and sending email is async, we should wait to make sure the email hooks worked
+    await sleep(50);
+    const dacSubscriberEmails = await emailService.find({
+      paginate: false,
+      query: {
+        recipient: campaignSubscriber.email,
         milestoneId: milestone._id,
         campaignId: campaign._id,
         unsubscribeType: EmailSubscribeTypes.PROPOSED_MILESTONE_ACCEPTED,
@@ -726,10 +765,12 @@ function moneyWentToRecipientWalletTestCases() {
     const { campaign, milestone, milestoneRecipient } = await createMilestoneAndCampaign();
     await moneyWentToRecipientWallet(app, {
       milestone,
-      token: {
-        symbol: 'ETH',
-      },
-      amount: '1000000000',
+      payments: [
+        {
+          symbol: 'ETH',
+          amount: '1000000000',
+        },
+      ],
     });
     // because creating and sending email is async, we should wait to make sure the email hooks worked
     await sleep(50);

@@ -26,6 +26,7 @@ const CONVERSATION_MESSAGE_CONTEXT = {
   REJECTED: 'rejected',
   REPLY_TO: 'replyTo',
   PROPOSED: 'proposed',
+  RECIPIENT_CHANGED: 'recipientChanged',
 };
 
 const createModel = function Conversations(app) {

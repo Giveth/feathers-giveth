@@ -97,7 +97,7 @@ const handleMilestoneConversationAndEmail = () => async context => {
     ARCHIVED,
   } = MilestoneStatus;
   const { status, _id, prevStatus, message, mined } = result;
-  logger.info('sendNotification', {
+  logger.info('handleMilestoneConversationAndEmail() called', {
     milestoneId: _id,
     eventTxHash,
     status,
@@ -184,7 +184,8 @@ const handleMilestoneConversationAndEmail = () => async context => {
       milestone: result,
       user,
     });
-  } else if (data.status === ARCHIVED && prevStatus === IN_PROGRESS) {
+  } else if (data.status === ARCHIVED && prevStatus !== ARCHIVED) {
+    // Completed and InProgress milestones could become archived
     _createConversation(CONVERSATION_MESSAGE_CONTEXT.ARCHIVED);
   }
 };

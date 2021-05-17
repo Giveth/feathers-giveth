@@ -127,3 +127,4 @@ simulation/**/*.js
 
 scripts/uploadAndPinProjectImagesToPinata.json
 directDonationsReport.csv
+usersActivityReport.csv

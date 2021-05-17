@@ -32,6 +32,7 @@ const getApprovedKeys = (milestone, data, user) => {
     'image',
     'token',
     'type',
+    'dacId',
   ];
 
   // Fields that can be edited once milestone stored on the blockchain
@@ -143,7 +144,7 @@ const getApprovedKeys = (milestone, data, user) => {
       }
 
       // Archive milestone by Milestone Manager or Campaign Manager
-      if (!milestone.maxAmount && data.status === MilestoneStatus.ARCHIVED) {
+      if (data.status === MilestoneStatus.ARCHIVED) {
         if (
           ![
             milestone.campaign.ownerAddress,

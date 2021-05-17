@@ -3,7 +3,10 @@ const { AdminTypes } = require('../models/pledgeAdmins.model');
 const { EmailImages, EmailSubscribeTypes } = require('../models/emails.model');
 const { findParentDacs } = require('../repositories/dacRepository');
 const { ANY_TOKEN } = require('../blockchain/lib/web3Helpers');
-const { findParentDacSubscribersForCampaign } = require('../repositories/subscriptionRepository');
+const {
+  findParentDacSubscribersForCampaign,
+  findProjectSubscribers,
+} = require('../repositories/subscriptionRepository');
 const { findUserByAddress } = require('../repositories/userRepository');
 
 const emailNotificationTemplate = 'notification';
@@ -480,7 +483,7 @@ const proposedMilestoneAccepted = async (app, { milestone, message }) => {
     const dacTitle = dac.title;
     dac.subscriptions.forEach(subscription => {
       const subscriberUser = subscription.user;
-      const dacSubscriber = {
+      const dacSubscriberEmailData = {
         recipient: subscriberUser.email,
         template: emailNotificationTemplate,
         subject: `Giveth - ${dacTitle} has added a new milestone!`,
@@ -501,8 +504,38 @@ const proposedMilestoneAccepted = async (app, { milestone, message }) => {
         unsubscribeType: EmailSubscribeTypes.PROPOSED_MILESTONE_ACCEPTED,
         unsubscribeReason: `You receive this email because you are subscribing a dac`,
       };
-      sendEmail(app, dacSubscriber);
+      sendEmail(app, dacSubscriberEmailData);
     });
+  }
+
+  const campaignSubscriptions = await findProjectSubscribers(app, {
+    projectTypeId: campaignId,
+  });
+  // eslint-disable-next-line no-restricted-syntax
+  for (const subscription of campaignSubscriptions) {
+    const subscriberUser = subscription.user;
+    const campaignSubscriberEmailData = {
+      recipient: subscriberUser.email,
+      template: emailNotificationTemplate,
+      subject: `Giveth - ${campaignTitle} has added a new milestone!`,
+      secretIntro: `Check out what ${campaignTitle} has in store!`,
+      title: `${campaignTitle} has expanded!`,
+      image: EmailImages.MILESTONE_REVIEW_APPROVED,
+      text: `
+        <p><span ${emailStyle}>Hi ${subscriberUser.name || ''}</span></p>
+        <p>
+         ${campaignTitle} added a new milestone. Come see what awesome things they have planned!
+        </p>
+      `,
+      cta: `See Milestone`,
+      ctaRelativeUrl: generateMilestoneCtaRelativeUrl(campaignId, milestoneId),
+      milestoneId,
+      campaignId,
+      message,
+      unsubscribeType: EmailSubscribeTypes.PROPOSED_MILESTONE_ACCEPTED,
+      unsubscribeReason: `You receive this email because you are subscribing a campaign`,
+    };
+    sendEmail(app, campaignSubscriberEmailData);
   }
 
   // Maybe recipient is campaign and doesnt have email, or recipient id the milestone owner
@@ -929,7 +962,7 @@ const donationsCollected = (app, { milestone, conversation }) => {
   sendEmail(app, data);
 };
 
-const moneyWentToRecipientWallet = (app, { milestone, token, amount }) => {
+const moneyWentToRecipientWallet = (app, { milestone, payments }) => {
   const {
     recipient: milestoneRecipient,
     title: milestoneTitle,
@@ -940,7 +973,7 @@ const moneyWentToRecipientWallet = (app, { milestone, token, amount }) => {
     logger.info(
       `Currently we dont send email for milestones who doesnt have recipient, milestoneId: ${milestoneId}`,
     );
-    return;
+    return Promise.resolve();
   }
   const data = {
     recipient: milestoneRecipient.email,
@@ -953,9 +986,11 @@ const moneyWentToRecipientWallet = (app, { milestone, token, amount }) => {
     text: `
         <p><span ${emailStyle}>Hi ${milestoneRecipient.name || ''}</span></p>
         <p>The funds from your Milestone <strong>${milestoneTitle}</strong>
-        of the amount ${normalizeAmount(amount)} ${
-      token.symbol
-    } have been sent to your wallet. It’s time to take action to build a brighter future!
+        of the amount
+        <p></p>
+        ${payments.map(p => `<p>${normalizeAmount(p.amount)} ${p.symbol}</p>`)}
+        <p></p>
+         have been sent to your wallet. It’s time to take action to build a brighter future!
         </p>
 
         <p>You have these payment(s) in your wallet <strong>
@@ -969,7 +1004,7 @@ const moneyWentToRecipientWallet = (app, { milestone, token, amount }) => {
     unsubscribeType: EmailSubscribeTypes.DONATIONS_COLLECTED,
     unsubscribeReason: `You receive this email because you are the recipient of a Milestone`,
   };
-  sendEmail(app, data);
+  return sendEmail(app, data);
 };
 
 module.exports = {

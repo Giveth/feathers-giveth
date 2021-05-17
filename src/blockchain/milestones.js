@@ -5,6 +5,7 @@ const { DonationStatus } = require('../models/donations.model');
 const { CONVERSATION_MESSAGE_CONTEXT } = require('../models/conversations.model');
 const { getTransaction } = require('./lib/web3Helpers');
 const { donationsCollected } = require('../utils/dappMailer');
+const { createRecipientChangedConversation } = require('../utils/conversationCreator');
 
 const getDonationPaymentsByToken = donations => {
   const tokens = {};
@@ -158,9 +159,10 @@ const milestonesFactory = app => {
       // only interested in milestones we are aware of.
       if (data.length === 1) {
         const m = data[0];
-        const { from } = await getTransaction(app, txHash);
+        const { from, timestamp } = await getTransaction(app, txHash);
+        const milestoneId = m._id;
         const milestone = await milestones.patch(
-          m._id,
+          milestoneId,
           {
             recipientAddress: recipient,
             $unset: { pendingRecipientAddress: true },
@@ -171,6 +173,13 @@ const milestonesFactory = app => {
             performedByAddress: from,
           },
         );
+        await createRecipientChangedConversation(app, {
+          milestoneId,
+          newRecipientAddress: recipient,
+          timestamp,
+          txHash,
+          from,
+        });
         return milestone;
       }
       return null;

@@ -61,11 +61,24 @@ function normalizer(app) {
     return new Promise((resolve, reject) => {
       lockNonceAndSendTransaction(web3, method, opts, arg)
         .on('transactionHash', () => {
+          logger.info('Normalizer sendTx lockNonceAndSendTransaction() response', {
+            opts,
+            method,
+            arg,
+          });
           // if we have a txHash, then the tx was submitted and successfully estimatedGas
           // if it fails at this point, we will retry in the next poll
           resolve();
         })
-        .catch(reject);
+        .catch(e => {
+          logger.info('Normalizer sendTx lockNonceAndSendTransaction()', {
+            opts,
+            arg,
+            method,
+            error: e,
+          });
+          reject(e);
+        });
     });
   }
 
@@ -85,6 +98,7 @@ function normalizer(app) {
    * @param {int} batchSize (optional) the size of the batch to chunk the requests into. Defaults to 20.
    */
   async function execute(pledges, batchSize = 20) {
+    logger.info('normalizer execute() called', { pledges, batchSize });
     if (pledges.length === 0) return;
     const batch = pledges.splice(0, batchSize);
     const method = batchSize > 1 ? liquidPledging.mNormalizePledge : liquidPledging.normalizePledge;
@@ -97,6 +111,7 @@ function normalizer(app) {
     try {
       await sendTx(method, opts, arg);
     } catch (e) {
+      logger.error('Failed to normalize ', e);
       if (batchSize === 1 || batch.length === 1) {
         logger.error('Failed to normalize pledgeID ->', batch[0]);
         return;
