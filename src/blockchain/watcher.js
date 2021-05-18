@@ -541,7 +541,12 @@ const watcher = app => {
       }
 
       const unprocessedEvents = await getUnProcessedEvent();
-      unprocessedEvents.forEach(event => addEventToQueue(app, { event }));
+      // eslint-disable-next-line no-restricted-syntax
+      for (const event of unprocessedEvents) {
+        // we should not use forEach, we should use await to make sure events added to queue by order
+        // eslint-disable-next-line no-await-in-loop
+        await addEventToQueue(app, { event });
+      }
     } catch (e) {
       logger.error('error in the processing loop: ', e);
     }
