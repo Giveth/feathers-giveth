@@ -1,3 +1,4 @@
+const logger = require('winston');
 const { disallow } = require('feathers-hooks-common');
 const {
   updateBridgePaymentExecutedTxHash,
@@ -19,7 +20,26 @@ const getEntityGasUsedPrice = (app, fieldName, id) => {
 };
 const updateEntitiesGasPayments = () => async context => {
   const { app, result } = context;
-  const { recipientAddress, milestoneId, campaignId, donationTxHash, hash, timestamp } = result;
+  const {
+    recipientAddress,
+    milestoneId,
+    campaignId,
+    donationTxHash,
+    hash,
+    timestamp,
+    from,
+  } = result;
+
+  const givethAccounts = app.get('givethAccounts');
+
+  // If gas is not paid by Giveth we can skip
+  if (!givethAccounts.includes(from)) {
+    logger.error('The from of transaction is not a giveth account', {
+      from,
+      givethAccounts,
+    });
+    return context;
+  }
   const [
     [recipientTotalGasUsed],
     [milestoneTotalGasUsed],
