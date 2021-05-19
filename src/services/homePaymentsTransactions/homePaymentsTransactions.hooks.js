@@ -28,15 +28,27 @@ const updateEntitiesGasPayments = () => async context => {
     hash,
     timestamp,
     from,
+    paidByGiveth,
+    _id,
+    event,
   } = result;
-
-  const givethAccounts = app.get('givethAccounts');
-
+  if (event === HomePaymentsEventTypes.PaymentExecuted) {
+    await updateBridgePaymentExecutedTxHash(app, {
+      txHash: donationTxHash,
+      bridgePaymentExecutedTxHash: hash,
+      bridgePaymentExecutedTime: timestamp,
+    });
+  } else if (event === HomePaymentsEventTypes.PaymentAuthorized) {
+    await updateBridgePaymentAuthorizedTxHash(app, {
+      txHash: donationTxHash,
+      bridgePaymentAuthorizedTxHash: hash,
+    });
+  }
   // If gas is not paid by Giveth we can skip
-  if (!givethAccounts.includes(from)) {
+  if (!paidByGiveth) {
     logger.error('The from of transaction is not a giveth account', {
       from,
-      givethAccounts,
+      _id,
     });
     return context;
   }
@@ -73,18 +85,7 @@ const updateEntitiesGasPayments = () => async context => {
         { timestamps: false },
       ),
   ]);
-  if (result.event === HomePaymentsEventTypes.PaymentExecuted) {
-    await updateBridgePaymentExecutedTxHash(app, {
-      txHash: donationTxHash,
-      bridgePaymentExecutedTxHash: hash,
-      bridgePaymentExecutedTime: timestamp,
-    });
-  } else if (result.event === HomePaymentsEventTypes.PaymentAuthorized) {
-    await updateBridgePaymentAuthorizedTxHash(app, {
-      txHash: donationTxHash,
-      bridgePaymentAuthorizedTxHash: hash,
-    });
-  }
+
   return context;
 };
 

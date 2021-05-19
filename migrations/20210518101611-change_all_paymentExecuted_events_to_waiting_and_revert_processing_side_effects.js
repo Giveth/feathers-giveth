@@ -3,6 +3,7 @@ module.exports = {
     // The purpose of this migration is revert all changes that are related to PaymentExexuted and PaymentAuthorized events
     // then process all these events again (by changing their status to Waiting)
     await db.collection('conversations').deleteMany({ messageContext: 'payout' });
+    await db.collection('homepaymentstransactions').deleteMany({});
     await db.collection('users').updateMany({}, { $unset: { gasPaidUsdValue: 1 } });
     await db.collection('milestones').updateMany({}, { $unset: { gasPaidUsdValue: 1 } });
     await db.collection('campaigns').updateMany({}, { $unset: { gasPaidUsdValue: 1 } });

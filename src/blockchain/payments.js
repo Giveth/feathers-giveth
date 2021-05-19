@@ -146,6 +146,11 @@ const payments = app => ({
     const { transactionHash, returnValues } = event;
     const tx = await getTransaction(app, transactionHash, true, true);
     const { timestamp, gasPrice, gasUsed, from } = tx;
+
+    const givethAccounts = app.get('givethAccounts');
+
+    // If gas is not paid by Giveth we can skip
+    const paidByGiveth = givethAccounts.includes(from);
     const { idPayment, recipient, amount, token: tokenAddress } = returnValues;
     const service = app.service('homePaymentsTransactions');
     const result = await service.Model.countDocuments({
@@ -212,7 +217,7 @@ const payments = app => ({
       timestamp,
       from,
       payments: [{ amount, symbol: token.symbol }],
-      paidByGiveth: true,
+      paidByGiveth,
       paymentId: idPayment,
     });
     const payment = {
