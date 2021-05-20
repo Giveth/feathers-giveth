@@ -1,3 +1,4 @@
+const logger = require('winston');
 const { disallow } = require('feathers-hooks-common');
 const {
   updateBridgePaymentExecutedTxHash,
@@ -19,7 +20,38 @@ const getEntityGasUsedPrice = (app, fieldName, id) => {
 };
 const updateEntitiesGasPayments = () => async context => {
   const { app, result } = context;
-  const { recipientAddress, milestoneId, campaignId, donationTxHash, hash, timestamp } = result;
+  const {
+    recipientAddress,
+    milestoneId,
+    campaignId,
+    donationTxHash,
+    hash,
+    timestamp,
+    from,
+    paidByGiveth,
+    _id,
+    event,
+  } = result;
+  if (event === HomePaymentsEventTypes.PaymentExecuted) {
+    await updateBridgePaymentExecutedTxHash(app, {
+      txHash: donationTxHash,
+      bridgePaymentExecutedTxHash: hash,
+      bridgePaymentExecutedTime: timestamp,
+    });
+  } else if (event === HomePaymentsEventTypes.PaymentAuthorized) {
+    await updateBridgePaymentAuthorizedTxHash(app, {
+      txHash: donationTxHash,
+      bridgePaymentAuthorizedTxHash: hash,
+    });
+  }
+  // If gas is not paid by Giveth we can skip
+  if (!paidByGiveth) {
+    logger.error('The from of transaction is not a giveth account', {
+      from,
+      _id,
+    });
+    return context;
+  }
   const [
     [recipientTotalGasUsed],
     [milestoneTotalGasUsed],
@@ -53,18 +85,7 @@ const updateEntitiesGasPayments = () => async context => {
         { timestamps: false },
       ),
   ]);
-  if (result.event === HomePaymentsEventTypes.PaymentExecuted) {
-    await updateBridgePaymentExecutedTxHash(app, {
-      txHash: donationTxHash,
-      bridgePaymentExecutedTxHash: hash,
-      bridgePaymentExecutedTime: timestamp,
-    });
-  } else if (result.event === HomePaymentsEventTypes.PaymentAuthorized) {
-    await updateBridgePaymentAuthorizedTxHash(app, {
-      txHash: donationTxHash,
-      bridgePaymentAuthorizedTxHash: hash,
-    });
-  }
+
   return context;
 };
 
