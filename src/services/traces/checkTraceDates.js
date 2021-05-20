@@ -1,9 +1,9 @@
 const errors = require('@feathersjs/errors');
 
 /**
- * This function checks that milestones and items are not created in the future, which we disallow at the moment
+ * This function checks that traces and items are not created in the future, which we disallow at the moment
  * */
-const checkMilestoneDates = () => context => {
+const checkTraceDates = () => context => {
   // abort check for internal calls
   if (!context.params.provider) return context;
 
@@ -30,4 +30,4 @@ const checkMilestoneDates = () => context => {
   return context;
 };
 
-module.exports = checkMilestoneDates;
+module.exports = checkTraceDates;

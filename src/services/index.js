@@ -6,7 +6,7 @@ const emails = require('./emails/emails.service');
 const subscription = require('./subscriptions/subscription.service');
 
 const dacs = require('./dacs/dacs.service.js');
-const milestones = require('./milestones/milestones.service.js');
+const milestones = require('./traces/traces.service.js');
 const campaigns = require('./campaigns/campaigns.service.js');
 const campaigncsv = require('./csv/campaigncsv.service.js');
 const users = require('./users/users.service.js');

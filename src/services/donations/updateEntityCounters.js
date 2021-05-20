@@ -5,13 +5,13 @@ const logger = require('winston');
 const _groupBy = require('lodash.groupby');
 const { AdminTypes } = require('../../models/pledgeAdmins.model');
 const { DonationStatus } = require('../../models/donations.model');
-const { MilestoneTypes } = require('../../models/milestones.model');
+const { TraceTypes } = require('../../models/traces.model');
 const { ANY_TOKEN } = require('../../blockchain/lib/web3Helpers');
 
 const ENTITY_SERVICES = {
   [AdminTypes.DAC]: 'dacs',
   [AdminTypes.CAMPAIGN]: 'campaigns',
-  [AdminTypes.MILESTONE]: 'milestones',
+  [AdminTypes.TRACE]: 'traces',
 };
 
 const updateEntity = async (app, id, type) => {
@@ -41,10 +41,10 @@ const updateEntity = async (app, id, type) => {
       ownerTypeId: id,
       ownerType: AdminTypes.CAMPAIGN,
     });
-  } else if (type === AdminTypes.MILESTONE) {
+  } else if (type === AdminTypes.TRACE) {
     Object.assign(donationQuery, {
       ownerTypeId: id,
-      ownerType: AdminTypes.MILESTONE,
+      ownerType: AdminTypes.TRACE,
     });
   } else {
     return;
@@ -84,7 +84,7 @@ const updateEntity = async (app, id, type) => {
       let { totalDonated, currentBalance } = tokenDonations
         .filter(
           d =>
-            (type === AdminTypes.MILESTONE && entity.type === MilestoneTypes.LPMilestone) ||
+            (type === AdminTypes.TRACE && entity.type === TraceTypes.LPMilestone) ||
             ![DonationStatus.PAYING, DonationStatus.PAID].includes(d.status),
         )
         .reduce(
@@ -125,7 +125,7 @@ const updateEntity = async (app, id, type) => {
     });
     const { token, maxAmount } = entity;
     const fullyFunded =
-      type === AdminTypes.MILESTONE &&
+      type === AdminTypes.TRACE &&
       donationCounters.length > 0 &&
       token.foreignAddress !== ANY_TOKEN.foreignAddress &&
       maxAmount &&
@@ -174,8 +174,8 @@ const updateDonationEntity = async (context, donation) => {
   } else if (donation.ownerType === AdminTypes.CAMPAIGN) {
     type = AdminTypes.CAMPAIGN;
     entityId = donation.ownerTypeId;
-  } else if (donation.ownerType === AdminTypes.MILESTONE) {
-    type = AdminTypes.MILESTONE;
+  } else if (donation.ownerType === AdminTypes.TRACE) {
+    type = AdminTypes.TRACE;
     entityId = donation.ownerTypeId;
   } else {
     return;

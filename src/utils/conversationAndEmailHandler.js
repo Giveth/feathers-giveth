@@ -5,7 +5,7 @@ const { AdminTypes } = require('../models/pledgeAdmins.model');
 const { CONVERSATION_MESSAGE_CONTEXT } = require('../models/conversations.model');
 const Mailer = require('./dappMailer');
 const { getTransaction } = require('../blockchain/lib/web3Helpers');
-const { MilestoneStatus } = require('../models/milestones.model');
+const { TraceStatus } = require('../models/traces.model');
 const { createDonatedConversation, createDelegatedConversation } = require('./conversationCreator');
 
 const getPledgeAdmin = (app, type, id) => {
@@ -14,20 +14,20 @@ const getPledgeAdmin = (app, type, id) => {
       return app.service('dacs').get(id);
     case AdminTypes.CAMPAIGN:
       return app.service('campaigns').get(id);
-    case AdminTypes.MILESTONE:
-      return app.service('milestones').get(id);
+    case AdminTypes.TRACE:
+      return app.service('traces').get(id);
     default:
       return app.service('users').get(id);
   }
 };
 
-async function sendMilestoneProposedEmail(app, { milestone }) {
+async function sendTraceProposedEmail(app, { trace }) {
   try {
-    await Mailer.milestoneProposed(app, {
-      milestone,
+    await Mailer.traceProposed(app, {
+      trace,
     });
   } catch (e) {
-    logger.error('error sending proposed milestone notification', e);
+    logger.error('error sending proposed trace notification', e);
   }
 }
 
@@ -36,7 +36,7 @@ async function sendMilestoneProposedEmail(app, { milestone }) {
  * Conditionally sends a notification after patch or create
  *
  * */
-const handleMilestoneConversationAndEmail = () => async context => {
+const handleTraceConversationAndEmail = () => async context => {
   const { data, app, result, params } = context;
   const { user } = params;
   const { performedByAddress, eventTxHash } = params;
@@ -50,7 +50,7 @@ const handleMilestoneConversationAndEmail = () => async context => {
       const similarConversations = await service.find({
         paginate: false,
         query: {
-          milestoneId: _id,
+          traceId: _id,
           messageContext,
           txHash: eventTxHash,
         },
@@ -73,7 +73,7 @@ const handleMilestoneConversationAndEmail = () => async context => {
     try {
       const res = await service.create(
         {
-          milestoneId: _id,
+          traceId: _id,
           message,
           items: proofItems,
           messageContext,
@@ -95,18 +95,18 @@ const handleMilestoneConversationAndEmail = () => async context => {
     IN_PROGRESS,
     PROPOSED,
     ARCHIVED,
-  } = MilestoneStatus;
+  } = TraceStatus;
   const { status, _id, prevStatus, message, mined } = result;
-  logger.info('handleMilestoneConversationAndEmail() called', {
-    milestoneId: _id,
+  logger.info('handleTraceConversationAndEmail() called', {
+    traceId: _id,
     eventTxHash,
     status,
     prevStatus,
     method: context.method,
   });
   if (context.method === 'create' && status === PROPOSED) {
-    await sendMilestoneProposedEmail(app, {
-      milestone: result,
+    await sendTraceProposedEmail(app, {
+      trace: result,
     });
     return;
   }
@@ -117,75 +117,75 @@ const handleMilestoneConversationAndEmail = () => async context => {
   }
 
   /**
-   * Generate Mailer and Conversations when a milestone is patched
+   * Generate Mailer and Conversations when a trace is patched
    */
 
   /**
-   * This only gets triggered when the txHash is received through a milestone event
+   * This only gets triggered when the txHash is received through a trace event
    * Which basically means the event is really mined
    * */
   if (eventTxHash) {
     if (data.status === IN_PROGRESS && prevStatus === PROPOSED) {
       _createConversation(CONVERSATION_MESSAGE_CONTEXT.PROPOSED_ACCEPTED);
-      Mailer.proposedMilestoneAccepted(app, {
-        milestone: result,
+      Mailer.proposedTraceAccepted(app, {
+        trace: result,
         message,
       });
     } else if (status === PROPOSED && prevStatus === REJECTED) {
-      await sendMilestoneProposedEmail(app, {
-        milestone: result,
+      await sendTraceProposedEmail(app, {
+        trace: result,
       });
     } else if (data.status === NEEDS_REVIEW) {
-      // find the milestone reviewer owner and send a notification that this milestone is been marked as complete and needs review
+      // find the trace reviewer owner and send a notification that this trace is been marked as complete and needs review
       _createConversation(status);
-      Mailer.milestoneRequestReview(app, {
-        milestone: result,
+      Mailer.traceRequestReview(app, {
+        trace: result,
         message,
       });
     } else if (status === COMPLETED && mined) {
       _createConversation(status);
-      // find the milestone owner and send a notification that his/her milestone is marked complete
-      Mailer.milestoneMarkedCompleted(app, {
-        milestone: result,
+      // find the trace owner and send a notification that his/her trace is marked complete
+      Mailer.traceMarkedCompleted(app, {
+        trace: result,
         message,
       });
     } else if (data.status === IN_PROGRESS && prevStatus === NEEDS_REVIEW) {
       _createConversation(CONVERSATION_MESSAGE_CONTEXT.REJECTED);
 
-      // find the milestone reviewer and send a notification that his/her milestone has been rejected by reviewer
+      // find the trace reviewer and send a notification that his/her trace has been rejected by reviewer
       // it's possible to have a null reviewer if that address has never logged in
       // if (reviewer) {
       // TODO I think it was wrong that we were sending emails to reviewer in this case
-      // TODO so I sent to milestone owner instead
-      Mailer.milestoneReviewRejected(app, {
-        milestone: result,
+      // TODO so I sent to trace owner instead
+      Mailer.traceReviewRejected(app, {
+        trace: result,
         message,
       });
       // }
     } else if (status === CANCELED && mined) {
       _createConversation(CONVERSATION_MESSAGE_CONTEXT.CANCELLED);
 
-      // find the milestone owner and send a notification that his/her milestone is canceled
-      Mailer.milestoneCanceled(app, {
-        milestone: result,
+      // find the trace owner and send a notification that his/her trace is canceled
+      Mailer.traceCancelled(app, {
+        trace: result,
         message,
       });
     }
   } else if (data.status === REJECTED && prevStatus === PROPOSED) {
     _createConversation(CONVERSATION_MESSAGE_CONTEXT.PROPOSED_REJECTED);
-    Mailer.proposedMilestoneRejected(app, {
-      milestone: result,
+    Mailer.proposedTraceRejected(app, {
+      trace: result,
       message,
     });
   } else if (data.status === PROPOSED && prevStatus === REJECTED) {
     _createConversation(CONVERSATION_MESSAGE_CONTEXT.RE_PROPOSE);
   } else if (result.status === PROPOSED && !prevStatus) {
-    Mailer.proposedMilestoneEdited(app, {
-      milestone: result,
+    Mailer.proposedTraceEdited(app, {
+      trace: result,
       user,
     });
   } else if (data.status === ARCHIVED && prevStatus !== ARCHIVED) {
-    // Completed and InProgress milestones could become archived
+    // Completed and InProgress traces could become archived
     _createConversation(CONVERSATION_MESSAGE_CONTEXT.ARCHIVED);
   }
 };
@@ -214,7 +214,7 @@ const handleDonationConversationAndEmail = async (app, donation) => {
     parentDonations,
   } = donation;
 
-  // paid donations are handled by the milestone notifications
+  // paid donations are handled by the trace notifications
   if ([DonationStatus.PAYING, DonationStatus.PAID].includes(status)) return;
   const pledgeAdmin = await getPledgeAdmin(
     app,
@@ -278,11 +278,11 @@ const handleDonationConversationAndEmail = async (app, donation) => {
       token,
     });
   } else {
-    // if this is a milestone then no action is required
+    // if this is a trace then no action is required
 
-    // pledge = donation, pledgeAdmin= milestone,  performedByAddress:pledge.actionTakerAddress
-    Mailer.milestoneReceivedDonation(app, {
-      milestone: pledgeAdmin,
+    // pledge = donation, pledgeAdmin= trace,  performedByAddress:pledge.actionTakerAddress
+    Mailer.traceReceivedDonation(app, {
+      trace: pledgeAdmin,
       amount,
       token,
     });
@@ -294,7 +294,7 @@ const handleDonationConversationAndEmail = async (app, donation) => {
     };
     if (directDonation) {
       await createDonatedConversation(app, {
-        milestoneId: pledgeAdmin._id,
+        traceId: pledgeAdmin._id,
         donationId: donation._id,
         homeTxHash,
         payment,
@@ -303,7 +303,7 @@ const handleDonationConversationAndEmail = async (app, donation) => {
       });
     } else {
       await createDelegatedConversation(app, {
-        milestoneId: pledgeAdmin._id,
+        traceId: pledgeAdmin._id,
         donationId: donation._id,
         txHash,
         payment,
@@ -318,5 +318,5 @@ module.exports = {
   getPledgeAdmin,
 
   handleDonationConversationAndEmail,
-  handleMilestoneConversationAndEmail,
+  handleTraceConversationAndEmail,
 };

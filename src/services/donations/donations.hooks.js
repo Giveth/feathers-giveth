@@ -10,7 +10,7 @@ const addConfirmations = require('../../hooks/addConfirmations');
 const tokenAddressConversion = require('../../hooks/tokenAddressConversion');
 const { DonationStatus } = require('../../models/donations.model');
 const { AdminTypes } = require('../../models/pledgeAdmins.model');
-const { MilestoneStatus } = require('../../models/milestones.model');
+const { TraceStatus } = require('../../models/traces.model');
 const { getHourlyCryptoConversion } = require('../conversionRates/getConversionRatesService');
 const { ZERO_ADDRESS, getTransaction } = require('../../blockchain/lib/web3Helpers');
 const { getTokenByAddress } = require('../../utils/tokenHelper');
@@ -197,8 +197,8 @@ const setEntityUpdated = () => async context => {
           },
         },
       );
-    } else if (donation.ownerType === AdminTypes.MILESTONE) {
-      const milestone = await context.app.service('milestones').get(donation.ownerTypeId);
+    } else if (donation.ownerType === AdminTypes.TRACE) {
+      const milestone = await context.app.service('traces').get(donation.ownerTypeId);
       context.app.service('campaigns').patch(
         null,
         { updatedAt: donation.createdAt },
@@ -307,11 +307,11 @@ const updateMilestoneIfNotPledged = () => async context => {
   const { data: donation } = context;
   const { COMMITTED, PAYING, PAID } = DonationStatus;
 
-  if (donation.ownerType === AdminTypes.MILESTONE && [PAYING, PAID].includes(donation.status)) {
-    const milestone = await context.app.service('milestones').get(donation.ownerTypeId);
+  if (donation.ownerType === AdminTypes.TRACE && [PAYING, PAID].includes(donation.status)) {
+    const milestone = await context.app.service('traces').get(donation.ownerTypeId);
     const { maxAmount, reviewerAddress, fullyFunded } = milestone;
 
-    // never set uncapped or without-reviewer non-fullyFunded milestones as PAID
+    // never set uncapped or without-reviewer non-fullyFunded traces as PAID
     const hasReviewer = reviewerAddress && reviewerAddress !== ZERO_ADDRESS;
     if (!maxAmount || (!fullyFunded && !hasReviewer)) return;
 
@@ -329,11 +329,9 @@ const updateMilestoneIfNotPledged = () => async context => {
 
     const hasPayingDonation = donations.some(d => d.status === PAYING);
 
-    context.app.service('milestones').patch(donation.ownerTypeId, {
+    context.app.service('traces').patch(donation.ownerTypeId, {
       status:
-        donation.status === PAYING || hasPayingDonation
-          ? MilestoneStatus.PAYING
-          : MilestoneStatus.PAID,
+        donation.status === PAYING || hasPayingDonation ? TraceStatus.PAYING : TraceStatus.PAID,
     });
   }
 };
@@ -439,7 +437,7 @@ const addProjectToDac = () => async context => {
       break;
     case 'milestone':
       // eslint-disable-next-line no-case-declarations
-      const milestone = await context.app.service('milestones').Model.findOne(
+      const milestone = await context.app.service('traces').Model.findOne(
         {
           _id: ObjectId(projectObjectId),
         },

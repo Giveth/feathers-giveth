@@ -10,7 +10,7 @@ function HomePaymentsTransactions(app) {
     event: { type: String, require: true, enum: Object.values(HomePaymentsEventTypes) },
     usdValue: { type: Number, required: true },
     recipientAddress: { type: String, required: true },
-    milestoneId: { type: String, require: true },
+    traceId: { type: String, require: true },
     donationTxHash: { type: String, require: true },
     campaignId: { type: String, require: true },
     transactionFee: { type: Schema.Types.BN, required: true, min: 0 },
@@ -29,7 +29,7 @@ function HomePaymentsTransactions(app) {
   homePaymentsTransactions.index({ hash: 1, recipientAddress: 1, paymentId: 1 }, { unique: true });
   homePaymentsTransactions.index({ hash: 1, event: 1 });
   homePaymentsTransactions.index({ recipientAddress: 1, paidByGiveth: 1 });
-  homePaymentsTransactions.index({ milestoneId: 1, paidByGiveth: 1 });
+  homePaymentsTransactions.index({ traceId: 1, paidByGiveth: 1 });
   homePaymentsTransactions.index({ campaignId: 1, paidByGiveth: 1 });
 
   return mongooseClient.model('homePaymentsTransactions', homePaymentsTransactions);

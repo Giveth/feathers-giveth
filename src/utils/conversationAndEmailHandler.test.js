@@ -16,7 +16,7 @@ function getPledgeAdminTestCases() {
     assert.isOk(campaign);
   });
   it('should find campaign by id', async () => {
-    const milestone = await getPledgeAdmin(app, AdminTypes.MILESTONE, SAMPLE_DATA.MILESTONE_ID);
+    const milestone = await getPledgeAdmin(app, AdminTypes.TRACE, SAMPLE_DATA.TRACE_ID);
     assert.isOk(milestone);
   });
   it('should find user by id', async () => {
@@ -30,7 +30,7 @@ function getPledgeAdminTestCases() {
   it('should throw exception, fake mongoId', async () => {
     const fakeId = generateRandomMongoId();
     const badFunc = async () => {
-      await getPledgeAdmin(app, AdminTypes.MILESTONE, fakeId);
+      await getPledgeAdmin(app, AdminTypes.TRACE, fakeId);
     };
     await assertThrowsAsync(badFunc, `No record found for id '${fakeId}'`);
   });

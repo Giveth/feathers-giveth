@@ -13,7 +13,7 @@ const createDonationPayload = {
   amountRemaining: '9793698658625350941',
   giverAddress: SAMPLE_DATA.USER_ADDRESS,
   ownerId: 49,
-  ownerTypeId: SAMPLE_DATA.MILESTONE_ID,
+  ownerTypeId: SAMPLE_DATA.TRACE_ID,
   ownerType: 'milestone',
   pledgeId: '89',
   token: {
@@ -43,7 +43,7 @@ async function createCampaigns(data) {
 
 async function createMilestone(data) {
   const response = await request(baseUrl)
-    .post('/milestones')
+    .post('/traces')
     .set({ Authorization: getJwt() })
     .send(data);
   return response.body;
@@ -169,7 +169,7 @@ function postDonationsAddCampaignsToDacTestCases() {
     const campaignId = campaign._id;
     let dac = await app.service('dacs').get(SAMPLE_DATA.DAC_ID);
     assert.isNotOk(dac.campaigns && dac.campaigns.includes(campaignId));
-    const milestone = await createMilestone({ ...SAMPLE_DATA.createMilestoneData(), campaignId });
+    const milestone = await createMilestone({ ...SAMPLE_DATA.createTraceData(), campaignId });
     assert.equal(milestone.campaignId, campaignId);
     const response = await request(baseUrl)
       .post(relativeUrl)

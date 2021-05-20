@@ -5,15 +5,15 @@ const createPendingRecipientAddress = () => async context => {
   if (result.event !== 'RecipientChanged') {
     return context;
   }
-  const milestoneService = context.app.service('milestones');
-  const [milestone] = await milestoneService.find({
+  const traceService = context.app.service('traces');
+  const [milestone] = await traceService.find({
     paginate: false,
     query: {
       projectId: Number(result.returnValues.idProject),
     },
   });
   if (milestone) {
-    await milestoneService.patch(milestone._id, {
+    await traceService.patch(milestone._id, {
       pendingRecipientAddress: result.returnValues.recipient,
     });
   }

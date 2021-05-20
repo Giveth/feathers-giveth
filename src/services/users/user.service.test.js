@@ -43,7 +43,7 @@ function postUserTestCases() {
   it('should get unAuthorized error', async () => {
     const response = await request(baseUrl)
       .post(relativeUrl)
-      .send(SAMPLE_DATA.createMilestoneData());
+      .send(SAMPLE_DATA.createTraceData());
     assert.equal(response.statusCode, 401);
     assert.equal(response.body.code, 401);
   });

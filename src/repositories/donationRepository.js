@@ -31,12 +31,12 @@ const updateBridgePaymentAuthorizedTxHash = async (
   );
 };
 
-const isAllDonationsPaidOut = async (app, { txHash, milestoneId }) => {
+const isAllDonationsPaidOut = async (app, { txHash, traceId }) => {
   const donationModel = app.service('donations').Model;
   const notPaidOutDonationsCount = await donationModel.count({
     txHash,
     status: DonationStatus.PAID,
-    ownerTypeId: milestoneId,
+    ownerTypeId: traceId,
     // after payout  bridgePaymentExecutedTxHash field should be filled
     bridgePaymentExecutedTxHash: {
       $exists: false,

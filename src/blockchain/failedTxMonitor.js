@@ -11,7 +11,7 @@ const topicsFromArtifacts = require('./lib/topicsFromArtifacts');
 const { DacStatus } = require('../models/dacs.model');
 const { DonationStatus } = require('../models/donations.model');
 const { CampaignStatus } = require('../models/campaigns.model');
-const { MilestoneStatus } = require('../models/milestones.model');
+const { TraceStatus } = require('../models/traces.model');
 
 const FIFTEEN_MINUTES = 1000 * 60 * 15;
 const TWO_HOURS = 1000 * 60 * 60 * 2;
@@ -56,7 +56,7 @@ function getPendingCampaigns(app) {
 
 function getPendingMilestones(app) {
   const query = {
-    $or: [{ status: MilestoneStatus.PENDING }, { mined: false }],
+    $or: [{ status: TraceStatus.PENDING }, { mined: false }],
   };
   return getPending(app, 'milestones', query);
 }
@@ -368,7 +368,7 @@ const failedTxMonitor = (app, eventWatcher) => {
     if (!receipt || !receipt.status) {
       // Here we simply revert back to the previous state of the milestone
       app
-        .service('milestones')
+        .service('traces')
         .patch(milestone._id, {
           status: milestone.prevStatus,
           mined: true,
@@ -487,7 +487,7 @@ const failedTxMonitor = (app, eventWatcher) => {
 
       pendingMilestones.forEach(m => updateMilestoneIfFailed(blockNumber, m));
     } catch (e) {
-      logger.error('Check pending milestones error:', e);
+      logger.error('Check pending traces error:', e);
     }
   }
 

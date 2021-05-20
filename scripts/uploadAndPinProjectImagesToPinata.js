@@ -101,7 +101,7 @@ const appFactory = () => {
 
 const app = appFactory();
 app.set('mongooseClient', mongoose);
-const Milestones = require('../src/models/milestones.model').createModel(app);
+const Milestones = require('../src/models/traces.model').createModel(app);
 const Campaigns = require('../src/models/campaigns.model').createModel(app);
 const Dacs = require('../src/models/dacs.model').createModel(app);
 

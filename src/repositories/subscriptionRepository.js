@@ -17,7 +17,7 @@ const updateSubscriptionProject = async (
 /**
  * This function return all users that subscribe a project and have emails
  * @param app : feather instance
- * @param projectTypeId : dacId, campaignId or milestoneId
+ * @param projectTypeId : dacId, campaignId or traceId
  * @returns {Promise<[
       {
         "_id": {"$oid": "604d025bf3084e6a0bae608d"},

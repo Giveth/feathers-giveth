@@ -1,6 +1,6 @@
 const { assert } = require('chai');
 const { getFeatherAppInstance } = require('../app');
-const milestoneFactory = require('./milestones');
+const milestoneFactory = require('./traces');
 const {
   assertThrowsAsync,
   generateRandomEtheriumAddress,
@@ -19,8 +19,8 @@ function reviewRequestedTestCases() {
     const Transaction = app.get('transactionsModel');
     await new Transaction({ hash: transactionHash, from }).save();
     const idProject = generateRandomNumber(10, 100000);
-    await app.service('milestones').create({
-      ...SAMPLE_DATA.createMilestoneData(),
+    await app.service('traces').create({
+      ...SAMPLE_DATA.createTraceData(),
       ownerAddress: from,
       mined: false,
       status,
@@ -49,39 +49,39 @@ function reviewRequestedTestCases() {
     );
   });
 
-  describe('should update milestones successfully with RequestReview event', () => {
+  describe('should update traces successfully with RequestReview event', () => {
     const validStatuses = [
-      SAMPLE_DATA.MILESTONE_STATUSES.PROPOSED,
-      SAMPLE_DATA.MILESTONE_STATUSES.FAILED,
-      SAMPLE_DATA.MILESTONE_STATUSES.ARCHIVED,
-      SAMPLE_DATA.MILESTONE_STATUSES.REJECTED,
-      SAMPLE_DATA.MILESTONE_STATUSES.NEEDS_REVIEW,
-      SAMPLE_DATA.MILESTONE_STATUSES.PENDING,
+      SAMPLE_DATA.TRACE_STATUSES.PROPOSED,
+      SAMPLE_DATA.TRACE_STATUSES.FAILED,
+      SAMPLE_DATA.TRACE_STATUSES.ARCHIVED,
+      SAMPLE_DATA.TRACE_STATUSES.REJECTED,
+      SAMPLE_DATA.TRACE_STATUSES.NEEDS_REVIEW,
+      SAMPLE_DATA.TRACE_STATUSES.PENDING,
     ];
     /* eslint-disable no-restricted-syntax */
     for (const status of validStatuses) {
       it(`should update with status ${status}`, async () => {
         const upsertedMilestone = await updateMileStoneByRequestReviewEventData(status);
-        assert.equal(upsertedMilestone.status, SAMPLE_DATA.MILESTONE_STATUSES.NEEDS_REVIEW);
+        assert.equal(upsertedMilestone.status, SAMPLE_DATA.TRACE_STATUSES.NEEDS_REVIEW);
         assert.equal(upsertedMilestone.mined, true);
       });
     }
   });
   it('should not update milestone (with Paying status) by eventData', async () => {
     const upsertedMilestone = await updateMileStoneByRequestReviewEventData(
-      SAMPLE_DATA.MILESTONE_STATUSES.PAYING,
+      SAMPLE_DATA.TRACE_STATUSES.PAYING,
     );
     assert.isNotOk(upsertedMilestone);
   });
   it('should not update milestone (with Paid status) by eventData', async () => {
     const upsertedMilestone = await updateMileStoneByRequestReviewEventData(
-      SAMPLE_DATA.MILESTONE_STATUSES.PAID,
+      SAMPLE_DATA.TRACE_STATUSES.PAID,
     );
     assert.isNotOk(upsertedMilestone);
   });
   it('should not update milestone (with Canceled status) by eventData', async () => {
     const upsertedMilestone = await updateMileStoneByRequestReviewEventData(
-      SAMPLE_DATA.MILESTONE_STATUSES.CANCELED,
+      SAMPLE_DATA.TRACE_STATUSES.CANCELED,
     );
     assert.isNotOk(upsertedMilestone);
   });
@@ -94,8 +94,8 @@ function rejectTestCases() {
     const Transaction = app.get('transactionsModel');
     await new Transaction({ hash: transactionHash, from }).save();
     const idProject = generateRandomNumber(10, 100000);
-    await app.service('milestones').create({
-      ...SAMPLE_DATA.createMilestoneData(),
+    await app.service('traces').create({
+      ...SAMPLE_DATA.createTraceData(),
       ownerAddress: from,
       mined: false,
       status,
@@ -124,20 +124,20 @@ function rejectTestCases() {
     );
   });
 
-  describe('should update milestones successfully with RejectCompleted event', () => {
+  describe('should update traces successfully with RejectCompleted event', () => {
     const validStatuses = [
-      SAMPLE_DATA.MILESTONE_STATUSES.IN_PROGRESS,
-      SAMPLE_DATA.MILESTONE_STATUSES.FAILED,
-      SAMPLE_DATA.MILESTONE_STATUSES.ARCHIVED,
-      SAMPLE_DATA.MILESTONE_STATUSES.REJECTED,
-      SAMPLE_DATA.MILESTONE_STATUSES.IN_PROGRESS,
-      SAMPLE_DATA.MILESTONE_STATUSES.PENDING,
+      SAMPLE_DATA.TRACE_STATUSES.IN_PROGRESS,
+      SAMPLE_DATA.TRACE_STATUSES.FAILED,
+      SAMPLE_DATA.TRACE_STATUSES.ARCHIVED,
+      SAMPLE_DATA.TRACE_STATUSES.REJECTED,
+      SAMPLE_DATA.TRACE_STATUSES.IN_PROGRESS,
+      SAMPLE_DATA.TRACE_STATUSES.PENDING,
     ];
     /* eslint-disable no-restricted-syntax */
     for (const status of validStatuses) {
       it(`should update with status ${status}`, async () => {
         const upsertedMilestone = await updateMileStoneByRejectEventData(status);
-        assert.equal(upsertedMilestone.status, SAMPLE_DATA.MILESTONE_STATUSES.IN_PROGRESS);
+        assert.equal(upsertedMilestone.status, SAMPLE_DATA.TRACE_STATUSES.IN_PROGRESS);
         assert.equal(upsertedMilestone.mined, true);
       });
     }
@@ -145,19 +145,19 @@ function rejectTestCases() {
 
   it('should not update milestone (with Paying status) by eventData', async () => {
     const upsertedMilestone = await updateMileStoneByRejectEventData(
-      SAMPLE_DATA.MILESTONE_STATUSES.PAYING,
+      SAMPLE_DATA.TRACE_STATUSES.PAYING,
     );
     assert.isNotOk(upsertedMilestone);
   });
   it('should not update milestone (with Paid status) by eventData', async () => {
     const upsertedMilestone = await updateMileStoneByRejectEventData(
-      SAMPLE_DATA.MILESTONE_STATUSES.PAID,
+      SAMPLE_DATA.TRACE_STATUSES.PAID,
     );
     assert.isNotOk(upsertedMilestone);
   });
   it('should not update milestone (with Canceled status) by eventData', async () => {
     const upsertedMilestone = await updateMileStoneByRejectEventData(
-      SAMPLE_DATA.MILESTONE_STATUSES.CANCELED,
+      SAMPLE_DATA.TRACE_STATUSES.CANCELED,
     );
     assert.isNotOk(upsertedMilestone);
   });
@@ -170,8 +170,8 @@ function acceptedTestCases() {
     const Transaction = app.get('transactionsModel');
     await new Transaction({ hash: transactionHash, from }).save();
     const idProject = generateRandomNumber(10, 100000);
-    await app.service('milestones').create({
-      ...SAMPLE_DATA.createMilestoneData(),
+    await app.service('traces').create({
+      ...SAMPLE_DATA.createTraceData(),
       ownerAddress: from,
       mined: false,
       status,
@@ -202,9 +202,9 @@ function acceptedTestCases() {
 
   it('should change milestone status to accepted', async () => {
     const milestone = await updateMileStoneByAcceptedEventData(
-      SAMPLE_DATA.MILESTONE_STATUSES.PROPOSED,
+      SAMPLE_DATA.TRACE_STATUSES.PROPOSED,
     );
-    assert.equal(milestone.status, SAMPLE_DATA.MILESTONE_STATUSES.COMPLETED);
+    assert.equal(milestone.status, SAMPLE_DATA.TRACE_STATUSES.COMPLETED);
   });
 }
 
@@ -215,8 +215,8 @@ function reviewerChangedTestCases() {
     const Transaction = app.get('transactionsModel');
     await new Transaction({ hash: transactionHash, from }).save();
     const idProject = generateRandomNumber(10, 100000);
-    await app.service('milestones').create({
-      ...SAMPLE_DATA.createMilestoneData(),
+    await app.service('traces').create({
+      ...SAMPLE_DATA.createTraceData(),
       ownerAddress: from,
       reviewerAddress: from,
       recipientAddress: from,
@@ -250,7 +250,7 @@ function reviewerChangedTestCases() {
   });
 
   describe('should reviewerChanged()  update milestone successfully by eventData', async () => {
-    for (const status of Object.values(SAMPLE_DATA.MILESTONE_STATUSES)) {
+    for (const status of Object.values(SAMPLE_DATA.TRACE_STATUSES)) {
       it(`should update milestone with status: ${status} `, async () => {
         const reviewerAddress = SAMPLE_DATA.SECOND_USER_ADDRESS;
         const upsertedMilestone = await updateMileStoneByReviewerChangedEventData(
@@ -271,8 +271,8 @@ function recipientChangedTestCases() {
     const Transaction = app.get('transactionsModel');
     await new Transaction({ hash: transactionHash, from }).save();
     const idProject = generateRandomNumber(10, 100000);
-    await app.service('milestones').create({
-      ...SAMPLE_DATA.createMilestoneData(),
+    await app.service('traces').create({
+      ...SAMPLE_DATA.createTraceData(),
       ownerAddress: from,
       recipientAddress: from,
       mined: false,
@@ -305,7 +305,7 @@ function recipientChangedTestCases() {
 
   describe('should update milestone successfully by eventData', async () => {
     /* eslint-disable no-restricted-syntax */
-    for (const status of Object.values(SAMPLE_DATA.MILESTONE_STATUSES)) {
+    for (const status of Object.values(SAMPLE_DATA.TRACE_STATUSES)) {
       it(`should recipientChanged update milestone with status: ${status} `, async () => {
         const recipient = SAMPLE_DATA.SECOND_USER_ADDRESS;
         const upsertedMilestone = await updateMileStoneByRecipientChangedEventData(
@@ -326,8 +326,8 @@ function paymentCollectedTestCases() {
   //   const Transaction = app.get('transactionsModel');
   //   await new Transaction({ hash: transactionHash, from }).save();
   //   const idProject = generateRandomNumber(10, 100000);
-  //   const milestone = await app.service('milestones').create({
-  //     ...SAMPLE_DATA.createMilestoneData(),
+  //   const milestone = await app.service('traces').create({
+  //     ...SAMPLE_DATA.createTraceData(),
   //     ownerAddress: from,
   //     fullyFunded: true,
   //     maxAmount: '700',
@@ -376,13 +376,13 @@ function paymentCollectedTestCases() {
   // So I comment it for now
   // describe('should paymentCollected() update milestone successfully by eventData',
   //   async () => {
-  //     for (const status of Object.values(SAMPLE_DATA.MILESTONE_STATUSES)) {
+  //     for (const status of Object.values(SAMPLE_DATA.TRACE_STATUSES)) {
   //       it(`should update milestone with status: ${status} `, async function() {
   //         const upsertedMilestone = await updateMileStoneByRecipientChangedEventData(
   //           status,
   //         );
   //         assert.isOk(upsertedMilestone);
-  //         assert.equal(upsertedMilestone.status, SAMPLE_DATA.MILESTONE_STATUSES.PAID);
+  //         assert.equal(upsertedMilestone.status, SAMPLE_DATA.TRACE_STATUSES.PAID);
   //
   //       });
   //     }

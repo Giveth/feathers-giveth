@@ -7,7 +7,7 @@ const { getTransaction } = require('../../blockchain/lib/web3Helpers');
 const { AdminTypes } = require('../../models/pledgeAdmins.model');
 const { DonationStatus } = require('../../models/donations.model');
 const utils = require('./utils');
-const { MilestoneTypes } = require('../../models/milestones.model');
+const { TraceTypes } = require('../../models/traces.model');
 
 const capitalizeAdminType = type => {
   if (type.toLowerCase() === 'dac') return 'DAC';
@@ -28,7 +28,7 @@ module.exports = app => {
 
   const donationService = app.service('donations');
   const dacService = app.service('dacs');
-  const milestoneService = app.service('milestones');
+  const traceService = app.service('traces');
 
   const newEventTransform = ({ campaign, milestones, pledgeIds }) => {
     const campaignId = campaign._id.toString();
@@ -89,10 +89,10 @@ module.exports = app => {
         [TokenKeyType.REQUESTED, TokenKeyType.HOLD, TokenKeyType.PAID].forEach(type => {
           const value = tokenBalance[type];
           if (value) {
-            const key = tokenKey(symbol, AdminTypes.MILESTONE, type);
+            const key = tokenKey(symbol, AdminTypes.TRACE, type);
             result[key] = Web3.utils.fromWei(value.toFixed());
           } else if (type === TokenKeyType.REQUESTED) {
-            const key = tokenKey(symbol, AdminTypes.MILESTONE, type);
+            const key = tokenKey(symbol, AdminTypes.TRACE, type);
             result[key] = 'Uncapped';
           }
         });
@@ -135,11 +135,11 @@ module.exports = app => {
       }
 
       let updateMilestoneCommitted = false;
-      if (ownerType === AdminTypes.MILESTONE) {
+      if (ownerType === AdminTypes.TRACE) {
         updateMilestoneCommitted = true;
         // In case milestone balance is not initialized (ProjectAdded event is not processed well! gh giveth/feathers-giveth#437
         if (!milestonesBalance[ownerTypeId]) {
-          const [milestone] = await milestoneService.find({
+          const [milestone] = await traceService.find({
             query: {
               _id: ownerTypeId,
               $select: ['maxAmount', 'token'],
@@ -308,10 +308,10 @@ module.exports = app => {
                     actionOnBehalfOf: campaign.title,
                     recipientName: milestone.title,
                     recipientType: 'Milestone',
-                    recipient: getEntityLink(milestone, AdminTypes.MILESTONE),
+                    recipient: getEntityLink(milestone, AdminTypes.TRACE),
                     actionTakerAddress: from,
                     actionRecipientAddress:
-                      milestone.type === MilestoneTypes.LPMilestone
+                      milestone.type === TraceTypes.LPMilestone
                         ? campaign.title
                         : milestone.recipientAddress,
                     etherscanLink: getEtherscanLink(transactionHash),
@@ -409,7 +409,7 @@ module.exports = app => {
             {
               const { from, to, amount } = returnValues;
 
-              // Money is moved to pledge owned by campaign or one of its milestones
+              // Money is moved to pledge owned by campaign or one of its traces
               const toPledgeIds = pledgeIds.has(to);
               // Money is exited from a pledge owned by canceled donation
               // const fromCanceledPledge = canceledPledgeIds.has(from);
@@ -453,7 +453,7 @@ module.exports = app => {
               let resolvedActionTakerAddress;
               let actionOnBehalfOf;
               let actionRecipientAddress;
-              let insertMilestoneId;
+              let inserttraceId;
 
               const capitalizeOwnerType = capitalizeAdminType(ownerType);
 
@@ -505,8 +505,8 @@ module.exports = app => {
                 });
                 if (fromDonation) {
                   actionOnBehalfOf = capitalizeAdminType(fromDonation.ownerType);
-                  if (fromDonation.ownerType === AdminTypes.MILESTONE) {
-                    insertMilestoneId = fromDonation.ownerTypeId;
+                  if (fromDonation.ownerType === AdminTypes.TRACE) {
+                    inserttraceId = fromDonation.ownerTypeId;
                   }
                 }
 
@@ -527,7 +527,7 @@ module.exports = app => {
                   parentOwnerType,
                 } = await donationDelegateStatus(parentDonations[0]);
 
-                // Update campaign and milestones balance
+                // Update campaign and traces balance
                 await updateBalance({ donation, isDelegate, parentId: parentOwnerTypeId });
 
                 if (actionTakerAddress) {
@@ -601,13 +601,13 @@ module.exports = app => {
                 recipientName = ownerEntity.title;
                 recipientType = capitalizeOwnerType;
                 recipient = getEntityLink(ownerEntity, ownerType);
-                if (ownerType === AdminTypes.MILESTONE) {
+                if (ownerType === AdminTypes.TRACE) {
                   const milestone = ownerEntity;
                   actionRecipientAddress =
-                    milestone.type === MilestoneTypes.LPMilestone
+                    milestone.type === TraceTypes.LPMilestone
                       ? campaign.title
                       : milestone.recipientAddress;
-                  insertMilestoneId = ownerEntity._id;
+                  inserttraceId = ownerEntity._id;
                 } else {
                   actionRecipientAddress = ownerEntity.title;
                 }
@@ -629,8 +629,8 @@ module.exports = app => {
                 etherscanLink: getEtherscanLink(transactionHash),
                 homeEtherscanLink: getHomeEtherscanLink(homeTxHash),
               };
-              if (insertMilestoneId) {
-                insertMilestoneBalanceItems(insertMilestoneId, result, payouts.bridgeInfo);
+              if (inserttraceId) {
+                insertMilestoneBalanceItems(inserttraceId, result, payouts.bridgeInfo);
               }
             }
             break;

@@ -21,9 +21,9 @@ function findSimilarPayoutConversationTests() {
   it('should find appropriate delegated conversation', async () => {
     const currencySymbol = 'ETH';
     const txHash = generateRandomTxHash();
-    const milestoneId = SAMPLE_DATA.MILESTONE_ID;
+    const traceId = SAMPLE_DATA.TRACE_ID;
     const payload = {
-      milestoneId,
+      traceId,
       ownerAddress: SAMPLE_DATA.USER_ADDRESS,
       performedByRole: 'Milestone owner',
       messageContext: 'payout',
@@ -42,7 +42,7 @@ function findSimilarPayoutConversationTests() {
       .send(payload);
     const payoutConversation = await findSimilarPayoutConversation(app, {
       currencySymbol,
-      milestoneId,
+      traceId,
       txHash,
     });
     assert.equal(payoutConversation._id, response.body._id);
@@ -50,9 +50,9 @@ function findSimilarPayoutConversationTests() {
   it('should not find appropriate payout conversation because txHash is different', async () => {
     const currencySymbol = 'ETH';
     const txHash = generateRandomTxHash();
-    const milestoneId = SAMPLE_DATA.MILESTONE_ID;
+    const traceId = SAMPLE_DATA.TRACE_ID;
     const payload = {
-      milestoneId,
+      traceId,
       ownerAddress: SAMPLE_DATA.USER_ADDRESS,
       performedByRole: 'Milestone owner',
       messageContext: 'payout',
@@ -71,7 +71,7 @@ function findSimilarPayoutConversationTests() {
       .send(payload);
     const payoutConversation = await findSimilarPayoutConversation(app, {
       currencySymbol,
-      milestoneId,
+      traceId,
       txHash: generateRandomTxHash(),
     });
     assert.notOk(payoutConversation);
@@ -81,9 +81,9 @@ function findSimilarDelegatedConversationTests() {
   it('should find appropriate delegated conversation', async () => {
     const currencySymbol = 'ETH';
     const txHash = generateRandomTxHash();
-    const milestoneId = SAMPLE_DATA.MILESTONE_ID;
+    const traceId = SAMPLE_DATA.TRACE_ID;
     const payload = {
-      milestoneId,
+      traceId,
       ownerAddress: SAMPLE_DATA.USER_ADDRESS,
       performedByRole: 'Milestone owner',
       messageContext: 'delegated',
@@ -102,7 +102,7 @@ function findSimilarDelegatedConversationTests() {
       .send(payload);
     const delegatedConversation = await findSimilarDelegatedConversation(app, {
       currencySymbol,
-      milestoneId,
+      traceId,
       txHash,
     });
     assert.equal(delegatedConversation._id, response.body._id);
@@ -110,9 +110,9 @@ function findSimilarDelegatedConversationTests() {
   it('should not find appropriate delegated conversation because symbol is different', async () => {
     const currencySymbol = 'ETH';
     const txHash = generateRandomTxHash();
-    const milestoneId = SAMPLE_DATA.MILESTONE_ID;
+    const traceId = SAMPLE_DATA.TRACE_ID;
     const payload = {
-      milestoneId,
+      traceId,
       ownerAddress: SAMPLE_DATA.USER_ADDRESS,
       performedByRole: 'Milestone owner',
       messageContext: 'delegated',
@@ -131,7 +131,7 @@ function findSimilarDelegatedConversationTests() {
       .send(payload);
     const delegatedConversation = await findSimilarDelegatedConversation(app, {
       currencySymbol: 'DAI',
-      milestoneId,
+      traceId,
       txHash,
     });
     assert.notOk(delegatedConversation);
@@ -139,9 +139,9 @@ function findSimilarDelegatedConversationTests() {
   it('should not find appropriate delegated conversation because txHash is different', async () => {
     const currencySymbol = 'ETH';
     const txHash = generateRandomTxHash();
-    const milestoneId = SAMPLE_DATA.MILESTONE_ID;
+    const traceId = SAMPLE_DATA.TRACE_ID;
     const payload = {
-      milestoneId,
+      traceId,
       ownerAddress: SAMPLE_DATA.USER_ADDRESS,
       performedByRole: 'Milestone owner',
       messageContext: 'delegated',
@@ -160,7 +160,7 @@ function findSimilarDelegatedConversationTests() {
       .send(payload);
     const delegatedConversation = await findSimilarDelegatedConversation(app, {
       currencySymbol,
-      milestoneId,
+      traceId,
       txHash: generateRandomTxHash(),
     });
     assert.notOk(delegatedConversation);
@@ -170,9 +170,9 @@ async function updateConversationPaymentsTests() {
   it('should update existing conversation payments', async () => {
     const currencySymbol = 'ETH';
     const txHash = generateRandomTxHash();
-    const milestoneId = SAMPLE_DATA.MILESTONE_ID;
+    const traceId = SAMPLE_DATA.TRACE_ID;
     const payload = {
-      milestoneId,
+      traceId,
       ownerAddress: SAMPLE_DATA.USER_ADDRESS,
       performedByRole: 'Milestone owner',
       messageContext: 'delegated',

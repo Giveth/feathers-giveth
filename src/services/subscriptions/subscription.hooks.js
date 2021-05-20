@@ -12,7 +12,7 @@ const validatePayload = () => async context => {
   let service;
   switch (projectType) {
     case ProjectTypes.MILESTONE:
-      service = app.service('milestones');
+      service = app.service('traces');
       break;
     case ProjectTypes.CAMPAIGN:
       service = app.service('campaigns');

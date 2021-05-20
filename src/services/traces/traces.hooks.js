@@ -14,17 +14,17 @@ const resolveFiles = require('../../hooks/resolveFiles');
 const { isProjectAllowed } = require('../../hooks/isProjectAllowed');
 const { isTokenAllowed } = require('../../hooks/isTokenAllowed');
 const addConfirmations = require('../../hooks/addConfirmations');
-const { MilestoneStatus } = require('../../models/milestones.model');
+const { TraceStatus } = require('../../models/traces.model');
 const getApprovedKeys = require('./getApprovedKeys');
 const checkConversionRates = require('./checkConversionRates');
-const { handleMilestoneConversationAndEmail } = require('../../utils/conversationAndEmailHandler');
-const checkMilestoneDates = require('./checkMilestoneDates');
-const checkMilestoneName = require('./checkMilestoneName');
+const { handleTraceConversationAndEmail } = require('../../utils/conversationAndEmailHandler');
+const checkTraceDates = require('./checkTraceDates');
+const checkTraceName = require('./checkTraceName');
 const { getBlockTimestamp, ZERO_ADDRESS } = require('../../blockchain/lib/web3Helpers');
 const { getTokenByAddress } = require('../../utils/tokenHelper');
 const createModelSlug = require('../createModelSlug');
 
-const milestoneResolvers = {
+const traceResolvers = {
   before: context => {
     context._loaders = {
       user: {
@@ -83,33 +83,31 @@ const milestoneResolvers = {
     };
   },
   joins: {
-    owner: () => async (milestone, context) => {
-      if (!milestone.ownerAddress) return;
+    owner: () => async (trace, context) => {
+      if (!trace.ownerAddress) return;
       // eslint-disable-next-line no-param-reassign
-      milestone.owner = await context._loaders.user.address.load(milestone.ownerAddress);
+      trace.owner = await context._loaders.user.address.load(trace.ownerAddress);
     },
 
-    reviewer: () => async (milestone, context) => {
-      const { reviewerAddress } = milestone;
+    reviewer: () => async (trace, context) => {
+      const { reviewerAddress } = trace;
       if (!reviewerAddress || reviewerAddress === ZERO_ADDRESS) return;
       // eslint-disable-next-line no-param-reassign
-      milestone.reviewer = await context._loaders.user.address.load(reviewerAddress);
+      trace.reviewer = await context._loaders.user.address.load(reviewerAddress);
     },
 
-    campaignReviewer: () => async (milestone, context) => {
-      const { campaignReviewerAddress } = milestone;
+    campaignReviewer: () => async (trace, context) => {
+      const { campaignReviewerAddress } = trace;
       if (!campaignReviewerAddress || campaignReviewerAddress === ZERO_ADDRESS) {
         return;
       }
 
       // eslint-disable-next-line no-param-reassign
-      milestone.campaignReviewer = await context._loaders.user.address.load(
-        campaignReviewerAddress,
-      );
+      trace.campaignReviewer = await context._loaders.user.address.load(campaignReviewerAddress);
     },
 
-    recipient: () => async (milestone, context) => {
-      const { recipientId, recipientAddress } = milestone;
+    recipient: () => async (trace, context) => {
+      const { recipientId, recipientAddress } = trace;
       if ((!recipientAddress || recipientAddress === ZERO_ADDRESS) && !recipientId) return;
       if (recipientId) {
         // TODO: join recipientId
@@ -117,41 +115,39 @@ const milestoneResolvers = {
         // then we will need to query pledgeAdmins first to fetch the typeId & type, then query
         // for the correct entity
         // eslint-disable-next-line no-param-reassign
-        milestone.recipient = await context._loaders.campaign.projectId.load(recipientId);
+        trace.recipient = await context._loaders.campaign.projectId.load(recipientId);
       } else {
         // eslint-disable-next-line no-param-reassign
-        milestone.recipient = await context._loaders.user.address.load(recipientAddress);
+        trace.recipient = await context._loaders.user.address.load(recipientAddress);
       }
     },
 
-    pendingRecipient: () => async (milestone, context) => {
-      const { pendingRecipientAddress } = milestone;
+    pendingRecipient: () => async (trace, context) => {
+      const { pendingRecipientAddress } = trace;
       if (pendingRecipientAddress && pendingRecipientAddress !== ZERO_ADDRESS) {
         // eslint-disable-next-line no-param-reassign
-        milestone.pendingRecipient = await context._loaders.user.address.load(
-          pendingRecipientAddress,
-        );
+        trace.pendingRecipient = await context._loaders.user.address.load(pendingRecipientAddress);
       }
     },
 
-    campaign: () => async (milestone, context) => {
-      const { campaignId } = milestone;
+    campaign: () => async (trace, context) => {
+      const { campaignId } = trace;
       if (!campaignId) return;
       // eslint-disable-next-line no-param-reassign
-      milestone.campaign = await context._loaders.campaign.id.load(campaignId);
+      trace.campaign = await context._loaders.campaign.id.load(campaignId);
     },
 
-    token: () => async (milestone, _context) => {
-      const { tokenAddress } = milestone;
+    token: () => async (trace, _context) => {
+      const { tokenAddress } = trace;
       const token = getTokenByAddress(tokenAddress);
       if (token) {
-        milestone.token = token;
+        trace.token = token;
       }
     },
   },
 };
 
-const getMilestones = context => {
+const getTraces = context => {
   if (context.id) return context.service.get(context.id);
   if (!context.id && context.params.query) return context.service.find(context.params.query);
   return Promise.resolve();
@@ -166,10 +162,10 @@ const restrict = () => context => {
 
   if (!user) throw new errors.NotAuthenticated();
 
-  const canUpdate = milestone => {
-    if (!milestone) throw new errors.Forbidden();
+  const canUpdate = trace => {
+    if (!trace) throw new errors.Forbidden();
 
-    const approvedKeys = getApprovedKeys(milestone, data, user);
+    const approvedKeys = getApprovedKeys(trace, data, user);
 
     // Remove the keys that are not allowed
     Object.keys(data).forEach(key => {
@@ -177,7 +173,7 @@ const restrict = () => context => {
     });
 
     // Milestone is not yet on chain, check the ETH conversion
-    if ([MilestoneStatus.PROPOSED, MilestoneStatus.REJECTED].includes(milestone.status)) {
+    if ([TraceStatus.PROPOSED, TraceStatus.REJECTED].includes(trace.status)) {
       return checkConversionRates()(context);
     }
     // Milestone is on chain, remove data stored on-chain that can't be updated
@@ -206,13 +202,13 @@ const restrict = () => context => {
       }));
     }
 
-    // needed b/c we need to call checkConversionRates for proposed milestones
+    // needed b/c we need to call checkConversionRates for proposed traces
     // which is async
     return Promise.resolve();
   };
 
-  return getMilestones(context).then(milestones =>
-    Array.isArray(milestones) ? Promise.all(milestones.forEach(canUpdate)) : canUpdate(milestones),
+  return getTraces(context).then(traces =>
+    Array.isArray(traces) ? Promise.all(traces.forEach(canUpdate)) : canUpdate(traces),
   );
 };
 
@@ -225,18 +221,18 @@ const address = [
 ];
 
 const canDelete = () => context => {
-  // TODO every one can delete any Proposed and Rejected milestones
-  const isDeletable = milestone => {
-    if (!milestone) throw new errors.NotFound();
+  // TODO every one can delete any Proposed and Rejected traces
+  const isDeletable = trace => {
+    if (!trace) throw new errors.NotFound();
 
-    if (![MilestoneStatus.PROPOSED, MilestoneStatus.REJECTED].includes(milestone.status)) {
-      throw new errors.Forbidden('only proposed milestones can be removed');
+    if (![TraceStatus.PROPOSED, TraceStatus.REJECTED].includes(trace.status)) {
+      throw new errors.Forbidden('only proposed traces can be removed');
     }
   };
 
-  return getMilestones(context).then(milestones => {
-    if (Array.isArray(milestones)) milestones.forEach(isDeletable);
-    else isDeletable(milestones);
+  return getTraces(context).then(traces => {
+    if (Array.isArray(traces)) traces.forEach(isDeletable);
+    else isDeletable(traces);
     return context;
   });
 };
@@ -246,8 +242,8 @@ const storePrevState = () => context => {
   // it has already been set
   const { params, data } = context;
   if (data.status && !params.eventTxHash) {
-    return getMilestones(context).then(milestone => {
-      data.prevStatus = milestone.status;
+    return getTraces(context).then(trace => {
+      data.prevStatus = trace.status;
       return context;
     });
   }
@@ -264,7 +260,7 @@ const convertTokenToTokenAddress = () => context => {
 };
 
 /**
- * Capture the address of the user who patched (= performed action on) the milestone
+ * Capture the address of the user who patched (= performed action on) the trace
  * */
 const performedBy = () => context => {
   // do not process internal calls as they have no user
@@ -332,23 +328,23 @@ module.exports = {
     get: [],
     create: [
       checkConversionRates(),
-      checkMilestoneDates(),
-      checkMilestoneName(),
+      checkTraceDates(),
+      checkTraceName(),
       setAddress('ownerAddress'),
       ...address,
       isProjectAllowed(),
       isTokenAllowed(),
       sanitizeHtml('description'),
       convertTokenToTokenAddress(),
-      createModelSlug('milestones'),
+      createModelSlug('traces'),
     ],
     update: [
       restrict(),
-      checkMilestoneDates(),
+      checkTraceDates(),
       ...address,
       sanitizeHtml('description'),
       convertTokenToTokenAddress(),
-      checkMilestoneName(),
+      checkTraceName(),
     ],
     patch: [
       restrict(),
@@ -360,8 +356,8 @@ module.exports = {
       storePrevState(),
       performedBy(),
       convertTokenToTokenAddress(),
-      checkMilestoneName(),
-      createModelSlug('milestones'),
+      checkTraceName(),
+      createModelSlug('traces'),
     ],
     remove: [
       restrictToOwner({
@@ -373,20 +369,16 @@ module.exports = {
   },
 
   after: {
-    all: [commons.fastJoin(milestoneResolvers)],
+    all: [commons.fastJoin(traceResolvers)],
     find: [addConfirmations(), resolveFiles(['image', 'items'])],
     get: [addConfirmations(), resolveFiles(['image', 'items'])],
-    create: [
-      handleMilestoneConversationAndEmail(),
-      resolveFiles(['image', 'items']),
-      updateCampaign(),
-    ],
+    create: [handleTraceConversationAndEmail(), resolveFiles(['image', 'items']), updateCampaign()],
     update: [resolveFiles('image'), updateCampaign()],
     patch: [
-      handleMilestoneConversationAndEmail(),
+      handleTraceConversationAndEmail(),
       resolveFiles(['image', 'items']),
       updateCampaign(),
-      createModelSlug('milestones'),
+      createModelSlug('traces'),
     ],
     remove: [],
   },

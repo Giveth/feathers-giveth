@@ -27,7 +27,7 @@ const Conversations = require('../../src/models/conversations.model')(app);
 const ConversionRates = require('../../src/models/conversionRates.model')(app);
 const DACs = require('../../src/models/dacs.model').createModel(app);
 const Donations = require('../../src/models/donations.model').createModel(app);
-const Milestones = require('../../src/models/milestones.model').createModel(app);
+const Milestones = require('../../src/models/traces.model').createModel(app);
 
 const updateEntityDonationCounters = model => {
   const cursor = model

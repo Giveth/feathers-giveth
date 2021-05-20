@@ -25,7 +25,7 @@ function postSubscriptionsTestCases() {
   });
 
   it('should return successful when subscribing milestone', async () => {
-    const projectObjectId = SAMPLE_DATA.MILESTONE_ID;
+    const projectObjectId = SAMPLE_DATA.TRACE_ID;
     const projectType = ProjectTypes.MILESTONE;
     const response = await request(baseUrl)
       .post(relativeUrl)
@@ -42,7 +42,7 @@ function postSubscriptionsTestCases() {
   });
 
   it('should return successful when unSubscribing milestone', async () => {
-    const projectObjectId = SAMPLE_DATA.MILESTONE_ID;
+    const projectObjectId = SAMPLE_DATA.TRACE_ID;
     const projectType = ProjectTypes.MILESTONE;
     const response = await request(baseUrl)
       .post(relativeUrl)

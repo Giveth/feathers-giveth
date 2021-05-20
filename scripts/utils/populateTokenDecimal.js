@@ -38,7 +38,7 @@ app.set('mongooseClient', mongoose);
 const Donations = require('../../src/models/donations.model').createModel(app);
 const DACs = require('../../src/models/dacs.model').createModel(app);
 const Campaigns = require('../../src/models/campaigns.model').createModel(app);
-const Milestones = require('../../src/models/milestones.model').createModel(app);
+const Milestones = require('../../src/models/traces.model').createModel(app);
 const Conversations = require('../../src/models/conversations.model')(app);
 
 const populateEntityToken = model => {

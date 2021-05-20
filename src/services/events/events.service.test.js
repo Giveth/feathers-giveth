@@ -43,7 +43,7 @@ function postEventsPendingRecipientTestCases() {
         recipient: recipientAddress,
       },
     });
-    const milestone = await app.service('milestones').get(SAMPLE_DATA.MILESTONE_ID);
+    const milestone = await app.service('traces').get(SAMPLE_DATA.TRACE_ID);
     assert.equal(milestone.pendingRecipientAddress, recipientAddress);
   });
 }
