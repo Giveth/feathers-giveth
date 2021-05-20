@@ -13,7 +13,7 @@ const pendingEventQueue = new Queue('NewEventQueue', { redis: config.get('redis'
 
 setInterval(async () => {
   const eventHandlerQueueCount = await handleEventQueue.count();
-  const NewEventQueueCount = await handleEventQueue.count();
+  const NewEventQueueCount = await pendingEventQueue.count();
   logger.info(`Job queues count:`, {
     eventHandlerQueueCount,
     NewEventQueueCount,
