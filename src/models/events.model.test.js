@@ -16,7 +16,7 @@ function createEventTestCases() {
     };
     await assertThrowsAsync(
       badFunc,
-      `E11000 duplicate key error collection: giveth-test.events index: transactionIndex_1_blockNumber_1_logIndex_1 dup key: { transactionIndex: ${eventData.transactionIndex}, blockNumber: ${eventData.blockNumber}, logIndex: ${eventData.logIndex} }`,
+      `E11000 duplicate key error collection: giveth-test.events index: isHomeEvent_1_blockNumber_1_transactionIndex_1_logIndex_1 dup key: { isHomeEvent: ${eventData.isHomeEvent}, blockNumber: ${eventData.blockNumber}, transactionIndex: ${eventData.transactionIndex}, logIndex: ${eventData.logIndex} }`,
     );
   });
 }

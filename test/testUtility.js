@@ -184,6 +184,7 @@ const SAMPLE_DATA = {
   },
   CREATE_EVENT_DATA: {
     topics: [],
+    isHomeEvent: false,
     status: 'Processed',
     address: '0x8eB047585ABeD935a73ba4b9525213F126A0c979',
     blockNumber: 3051511,

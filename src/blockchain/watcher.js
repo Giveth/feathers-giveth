@@ -56,7 +56,7 @@ async function getPendingEvents(eventsService) {
   // all pending events sorted by txHash & logIndex
   const query = {
     status: EventStatus.PENDING,
-    $sort: { blockNumber: 1, transactionIndex: 1, transactionHash: 1, logIndex: 1 },
+    $sort: { isHomeEvent: 1, blockNumber: 1, transactionIndex: 1, logIndex: 1 },
   };
   return eventsService.find({ paginate: false, query });
 }
@@ -429,7 +429,6 @@ const watcher = app => {
         isHomeEvent: 1,
         blockNumber: 1,
         transactionIndex: 1,
-        transactionHash: 1,
         logIndex: 1,
       },
       $limit: 100,
