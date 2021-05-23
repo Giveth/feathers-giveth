@@ -58,7 +58,7 @@ function getPendingMilestones(app) {
   const query = {
     $or: [{ status: TraceStatus.PENDING }, { mined: false }],
   };
-  return getPending(app, 'milestones', query);
+  return getPending(app, 'traces', query);
 }
 
 function createFailedDonationSingleParentMutation(parentDonation, donation) {

@@ -18,12 +18,7 @@ module.exports = function milestones() {
 
   // Initialize our service with any options it requires
   app.use('/traces', createService(options));
-
-  // TODO this route is for backward compatiblity, we should remove it after some time
-  app.use('/traces', createService(options));
-
   // Get our initialized service so that we can register hooks and filters
   const service = app.service('traces');
-
   service.hooks(hooks);
 };

@@ -25,7 +25,7 @@ function findSimilarPayoutConversationTests() {
     const payload = {
       traceId,
       ownerAddress: SAMPLE_DATA.USER_ADDRESS,
-      performedByRole: 'Milestone owner',
+      performedByRole: 'Trace owner',
       messageContext: 'payout',
       txHash,
       payments: [
@@ -54,7 +54,7 @@ function findSimilarPayoutConversationTests() {
     const payload = {
       traceId,
       ownerAddress: SAMPLE_DATA.USER_ADDRESS,
-      performedByRole: 'Milestone owner',
+      performedByRole: 'Trace owner',
       messageContext: 'payout',
       txHash,
       payments: [
@@ -85,7 +85,7 @@ function findSimilarDelegatedConversationTests() {
     const payload = {
       traceId,
       ownerAddress: SAMPLE_DATA.USER_ADDRESS,
-      performedByRole: 'Milestone owner',
+      performedByRole: 'Trace owner',
       messageContext: 'delegated',
       txHash,
       payments: [
@@ -114,7 +114,7 @@ function findSimilarDelegatedConversationTests() {
     const payload = {
       traceId,
       ownerAddress: SAMPLE_DATA.USER_ADDRESS,
-      performedByRole: 'Milestone owner',
+      performedByRole: 'Trace owner',
       messageContext: 'delegated',
       txHash,
       payments: [
@@ -143,7 +143,7 @@ function findSimilarDelegatedConversationTests() {
     const payload = {
       traceId,
       ownerAddress: SAMPLE_DATA.USER_ADDRESS,
-      performedByRole: 'Milestone owner',
+      performedByRole: 'Trace owner',
       messageContext: 'delegated',
       txHash,
       payments: [
@@ -174,7 +174,7 @@ async function updateConversationPaymentsTests() {
     const payload = {
       traceId,
       ownerAddress: SAMPLE_DATA.USER_ADDRESS,
-      performedByRole: 'Milestone owner',
+      performedByRole: 'Trace owner',
       messageContext: 'delegated',
       txHash,
       payments: [

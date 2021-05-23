@@ -511,16 +511,16 @@ const projects = (app, liquidPledging) => {
       });
 
       if (
-        mutation.archivedMilestones &&
-        (!project.archivedMilestones ||
-          mutation.archivedMilestones.some(p => !project.archivedMilestones.includes(p)))
+        mutation.archivedTraces &&
+        (!project.archivedTraces ||
+          mutation.archivedTraces.some(p => !project.archivedTraces.includes(p)))
       ) {
         traces.patch(
           null,
           { status: TraceStatus.ARCHIVED },
           {
             query: {
-              projectId: { $in: mutation.archivedMilestones },
+              projectId: { $in: mutation.archivedTraces },
               status: { $ne: TraceStatus.ARCHIVED },
             },
           },

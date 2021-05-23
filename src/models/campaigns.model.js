@@ -44,7 +44,7 @@ function createModel(app) {
       prevUrl: { type: String }, // To store deleted/cleared lost ipfs values
       commitTime: { type: Number },
       communityUrl: { type: String },
-      archivedMilestones: { type: [Schema.Types.Long] },
+      archivedTraces: { type: [Schema.Types.Long] },
       gasPaidUsdValue: { type: Number, default: 0 },
     },
     {

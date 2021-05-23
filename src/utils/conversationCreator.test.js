@@ -45,7 +45,7 @@ function createDelegatedConversationTestCases() {
     const payload = {
       traceId,
       ownerAddress: SAMPLE_DATA.USER_ADDRESS,
-      performedByRole: 'Milestone owner',
+      performedByRole: 'Trace owner',
       messageContext: 'delegated',
       txHash,
       payments: [firstPayment],
@@ -96,7 +96,7 @@ function createDelegatedConversationTestCases() {
     const payload = {
       traceId,
       ownerAddress: SAMPLE_DATA.USER_ADDRESS,
-      performedByRole: 'Milestone owner',
+      performedByRole: 'Trace owner',
       messageContext: 'delegated',
       txHash,
       payments: [firstPayment],
@@ -161,7 +161,7 @@ function createPayoutConversationTestCases() {
     const payload = {
       traceId,
       ownerAddress: SAMPLE_DATA.USER_ADDRESS,
-      performedByRole: 'Milestone owner',
+      performedByRole: 'Trace owner',
       messageContext: 'payout',
       txHash,
       payments: [firstPayment],
@@ -209,7 +209,7 @@ function createPayoutConversationTestCases() {
     const payload = {
       traceId,
       ownerAddress: SAMPLE_DATA.USER_ADDRESS,
-      performedByRole: 'Milestone owner',
+      performedByRole: 'Trace owner',
       messageContext: 'delegated',
       txHash,
       payments: [firstPayment],

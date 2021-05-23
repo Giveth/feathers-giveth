@@ -30,22 +30,22 @@ module.exports = app => {
   const dacService = app.service('dacs');
   const traceService = app.service('traces');
 
-  const newEventTransform = ({ campaign, milestones, pledgeIds }) => {
+  const newEventTransform = ({ campaign, traces, pledgeIds }) => {
     const campaignId = campaign._id.toString();
     const campaignBalance = {
       campaignCommitted: {},
-      milestonesCommitted: {},
+      tracesCommitted: {},
     };
-    const milestonesBalance = {};
-    const milestoneMap = new Map();
-    milestones.forEach(milestone => {
-      const { projectId, migratedProjectId } = milestone;
+    const tracesBalance = {};
+    const traceMap = new Map();
+    traces.forEach(trace => {
+      const { projectId, migratedProjectId } = trace;
       const key = migratedProjectId || projectId;
-      milestoneMap.set(key, milestone);
+      traceMap.set(key, trace);
     });
 
-    const initializeMilestoneBalance = milestone => {
-      const { _id, maxAmount, token } = milestone;
+    const initializeTraceBalance = trace => {
+      const { _id, maxAmount, token } = trace;
       const { symbol } = token;
       const balance = {};
       if (symbol === 'ANY_TOKEN') {
@@ -63,27 +63,27 @@ module.exports = app => {
         if (maxAmount) balance[symbol][TokenKeyType.REQUESTED] = new BigNumber(maxAmount);
       }
 
-      milestonesBalance[_id.toString()] = balance;
+      tracesBalance[_id.toString()] = balance;
       return balance;
     };
 
     const insertCampaignBalanceItems = result => {
-      const { campaignCommitted, milestonesCommitted } = campaignBalance;
+      const { campaignCommitted, tracesCommitted } = campaignBalance;
       Object.keys(campaignCommitted).forEach(symbol => {
         result[tokenKey(symbol, 'campaign', TokenKeyType.BALANCE)] = Web3.utils.fromWei(
           campaignCommitted[symbol].toFixed(),
         );
       });
-      Object.keys(milestonesCommitted).forEach(symbol => {
-        result[tokenKey(symbol, 'milestones', TokenKeyType.BALANCE)] = Web3.utils.fromWei(
-          milestonesCommitted[symbol].toFixed(),
+      Object.keys(tracesCommitted).forEach(symbol => {
+        result[tokenKey(symbol, 'traces', TokenKeyType.BALANCE)] = Web3.utils.fromWei(
+          tracesCommitted[symbol].toFixed(),
         );
       });
     };
 
-    // Get milestone balance items
-    const insertMilestoneBalanceItems = (id, result, bridgeInfo) => {
-      const balance = milestonesBalance[id.toString()];
+    // Get trace balance items
+    const insertTraceBalanceItems = (id, result, bridgeInfo) => {
+      const balance = tracesBalance[id.toString()];
       Object.keys(balance).forEach(symbol => {
         const tokenBalance = balance[symbol];
         [TokenKeyType.REQUESTED, TokenKeyType.HOLD, TokenKeyType.PAID].forEach(type => {
@@ -134,21 +134,21 @@ module.exports = app => {
         }
       }
 
-      let updateMilestoneCommitted = false;
+      let updateTraceCommitted = false;
       if (ownerType === AdminTypes.TRACE) {
-        updateMilestoneCommitted = true;
-        // In case milestone balance is not initialized (ProjectAdded event is not processed well! gh giveth/feathers-giveth#437
-        if (!milestonesBalance[ownerTypeId]) {
-          const [milestone] = await traceService.find({
+        updateTraceCommitted = true;
+        // In case trace balance is not initialized (ProjectAdded event is not processed well! gh giveth/feathers-giveth#437
+        if (!tracesBalance[ownerTypeId]) {
+          const [trace] = await traceService.find({
             query: {
               _id: ownerTypeId,
               $select: ['maxAmount', 'token'],
             },
             paginate: false,
           });
-          initializeMilestoneBalance(milestone);
+          initializeTraceBalance(trace);
         }
-        const balance = milestonesBalance[ownerTypeId];
+        const balance = tracesBalance[ownerTypeId];
         if (status === DonationStatus.PAID) {
           balance[symbol][TokenKeyType.HOLD] = balance[symbol][TokenKeyType.HOLD].minus(amount);
           balance[symbol][TokenKeyType.PAID] = balance[symbol][TokenKeyType.PAID].plus(amount);
@@ -159,21 +159,21 @@ module.exports = app => {
         }
       }
 
-      // Money reverted from milestone
-      if (milestonesBalance[revertedFrom]) {
-        updateMilestoneCommitted = true;
-        const balance = milestonesBalance[revertedFrom];
+      // Money reverted from trace
+      if (tracesBalance[revertedFrom]) {
+        updateTraceCommitted = true;
+        const balance = tracesBalance[revertedFrom];
         balance[symbol][TokenKeyType.HOLD] = balance[symbol][TokenKeyType.HOLD].minus(amount);
         balanceChange = new BigNumber(amount.toString()).negated();
       }
 
-      if (updateMilestoneCommitted) {
-        const { milestonesCommitted } = campaignBalance;
-        const currentMilestonesCommitted = milestonesCommitted[symbol];
-        if (!currentMilestonesCommitted) {
-          milestonesCommitted[symbol] = balanceChange;
+      if (updateTraceCommitted) {
+        const { tracesCommitted } = campaignBalance;
+        const currentTracesCommitted = tracesCommitted[symbol];
+        if (!currentTracesCommitted) {
+          tracesCommitted[symbol] = balanceChange;
         } else {
-          milestonesCommitted[symbol] = currentMilestonesCommitted.plus(balanceChange);
+          tracesCommitted[symbol] = currentTracesCommitted.plus(balanceChange);
         }
       }
     };
@@ -191,7 +191,7 @@ module.exports = app => {
         recipient.address = recipientAddress;
         const result = {
           createdAt: commitTime.toString(),
-          action: 'Milestone Paid Out',
+          action: 'Trace Paid Out',
           actor: actionTaker && actionTaker.name ? actionTaker.name : actionTakerAddress,
           actionOnBehalfOf: title,
           recipientName: recipient.name || recipientAddress,
@@ -205,7 +205,7 @@ module.exports = app => {
         };
 
         insertCampaignBalanceItems(result);
-        insertMilestoneBalanceItems(_id, result, payouts.bridgeInfo);
+        insertTraceBalanceItems(_id, result, payouts.bridgeInfo);
 
         // Clear payouts
         payouts = {};
@@ -293,31 +293,31 @@ module.exports = app => {
                   etherscanLink: getEtherscanLink(transactionHash),
                 };
               } else {
-                const milestone = milestoneMap.get(projectId);
-                if (milestone) {
+                const trace = traceMap.get(projectId);
+                if (trace) {
                   const { from } = await getTransaction(app, transactionHash);
                   const actionTaker = await getUser(from);
                   const action =
                     campaignOwner === actionTaker
-                      ? 'Milestone Created by Campaign Manager'
-                      : 'Milestone Accepted';
+                      ? 'Trace Created by Campaign Manager'
+                      : 'Trace Accepted';
                   result = {
                     ...result,
                     action,
                     actor: actionTaker.name,
                     actionOnBehalfOf: campaign.title,
-                    recipientName: milestone.title,
-                    recipientType: 'Milestone',
-                    recipient: getEntityLink(milestone, AdminTypes.TRACE),
+                    recipientName: trace.title,
+                    recipientType: 'Trace',
+                    recipient: getEntityLink(trace, AdminTypes.TRACE),
                     actionTakerAddress: from,
                     actionRecipientAddress:
-                      milestone.type === TraceTypes.LPMilestone
+                      trace.type === TraceTypes.LPMilestone
                         ? campaign.title
-                        : milestone.recipientAddress,
+                        : trace.recipientAddress,
                     etherscanLink: getEtherscanLink(transactionHash),
                   };
-                  initializeMilestoneBalance(milestone);
-                  insertMilestoneBalanceItems(milestone._id, result, payouts.bridgeInfo);
+                  initializeTraceBalance(trace);
+                  insertTraceBalanceItems(trace._id, result, payouts.bridgeInfo);
                 } else {
                   logger.error(
                     `campaign csv could'nt find corresponding project to id ${projectId}`,
@@ -362,13 +362,13 @@ module.exports = app => {
                   etherscanLink: getEtherscanLink(transactionHash),
                 };
               } else {
-                const milestone = milestoneMap.get(projectId);
-                if (milestone) {
+                const trace = traceMap.get(projectId);
+                if (trace) {
                   const { from } = await getTransaction(app, transactionHash);
                   const actionTaker = await getUser(from);
 
                   // let actionOnBehalfOf;
-                  // const { ownerAddress, reviewerAddress, recipientAddress } = milestone;
+                  // const { ownerAddress, reviewerAddress, recipientAddress } = trace;
                   // if (ownerAddress === from) {
                   //   actionOnBehalfOf = 'Proposer';
                   // } else if (reviewerAddress === from) {
@@ -385,18 +385,18 @@ module.exports = app => {
                   //
                   result = {
                     ...result,
-                    action: 'Milestone Canceled',
+                    action: 'Trace Canceled',
                     actor: actionTaker && actionTaker.name ? actionTaker.name : from,
-                    actionOnBehalfOf: milestone.title,
+                    actionOnBehalfOf: trace.title,
                     recipientName: campaign.title,
                     recipientType: 'Campaign',
                     recipient: getEntityLink(campaign, AdminTypes.CAMPAIGN),
                     actionTakerAddress: from,
-                    actionRecipientAddress: milestone.pluginAddress,
+                    actionRecipientAddress: trace.pluginAddress,
                     etherscanLink: getEtherscanLink(transactionHash),
                   };
-                  initializeMilestoneBalance(milestone);
-                  insertMilestoneBalanceItems(milestone._id, result, payouts.bridgeInfo);
+                  initializeTraceBalance(trace);
+                  insertTraceBalanceItems(trace._id, result, payouts.bridgeInfo);
                 } else {
                   logger.error(
                     `campaign csv could'nt find corresponding project to id ${projectId}`,
@@ -575,7 +575,7 @@ module.exports = app => {
                 } else if (ownerType === AdminTypes.CAMPAIGN) {
                   action = 'Campaign Received Donation';
                 } else {
-                  action = 'Direct Donation to Milestone';
+                  action = 'Direct Donation to Trace';
                 }
 
                 resolvedActionTakerAddress = isDelegate ? actionTakerAddress : giverAddress;
@@ -602,11 +602,11 @@ module.exports = app => {
                 recipientType = capitalizeOwnerType;
                 recipient = getEntityLink(ownerEntity, ownerType);
                 if (ownerType === AdminTypes.TRACE) {
-                  const milestone = ownerEntity;
+                  const trace = ownerEntity;
                   actionRecipientAddress =
-                    milestone.type === TraceTypes.LPMilestone
+                    trace.type === TraceTypes.LPMilestone
                       ? campaign.title
-                      : milestone.recipientAddress;
+                      : trace.recipientAddress;
                   inserttraceId = ownerEntity._id;
                 } else {
                   actionRecipientAddress = ownerEntity.title;
@@ -630,7 +630,7 @@ module.exports = app => {
                 homeEtherscanLink: getHomeEtherscanLink(homeTxHash),
               };
               if (inserttraceId) {
-                insertMilestoneBalanceItems(inserttraceId, result, payouts.bridgeInfo);
+                insertTraceBalanceItems(inserttraceId, result, payouts.bridgeInfo);
               }
             }
             break;

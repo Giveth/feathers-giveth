@@ -41,6 +41,9 @@ module.exports = {
       .collection('donations')
       .updateMany({ intendedProjectType: 'trace' }, { $set: { intendedProjectType: 'milestone' } });
     await db
+      .collection('campaigns')
+      .updateMany({ archivedMilestones: {$exists:true} },  { $rename: { archivedMilestones: 'archivedTraces' }  });
+    await db
       .collection('pledgeadmins')
       .updateMany({ type: 'trace' }, { $set: { type: 'milestone' } });
     await db
