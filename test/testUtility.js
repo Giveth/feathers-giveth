@@ -133,8 +133,6 @@ const generateRandomTxHash = () => {
   return `0x${crypto.randomBytes(16).toString('hex')}`;
 };
 
-let milestoneCounter = 1;
-
 const SAMPLE_DATA = {
   // the user in seed data has these values
   USER_ADDRESS: testAddress,
@@ -214,7 +212,7 @@ const SAMPLE_DATA = {
     return {
       fullyFunded: false,
       mined: true,
-      title: `test-milestone-${milestoneCounter++}`,
+      title: `test-milestone-${new Date()}`,
       description: '<p>give money for god sake</p>',
       image: '',
       reviewerAddress: testAddress,

@@ -26,7 +26,7 @@ const checkIfTraceNameIsUnique = () => async context => {
   if (traceWithSameName.total > 0) {
     // trace titles are supposed to be unique
     throw new errors.Forbidden(
-      'Milestone title is repetitive. Please select a different title for the trace.',
+      'Trace title is repetitive. Please select a different title for the trace.',
     );
   }
   return context;
