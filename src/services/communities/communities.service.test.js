@@ -7,9 +7,9 @@ const { getFeatherAppInstance } = require('../../app');
 let app;
 
 const baseUrl = config.get('givethFathersBaseUrl');
-const relativeUrl = '/dacs';
+const relativeUrl = '/communities';
 
-async function createDac(data) {
+async function createCommunity(data) {
   const response = await request(baseUrl)
     .post(relativeUrl)
     .send(data)
@@ -17,22 +17,22 @@ async function createDac(data) {
   return response.body;
 }
 
-function getDacTestCases() {
-  it('should get successful result', async function() {
+function getCommunityTestCases() {
+  it('should get successful result', async () => {
     const response = await request(baseUrl).get(relativeUrl);
     assert.equal(response.statusCode, 200);
     assert.exists(response.body.data);
     assert.notEqual(response.body.data.length, 0);
   });
-  it('getDacDetail', async function() {
-    const response = await request(baseUrl).get(`${relativeUrl}/${SAMPLE_DATA.DAC_ID}`);
+  it('getCommunityDetail', async () => {
+    const response = await request(baseUrl).get(`${relativeUrl}/${SAMPLE_DATA.COMMUNITY_ID}`);
     assert.equal(response.statusCode, 200);
     assert.equal(response.body.ownerAddress, SAMPLE_DATA.USER_ADDRESS);
   });
 }
 
-function postDacTestCases() {
-  it('should create dac successfully', async function() {
+function postCommunityTestCases() {
+  it('should create community successfully', async () => {
     const response = await request(baseUrl)
       .post(relativeUrl)
       .send(SAMPLE_DATA.CREATE_DAC_DATA)
@@ -40,14 +40,14 @@ function postDacTestCases() {
     assert.equal(response.statusCode, 201);
     assert.equal(response.body.ownerAddress, SAMPLE_DATA.USER_ADDRESS);
   });
-  it('should get unAuthorized error', async function() {
+  it('should get unAuthorized error', async () => {
     const response = await request(baseUrl)
       .post(relativeUrl)
       .send(SAMPLE_DATA.CREATE_DAC_DATA);
     assert.equal(response.statusCode, 401);
     assert.equal(response.body.code, 401);
   });
-  it('should get different slugs for two dacs with same title successfully', async function() {
+  it('should get different slugs for two communitys with same title successfully', async () => {
     const response1 = await request(baseUrl)
       .post(relativeUrl)
       .send(SAMPLE_DATA.CREATE_DAC_DATA)
@@ -62,55 +62,55 @@ function postDacTestCases() {
   });
 }
 
-function patchDacTestCases() {
-  it('should update dac successfully', async function() {
+function patchCommunityTestCases() {
+  it('should update community successfully', async () => {
     const description = 'Description updated by test';
     const response = await request(baseUrl)
-      .patch(`${relativeUrl}/${SAMPLE_DATA.DAC_ID}`)
+      .patch(`${relativeUrl}/${SAMPLE_DATA.COMMUNITY_ID}`)
       .send({ status: SAMPLE_DATA.CAMPAIGN_STATUSES.IN_PROGRESS, description })
       .set({ Authorization: getJwt() });
     assert.equal(response.statusCode, 200);
     assert.equal(response.body.description, description);
   });
 
-  it('should update dac successfully, owner can update the dac', async function() {
-    const dac = await createDac({
+  it('should update community successfully, owner can update the community', async () => {
+    const community = await createCommunity({
       ...SAMPLE_DATA.CREATE_DAC_DATA,
-      status: SAMPLE_DATA.DacStatus.PENDING,
+      status: SAMPLE_DATA.CommunityStatus.PENDING,
     });
     const response = await request(baseUrl)
-      .patch(`${relativeUrl}/${dac._id}`)
+      .patch(`${relativeUrl}/${community._id}`)
       .send({ status: SAMPLE_DATA.CAMPAIGN_STATUSES.CANCELED })
       .set({ Authorization: getJwt() });
     assert.equal(response.statusCode, 200);
     assert.equal(response.body.status, SAMPLE_DATA.CAMPAIGN_STATUSES.CANCELED);
   });
 
-  it('should update dac successfully,but txHash cant be updated', async function() {
-    const dac = await createDac({
+  it('should update community successfully,but txHash cant be updated', async () => {
+    const community = await createCommunity({
       ...SAMPLE_DATA.CREATE_DAC_DATA,
     });
     const txHash = generateRandomTransactionHash();
     const response = await request(baseUrl)
-      .patch(`${relativeUrl}/${dac._id}`)
+      .patch(`${relativeUrl}/${community._id}`)
       .send({ txHash })
       .set({ Authorization: getJwt() });
     assert.equal(response.statusCode, 200);
     assert.notEqual(response.txHash, txHash);
   });
 
-  it('should get unAuthorized error', async function() {
+  it('should get unAuthorized error', async () => {
     const response = await request(baseUrl)
-      .patch(`${relativeUrl}/${SAMPLE_DATA.DAC_ID}`)
+      .patch(`${relativeUrl}/${SAMPLE_DATA.COMMUNITY_ID}`)
       .send(SAMPLE_DATA.CREATE_DAC_DATA);
     assert.equal(response.statusCode, 401);
     assert.equal(response.body.code, 401);
   });
 
-  it('should get unAuthorized error because Only the Dac owner can edit dac', async function() {
+  it('should get unAuthorized error because Only the Community owner can edit community', async () => {
     const description = 'Description updated by test';
     const response = await request(baseUrl)
-      .patch(`${relativeUrl}/${SAMPLE_DATA.DAC_ID}`)
+      .patch(`${relativeUrl}/${SAMPLE_DATA.COMMUNITY_ID}`)
       .send({ status: SAMPLE_DATA.CAMPAIGN_STATUSES.IN_PROGRESS, description })
       .set({ Authorization: getJwt(SAMPLE_DATA.SECOND_USER_ADDRESS) });
     assert.equal(response.statusCode, 403);
@@ -118,32 +118,32 @@ function patchDacTestCases() {
   });
 }
 
-function deleteDacTestCases() {
-  it('should not delete because its disallowed', async function() {
-    const createDacData = { ...SAMPLE_DATA.CREATE_DAC_DATA };
-    const dac = await createDac(createDacData);
+function deleteCommunityTestCases() {
+  it('should not delete because its disallowed', async () => {
+    const createCommunityData = { ...SAMPLE_DATA.CREATE_DAC_DATA };
+    const community = await createCommunity(createCommunityData);
     const response = await request(baseUrl)
-      .delete(`${relativeUrl}/${dac._id}`)
+      .delete(`${relativeUrl}/${community._id}`)
       .set({ Authorization: getJwt() });
     assert.equal(response.statusCode, 405);
   });
 
-  it('should get unAuthorized error', async function() {
-    const response = await request(baseUrl).delete(`${relativeUrl}/${SAMPLE_DATA.DAC_ID}`);
+  it('should get unAuthorized error', async () => {
+    const response = await request(baseUrl).delete(`${relativeUrl}/${SAMPLE_DATA.COMMUNITY_ID}`);
     assert.equal(response.statusCode, 401);
     assert.equal(response.body.code, 401);
   });
 }
 
-it('should dacs service registration be ok', () => {
-  const dacService = app.service('dacs');
-  assert.ok(dacService, 'Registered the service');
+it('should communities service registration be ok', () => {
+  const communityService = app.service('communities');
+  assert.ok(communityService, 'Registered the service');
 });
 
-describe(`Test GET  ${relativeUrl}`, getDacTestCases);
-describe(`Test POST  ${relativeUrl}`, postDacTestCases);
-describe(`Test PATCH  ${relativeUrl}`, patchDacTestCases);
-describe(`Test DELETE  ${relativeUrl}`, deleteDacTestCases);
+describe(`Test GET  ${relativeUrl}`, getCommunityTestCases);
+describe(`Test POST  ${relativeUrl}`, postCommunityTestCases);
+describe(`Test PATCH  ${relativeUrl}`, patchCommunityTestCases);
+describe(`Test DELETE  ${relativeUrl}`, deleteCommunityTestCases);
 
 before(() => {
   app = getFeatherAppInstance();

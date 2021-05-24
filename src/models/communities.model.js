@@ -1,6 +1,6 @@
 const DonationCounter = require('./donationCounter.model');
 
-const DacStatus = {
+const CommunityStatus = {
   ACTIVE: 'Active',
   PENDING: 'Pending',
   CANCELED: 'Canceled',
@@ -14,9 +14,9 @@ const DacStatus = {
 function createModel(app) {
   const mongooseClient = app.get('mongooseClient');
   const { Schema } = mongooseClient;
-  const dac = new Schema(
+  const community = new Schema(
     // TODO note: the following commenting out of required is b/c
-    // if a dac is added to lp not from the dapp, we can't
+    // if a community is added to lp not from the dapp, we can't
     // guarantee that those fields are present until we have
     // ipfs enabled
     {
@@ -29,8 +29,8 @@ function createModel(app) {
       status: {
         type: String,
         require: true,
-        enum: Object.values(DacStatus),
-        default: DacStatus.PENDING,
+        enum: Object.values(CommunityStatus),
+        default: CommunityStatus.PENDING,
       },
       image: { type: String },
       prevImage: { type: String }, // To store deleted/cleared lost ipfs values
@@ -51,15 +51,15 @@ function createModel(app) {
       timestamps: true,
     },
   );
-  dac.index({ createdAt: 1 });
-  dac.index({ status: 1, createdAt: 1 });
-  dac.index({ ownerAddress: 1, createdAt: 1 });
-  dac.index({ delegateId: 1, ownerAddress: 1 });
-  dac.index({ slug: 1 }, { unique: true });
-  return mongooseClient.model('dac', dac);
+  community.index({ createdAt: 1 });
+  community.index({ status: 1, createdAt: 1 });
+  community.index({ ownerAddress: 1, createdAt: 1 });
+  community.index({ delegateId: 1, ownerAddress: 1 });
+  community.index({ slug: 1 }, { unique: true });
+  return mongooseClient.model('community', community);
 }
 
 module.exports = {
-  DacStatus,
+  DacStatus: CommunityStatus,
   createModel,
 };

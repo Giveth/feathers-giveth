@@ -48,7 +48,7 @@ async function createSlug(id, title, collection) {
 
 module.exports = {
   async up(db, client) {
-    // add slug to dacs
+    // add slug to communities
     const dacs = await db
       .collection('dacs')
       .find({})
