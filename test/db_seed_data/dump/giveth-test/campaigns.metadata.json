@@ -1,1 +1,1 @@
-{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"},{"v":{"$numberInt":"2"},"unique":true,"key":{"slug":{"$numberInt":"1"}},"name":"slug_1"}],"uuid":"4f61391ec2034c8eae255d1262966463","collectionName":"campaigns"}
+{"indexes":[{"v":{"$numberInt":"2"},"key":{"_id":{"$numberInt":"1"}},"name":"_id_"},{"v":{"$numberInt":"2"},"unique":true,"key":{"slug":{"$numberInt":"1"}},"name":"slug_1"}],"uuid":"9bb16df54ad649faba05bf9e18d2209a","collectionName":"campaigns"}
