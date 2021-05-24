@@ -453,7 +453,7 @@ module.exports = app => {
               let resolvedActionTakerAddress;
               let actionOnBehalfOf;
               let actionRecipientAddress;
-              let inserttraceId;
+              let insertTraceId;
 
               const capitalizeOwnerType = capitalizeAdminType(ownerType);
 
@@ -506,7 +506,7 @@ module.exports = app => {
                 if (fromDonation) {
                   actionOnBehalfOf = capitalizeAdminType(fromDonation.ownerType);
                   if (fromDonation.ownerType === AdminTypes.TRACE) {
-                    inserttraceId = fromDonation.ownerTypeId;
+                    insertTraceId = fromDonation.ownerTypeId;
                   }
                 }
 
@@ -604,10 +604,8 @@ module.exports = app => {
                 if (ownerType === AdminTypes.TRACE) {
                   const trace = ownerEntity;
                   actionRecipientAddress =
-                    trace.type === TraceTypes.LPMilestone
-                      ? campaign.title
-                      : trace.recipientAddress;
-                  inserttraceId = ownerEntity._id;
+                    trace.type === TraceTypes.LPMilestone ? campaign.title : trace.recipientAddress;
+                  insertTraceId = ownerEntity._id;
                 } else {
                   actionRecipientAddress = ownerEntity.title;
                 }
@@ -629,8 +627,8 @@ module.exports = app => {
                 etherscanLink: getEtherscanLink(transactionHash),
                 homeEtherscanLink: getHomeEtherscanLink(homeTxHash),
               };
-              if (inserttraceId) {
-                insertTraceBalanceItems(inserttraceId, result, payouts.bridgeInfo);
+              if (insertTraceId) {
+                insertTraceBalanceItems(insertTraceId, result, payouts.bridgeInfo);
               }
             }
             break;
