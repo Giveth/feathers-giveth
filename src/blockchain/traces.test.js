@@ -201,9 +201,7 @@ function acceptedTestCases() {
   });
 
   it('should change milestone status to accepted', async () => {
-    const milestone = await updateMileStoneByAcceptedEventData(
-      SAMPLE_DATA.TRACE_STATUSES.PROPOSED,
-    );
+    const milestone = await updateMileStoneByAcceptedEventData(SAMPLE_DATA.TRACE_STATUSES.PROPOSED);
     assert.equal(milestone.status, SAMPLE_DATA.TRACE_STATUSES.COMPLETED);
   });
 }
