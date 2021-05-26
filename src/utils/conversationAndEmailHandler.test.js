@@ -7,9 +7,9 @@ const { SAMPLE_DATA, generateRandomMongoId, assertThrowsAsync } = require('../..
 let app;
 
 function getPledgeAdminTestCases() {
-  it('should find dac by id', async () => {
-    const dac = await getPledgeAdmin(app, AdminTypes.DAC, SAMPLE_DATA.DAC_ID);
-    assert.isOk(dac);
+  it('should find community by id', async () => {
+    const community = await getPledgeAdmin(app, AdminTypes.COMMUNITY, SAMPLE_DATA.COMMUNITY_ID);
+    assert.isOk(community);
   });
   it('should find campaign by id', async () => {
     const campaign = await getPledgeAdmin(app, AdminTypes.CAMPAIGN, SAMPLE_DATA.CAMPAIGN_ID);

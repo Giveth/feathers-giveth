@@ -245,7 +245,7 @@ const migrateEthConversions = () => {
 db.once('open', () => {
   console.log('Connected to Mongo');
   console.log(
-    'Migration: adding token properties to dacs, campaigns, traces, donations and ethconversions',
+    'Migration: adding token properties to communities, campaigns, traces, donations and ethconversions',
   );
 
   Promise.all([

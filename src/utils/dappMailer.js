@@ -1,10 +1,10 @@
 const logger = require('winston');
 const { AdminTypes } = require('../models/pledgeAdmins.model');
 const { EmailImages, EmailSubscribeTypes } = require('../models/emails.model');
-const { findParentDacs } = require('../repositories/dacRepository');
+const { findParentCommunities } = require('../repositories/communityRepository');
 const { ANY_TOKEN } = require('../blockchain/lib/web3Helpers');
 const {
-  findParentDacSubscribersForCampaign,
+  findParentCommunitySubscribersForCampaign,
   findProjectSubscribers,
 } = require('../repositories/subscriptionRepository');
 const { findUserByAddress } = require('../repositories/userRepository');
@@ -16,7 +16,6 @@ const generateTraceCtaRelativeUrl = (campaignId, traceId) => {
 };
 
 const capitalizeDelegateType = inputDelegateType => {
-  if (inputDelegateType.toLowerCase() === 'dac') return 'DAC';
   return inputDelegateType.charAt(0).toUpperCase() + inputDelegateType.slice(1);
 };
 
@@ -132,7 +131,7 @@ const requestDelegation = (
   {
     recipient,
     user,
-    donationType, // dac / campaign
+    donationType, // community / campaign
     donatedToTitle,
     amount,
     token,
@@ -158,7 +157,7 @@ const requestDelegation = (
         </p>
         <p>
           You can now delegate this money to a ${
-            donationType === AdminTypes.DAC ? 'Campaign or a Trace' : 'Trace'
+            donationType === AdminTypes.COMMUNITY ? 'Campaign or a Trace' : 'Trace'
           }.
         </p>
       `,
@@ -475,25 +474,25 @@ const proposedTraceAccepted = async (app, { trace, message }) => {
     unsubscribeReason: `You receive this email because you run a Trace`,
   };
   sendEmail(app, traceOwnerEmailData);
-  const dacWithSubscriptions = await findParentDacSubscribersForCampaign(app, {
+  const communityWithSubscriptions = await findParentCommunitySubscribersForCampaign(app, {
     campaignId,
   });
   // eslint-disable-next-line no-restricted-syntax
-  for (const dac of dacWithSubscriptions) {
-    const dacTitle = dac.title;
-    dac.subscriptions.forEach(subscription => {
+  for (const community of communityWithSubscriptions) {
+    const communityTitle = community.title;
+    community.subscriptions.forEach(subscription => {
       const subscriberUser = subscription.user;
-      const dacSubscriberEmailData = {
+      const communitySubscriberEmailData = {
         recipient: subscriberUser.email,
         template: emailNotificationTemplate,
-        subject: `Giveth - ${dacTitle} has added a new trace!`,
-        secretIntro: `Check out what ${dacTitle} has been up to!`,
-        title: `${dacTitle} has expanded!`,
+        subject: `Giveth - ${communityTitle} has added a new trace!`,
+        secretIntro: `Check out what ${communityTitle} has been up to!`,
+        title: `${communityTitle} has expanded!`,
         image: EmailImages.MILESTONE_REVIEW_APPROVED,
         text: `
         <p><span ${emailStyle}>Hi ${subscription.user.name || ''}</span></p>
         <p>
-         ${dacTitle} added a new trace. Come see what awesome things they have planned!
+         ${communityTitle} added a new trace. Come see what awesome things they have planned!
         </p>
       `,
         cta: `See Trace`,
@@ -502,9 +501,9 @@ const proposedTraceAccepted = async (app, { trace, message }) => {
         campaignId,
         message,
         unsubscribeType: EmailSubscribeTypes.PROPOSED_MILESTONE_ACCEPTED,
-        unsubscribeReason: `You receive this email because you are subscribing a dac`,
+        unsubscribeReason: `You receive this email because you are subscribing a community`,
       };
-      sendEmail(app, dacSubscriberEmailData);
+      sendEmail(app, communitySubscriberEmailData);
     });
   }
 
@@ -651,7 +650,7 @@ const traceMarkedCompleted = async (app, { trace, message }) => {
     reviewerAddress: campaignReviewerAddress,
     ownerAddress: campaignOwnerAddress,
   } = campaign;
-  const dacs = await findParentDacs(app, { campaignId });
+  const communities = await findParentCommunities(app, { campaignId });
   const campaignOwner = await findUserByAddress(app, campaignOwnerAddress, {
     name: 1,
     email: 1,
@@ -766,13 +765,13 @@ const traceMarkedCompleted = async (app, { trace, message }) => {
   sendEmail(app, campaignReviewerEmailData);
 
   /* eslint-disable no-await-in-loop, no-restricted-syntax */
-  for (const dac of dacs) {
-    const dacOwner = await findUserByAddress(app, dac.ownerAddress, {
+  for (const community of communities) {
+    const communityOwner = await findUserByAddress(app, community.ownerAddress, {
       name: 1,
       email: 1,
     });
-    const dacOwnerEmailData = {
-      recipient: dacOwner.email,
+    const communityOwnerEmailData = {
+      recipient: communityOwner.email,
       template: emailNotificationTemplate,
       subject: 'Giveth - A Trace in your Campaign is finished!',
       secretIntro: `The Trace ${traceTitle} in your Campaign ${campaignTitle}
@@ -780,7 +779,7 @@ const traceMarkedCompleted = async (app, { trace, message }) => {
       title: `Trace completed!`,
       image: EmailImages.MILESTONE_REVIEW_APPROVED,
       text: `
-        <p><span ${emailStyle}>Hi ${dacOwner.name || ''}</span></p>
+        <p><span ${emailStyle}>Hi ${communityOwner.name || ''}</span></p>
         <p>
           The Trace  <strong>${traceTitle}</strong> for the Campaign <strong>${campaignTitle}</strong>
           that you support has been marked complete by the Trace reviewer.
@@ -793,12 +792,12 @@ const traceMarkedCompleted = async (app, { trace, message }) => {
       cta: `Manage Trace`,
       ctaRelativeUrl: generateTraceCtaRelativeUrl(campaignId, traceId),
       unsubscribeType: EmailSubscribeTypes.MILESTONE_REVIEW_APPROVED,
-      unsubscribeReason: `You receive this email because you run a dac`,
+      unsubscribeReason: `You receive this email because you run a community`,
       campaignId,
       traceId,
       message,
     };
-    sendEmail(app, dacOwnerEmailData);
+    sendEmail(app, communityOwnerEmailData);
   }
 
   if (

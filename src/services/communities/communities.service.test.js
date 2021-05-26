@@ -35,7 +35,7 @@ function postCommunityTestCases() {
   it('should create community successfully', async () => {
     const response = await request(baseUrl)
       .post(relativeUrl)
-      .send(SAMPLE_DATA.CREATE_DAC_DATA)
+      .send(SAMPLE_DATA.CREATE_COMMUNITY_DATA)
       .set({ Authorization: getJwt() });
     assert.equal(response.statusCode, 201);
     assert.equal(response.body.ownerAddress, SAMPLE_DATA.USER_ADDRESS);
@@ -43,18 +43,18 @@ function postCommunityTestCases() {
   it('should get unAuthorized error', async () => {
     const response = await request(baseUrl)
       .post(relativeUrl)
-      .send(SAMPLE_DATA.CREATE_DAC_DATA);
+      .send(SAMPLE_DATA.CREATE_COMMUNITY_DATA);
     assert.equal(response.statusCode, 401);
     assert.equal(response.body.code, 401);
   });
   it('should get different slugs for two communitys with same title successfully', async () => {
     const response1 = await request(baseUrl)
       .post(relativeUrl)
-      .send(SAMPLE_DATA.CREATE_DAC_DATA)
+      .send(SAMPLE_DATA.CREATE_COMMUNITY_DATA)
       .set({ Authorization: getJwt() });
     const response2 = await request(baseUrl)
       .post(relativeUrl)
-      .send(SAMPLE_DATA.CREATE_DAC_DATA)
+      .send(SAMPLE_DATA.CREATE_COMMUNITY_DATA)
       .set({ Authorization: getJwt() });
     assert.isNotNull(response1.body.slug);
     assert.isNotNull(response2.body.slug);
@@ -75,7 +75,7 @@ function patchCommunityTestCases() {
 
   it('should update community successfully, owner can update the community', async () => {
     const community = await createCommunity({
-      ...SAMPLE_DATA.CREATE_DAC_DATA,
+      ...SAMPLE_DATA.CREATE_COMMUNITY_DATA,
       status: SAMPLE_DATA.CommunityStatus.PENDING,
     });
     const response = await request(baseUrl)
@@ -88,7 +88,7 @@ function patchCommunityTestCases() {
 
   it('should update community successfully,but txHash cant be updated', async () => {
     const community = await createCommunity({
-      ...SAMPLE_DATA.CREATE_DAC_DATA,
+      ...SAMPLE_DATA.CREATE_COMMUNITY_DATA,
     });
     const txHash = generateRandomTransactionHash();
     const response = await request(baseUrl)
@@ -102,7 +102,7 @@ function patchCommunityTestCases() {
   it('should get unAuthorized error', async () => {
     const response = await request(baseUrl)
       .patch(`${relativeUrl}/${SAMPLE_DATA.COMMUNITY_ID}`)
-      .send(SAMPLE_DATA.CREATE_DAC_DATA);
+      .send(SAMPLE_DATA.CREATE_COMMUNITY_DATA);
     assert.equal(response.statusCode, 401);
     assert.equal(response.body.code, 401);
   });
@@ -120,7 +120,7 @@ function patchCommunityTestCases() {
 
 function deleteCommunityTestCases() {
   it('should not delete because its disallowed', async () => {
-    const createCommunityData = { ...SAMPLE_DATA.CREATE_DAC_DATA };
+    const createCommunityData = { ...SAMPLE_DATA.CREATE_COMMUNITY_DATA };
     const community = await createCommunity(createCommunityData);
     const response = await request(baseUrl)
       .delete(`${relativeUrl}/${community._id}`)

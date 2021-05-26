@@ -63,12 +63,14 @@ const isDacAllowed = () => context => {
 
   const items = commons.getItems(context);
 
-  const inWhitelist = async dac => {
-    if (await isUserInDelegateWhiteList(context.app, dac.ownerAddress.toLowerCase())) {
+  const inWhitelist = async community => {
+    if (await isUserInDelegateWhiteList(context.app, community.ownerAddress.toLowerCase())) {
       return;
     }
 
-    throw new errors.BadRequest(`dac ownerAddress ${dac.ownerAddress} is not in the whitelist`);
+    throw new errors.BadRequest(
+      `community ownerAddress ${community.ownerAddress} is not in the whitelist`,
+    );
   };
 
   if (Array.isArray(items)) {

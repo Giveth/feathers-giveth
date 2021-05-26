@@ -11,7 +11,7 @@ const {
 } = require('../blockchain/lib/web3Helpers');
 const { TraceTypes } = require('../models/traces.model');
 const { getTokenByForeignAddress } = require('../utils/tokenHelper');
-const { DacStatus } = require('../models/dacs.model');
+const { CommunityStatus } = require('../models/communities.model');
 
 function createProjectHelper({ web3, liquidPledging, kernel, AppProxyUpgradeable }) {
   let baseCodeData;
@@ -210,7 +210,7 @@ function createProjectHelper({ web3, liquidPledging, kernel, AppProxyUpgradeable
         txHash,
         delegateId,
         mined: true,
-        status: DacStatus.ACTIVE,
+        status: CommunityStatus.ACTIVE,
         totalDonated: '0',
         currentBalance: '0',
         donationCount: 0,

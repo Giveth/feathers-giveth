@@ -9,7 +9,7 @@ const { TraceTypes } = require('../../models/traces.model');
 const { ANY_TOKEN } = require('../../blockchain/lib/web3Helpers');
 
 const ENTITY_SERVICES = {
-  [AdminTypes.DAC]: 'dacs',
+  [AdminTypes.COMMUNITY]: 'communities',
   [AdminTypes.CAMPAIGN]: 'campaigns',
   [AdminTypes.TRACE]: 'traces',
 };
@@ -22,11 +22,11 @@ const updateEntity = async (app, id, type) => {
     status: { $nin: [DonationStatus.FAILED] },
   };
 
-  if (type === AdminTypes.DAC) {
+  if (type === AdminTypes.COMMUNITY) {
     // TODO I think this can be gamed if the donor refunds their donation from the dac
     Object.assign(donationQuery, {
       delegateTypeId: id,
-      delegateType: AdminTypes.DAC,
+      delegateType: AdminTypes.COMMUNITY,
       $and: [
         {
           $or: [{ intendedProjectId: 0 }, { intendedProjectId: undefined }],
@@ -169,7 +169,7 @@ const updateDonationEntity = async (context, donation) => {
   let entityId;
   let type;
   if (donation.delegateTypeId) {
-    type = AdminTypes.DAC;
+    type = AdminTypes.COMMUNITY;
     entityId = donation.delegateTypeId;
   } else if (donation.ownerType === AdminTypes.CAMPAIGN) {
     type = AdminTypes.CAMPAIGN;

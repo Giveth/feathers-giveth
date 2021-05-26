@@ -5,7 +5,7 @@ const homePaymentsTransactions = require('./homePaymentsTransactions/homePayment
 const emails = require('./emails/emails.service');
 const subscription = require('./subscriptions/subscription.service');
 
-const dacs = require('./dacs/dacs.service.js');
+const communities = require('./communities/communities.service.js');
 const milestones = require('./traces/traces.service.js');
 const campaigns = require('./campaigns/campaigns.service.js');
 const campaigncsv = require('./csv/campaigncsv.service.js');
@@ -21,7 +21,7 @@ const conversations = require('./conversations/conversations.service.js');
 
 module.exports = function configure() {
   const app = this;
-  app.configure(dacs);
+  app.configure(communities);
   app.configure(milestones);
   app.configure(campaigns);
   app.configure(users);

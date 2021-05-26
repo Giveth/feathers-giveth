@@ -32,7 +32,7 @@ const getApprovedKeys = (trace, data, user) => {
     'image',
     'token',
     'type',
-    'dacId',
+    'communityId',
   ];
 
   // Fields that can be edited once trace stored on the blockchain

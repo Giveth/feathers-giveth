@@ -28,7 +28,7 @@ const appFactory = () => {
 const app = appFactory();
 app.set('mongooseClient', mongoose);
 
-const DACs = require('../../src/models/dacs.model').createModel(app);
+const DACs = require('../../src/models/communities.model').createModel(app);
 const Campaigns = require('../../src/models/campaigns.model').createModel(app);
 const Milestones = require('../../src/models/traces.model').createModel(app);
 
@@ -111,7 +111,7 @@ db.once('open', async () => {
   console.log('\n\n');
 
   console.log('##############################');
-  console.log('REPORTING DAC\n');
+  console.log('REPORTING COMMUNITY\n');
   await reportEntity(DACs, getDacDescription);
 
   console.log('##############################');

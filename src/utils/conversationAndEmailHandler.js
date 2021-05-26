@@ -10,8 +10,8 @@ const { createDonatedConversation, createDelegatedConversation } = require('./co
 
 const getPledgeAdmin = (app, type, id) => {
   switch (type) {
-    case AdminTypes.DAC:
-      return app.service('dacs').get(id);
+    case AdminTypes.COMMUNITY:
+      return app.service('communities').get(id);
     case AdminTypes.CAMPAIGN:
       return app.service('campaigns').get(id);
     case AdminTypes.TRACE:
@@ -268,7 +268,7 @@ const handleDonationConversationAndEmail = async (app, donation) => {
     }
   } else if (delegateType || ownerType === AdminTypes.CAMPAIGN) {
     // notify the pledge admin
-    // if this is a DAC or a campaign, then the donation needs delegation
+    // if this is a COMMUNITY or a campaign, then the donation needs delegation
     Mailer.requestDelegation(app, {
       recipient: pledgeAdmin.owner.email,
       user: pledgeAdmin.owner.name,

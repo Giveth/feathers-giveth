@@ -10,7 +10,6 @@ const utils = require('./utils');
 const { TraceTypes } = require('../../models/traces.model');
 
 const capitalizeAdminType = type => {
-  if (type.toLowerCase() === 'dac') return 'DAC';
   return type.charAt(0).toUpperCase() + type.slice(1);
 };
 
@@ -27,7 +26,7 @@ module.exports = app => {
   const tokenWhiteList = app.get('tokenWhitelist');
 
   const donationService = app.service('donations');
-  const dacService = app.service('dacs');
+  const communityService = app.service('communities');
   const traceService = app.service('traces');
 
   const newEventTransform = ({ campaign, traces, pledgeIds }) => {
@@ -462,11 +461,11 @@ module.exports = app => {
               if (isReturn) {
                 switch (ownerType) {
                   case AdminTypes.GIVER:
-                    if (delegateType === AdminTypes.DAC) {
-                      action = 'Donation returned to DAC';
+                    if (delegateType === AdminTypes.COMMUNITY) {
+                      action = 'Donation returned to COMMUNITY';
                       recipientName = delegateEntity.title;
                       recipientType = 'DAC';
-                      recipient = getEntityLink(delegateEntity, AdminTypes.DAC);
+                      recipient = getEntityLink(delegateEntity, AdminTypes.COMMUNITY);
                       actionRecipientAddress = delegateEntity.pluginAddress;
                     } else {
                       action = "Donation returned to Giver's Delegation Account";
@@ -585,8 +584,8 @@ module.exports = app => {
 
                 if (!isDelegate) {
                   actionOnBehalfOf = giver.name;
-                } else if (parentOwnerType === AdminTypes.DAC) {
-                  const [parentOwner] = await dacService.find({
+                } else if (parentOwnerType === AdminTypes.COMMUNITY) {
+                  const [parentOwner] = await communityService.find({
                     query: {
                       _id: parentOwnerTypeId,
                       $select: ['title'],

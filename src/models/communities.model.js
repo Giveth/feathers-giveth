@@ -7,7 +7,7 @@ const CommunityStatus = {
   FAILED: 'Failed',
 };
 
-// dacs-model.js - A mongoose model
+// communities-model.js - A mongoose model
 //
 // See http://mongoosejs.com/docs/models.html
 // for more of what you can do here.
@@ -24,7 +24,7 @@ function createModel(app) {
       slug: { type: String, required: true },
       description: { type: String, required: true },
       communityUrl: { type: String },
-      // FIXME: Should be unique but since we are using 0 for new DACs there can be more than one pending... Should instead be undefined
+      // FIXME: Should be unique but since we are using 0 for new Communities there can be more than one pending... Should instead be undefined
       delegateId: { type: Schema.Types.Long }, // we can use Long here b/c lp only stores adminId in pledges as uint64
       status: {
         type: String,
@@ -60,6 +60,6 @@ function createModel(app) {
 }
 
 module.exports = {
-  DacStatus: CommunityStatus,
+  CommunityStatus,
   createModel,
 };

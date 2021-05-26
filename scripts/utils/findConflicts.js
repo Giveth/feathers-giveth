@@ -184,7 +184,7 @@ const Milestones = createModel(app);
 const Campaigns = require('../../src/models/campaigns.model').createModel(app);
 const Donations = require('../../src/models/donations.model').createModel(app);
 const PledgeAdmins = require('../../src/models/pledgeAdmins.model').createModel(app);
-const Dacs = require('../../src/models/dacs.model').createModel(app);
+const Dacs = require('../../src/models/communities.model').createModel(app);
 const ConversationRates = require('../../src/models/conversionRates.model')(app);
 // const Transaction = require('../../src/models/transactions.model').createModel(app);
 
@@ -802,7 +802,7 @@ const handleToDonations = async ({
       }
       expectedToDonation.tokenAddress = token.address;
       const delegationInfo = {};
-      // It's delegated to a DAC
+      // It's delegated to a COMMUNITY
       if (toPledge.delegates.length > 0) {
         const [delegate] = toPledge.delegates;
         const dacPledgeAdmin = await PledgeAdmins.findOne({ id: Number(delegate.id) });

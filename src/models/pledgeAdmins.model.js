@@ -4,7 +4,7 @@
 // for more of what you can do here.
 const AdminTypes = {
   GIVER: 'giver',
-  DAC: 'dac',
+  COMMUNITY: 'community',
   CAMPAIGN: 'campaign',
   TRACE: 'trace',
 };

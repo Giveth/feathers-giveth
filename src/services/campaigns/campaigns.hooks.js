@@ -78,7 +78,7 @@ const countTraces = (item, service) =>
     },
   }).then(count => Object.assign(item, { milestonesCount: count }));
 
-// add milestonesCount to each DAC object
+// add milestonesCount to each COMMUNITY object
 const addTraceCounts = () => context => {
   const service = context.app.service('traces');
 

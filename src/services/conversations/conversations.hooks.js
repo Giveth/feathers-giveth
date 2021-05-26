@@ -122,8 +122,8 @@ const populateDonorTitle = () => context => {
     let field;
 
     switch (donorType) {
-      case AdminTypes.DAC:
-        service = app.service('dacs');
+      case AdminTypes.COMMUNITY:
+        service = app.service('communities');
         query = { _id: donorId };
         field = 'title';
         break;

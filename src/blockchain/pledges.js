@@ -280,7 +280,7 @@ const pledges = (app, liquidPledging) => {
       mutation.comment = comment;
       mutation.actionTakerAddress = actionTakerAddress;
     }
-    // Propagate comment for donations created by delegating from DAC
+    // Propagate comment for donations created by delegating from COMMUNITY
     if (
       donations.length === 1 &&
       ownerType === AdminTypes.GIVER &&

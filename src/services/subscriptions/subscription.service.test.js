@@ -92,8 +92,8 @@ function postSubscriptionsTestCases() {
   });
 
   it('should return successful when subscribing dac', async () => {
-    const projectObjectId = SAMPLE_DATA.DAC_ID;
-    const projectType = ProjectTypes.DAC;
+    const projectObjectId = SAMPLE_DATA.COMMUNITY_ID;
+    const projectType = ProjectTypes.COMMUNITY;
     const response = await request(baseUrl)
       .post(relativeUrl)
       .send({
@@ -108,8 +108,8 @@ function postSubscriptionsTestCases() {
     assert.equal(response.body.enabled, true);
   });
   it('should return successful when unSubscribing dac', async () => {
-    const projectObjectId = SAMPLE_DATA.DAC_ID;
-    const projectType = ProjectTypes.DAC;
+    const projectObjectId = SAMPLE_DATA.COMMUNITY_ID;
+    const projectType = ProjectTypes.COMMUNITY;
     const response = await request(baseUrl)
       .post(relativeUrl)
       .send({
@@ -125,7 +125,7 @@ function postSubscriptionsTestCases() {
   });
 
   it('should get 400, Invalid projectType', async () => {
-    const projectObjectId = SAMPLE_DATA.DAC_ID;
+    const projectObjectId = SAMPLE_DATA.COMMUNITY_ID;
     const response = await request(baseUrl)
       .post(relativeUrl)
       .send({
@@ -138,7 +138,7 @@ function postSubscriptionsTestCases() {
   });
 
   it('should get 400, projectTypeId is required', async () => {
-    const projectType = ProjectTypes.DAC;
+    const projectType = ProjectTypes.COMMUNITY;
     const response = await request(baseUrl)
       .post(relativeUrl)
       .send({
@@ -149,8 +149,8 @@ function postSubscriptionsTestCases() {
     assert.equal(response.statusCode, 400);
   });
   it('should get 400, projectTypeId is required', async () => {
-    const projectType = ProjectTypes.DAC;
-    const projectObjectId = SAMPLE_DATA.DAC_ID;
+    const projectType = ProjectTypes.COMMUNITY;
+    const projectObjectId = SAMPLE_DATA.COMMUNITY_ID;
 
     const response = await request(baseUrl)
       .post(relativeUrl)
@@ -163,7 +163,7 @@ function postSubscriptionsTestCases() {
   });
 
   it('should get 400, projectTypeId is required', async () => {
-    const projectObjectId = SAMPLE_DATA.DAC_ID;
+    const projectObjectId = SAMPLE_DATA.COMMUNITY_ID;
     const response = await request(baseUrl)
       .post(relativeUrl)
       .send({
@@ -174,7 +174,7 @@ function postSubscriptionsTestCases() {
   });
 
   it('should get 400, invalid projectTypeId', async () => {
-    const projectType = ProjectTypes.DAC;
+    const projectType = ProjectTypes.COMMUNITY;
     const response = await request(baseUrl)
       .post(relativeUrl)
       .send({

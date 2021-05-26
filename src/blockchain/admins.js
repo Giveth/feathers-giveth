@@ -67,7 +67,7 @@ const adminFactory = (app, liquidPledging) => {
       const delegate = await delegates.addDelegate(event);
 
       if (delegate) {
-        await createPledgeAdmin(delegate.delegateId, 'dac', delegate._id);
+        await createPledgeAdmin(delegate.delegateId, 'community', delegate._id);
       }
     },
 
@@ -82,7 +82,7 @@ const adminFactory = (app, liquidPledging) => {
       // a new delegate is created if the createdAt & updatedAt are significantly different
       const fifteenSeconds = 15 * 1000;
       if (delegate.updatedAt - delegate.createdAt > fifteenSeconds) {
-        await createPledgeAdmin(delegate.delegateId, 'dac', delegate._id);
+        await createPledgeAdmin(delegate.delegateId, 'community', delegate._id);
       }
     },
 

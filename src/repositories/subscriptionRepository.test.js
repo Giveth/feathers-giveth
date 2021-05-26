@@ -3,7 +3,7 @@ const config = require('config');
 const { assert } = require('chai');
 const {
   findProjectSubscribers,
-  findParentDacSubscribersForCampaign,
+  findParentCommunitySubscribersForCampaign,
 } = require('./subscriptionRepository');
 
 const { getJwt, SAMPLE_DATA, generateRandomEtheriumAddress } = require('../../test/testUtility');
@@ -21,15 +21,15 @@ function findProjectSubscribersTests() {
     const userService = app.service('users');
     const user = await userService.create({
       address: generateRandomEtheriumAddress(),
-      email: `${new Date().getTime()}-dacSubscriber@test.giveth`,
+      email: `${new Date().getTime()}-communitySubscriber@test.giveth`,
       isAdmin: true,
-      name: `dac subscriber ${new Date()}`,
+      name: `community subscriber ${new Date()}`,
     });
-    const dac = (
+    const community = (
       await request(baseUrl)
-        .post('/dacs')
+        .post('/communities')
         .send({
-          ...SAMPLE_DATA.CREATE_DAC_DATA,
+          ...SAMPLE_DATA.CREATE_COMMUNITY_DATA,
           ownerAddress: SAMPLE_DATA.USER_ADDRESS,
         })
         .set({ Authorization: getJwt(SAMPLE_DATA.USER_ADDRESS) })
@@ -38,13 +38,13 @@ function findProjectSubscribersTests() {
       .service('subscriptions')
       .Model({
         userAddress: user.address,
-        projectType: 'dac',
-        projectTypeId: dac._id,
+        projectType: 'community',
+        projectTypeId: community._id,
         enabled: true,
       })
       .save();
     const subscriptions = await findProjectSubscribers(app, {
-      projectTypeId: dac._id,
+      projectTypeId: community._id,
     });
     assert.isArray(subscriptions);
     assert.equal(subscriptions[0].user.address, user.address);
@@ -54,15 +54,15 @@ function findProjectSubscribersTests() {
     const userService = app.service('users');
     const user = await userService.create({
       address: generateRandomEtheriumAddress(),
-      email: `${new Date().getTime()}-dacSubscriber@test.giveth`,
+      email: `${new Date().getTime()}-communitySubscriber@test.giveth`,
       isAdmin: true,
-      name: `dac subscriber ${new Date()}`,
+      name: `community subscriber ${new Date()}`,
     });
-    const dac = (
+    const community = (
       await request(baseUrl)
-        .post('/dacs')
+        .post('/communities')
         .send({
-          ...SAMPLE_DATA.CREATE_DAC_DATA,
+          ...SAMPLE_DATA.CREATE_COMMUNITY_DATA,
           ownerAddress: SAMPLE_DATA.USER_ADDRESS,
         })
         .set({ Authorization: getJwt(SAMPLE_DATA.USER_ADDRESS) })
@@ -71,13 +71,13 @@ function findProjectSubscribersTests() {
       .service('subscriptions')
       .Model({
         userAddress: user.address,
-        projectType: 'dac',
-        projectTypeId: dac._id,
+        projectType: 'community',
+        projectTypeId: community._id,
         enabled: false,
       })
       .save();
     const subscriptions = await findProjectSubscribers(app, {
-      projectTypeId: dac._id,
+      projectTypeId: community._id,
     });
     assert.isArray(subscriptions);
     assert.isEmpty(subscriptions);
@@ -87,13 +87,13 @@ function findProjectSubscribersTests() {
     const user = await userService.create({
       address: generateRandomEtheriumAddress(),
       isAdmin: true,
-      name: `dac subscriber ${new Date()}`,
+      name: `community subscriber ${new Date()}`,
     });
-    const dac = (
+    const community = (
       await request(baseUrl)
-        .post('/dacs')
+        .post('/communities')
         .send({
-          ...SAMPLE_DATA.CREATE_DAC_DATA,
+          ...SAMPLE_DATA.CREATE_COMMUNITY_DATA,
           ownerAddress: SAMPLE_DATA.USER_ADDRESS,
         })
         .set({ Authorization: getJwt(SAMPLE_DATA.USER_ADDRESS) })
@@ -102,26 +102,26 @@ function findProjectSubscribersTests() {
       .service('subscriptions')
       .Model({
         userAddress: user.address,
-        projectType: 'dac',
-        projectTypeId: dac._id,
+        projectType: 'community',
+        projectTypeId: community._id,
         enabled: true,
       })
       .save();
     const subscriptions = await findProjectSubscribers(app, {
-      projectTypeId: dac._id,
+      projectTypeId: community._id,
     });
     assert.isArray(subscriptions);
     assert.isEmpty(subscriptions);
   });
 }
-function findParentDacSubscribersForCampaignTests() {
+function findParentCommunitySubscribersForCampaignTests() {
   it('should return subscriptions for enabled subscriptions', async () => {
     const userService = app.service('users');
     const user = await userService.create({
       address: generateRandomEtheriumAddress(),
-      email: `${new Date().getTime()}-dacSubscriber@test.giveth`,
+      email: `${new Date().getTime()}-communitySubscriber@test.giveth`,
       isAdmin: true,
-      name: `dac subscriber ${new Date()}`,
+      name: `community subscriber ${new Date()}`,
     });
     const campaign = (
       await request(baseUrl)
@@ -134,11 +134,11 @@ function findParentDacSubscribersForCampaignTests() {
         .set({ Authorization: getJwt(user.address) })
     ).body;
 
-    const dac = (
+    const community = (
       await request(baseUrl)
-        .post('/dacs')
+        .post('/communities')
         .send({
-          ...SAMPLE_DATA.CREATE_DAC_DATA,
+          ...SAMPLE_DATA.CREATE_COMMUNITY_DATA,
           ownerAddress: SAMPLE_DATA.USER_ADDRESS,
           campaigns: [campaign._id],
         })
@@ -148,29 +148,29 @@ function findParentDacSubscribersForCampaignTests() {
       .service('subscriptions')
       .Model({
         userAddress: user.address,
-        projectType: 'dac',
-        projectTypeId: dac._id,
+        projectType: 'community',
+        projectTypeId: community._id,
         enabled: true,
       })
       .save();
-    const dacWithSubscriptions = await findParentDacSubscribersForCampaign(app, {
+    const communityWithSubscriptions = await findParentCommunitySubscribersForCampaign(app, {
       campaignId: String(campaign._id),
     });
-    assert.isArray(dacWithSubscriptions);
-    assert.equal(dacWithSubscriptions.length, 1);
-    assert.equal(dacWithSubscriptions[0].title, dac.title);
-    assert.isArray(dacWithSubscriptions[0].subscriptions);
-    assert.equal(dacWithSubscriptions[0].subscriptions.length, 1);
-    assert.ok(dacWithSubscriptions[0].subscriptions[0].user);
-    assert.equal(dacWithSubscriptions[0].subscriptions[0].user.email, user.email);
+    assert.isArray(communityWithSubscriptions);
+    assert.equal(communityWithSubscriptions.length, 1);
+    assert.equal(communityWithSubscriptions[0].title, community.title);
+    assert.isArray(communityWithSubscriptions[0].subscriptions);
+    assert.equal(communityWithSubscriptions[0].subscriptions.length, 1);
+    assert.ok(communityWithSubscriptions[0].subscriptions[0].user);
+    assert.equal(communityWithSubscriptions[0].subscriptions[0].user.email, user.email);
   });
   it('should not return subscriptions for disabled subscriptions', async () => {
     const userService = app.service('users');
     const user = await userService.create({
       address: generateRandomEtheriumAddress(),
-      email: `${new Date().getTime()}-dacSubscriber@test.giveth`,
+      email: `${new Date().getTime()}-communitySubscriber@test.giveth`,
       isAdmin: true,
-      name: `dac subscriber ${new Date()}`,
+      name: `community subscriber ${new Date()}`,
     });
     const campaign = (
       await request(baseUrl)
@@ -183,11 +183,11 @@ function findParentDacSubscribersForCampaignTests() {
         .set({ Authorization: getJwt(user.address) })
     ).body;
 
-    const dac = (
+    const community = (
       await request(baseUrl)
-        .post('/dacs')
+        .post('/communities')
         .send({
-          ...SAMPLE_DATA.CREATE_DAC_DATA,
+          ...SAMPLE_DATA.CREATE_COMMUNITY_DATA,
           ownerAddress: SAMPLE_DATA.USER_ADDRESS,
           campaigns: [campaign._id],
         })
@@ -197,26 +197,26 @@ function findParentDacSubscribersForCampaignTests() {
       .service('subscriptions')
       .Model({
         userAddress: user.address,
-        projectType: 'dac',
-        projectTypeId: dac._id,
+        projectType: 'community',
+        projectTypeId: community._id,
         enabled: false,
       })
       .save();
-    const dacWithSubscriptions = await findParentDacSubscribersForCampaign(app, {
+    const communityWithSubscriptions = await findParentCommunitySubscribersForCampaign(app, {
       campaignId: String(campaign._id),
     });
-    assert.isArray(dacWithSubscriptions);
-    assert.equal(dacWithSubscriptions.length, 1);
-    assert.equal(dacWithSubscriptions[0].title, dac.title);
-    assert.isArray(dacWithSubscriptions[0].subscriptions);
-    assert.equal(dacWithSubscriptions[0].subscriptions.length, 0);
+    assert.isArray(communityWithSubscriptions);
+    assert.equal(communityWithSubscriptions.length, 1);
+    assert.equal(communityWithSubscriptions[0].title, community.title);
+    assert.isArray(communityWithSubscriptions[0].subscriptions);
+    assert.equal(communityWithSubscriptions[0].subscriptions.length, 0);
   });
   it('should not return subscriptions for users without email', async () => {
     const userService = app.service('users');
     const user = await userService.create({
       address: generateRandomEtheriumAddress(),
       isAdmin: true,
-      name: `dac subscriber ${new Date()}`,
+      name: `community subscriber ${new Date()}`,
     });
     const campaign = (
       await request(baseUrl)
@@ -229,11 +229,11 @@ function findParentDacSubscribersForCampaignTests() {
         .set({ Authorization: getJwt(user.address) })
     ).body;
 
-    const dac = (
+    const community = (
       await request(baseUrl)
-        .post('/dacs')
+        .post('/communities')
         .send({
-          ...SAMPLE_DATA.CREATE_DAC_DATA,
+          ...SAMPLE_DATA.CREATE_COMMUNITY_DATA,
           ownerAddress: SAMPLE_DATA.USER_ADDRESS,
           campaigns: [campaign._id],
         })
@@ -243,24 +243,24 @@ function findParentDacSubscribersForCampaignTests() {
       .service('subscriptions')
       .Model({
         userAddress: user.address,
-        projectType: 'dac',
-        projectTypeId: dac._id,
+        projectType: 'community',
+        projectTypeId: community._id,
         enabled: false,
       })
       .save();
-    const dacWithSubscriptions = await findParentDacSubscribersForCampaign(app, {
+    const communityWithSubscriptions = await findParentCommunitySubscribersForCampaign(app, {
       campaignId: String(campaign._id),
     });
-    assert.isArray(dacWithSubscriptions);
-    assert.equal(dacWithSubscriptions.length, 1);
-    assert.equal(dacWithSubscriptions[0].title, dac.title);
-    assert.isArray(dacWithSubscriptions[0].subscriptions);
-    assert.equal(dacWithSubscriptions[0].subscriptions.length, 0);
+    assert.isArray(communityWithSubscriptions);
+    assert.equal(communityWithSubscriptions.length, 1);
+    assert.equal(communityWithSubscriptions[0].title, community.title);
+    assert.isArray(communityWithSubscriptions[0].subscriptions);
+    assert.equal(communityWithSubscriptions[0].subscriptions.length, 0);
   });
 }
 
 describe(`findProjectSubscribers test cases`, findProjectSubscribersTests);
 describe(
-  `findParentDacSubscribersForCampaign test cases`,
-  findParentDacSubscribersForCampaignTests,
+  `findParentCommunitySubscribersForCampaign test cases`,
+  findParentCommunitySubscribersForCampaignTests,
 );

@@ -2,13 +2,13 @@
 
 const isIPFS = require('is-ipfs');
 const logger = require('winston');
-const { DacStatus } = require('../models/dacs.model');
+const { CommunityStatus } = require('../models/communities.model');
 const reprocess = require('../utils/reprocess');
 const to = require('../utils/to');
 const { getTransaction } = require('./lib/web3Helpers');
 
 const delegates = (app, liquidPledging) => {
-  const dacs = app.service('/dacs');
+  const communities = app.service('/communities');
 
   async function fetchProfile(url, delegateId) {
     const [err, profile] = await to(app.ipfsFetcher(url));
@@ -24,18 +24,18 @@ const delegates = (app, liquidPledging) => {
     return profile;
   }
 
-  async function getOrCreateDac(delegate, txHash, retry = false) {
-    const data = await dacs.find({ paginate: false, query: { txHash } });
+  async function getOrCreateCommunity(delegate, txHash, retry = false) {
+    const data = await communities.find({ paginate: false, query: { txHash } });
     if (data.length === 0) {
-      // this is really only useful when instant mining. Other then that, the dac should always be
+      // this is really only useful when instant mining. Other then that, the community should always be
       // created before the tx was mined.
       if (!retry) {
-        return reprocess(getOrCreateDac.bind(this, delegate, txHash, true), 5000);
+        return reprocess(getOrCreateCommunity.bind(this, delegate, txHash, true), 5000);
       }
 
       const { from } = await getTransaction(app, txHash);
       try {
-        return dacs.create({
+        return communities.create({
           ownerAddress: from,
           pluginAddress: delegate.plugin,
           title: delegate.name,
@@ -48,7 +48,7 @@ const delegates = (app, liquidPledging) => {
           description: 'Missing Description... Added outside of UI',
         });
       } catch (err) {
-        // dacs service will throw BadRequest error if owner isn't whitelisted
+        // communities service will throw BadRequest error if owner isn't whitelisted
         if (err.name === 'BadRequest') return;
 
         throw err;
@@ -56,7 +56,7 @@ const delegates = (app, liquidPledging) => {
     }
 
     if (data.length > 1) {
-      logger.info('more then 1 dac with the same ownerAddress and title found: ', data);
+      logger.info('more then 1 community with the same ownerAddress and title found: ', data);
     }
 
     return data[0];
@@ -65,10 +65,10 @@ const delegates = (app, liquidPledging) => {
   async function addDelegate(delegateId, txHash) {
     try {
       const delegate = await liquidPledging.getPledgeAdmin(delegateId);
-      const dac = await getOrCreateDac(delegate, txHash);
+      const community = await getOrCreateCommunity(delegate, txHash);
 
       // most likely b/c the whitelist check failed
-      if (!dac) return;
+      if (!community) return;
 
       const profile = await fetchProfile(delegate.url, delegateId);
       const mutation = {
@@ -77,24 +77,24 @@ const delegates = (app, liquidPledging) => {
         delegateId,
         commitTime: delegate.commitTime,
         pluginAddress: delegate.plugin,
-        status: DacStatus.ACTIVE,
+        status: CommunityStatus.ACTIVE,
         url: delegate.url,
       };
 
-      return dacs.patch(dac._id, mutation);
+      return communities.patch(community._id, mutation);
     } catch (err) {
-      logger.error('Error dac patch:', err);
+      logger.error('Error community patch:', err);
     }
   }
 
-  async function getDacById(delegateId) {
-    const data = await dacs.find({ paginate: false, query: { delegateId } });
+  async function getCommunityById(delegateId) {
+    const data = await communities.find({ paginate: false, query: { delegateId } });
     if (data.length === 0) {
       return addDelegate(delegateId);
     }
 
     if (data.length > 1) {
-      logger.warn('more then 1 dac with the same delegateId found: ', data);
+      logger.warn('more then 1 community with the same delegateId found: ', data);
     }
 
     return data[0];
@@ -129,13 +129,13 @@ const delegates = (app, liquidPledging) => {
       const delegateId = event.returnValues.idDelegate;
 
       try {
-        const [dac, delegate] = await Promise.all([
-          getDacById(delegateId),
+        const [community, delegate] = await Promise.all([
+          getCommunityById(delegateId),
           liquidPledging.getPledgeAdmin(delegateId),
         ]);
 
         const mutation = { title: delegate.name };
-        if (delegate.url && delegate.url !== dac.url) {
+        if (delegate.url && delegate.url !== community.url) {
           const profile = await fetchProfile(delegate.url, delegateId);
           Object.assign(mutation, profile);
         }
@@ -144,7 +144,7 @@ const delegates = (app, liquidPledging) => {
           url: delegate.url,
         });
 
-        return dacs.patch(dac._id, mutation);
+        return communities.patch(community._id, mutation);
       } catch (err) {
         logger.error('updateDelegate error ->', err);
       }

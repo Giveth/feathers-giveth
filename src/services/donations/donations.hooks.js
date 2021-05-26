@@ -60,10 +60,10 @@ const poSchemas = {
       },
     ],
   },
-  'po-dac': {
+  'po-community': {
     include: [
       {
-        service: 'dacs',
+        service: 'communities',
         nameAs: 'delegateEntity',
         parentField: 'delegateTypeId',
         childField: '_id',
@@ -290,7 +290,7 @@ const joinDonationRecipient = (item, context) => {
 
   return commons
     .populate({ schema: ownerSchema })(newContext)
-    .then(c => (item.delegateId ? commons.populate({ schema: poSchemas['po-dac'] })(c) : c))
+    .then(c => (item.delegateId ? commons.populate({ schema: poSchemas['po-community'] })(c) : c))
     .then(c =>
       item.intendedProjectId > 0 && item.intendedProjectType
         ? commons.populate({
@@ -417,7 +417,7 @@ const setLessThanCutoffHook = () => async context => {
   return context;
 };
 
-const addProjectToDac = () => async context => {
+const addProjectToCommunity = () => async context => {
   if (
     !context.result.delegateTypeId ||
     !context.result.intendedProjectType ||
@@ -426,10 +426,10 @@ const addProjectToDac = () => async context => {
     // Just continue if it's a delegation otherwise return
     return context;
   }
-  const dacId = context.result.delegateTypeId;
+  const community = context.result.delegateTypeId;
   const projectObjectId = context.result.intendedProjectTypeId;
-  const dacsService = context.app.service('dacs');
-  const dacModel = dacsService.Model;
+  const communitiesService = context.app.service('communities');
+  const communityModel = communitiesService.Model;
   let campaignId;
   switch (context.result.intendedProjectType) {
     case 'campaign':
@@ -453,7 +453,7 @@ const addProjectToDac = () => async context => {
     default:
       return context;
   }
-  await dacModel.updateOne({ _id: ObjectId(dacId) }, { $addToSet: { campaigns: campaignId } });
+  await communityModel.updateOne({ _id: ObjectId(community) }, { $addToSet: { campaigns: campaignId } });
   return context;
 };
 
@@ -523,7 +523,7 @@ module.exports = {
       updateDonationEntityCountersHook(),
       setEntityUpdated(),
       setLessThanCutoffHook(),
-      addProjectToDac(),
+      addProjectToCommunity(),
     ],
     update: [],
     patch: [

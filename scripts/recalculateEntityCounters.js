@@ -1,7 +1,7 @@
 /**
  * NOTE: make sure to chage the dappmailer url in config/*.json to an invalid url
  * to prevent sending duplicate email notifications
- * 
+ *
  * to run:
  *
  * NODE_ENV=production node scripts/recalculateEntityCounters.js
@@ -19,7 +19,7 @@ async function run() {
   console.log('updating all entity counters');
 
   const dacs = await app.service('dacs').find({ paginate: false });
-  const dacPromises = dacs.map(dac => updateEntity(app, dac._id, AdminTypes.DAC));
+  const dacPromises = dacs.map(dac => updateEntity(app, dac._id, AdminTypes.COMMUNITY));
 
   const campaigns = await app.service('campaigns').find({ paginate: false });
   const campaignPromises = campaigns.map(campaign =>

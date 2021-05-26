@@ -49,9 +49,9 @@ function normalizeAmountTestCases() {
 }
 
 function capitalizeDelegateTypeTestCases() {
-  it('should convert dac to DAC', () => {
-    const result = capitalizeDelegateType('dac');
-    assert.equal(result, 'DAC');
+  it('should convert community to COMMUNITY', () => {
+    const result = capitalizeDelegateType('community');
+    assert.equal(result, 'Community');
   });
   it('should convert trace to Trace', () => {
     const result = capitalizeDelegateType('trace');
@@ -93,17 +93,17 @@ const createTraceAndCampaign = async () => {
     isAdmin: true,
     name: `campaignOwner ${new Date()}`,
   });
-  const dacOwner = await userService.create({
+  const communityOwner = await userService.create({
     address: generateRandomEtheriumAddress(),
-    email: `${new Date().getTime()}-dacOwner@test.giveth`,
+    email: `${new Date().getTime()}-communityOwner@test.giveth`,
     isAdmin: true,
-    name: `dacOwner ${new Date()}`,
+    name: `communityOwner ${new Date()}`,
   });
-  const dacSubscriber = await userService.create({
+  const communitySubscriber = await userService.create({
     address: generateRandomEtheriumAddress(),
-    email: `${new Date().getTime()}-dacSubscriber@test.giveth`,
+    email: `${new Date().getTime()}-communitySubscriber@test.giveth`,
     isAdmin: true,
-    name: `dacSubscriber ${new Date()}`,
+    name: `communitySubscriber ${new Date()}`,
   });
   const campaignSubscriber = await userService.create({
     address: generateRandomEtheriumAddress(),
@@ -147,23 +147,23 @@ const createTraceAndCampaign = async () => {
       .set({ Authorization: getJwt(traceOwner.address) })
   ).body;
 
-  const dac = (
+  const community = (
     await request(baseUrl)
-      .post('/dacs')
+      .post('/communities')
       .send({
-        ...SAMPLE_DATA.CREATE_DAC_DATA,
-        ownerAddress: dacOwner.address,
+        ...SAMPLE_DATA.CREATE_COMMUNITY_DATA,
+        ownerAddress: communityOwner.address,
         campaigns: [campaign._id],
       })
-      .set({ Authorization: getJwt(dacOwner.address) })
+      .set({ Authorization: getJwt(communityOwner.address) })
   ).body;
 
   await app
     .service('subscriptions')
     .Model({
-      userAddress: dacSubscriber.address,
-      projectType: 'dac',
-      projectTypeId: String(dac._id),
+      userAddress: communitySubscriber.address,
+      projectType: 'community',
+      projectTypeId: String(community._id),
       enabled: true,
     })
     .save();
@@ -186,8 +186,8 @@ const createTraceAndCampaign = async () => {
     campaignReviewer,
     traceReviewer,
     traceRecipient,
-    dacOwner,
-    dacSubscriber,
+    communityOwner,
+    communitySubscriber,
     campaignSubscriber,
   };
 };
@@ -390,9 +390,9 @@ function proposedTraceAcceptedTestCases() {
     assert.isAtLeast(recipientEmails.length, 1);
     assert.equal(recipientEmails[0].message, message);
   });
-  it('email to campaigns parent dac subscriber, after proposed Trace Accepted', async () => {
+  it('email to campaigns parent community subscriber, after proposed Trace Accepted', async () => {
     const emailService = app.service('emails');
-    const { campaign, trace, dacSubscriber } = await createTraceAndCampaign();
+    const { campaign, trace, communitySubscriber } = await createTraceAndCampaign();
     const message = `test message - ${new Date()}`;
     await proposedTraceAccepted(app, {
       trace,
@@ -400,17 +400,17 @@ function proposedTraceAcceptedTestCases() {
     });
     // because creating and sending email is async, we should wait to make sure the email hooks worked
     await sleep(50);
-    const dacSubscriberEmails = await emailService.find({
+    const communitySubscriberEmails = await emailService.find({
       paginate: false,
       query: {
-        recipient: dacSubscriber.email,
+        recipient: communitySubscriber.email,
         traceId: trace._id,
         campaignId: campaign._id,
         unsubscribeType: EmailSubscribeTypes.PROPOSED_MILESTONE_ACCEPTED,
       },
     });
-    assert.isAtLeast(dacSubscriberEmails.length, 1);
-    assert.equal(dacSubscriberEmails[0].message, message);
+    assert.isAtLeast(communitySubscriberEmails.length, 1);
+    assert.equal(communitySubscriberEmails[0].message, message);
   });
   it('email to campaigns subscriber, after proposed Trace Accepted', async () => {
     const emailService = app.service('emails');
@@ -422,7 +422,7 @@ function proposedTraceAcceptedTestCases() {
     });
     // because creating and sending email is async, we should wait to make sure the email hooks worked
     await sleep(50);
-    const dacSubscriberEmails = await emailService.find({
+    const communitySubscriberEmails = await emailService.find({
       paginate: false,
       query: {
         recipient: campaignSubscriber.email,
@@ -431,8 +431,8 @@ function proposedTraceAcceptedTestCases() {
         unsubscribeType: EmailSubscribeTypes.PROPOSED_MILESTONE_ACCEPTED,
       },
     });
-    assert.isAtLeast(dacSubscriberEmails.length, 1);
-    assert.equal(dacSubscriberEmails[0].message, message);
+    assert.isAtLeast(communitySubscriberEmails.length, 1);
+    assert.equal(communitySubscriberEmails[0].message, message);
   });
 }
 
@@ -623,25 +623,25 @@ const traceMarkedCompletedTestCases = () => {
     });
     assert.isAtLeast(campaignReviewerEmails.length, 1);
   });
-  it('email to dacOwner, when proposed trace marks as complete', async () => {
+  it('email to communityOwner, when proposed trace marks as complete', async () => {
     const emailService = app.service('emails');
-    const { campaign, trace, dacOwner } = await createTraceAndCampaign();
+    const { campaign, trace, communityOwner } = await createTraceAndCampaign();
     await traceMarkedCompleted(app, {
       trace,
       message,
     });
     await sleep(50);
 
-    const dacOwnerEmails = await emailService.find({
+    const communityOwnerEmails = await emailService.find({
       paginate: false,
       query: {
-        recipient: dacOwner.email,
+        recipient: communityOwner.email,
         traceId: trace._id,
         campaignId: campaign._id,
         unsubscribeType: EmailSubscribeTypes.MILESTONE_REVIEW_APPROVED,
       },
     });
-    assert.isAtLeast(dacOwnerEmails.length, 1);
+    assert.isAtLeast(communityOwnerEmails.length, 1);
   });
 
   it('email to traceOwner, when proposed trace marks as complete', async () => {

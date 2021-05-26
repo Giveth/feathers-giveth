@@ -50,7 +50,7 @@ const createAggregateQuery = ownerType => {
       $unwind: '$giver',
     },
 
-    // Add project (DAC, Campaign, Milestone) but currently just the milestone will be used
+    // Add project (COMMUNITY, Campaign, Milestone) but currently just the milestone will be used
     {
       $lookup: {
         from: `${ownerType}s`,

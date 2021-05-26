@@ -27,7 +27,7 @@ const app = appFactory();
 app.set('mongooseClient', mongoose);
 
 const Milestones = require('../../src/models/traces.model').createModel(app);
-const DACs = require('../../src/models/dacs.model').createModel(app);
+const DACs = require('../../src/models/communities.model').createModel(app);
 const Campaigns = require('../../src/models/campaigns.model').createModel(app);
 const Donations = require('../../src/models/donations.model').createModel(app);
 
@@ -52,10 +52,10 @@ const updateEntity = async (model, type) => {
   };
 
   let idFieldName;
-  if (type === AdminTypes.DAC) {
+  if (type === AdminTypes.COMMUNITY) {
     // TODO I think this can be gamed if the donor refunds their donation from the dac
     Object.assign(donationQuery, {
-      delegateType: AdminTypes.DAC,
+      delegateType: AdminTypes.COMMUNITY,
       $and: [
         {
           $or: [{ intendedProjectId: 0 }, { intendedProjectId: undefined }],
@@ -255,7 +255,7 @@ const updateEntity = async (model, type) => {
 };
 const main = async () => {
   await Promise.all([
-    updateEntity(DACs, AdminTypes.DAC),
+    updateEntity(DACs, AdminTypes.COMMUNITY),
     updateEntity(Campaigns, AdminTypes.CAMPAIGN),
     updateEntity(Milestones, AdminTypes.MILESTONE),
   ]);

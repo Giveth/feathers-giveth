@@ -113,7 +113,7 @@ const createDelegatedConversation = async (
     txHash,
     payments: [payment],
     donorId: firstParent.delegateTypeId ? firstParent.delegateTypeId : firstParent.ownerTypeId,
-    donorType: firstParent.delegateTypeId ? AdminTypes.DAC : firstParent.ownerType,
+    donorType: firstParent.delegateTypeId ? AdminTypes.COMMUNITY : firstParent.ownerType,
   };
   try {
     const { timestamp } = await getTransaction(app, txHash, false);

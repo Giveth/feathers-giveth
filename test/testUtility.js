@@ -147,7 +147,7 @@ const SAMPLE_DATA = {
   MILESTONE_PROJECT_ID: 5,
   CAMPAIGN_ID: campaignAddress,
   FAKE_USER_ADDRESS: generateRandomEtheriumAddress(),
-  DAC_ID: '5fd339eaa5ffa2a6198ecd70',
+  COMMUNITY_ID: '5fd339eaa5ffa2a6198ecd70',
   USER_ID: '5fd3385aa5ffa2a6198ecd6e',
   TRACE_STATUSES: {
     PROPOSED: 'Proposed',
@@ -217,7 +217,7 @@ const SAMPLE_DATA = {
       description: '<p>give money for god sake</p>',
       image: '',
       reviewerAddress: testAddress,
-      dacId: 0,
+      communityId: 0,
       date: '2020-11-10T00:00:00.000Z',
       recipientAddress: '0x0000000000000000000000000000000000000000',
       pluginAddress: '0x0000000000000000000000000000000000000001',
@@ -273,15 +273,15 @@ const SAMPLE_DATA = {
     tokenAddress: '0x0',
     actionTakerAddress: '0x5AC583Feb2b1f288C0A51d6Cdca2e8c814BFE93B',
   },
-  DacStatus: {
+  CommunityStatus: {
     ACTIVE: 'Active',
     PENDING: 'Pending',
     CANCELED: 'Canceled',
     FAILED: 'Failed',
   },
-  CREATE_DAC_DATA: {
-    title: 'test dac title',
-    description: 'test dac description',
+  CREATE_COMMUNITY_DATA: {
+    title: 'test community title',
+    description: 'test community description',
     status: 'Pending',
     txHash: generateRandomTransactionHash(),
     ownerAddress: testAddress,

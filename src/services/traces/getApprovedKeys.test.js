@@ -263,7 +263,7 @@ function getApprovedKeysTestCases() {
       'image',
       'token',
       'type',
-      'dacId',
+      'communityId',
     ];
     const approvedKeys = getApprovedKeys(
       { ...trace, status: SAMPLE_DATA.TRACE_STATUSES.IN_PROGRESS },
