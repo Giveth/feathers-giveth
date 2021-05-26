@@ -453,7 +453,10 @@ const addProjectToCommunity = () => async context => {
     default:
       return context;
   }
-  await communityModel.updateOne({ _id: ObjectId(community) }, { $addToSet: { campaigns: campaignId } });
+  await communityModel.updateOne(
+    { _id: ObjectId(community) },
+    { $addToSet: { campaigns: campaignId } },
+  );
   return context;
 };
 
