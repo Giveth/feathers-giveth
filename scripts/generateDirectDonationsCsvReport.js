@@ -21,7 +21,7 @@ const appFactory = () => {
 
 const app = appFactory();
 app.set('mongooseClient', mongoose);
-const milestoneModel = require('../src/models/milestones.model').createModel(app);
+const milestoneModel = require('../src/models/traces.model').createModel(app);
 const campaignModel = require('../src/models/campaigns.model').createModel(app);
 
 const createAggregateQuery = ownerType => {
@@ -50,7 +50,7 @@ const createAggregateQuery = ownerType => {
       $unwind: '$giver',
     },
 
-    // Add project (DAC, Campaign, Milestone) but currently just the milestone will be used
+    // Add project (COMMUNITY, Campaign, Milestone) but currently just the milestone will be used
     {
       $lookup: {
         from: `${ownerType}s`,

@@ -7,7 +7,7 @@ const { AdminTypes } = require('./pledgeAdmins.model');
 // for more of what you can do here.
 
 /**
- Available conversation types. This roughly follows the milestone status
+ Available conversation types. This roughly follows the trace status
  replyTo is for threaded messages
  * */
 const CONVERSATION_MESSAGE_CONTEXT = {
@@ -35,7 +35,7 @@ const createModel = function Conversations(app) {
 
   const conversation = new Schema(
     {
-      milestoneId: { type: String, required: true },
+      traceId: { type: String, required: true },
       messageContext: { type: String, required: true },
       message: { type: String },
       replyToId: { type: String },
@@ -63,8 +63,8 @@ const createModel = function Conversations(app) {
     },
   );
 
-  conversation.index({ milestoneId: 1, txHash: 1, messageContext: 1 });
-  conversation.index({ milestoneId: 1, createdAt: 1 });
+  conversation.index({ traceId: 1, txHash: 1, messageContext: 1 });
+  conversation.index({ traceId: 1, createdAt: 1 });
   return mongooseClient.model('conversation', conversation);
 };
 

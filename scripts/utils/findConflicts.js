@@ -178,13 +178,13 @@ const appFactory = () => {
 const app = appFactory();
 app.set('mongooseClient', mongoose);
 
-const { MilestoneStatus, createModel } = require('../../src/models/milestones.model');
+const { TraceStatus, createModel } = require('../../src/models/traces.model');
 
 const Milestones = createModel(app);
 const Campaigns = require('../../src/models/campaigns.model').createModel(app);
 const Donations = require('../../src/models/donations.model').createModel(app);
 const PledgeAdmins = require('../../src/models/pledgeAdmins.model').createModel(app);
-const Dacs = require('../../src/models/dacs.model').createModel(app);
+const Dacs = require('../../src/models/communities.model').createModel(app);
 const ConversationRates = require('../../src/models/conversionRates.model')(app);
 // const Transaction = require('../../src/models/transactions.model').createModel(app);
 
@@ -479,7 +479,7 @@ const convertPledgeStateToStatus = (pledge, pledgeAdmin) => {
  */
 async function isReturnTransfer(transferInfo) {
   const { fromPledge, fromPledgeAdmin, toPledgeId, txHash, fromPledgeId } = transferInfo;
-  // currently only milestones will can be over-funded
+  // currently only traces will can be over-funded
   if (fromPledgeId === '0' || !fromPledgeAdmin || fromPledgeAdmin.type !== AdminTypes.MILESTONE) {
     return false;
   }
@@ -802,7 +802,7 @@ const handleToDonations = async ({
       }
       expectedToDonation.tokenAddress = token.address;
       const delegationInfo = {};
-      // It's delegated to a DAC
+      // It's delegated to a COMMUNITY
       if (toPledge.delegates.length > 0) {
         const [delegate] = toPledge.delegates;
         const dacPledgeAdmin = await PledgeAdmins.findOne({ id: Number(delegate.id) });
@@ -1230,7 +1230,7 @@ const createMilestoneForPledgeAdmin = async ({
   });
   return new Milestones({
     ...createMilestoneData,
-    status: MilestoneStatus.CANCELED,
+    status: TraceStatus.CANCELED,
     campaignId: campaign._id,
   }).save();
 };

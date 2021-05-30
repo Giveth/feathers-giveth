@@ -70,7 +70,7 @@ const restrict = () => context => {
   );
 };
 
-const countMilestones = (item, service) =>
+const countTraces = (item, service) =>
   service.Model.countDocuments({
     campaignId: item._id,
     projectId: {
@@ -78,17 +78,17 @@ const countMilestones = (item, service) =>
     },
   }).then(count => Object.assign(item, { milestonesCount: count }));
 
-// add milestonesCount to each DAC object
-const addMilestoneCounts = () => context => {
-  const service = context.app.service('milestones');
+// add milestonesCount to each COMMUNITY object
+const addTraceCounts = () => context => {
+  const service = context.app.service('traces');
 
   const items = commons.getItems(context);
 
   let promises;
   if (Array.isArray(items)) {
-    promises = items.map(item => countMilestones(item, service));
+    promises = items.map(item => countTraces(item, service));
   } else {
-    promises = [countMilestones(items, service)];
+    promises = [countTraces(items, service)];
   }
 
   return Promise.all(promises).then(results =>
@@ -131,8 +131,8 @@ module.exports = {
 
   after: {
     all: [commons.populate({ schema })],
-    find: [addMilestoneCounts(), addConfirmations(), resolveFiles('image')],
-    get: [addMilestoneCounts(), addConfirmations(), resolveFiles('image')],
+    find: [addTraceCounts(), addConfirmations(), resolveFiles('image')],
+    get: [addTraceCounts(), addConfirmations(), resolveFiles('image')],
     create: [resolveFiles('image')],
     update: [resolveFiles('image')],
     patch: [resolveFiles('image')],

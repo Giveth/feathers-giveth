@@ -258,7 +258,7 @@ const watcher = app => {
   }
 
   /**
-   * subscribe to SetApp events for milestones & lpp-campaign
+   * subscribe to SetApp events for traces & lpp-campaign
    */
   async function subscribeApps() {
     subscriptions.push(

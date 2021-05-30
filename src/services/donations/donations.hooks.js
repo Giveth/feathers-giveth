@@ -10,7 +10,7 @@ const addConfirmations = require('../../hooks/addConfirmations');
 const tokenAddressConversion = require('../../hooks/tokenAddressConversion');
 const { DonationStatus } = require('../../models/donations.model');
 const { AdminTypes } = require('../../models/pledgeAdmins.model');
-const { MilestoneStatus } = require('../../models/milestones.model');
+const { TraceStatus } = require('../../models/traces.model');
 const { getHourlyCryptoConversion } = require('../conversionRates/getConversionRatesService');
 const { ZERO_ADDRESS, getTransaction } = require('../../blockchain/lib/web3Helpers');
 const { getTokenByAddress } = require('../../utils/tokenHelper');
@@ -60,10 +60,10 @@ const poSchemas = {
       },
     ],
   },
-  'po-dac': {
+  'po-community': {
     include: [
       {
-        service: 'dacs',
+        service: 'communities',
         nameAs: 'delegateEntity',
         parentField: 'delegateTypeId',
         childField: '_id',
@@ -71,10 +71,10 @@ const poSchemas = {
       },
     ],
   },
-  'po-milestone': {
+  'po-trace': {
     include: [
       {
-        service: 'milestones',
+        service: 'traces',
         nameAs: 'ownerEntity',
         parentField: 'ownerTypeId',
         childField: '_id',
@@ -82,10 +82,10 @@ const poSchemas = {
       },
     ],
   },
-  'po-milestone-intended': {
+  'po-trace-intended': {
     include: [
       {
-        service: 'milestones',
+        service: 'traces',
         nameAs: 'intendedProjectEntity',
         parentField: 'intendedProjectId',
         childField: 'projectId',
@@ -180,7 +180,7 @@ const setUSDValueHook = () => async context => {
 };
 
 /**
- * Set the updatedAt of the campaign when a donation to the campaign or a campaign's milestone occurs
+ * Set the updatedAt of the campaign when a donation to the campaign or a campaign's trace occurs
  */
 const setEntityUpdated = () => async context => {
   commons.checkContext(context, 'after', ['create', 'patch']);
@@ -197,14 +197,14 @@ const setEntityUpdated = () => async context => {
           },
         },
       );
-    } else if (donation.ownerType === AdminTypes.MILESTONE) {
-      const milestone = await context.app.service('milestones').get(donation.ownerTypeId);
+    } else if (donation.ownerType === AdminTypes.TRACE) {
+      const trace = await context.app.service('traces').get(donation.ownerTypeId);
       context.app.service('campaigns').patch(
         null,
         { updatedAt: donation.createdAt },
         {
           query: {
-            _id: milestone.campaignId,
+            _id: trace.campaignId,
             updatedAt: { $lt: donation.createdAt },
           },
         },
@@ -290,7 +290,7 @@ const joinDonationRecipient = (item, context) => {
 
   return commons
     .populate({ schema: ownerSchema })(newContext)
-    .then(c => (item.delegateId ? commons.populate({ schema: poSchemas['po-dac'] })(c) : c))
+    .then(c => (item.delegateId ? commons.populate({ schema: poSchemas['po-community'] })(c) : c))
     .then(c =>
       item.intendedProjectId > 0 && item.intendedProjectType
         ? commons.populate({
@@ -307,11 +307,11 @@ const updateMilestoneIfNotPledged = () => async context => {
   const { data: donation } = context;
   const { COMMITTED, PAYING, PAID } = DonationStatus;
 
-  if (donation.ownerType === AdminTypes.MILESTONE && [PAYING, PAID].includes(donation.status)) {
-    const milestone = await context.app.service('milestones').get(donation.ownerTypeId);
-    const { maxAmount, reviewerAddress, fullyFunded } = milestone;
+  if (donation.ownerType === AdminTypes.TRACE && [PAYING, PAID].includes(donation.status)) {
+    const trace = await context.app.service('traces').get(donation.ownerTypeId);
+    const { maxAmount, reviewerAddress, fullyFunded } = trace;
 
-    // never set uncapped or without-reviewer non-fullyFunded milestones as PAID
+    // never set uncapped or without-reviewer non-fullyFunded traces as PAID
     const hasReviewer = reviewerAddress && reviewerAddress !== ZERO_ADDRESS;
     if (!maxAmount || (!fullyFunded && !hasReviewer)) return;
 
@@ -329,11 +329,9 @@ const updateMilestoneIfNotPledged = () => async context => {
 
     const hasPayingDonation = donations.some(d => d.status === PAYING);
 
-    context.app.service('milestones').patch(donation.ownerTypeId, {
+    context.app.service('traces').patch(donation.ownerTypeId, {
       status:
-        donation.status === PAYING || hasPayingDonation
-          ? MilestoneStatus.PAYING
-          : MilestoneStatus.PAID,
+        donation.status === PAYING || hasPayingDonation ? TraceStatus.PAYING : TraceStatus.PAID,
     });
   }
 };
@@ -419,7 +417,7 @@ const setLessThanCutoffHook = () => async context => {
   return context;
 };
 
-const addProjectToDac = () => async context => {
+const addProjectToCommunity = () => async context => {
   if (
     !context.result.delegateTypeId ||
     !context.result.intendedProjectType ||
@@ -428,18 +426,18 @@ const addProjectToDac = () => async context => {
     // Just continue if it's a delegation otherwise return
     return context;
   }
-  const dacId = context.result.delegateTypeId;
+  const community = context.result.delegateTypeId;
   const projectObjectId = context.result.intendedProjectTypeId;
-  const dacsService = context.app.service('dacs');
-  const dacModel = dacsService.Model;
+  const communitiesService = context.app.service('communities');
+  const communityModel = communitiesService.Model;
   let campaignId;
   switch (context.result.intendedProjectType) {
     case 'campaign':
       campaignId = projectObjectId;
       break;
-    case 'milestone':
+    case 'trace':
       // eslint-disable-next-line no-case-declarations
-      const milestone = await context.app.service('milestones').Model.findOne(
+      const trace = await context.app.service('traces').Model.findOne(
         {
           _id: ObjectId(projectObjectId),
         },
@@ -447,15 +445,18 @@ const addProjectToDac = () => async context => {
           campaignId: 1,
         },
       );
-      if (!milestone) {
+      if (!trace) {
         return context;
       }
-      campaignId = milestone.campaignId;
+      campaignId = trace.campaignId;
       break;
     default:
       return context;
   }
-  await dacModel.updateOne({ _id: ObjectId(dacId) }, { $addToSet: { campaigns: campaignId } });
+  await communityModel.updateOne(
+    { _id: ObjectId(community) },
+    { $addToSet: { campaigns: campaignId } },
+  );
   return context;
 };
 
@@ -525,7 +526,7 @@ module.exports = {
       updateDonationEntityCountersHook(),
       setEntityUpdated(),
       setLessThanCutoffHook(),
-      addProjectToDac(),
+      addProjectToCommunity(),
     ],
     update: [],
     patch: [

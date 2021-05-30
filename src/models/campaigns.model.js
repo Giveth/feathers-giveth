@@ -25,7 +25,7 @@ function createModel(app) {
       txHash: { type: String, index: true, required: true },
       peopleCount: { type: Number },
       donationCounters: [DonationCounter],
-      dacs: { type: [String] },
+      communities: { type: [String] },
       reviewerAddress: { type: String, required: true, index: true },
       ownerAddress: { type: String, required: true, index: true },
       coownerAddress: { type: String, required: false, index: true },
@@ -44,7 +44,7 @@ function createModel(app) {
       prevUrl: { type: String }, // To store deleted/cleared lost ipfs values
       commitTime: { type: Number },
       communityUrl: { type: String },
-      archivedMilestones: { type: [Schema.Types.Long] },
+      archivedTraces: { type: [Schema.Types.Long] },
       gasPaidUsdValue: { type: Number, default: 0 },
     },
     {

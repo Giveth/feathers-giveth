@@ -1,22 +1,22 @@
 const DonationCounter = require('./donationCounter.model');
 
-const DacStatus = {
+const CommunityStatus = {
   ACTIVE: 'Active',
   PENDING: 'Pending',
   CANCELED: 'Canceled',
   FAILED: 'Failed',
 };
 
-// dacs-model.js - A mongoose model
+// communities-model.js - A mongoose model
 //
 // See http://mongoosejs.com/docs/models.html
 // for more of what you can do here.
 function createModel(app) {
   const mongooseClient = app.get('mongooseClient');
   const { Schema } = mongooseClient;
-  const dac = new Schema(
+  const community = new Schema(
     // TODO note: the following commenting out of required is b/c
-    // if a dac is added to lp not from the dapp, we can't
+    // if a community is added to lp not from the dapp, we can't
     // guarantee that those fields are present until we have
     // ipfs enabled
     {
@@ -24,13 +24,13 @@ function createModel(app) {
       slug: { type: String, required: true },
       description: { type: String, required: true },
       communityUrl: { type: String },
-      // FIXME: Should be unique but since we are using 0 for new DACs there can be more than one pending... Should instead be undefined
+      // FIXME: Should be unique but since we are using 0 for new Communities there can be more than one pending... Should instead be undefined
       delegateId: { type: Schema.Types.Long }, // we can use Long here b/c lp only stores adminId in pledges as uint64
       status: {
         type: String,
         require: true,
-        enum: Object.values(DacStatus),
-        default: DacStatus.PENDING,
+        enum: Object.values(CommunityStatus),
+        default: CommunityStatus.PENDING,
       },
       image: { type: String },
       prevImage: { type: String }, // To store deleted/cleared lost ipfs values
@@ -51,15 +51,15 @@ function createModel(app) {
       timestamps: true,
     },
   );
-  dac.index({ createdAt: 1 });
-  dac.index({ status: 1, createdAt: 1 });
-  dac.index({ ownerAddress: 1, createdAt: 1 });
-  dac.index({ delegateId: 1, ownerAddress: 1 });
-  dac.index({ slug: 1 }, { unique: true });
-  return mongooseClient.model('dac', dac);
+  community.index({ createdAt: 1 });
+  community.index({ status: 1, createdAt: 1 });
+  community.index({ ownerAddress: 1, createdAt: 1 });
+  community.index({ delegateId: 1, ownerAddress: 1 });
+  community.index({ slug: 1 }, { unique: true });
+  return mongooseClient.model('community', community);
 }
 
 module.exports = {
-  DacStatus,
+  CommunityStatus,
   createModel,
 };

@@ -31,12 +31,12 @@ const app = appFactory();
 app.set('mongooseClient', mongoose);
 
 const Campaign = require('../../src/models/campaigns.model').createModel(app);
-const Dac = require('../../src/models/dacs.model').createModel(app);
+const Dac = require('../../src/models/communities.model').createModel(app);
 const Donation = require('../../src/models/donations.model').createModel(app);
 const { DonationStatus } = require('../../src/models/donations.model');
 const Events = require('../../src/models/events.model')(app);
-const Milestone = require('../../src/models/milestones.model').createModel(app);
-const { MilestoneStatus } = require('../../src/models/milestones.model');
+const Milestone = require('../../src/models/traces.model').createModel(app);
+const { TraceStatus } = require('../../src/models/traces.model');
 const PledgeAdmin = require('../../src/models/pledgeAdmins.model').createModel(app);
 const User = require('../../src/models/users.model')(app);
 const Item = require('../../src/models/item.model');
@@ -90,27 +90,27 @@ const migrateConversation = () => {
     });
 };
 const migrateDac = () => {
-  // re-save all dacs so the types are updated
+  // re-save all communities so the types are updated
   Dac.find({}, (err, dacs) => {
     dacs.forEach(d => Dac.update({ _id: d._id }, d).exec());
   });
 };
 const migrateMilestone = () => {
-  // re-save all milestones so the types are updated
+  // re-save all traces so the types are updated
   Milestone.find({}, (err, milestones) => {
     milestones.forEach(m => {
       if (m.status === 'rejected') {
-        m.status = MilestoneStatus.REJECTED;
+        m.status = TraceStatus.REJECTED;
       } else if (m.status === 'proposed') {
-        m.status = MilestoneStatus.PROPOSED;
+        m.status = TraceStatus.PROPOSED;
       } else if (m.status === 'pending') {
-        m.status = MilestoneStatus.PENDING;
+        m.status = TraceStatus.PENDING;
       } else if (m.status === 'paid') {
-        m.status = MilestoneStatus.PAID;
+        m.status = TraceStatus.PAID;
       } else if (m.status === 'paying') {
-        m.status = MilestoneStatus.PAYING;
+        m.status = TraceStatus.PAYING;
       } else if (m.status === 'canceled') {
-        m.status = MilestoneStatus.CANCELED;
+        m.status = TraceStatus.CANCELED;
       }
       Milestone.update({ _id: m._id }, m).exec();
     });

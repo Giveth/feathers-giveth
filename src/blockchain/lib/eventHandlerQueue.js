@@ -5,7 +5,7 @@ const Queue = require('bull');
 const paymentsFactory = require('../payments');
 const adminsFactory = require('../admins');
 const pledgesFactory = require('../pledges');
-const milestonesFactory = require('../milestones');
+const milestonesFactory = require('../traces');
 const { EventStatus } = require('../../models/events.model');
 
 const handleEventQueue = new Queue('eventHandler', { redis: config.get('redis') });

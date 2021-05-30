@@ -30,13 +30,13 @@ const schema = {
 
 const countCampaigns = (item, service) =>
   service.Model.countDocuments({
-    dacs: item._id,
+    communities: item._id,
     projectId: {
       $gt: 0, // 0 is a pending campaign
     },
   }).then(count => Object.assign(item, { campaignsCount: count }));
 
-// add campaignCount to each DAC object
+// add campaignCount to each COMMUNITY object
 const addCampaignCounts = () => context => {
   const service = context.app.service('campaigns');
 
@@ -63,12 +63,14 @@ const isDacAllowed = () => context => {
 
   const items = commons.getItems(context);
 
-  const inWhitelist = async dac => {
-    if (await isUserInDelegateWhiteList(context.app, dac.ownerAddress.toLowerCase())) {
+  const inWhitelist = async community => {
+    if (await isUserInDelegateWhiteList(context.app, community.ownerAddress.toLowerCase())) {
       return;
     }
 
-    throw new errors.BadRequest(`dac ownerAddress ${dac.ownerAddress} is not in the whitelist`);
+    throw new errors.BadRequest(
+      `community ownerAddress ${community.ownerAddress} is not in the whitelist`,
+    );
   };
 
   if (Array.isArray(items)) {
@@ -89,14 +91,14 @@ module.exports = {
       isDacAllowed(),
       sanitizeAddress('ownerAddress', { required: true, validate: true }),
       sanitizeHtml('description'),
-      createModelSlug('dacs'),
+      createModelSlug('communities'),
     ],
     update: [commons.disallow()],
     patch: [
       ...restrict,
       sanitizeAddress('ownerAddress', { validate: true }),
       sanitizeHtml('description'),
-      createModelSlug('dacs'),
+      createModelSlug('communities'),
     ],
     remove: [commons.disallow()],
   },

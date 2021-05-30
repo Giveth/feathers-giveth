@@ -67,7 +67,7 @@ const adminFactory = (app, liquidPledging) => {
       const delegate = await delegates.addDelegate(event);
 
       if (delegate) {
-        await createPledgeAdmin(delegate.delegateId, 'dac', delegate._id);
+        await createPledgeAdmin(delegate.delegateId, 'community', delegate._id);
       }
     },
 
@@ -82,7 +82,7 @@ const adminFactory = (app, liquidPledging) => {
       // a new delegate is created if the createdAt & updatedAt are significantly different
       const fifteenSeconds = 15 * 1000;
       if (delegate.updatedAt - delegate.createdAt > fifteenSeconds) {
-        await createPledgeAdmin(delegate.delegateId, 'dac', delegate._id);
+        await createPledgeAdmin(delegate.delegateId, 'community', delegate._id);
       }
     },
 
@@ -95,8 +95,8 @@ const adminFactory = (app, liquidPledging) => {
       const project = await projects.addProject(event);
 
       if (project) {
-        // only milestones have a campaignId
-        const type = project.campaignId ? AdminTypes.MILESTONE : AdminTypes.CAMPAIGN;
+        // only traces have a campaignId
+        const type = project.campaignId ? AdminTypes.TRACE : AdminTypes.CAMPAIGN;
         await createPledgeAdmin(project.projectId, type, project._id);
       }
     },
@@ -112,8 +112,8 @@ const adminFactory = (app, liquidPledging) => {
       // a new project is created if the createdAt & updatedAt are significantly different
       const fifteenSeconds = 15 * 1000;
       if (project.updatedAt - project.createdAt > fifteenSeconds) {
-        // only milestones have a campaignId
-        const type = project.campaignId ? AdminTypes.MILESTONE : AdminTypes.CAMPAIGN;
+        // only traces have a campaignId
+        const type = project.campaignId ? AdminTypes.TRACE : AdminTypes.CAMPAIGN;
         await createPledgeAdmin(project.projectId, type, project._id);
       }
     },

@@ -5,7 +5,7 @@ const { SAMPLE_DATA, assertThrowsAsync } = require('../../test/testUtility');
 let app;
 
 function createEventTestCases() {
-  it('should not allow to create events with reptetive transactionIndex, logIndex and blockNumber ', async () => {
+  it('should not allow to create events with repetitive transactionIndex, logIndex and blockNumber ', async () => {
     const eventService = app.service('events');
     const EventModel = eventService.Model;
     const eventData = SAMPLE_DATA.CREATE_EVENT_DATA;

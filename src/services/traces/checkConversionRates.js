@@ -2,7 +2,7 @@ const BigNumber = require('bignumber.js');
 const errors = require('@feathersjs/errors');
 const { utils } = require('web3');
 const logger = require('winston');
-const { MilestoneTypes } = require('../../models/milestones.model');
+const { TraceTypes } = require('../../models/traces.model');
 const { getTokenBySymbol } = require('../../utils/tokenHelper');
 
 BigNumber.config({ DECIMAL_PLACES: 18 });
@@ -38,7 +38,7 @@ const checkConversionRates = () => context => {
   }
 
   // BridgedMilestone & LPMilestone may not have a maxAmount set
-  if ([MilestoneTypes.BridgedMilestone, MilestoneTypes.LPMilestone].includes(data.type)) {
+  if ([TraceTypes.BridgedMilestone, TraceTypes.LPMilestone].includes(data.type)) {
     if ((!items || items.length === 0) && !data.maxAmount) return context;
   }
 

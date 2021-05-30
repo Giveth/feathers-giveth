@@ -1,6 +1,6 @@
 const ProjectTypes = {
   CAMPAIGN: 'campaign',
-  DAC: 'dac',
+  COMMUNITY: 'community',
   MILESTONE: 'milestone',
 };
 

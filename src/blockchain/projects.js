@@ -17,27 +17,27 @@ const {
 } = require('./lib/web3Helpers');
 const { CampaignStatus } = require('../models/campaigns.model');
 const { DonationStatus } = require('../models/donations.model');
-const { MilestoneStatus, MilestoneTypes } = require('../models/milestones.model');
+const { TraceStatus, TraceTypes } = require('../models/traces.model');
 const { AdminTypes } = require('../models/pledgeAdmins.model');
 const reprocess = require('../utils/reprocess');
 const to = require('../utils/to');
 
 const milestoneStatus = (state, completed, canceled) => {
-  if (canceled) return MilestoneStatus.CANCELED;
-  // new milestones have a state, old milestone don't
+  if (canceled) return TraceStatus.CANCELED;
+  // new traces have a state, old milestone don't
   if (state === undefined) {
-    if (completed) return MilestoneStatus.COMPLETED;
-    return MilestoneStatus.IN_PROGRESS;
+    if (completed) return TraceStatus.COMPLETED;
+    return TraceStatus.IN_PROGRESS;
   }
 
-  if (state === '0') return MilestoneStatus.IN_PROGRESS;
-  if (state === '1') return MilestoneStatus.NEEDS_REVIEW;
-  if (state === '2') return MilestoneStatus.COMPLETED;
+  if (state === '0') return TraceStatus.IN_PROGRESS;
+  if (state === '1') return TraceStatus.NEEDS_REVIEW;
+  if (state === '2') return TraceStatus.COMPLETED;
 };
 
 const projects = (app, liquidPledging) => {
   const web3 = app.getWeb3();
-  const milestones = app.service('/milestones');
+  const traces = app.service('/traces');
   const campaigns = app.service('/campaigns');
   const donations = app.service('donations');
   let initialized = false;
@@ -150,9 +150,9 @@ const projects = (app, liquidPledging) => {
   }
 
   async function getMilestone(project, txHash, retry = false) {
-    // const data = await milestones.find({ paginate: false, query: { txHash } });
+    // const data = await traces.find({ paginate: false, query: { txHash } });
     // TODO remove this once the txHash is never mutated.
-    const data = await milestones.find({
+    const data = await traces.find({
       paginate: false,
       query: { $or: [{ pluginAddress: project.plugin }, { txHash }] },
     });
@@ -189,7 +189,7 @@ const projects = (app, liquidPledging) => {
 
     try {
       const date = await getBlockTimestamp(web3, tx.blockNumber);
-      const profile = await fetchProfile(project.url, AdminTypes.MILESTONE, projectId);
+      const profile = await fetchProfile(project.url, AdminTypes.TRACE, projectId);
       const model = {
         title: project.name,
         description: 'Missing Description... Added outside of UI',
@@ -202,7 +202,7 @@ const projects = (app, liquidPledging) => {
         projectId,
         maxAmount: milestone.maxAmount === '0' ? undefined : milestone.maxAmount,
         reviewerAddress: milestone.reviewer,
-        dacId: milestone.dacId,
+        communityId: milestone.communityId,
         recipientAddress: isAddress(milestone.recipient) ? milestone.recipient : undefined,
         recipientId: !isAddress(milestone.recipient) ? milestone.recipient : undefined,
         campaignReviewerAddress: milestone.campaignReviewer,
@@ -220,15 +220,15 @@ const projects = (app, liquidPledging) => {
         type: milestone.type,
       };
 
-      if (model.status === MilestoneStatus.IN_PROGRESS) {
+      if (model.status === TraceStatus.IN_PROGRESS) {
         model.projectAddedAt = date;
       }
-      return milestones.create(model, {
+      return traces.create(model, {
         eventTxHash: tx.hash,
         performedByAddress: tx.from,
       });
     } catch (err) {
-      // milestones service will throw BadRequest error if reviewer/owner isn't whitelisted
+      // traces service will throw BadRequest error if reviewer/owner isn't whitelisted
       if (err.name === 'BadRequest') return;
       throw err;
     }
@@ -292,24 +292,24 @@ const projects = (app, liquidPledging) => {
 
   async function addMilestone(project, projectId, txHash, type) {
     let milestoneContract;
-    if (type === MilestoneTypes.LPPCappedMilestone) {
+    if (type === TraceTypes.LPPCappedMilestone) {
       milestoneContract = new LPPCappedMilestone(web3, project.plugin);
-    } else if (type === MilestoneTypes.LPMilestone) {
+    } else if (type === TraceTypes.LPMilestone) {
       milestoneContract = new LPMilestone(web3, project.plugin);
-    } else if (type === MilestoneTypes.BridgedMilestone) {
+    } else if (type === TraceTypes.BridgedMilestone) {
       milestoneContract = new BridgedMilestone(web3, project.plugin);
     } else {
       throw new Error('Unknown Milestone type ->', type);
     }
 
     const managerMethod = () =>
-      type === MilestoneTypes.LPPCappedMilestone ? 'milestoneManager' : 'manager';
+      type === TraceTypes.LPPCappedMilestone ? 'milestoneManager' : 'manager';
     const getCampaignReviewer = () =>
-      type === MilestoneTypes.LPPCappedMilestone ? milestoneContract.campaignReviewer() : undefined;
+      type === TraceTypes.LPPCappedMilestone ? milestoneContract.campaignReviewer() : undefined;
     const getMilestoneCompleted = () =>
-      type === MilestoneTypes.LPPCappedMilestone ? milestoneContract.completed() : undefined;
+      type === TraceTypes.LPPCappedMilestone ? milestoneContract.completed() : undefined;
     const getMilestoneState = () =>
-      type !== MilestoneTypes.LPPCappedMilestone ? milestoneContract.state() : undefined;
+      type !== TraceTypes.LPPCappedMilestone ? milestoneContract.state() : undefined;
 
     try {
       const responses = await Promise.all([
@@ -370,7 +370,7 @@ const projects = (app, liquidPledging) => {
         return;
       }
 
-      const profile = await fetchProfile(project.url, AdminTypes.MILESTONE, projectId);
+      const profile = await fetchProfile(project.url, AdminTypes.TRACE, projectId);
       const mutation = {
         title: project.name,
         ...profile,
@@ -389,13 +389,13 @@ const projects = (app, liquidPledging) => {
         mined: true,
       };
       if (
-        [MilestoneStatus.PENDING, MilestoneStatus.PROPOSED].includes(milestone.status) &&
-        mutation.status === MilestoneStatus.IN_PROGRESS
+        [TraceStatus.PENDING, TraceStatus.PROPOSED].includes(milestone.status) &&
+        mutation.status === TraceStatus.IN_PROGRESS
       ) {
         mutation.projectAddedAt = await getBlockTimestamp(web3, tx.blockNumber);
       }
 
-      return milestones.patch(milestone._id, mutation, {
+      return traces.patch(milestone._id, mutation, {
         eventTxHash: txHash,
         performedByAddress: tx.from,
       });
@@ -405,7 +405,7 @@ const projects = (app, liquidPledging) => {
   }
 
   async function getMilestoneById(projectId) {
-    const data = await milestones.find({ paginate: false, query: { projectId } });
+    const data = await traces.find({ paginate: false, query: { projectId } });
     if (data.length === 0) return;
 
     if (data.length > 1) {
@@ -427,11 +427,11 @@ const projects = (app, liquidPledging) => {
 
       const mutation = { title: project.name };
       if (project.url && project.url !== milestone.url) {
-        const profile = await fetchProfile(project.url, AdminTypes.MILESTONE, projectId);
+        const profile = await fetchProfile(project.url, AdminTypes.TRACE, projectId);
         Object.assign(mutation, profile);
 
         if (profile.isArchived) {
-          mutation.status = MilestoneStatus.ARCHIVED;
+          mutation.status = TraceStatus.ARCHIVED;
         }
       }
       Object.assign(mutation, {
@@ -440,7 +440,7 @@ const projects = (app, liquidPledging) => {
         url: project.url,
       });
 
-      return milestones.patch(milestone._id, mutation);
+      return traces.patch(milestone._id, mutation);
     } catch (err) {
       logger.error('updateMilestone error ->', err);
     }
@@ -511,17 +511,17 @@ const projects = (app, liquidPledging) => {
       });
 
       if (
-        mutation.archivedMilestones &&
-        (!project.archivedMilestones ||
-          mutation.archivedMilestones.some(p => !project.archivedMilestones.includes(p)))
+        mutation.archivedTraces &&
+        (!project.archivedTraces ||
+          mutation.archivedTraces.some(p => !project.archivedTraces.includes(p)))
       ) {
-        milestones.patch(
+        traces.patch(
           null,
-          { status: MilestoneStatus.ARCHIVED },
+          { status: TraceStatus.ARCHIVED },
           {
             query: {
-              projectId: { $in: mutation.archivedMilestones },
-              status: { $ne: MilestoneStatus.ARCHIVED },
+              projectId: { $in: mutation.archivedTraces },
+              status: { $ne: TraceStatus.ARCHIVED },
             },
           },
         );
@@ -554,8 +554,8 @@ const projects = (app, liquidPledging) => {
   }
 
   async function cancelCampaignMilestones(campaignId, txHash) {
-    const { CANCELED, PAYING, PAID } = MilestoneStatus;
-    // cancel all milestones
+    const { CANCELED, PAYING, PAID } = TraceStatus;
+    // cancel all traces
     const mutation = {
       status: CANCELED,
       mined: true,
@@ -566,13 +566,10 @@ const projects = (app, liquidPledging) => {
       status: { $nin: [CANCELED, PAYING, PAID] },
     };
 
-    const milestoneIds = (await milestones.patch(null, mutation, { query })).map(m => m._id);
+    const traceIds = (await traces.patch(null, mutation, { query })).map(m => m._id);
 
     const donationQuery = {
-      $or: [
-        { ownerTypeId: { $in: milestoneIds } },
-        { intendedProjectTypeId: { $in: milestoneIds } },
-      ],
+      $or: [{ ownerTypeId: { $in: traceIds } }, { intendedProjectTypeId: { $in: traceIds } }],
       status: { $nin: [DonationStatus.PAYING, DonationStatus.PAID] },
     };
     const donationsToRevert = await donations.find({ paginate: false, query: donationQuery });
@@ -609,13 +606,13 @@ const projects = (app, liquidPledging) => {
         );
       }
       if (baseCode === lppCappedMilestoneBase) {
-        return addMilestone(project, projectId, txHash, MilestoneTypes.LPPCappedMilestone);
+        return addMilestone(project, projectId, txHash, TraceTypes.LPPCappedMilestone);
       }
       if (baseCode === lpMilestoneBase) {
-        return addMilestone(project, projectId, txHash, MilestoneTypes.LPMilestone);
+        return addMilestone(project, projectId, txHash, TraceTypes.LPMilestone);
       }
       if (baseCode === bridgedMilestoneBase) {
-        return addMilestone(project, projectId, txHash, MilestoneTypes.BridgedMilestone);
+        return addMilestone(project, projectId, txHash, TraceTypes.BridgedMilestone);
       }
       if (baseCode === campaignBase) return addCampaign(project, projectId, txHash);
 
@@ -688,7 +685,7 @@ const projects = (app, liquidPledging) => {
         const [service, status] =
           pledgeAdmin.type === AdminTypes.CAMPAIGN
             ? [campaigns, CampaignStatus.CANCELED]
-            : [milestones, MilestoneStatus.CANCELED];
+            : [traces, TraceStatus.CANCELED];
 
         const transaction = await getTransaction(app, event.transactionHash);
         // update admin entity

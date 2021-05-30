@@ -19,13 +19,13 @@ function updateBridgePaymentExecutedTxHashTests() {
     const DonationModel = app.service('donations').Model;
     await new DonationModel({
       ...SAMPLE_DATA.DONATION_DATA,
-      ownerTypeId: SAMPLE_DATA.MILESTONE_ID,
+      ownerTypeId: SAMPLE_DATA.TRACE_ID,
       status: 'Paid',
       txHash,
     }).save();
     await new DonationModel({
       ...SAMPLE_DATA.DONATION_DATA,
-      ownerTypeId: SAMPLE_DATA.MILESTONE_ID,
+      ownerTypeId: SAMPLE_DATA.TRACE_ID,
       status: 'Paid',
       txHash,
     }).save();
@@ -55,13 +55,13 @@ function updateBridgePaymentAuthorizedTxHashTests() {
     const DonationModel = app.service('donations').Model;
     await new DonationModel({
       ...SAMPLE_DATA.DONATION_DATA,
-      ownerTypeId: SAMPLE_DATA.MILESTONE_ID,
+      ownerTypeId: SAMPLE_DATA.TRACE_ID,
       status: 'Paid',
       txHash,
     }).save();
     await new DonationModel({
       ...SAMPLE_DATA.DONATION_DATA,
-      ownerTypeId: SAMPLE_DATA.MILESTONE_ID,
+      ownerTypeId: SAMPLE_DATA.TRACE_ID,
       status: 'Paid',
       txHash,
     }).save();
@@ -82,26 +82,26 @@ function updateBridgePaymentAuthorizedTxHashTests() {
     assert.equal(donations[1].bridgePaymentAuthorizedTxHash, bridgePaymentAuthorizedTxHash);
   });
 }
-function isAllDonationsPaidOutForMilestoneAndTxHashTests() {
+function isAllDonationsPaidOutForTraceAndTxHashTests() {
   it('should return false,  when all donations are not paid out', async () => {
     const txHash = generateRandomTxHash();
     const DonationModel = app.service('donations').Model;
     await new DonationModel({
       ...SAMPLE_DATA.DONATION_DATA,
-      ownerTypeId: SAMPLE_DATA.MILESTONE_ID,
+      ownerTypeId: SAMPLE_DATA.TRACE_ID,
       status: 'Paid',
       txHash,
       bridgePaymentExecutedTxHash: generateRandomTxHash(),
     }).save();
     await new DonationModel({
       ...SAMPLE_DATA.DONATION_DATA,
-      ownerTypeId: SAMPLE_DATA.MILESTONE_ID,
+      ownerTypeId: SAMPLE_DATA.TRACE_ID,
       status: 'Paid',
       txHash,
     }).save();
     const isAllDonationsPaidOutForTxHash = await isAllDonationsPaidOut(app, {
       txHash,
-      milestoneId: SAMPLE_DATA.MILESTONE_ID,
+      traceId: SAMPLE_DATA.TRACE_ID,
     });
     assert.isFalse(isAllDonationsPaidOutForTxHash);
   });
@@ -110,21 +110,21 @@ function isAllDonationsPaidOutForMilestoneAndTxHashTests() {
     const DonationModel = app.service('donations').Model;
     await new DonationModel({
       ...SAMPLE_DATA.DONATION_DATA,
-      ownerTypeId: SAMPLE_DATA.MILESTONE_ID,
+      ownerTypeId: SAMPLE_DATA.TRACE_ID,
       status: 'Paid',
       txHash,
       bridgePaymentExecutedTxHash: generateRandomTxHash(),
     }).save();
     await new DonationModel({
       ...SAMPLE_DATA.DONATION_DATA,
-      ownerTypeId: SAMPLE_DATA.MILESTONE_ID,
+      ownerTypeId: SAMPLE_DATA.TRACE_ID,
       status: 'Paid',
       txHash,
       bridgePaymentExecutedTxHash: generateRandomTxHash(),
     }).save();
     const isAllDonationsPaidOutForTxHash = await isAllDonationsPaidOut(app, {
       txHash,
-      milestoneId: SAMPLE_DATA.MILESTONE_ID,
+      traceId: SAMPLE_DATA.TRACE_ID,
     });
     assert.isTrue(isAllDonationsPaidOutForTxHash);
   });
@@ -135,4 +135,4 @@ describe(
   updateBridgePaymentAuthorizedTxHashTests,
 );
 
-describe(`isAllDonationsPaidOut test cases`, isAllDonationsPaidOutForMilestoneAndTxHashTests);
+describe(`isAllDonationsPaidOut test cases`, isAllDonationsPaidOutForTraceAndTxHashTests);

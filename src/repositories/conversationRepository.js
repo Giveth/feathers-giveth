@@ -3,13 +3,13 @@ const { CONVERSATION_MESSAGE_CONTEXT } = require('../models/conversations.model'
 
 const findSimilarDelegatedConversation = (
   app,
-  { milestoneId, txHash, currencySymbol },
+  { traceId, txHash, currencySymbol },
   projection = {},
 ) => {
   const conversationModel = app.service('conversations').Model;
   return conversationModel.findOne(
     {
-      milestoneId,
+      traceId,
       txHash,
       'payments.symbol': currencySymbol,
       messageContext: CONVERSATION_MESSAGE_CONTEXT.DELEGATED,
@@ -18,11 +18,11 @@ const findSimilarDelegatedConversation = (
   );
 };
 
-const findSimilarPayoutConversation = (app, { milestoneId, txHash }, projection = {}) => {
+const findSimilarPayoutConversation = (app, { traceId, txHash }, projection = {}) => {
   const conversationModel = app.service('conversations').Model;
   return conversationModel.findOne(
     {
-      milestoneId,
+      traceId,
       txHash,
       messageContext: CONVERSATION_MESSAGE_CONTEXT.PAYOUT,
     },

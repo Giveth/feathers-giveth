@@ -12,13 +12,13 @@ const validatePayload = () => async context => {
   let service;
   switch (projectType) {
     case ProjectTypes.MILESTONE:
-      service = app.service('milestones');
+      service = app.service('traces');
       break;
     case ProjectTypes.CAMPAIGN:
       service = app.service('campaigns');
       break;
-    case ProjectTypes.DAC:
-      service = app.service('dacs');
+    case ProjectTypes.COMMUNITY:
+      service = app.service('communities');
       break;
     default:
       throw new errors.BadRequest('Invalid projectType');

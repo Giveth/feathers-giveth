@@ -50,7 +50,7 @@ function createModel(app) {
       dappMailerResponse: { type: Object },
       dappUrl: { type: String },
       error: { type: String },
-      milestoneId: { type: String },
+      traceId: { type: String },
       campaignId: { type: String },
       status: { type: String, enum: Object.values(EMAIL_STATUS), default: EMAIL_STATUS.PENDING },
     },

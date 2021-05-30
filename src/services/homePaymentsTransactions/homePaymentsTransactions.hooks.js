@@ -22,7 +22,7 @@ const updateEntitiesGasPayments = () => async context => {
   const { app, result } = context;
   const {
     recipientAddress,
-    milestoneId,
+    traceId,
     campaignId,
     donationTxHash,
     hash,
@@ -58,7 +58,7 @@ const updateEntitiesGasPayments = () => async context => {
     [campaignTotalGasUsed],
   ] = await Promise.all([
     getEntityGasUsedPrice(app, 'recipientAddress', recipientAddress),
-    getEntityGasUsedPrice(app, 'milestoneId', milestoneId),
+    getEntityGasUsedPrice(app, 'traceId', traceId),
     getEntityGasUsedPrice(app, 'campaignId', campaignId),
   ]);
 
@@ -71,9 +71,9 @@ const updateEntitiesGasPayments = () => async context => {
       { upsert: true, timestamps: false },
     ),
     app
-      .service('milestones')
+      .service('traces')
       .Model.updateOne(
-        { _id: milestoneId },
+        { _id: traceId },
         { gasPaidUsdValue: milestoneTotalGasUsed.totalAmount },
         { timestamps: false },
       ),

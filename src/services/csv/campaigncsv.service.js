@@ -59,14 +59,14 @@ module.exports = function csv() {
     const id = campaign._id.toString();
     res.type('csv');
     res.setHeader('Content-disposition', `attachment; filename=${id}.csv`);
-    const { eventsStream, milestones, pledgeIds, canceledPledgeIds } = await getData(campaign);
+    const { eventsStream, traces, pledgeIds, canceledPledgeIds } = await getData(campaign);
     const chunks = [];
     const writeToCache = () => {
       MemoryCache.put(id, { updatedAt: campaign.updatedAt, body: chunks.join('') });
     };
     eventsStream
       .on('error', next)
-      .pipe(newEventTransform({ campaign, milestones, pledgeIds, canceledPledgeIds }))
+      .pipe(newEventTransform({ campaign, traces, pledgeIds, canceledPledgeIds }))
       .on('error', next)
       .pipe(getNewCsvTransform())
       .on('error', next)

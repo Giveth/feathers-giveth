@@ -25,7 +25,7 @@ module.exports = function aggregateDonations() {
           status: { $in: [DonationStatus.COMMITTED, DonationStatus.WAITING] },
           $or: [
             { ownerTypeId: id }, // Committed ones to project
-            // { intendedProjectTypeId: id }, // Delegated via DAC
+            // { intendedProjectTypeId: id }, // Delegated via COMMUNITY
             {
               delegateTypeId: id,
               intendedProjectId: { $exists: false },
