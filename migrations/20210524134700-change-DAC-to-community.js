@@ -7,8 +7,8 @@ module.exports = {
       .collection('traces')
       .updateMany({}, { $rename: { dacId: 'communityId' } }, false, true);
     await db
-      .collection('traces')
-      .updateMany({}, { $rename: { dacId: 'communityId' } }, false, true);
+      .collection('subscriptions')
+      .updateMany({ projectType: 'dac' }, { $set: { projectType: 'community' } });
     await db
       .collection('donations')
       .updateMany({ delegateType: 'dac' }, { $set: { delegateType: 'community' } });
