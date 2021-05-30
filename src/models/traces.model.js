@@ -20,9 +20,9 @@ const TraceStatus = {
 };
 
 const TraceTypes = {
-  LPPCappedMilestone: 'LPPCappedMilestone',
-  BridgedMilestone: 'BridgedMilestone',
-  LPMilestone: 'LPMilestone',
+  LPPCappedMilestone: 'LPPCappedTrace',
+  BridgedMilestone: 'BridgedTrace',
+  LPMilestone: 'LPTrace',
 };
 
 const TraceFormTypes = {
