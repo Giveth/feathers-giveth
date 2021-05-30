@@ -7,8 +7,11 @@ module.exports = {
       .collection('traces')
       .updateMany({}, { $rename: { dacId: 'communityId' } }, false, true);
     await db
-      .collection('subscriptions')
-      .updateMany({ projectType: 'dac' }, { $set: { projectType: 'community' } });
+      .collection('traces')
+      .updateMany({}, { $rename: { dacId: 'communityId' } }, false, true);
+    await db
+      .collection('donations')
+      .updateMany({ delegateType: 'dac' }, { $set: { delegateType: 'community' } });
     await db
       .collection('pledgeadmins')
       .updateMany({ type: 'dac' }, { $set: { type: 'community' } });
@@ -28,6 +31,9 @@ module.exports = {
     await db
       .collection('pledgeadmins')
       .updateMany({ type: 'community' }, { $set: { type: 'dac' } });
+    await db
+      .collection('donations')
+      .updateMany({ delegateType: 'community' }, { $set: { delegateType: 'dac' } });
     await db.collection('communities').rename('dacs');
   },
 };
