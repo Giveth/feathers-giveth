@@ -123,7 +123,7 @@ function patchMilestoneTestCases() {
       status: SAMPLE_DATA.TRACE_STATUSES.IN_PROGRESS,
       maxAmount: '100000000000000000',
       reviewerAddress: SAMPLE_DATA.FAKE_USER_ADDRESS,
-      dacId: generateRandomMongoId(),
+      communityId: generateRandomMongoId(),
       recipientAddress: SAMPLE_DATA.FAKE_USER_ADDRESS,
       campaignReviewerAddress: SAMPLE_DATA.FAKE_USER_ADDRESS,
       conversionRateTimestamp: new Date(),
@@ -149,7 +149,7 @@ function patchMilestoneTestCases() {
     assert.notEqual(response.body.conversionRateTimestamp, updateData.conversionRateTimestamp);
     assert.notEqual(response.body.campaignReviewerAddress, updateData.campaignReviewerAddress);
     assert.notEqual(response.body.recipientAddress, updateData.recipientAddress);
-    assert.notEqual(response.body.dacId, updateData.dacId);
+    assert.notEqual(response.body.communityId, updateData.communityId);
     assert.notEqual(response.body.reviewerAddress, updateData.reviewerAddress);
     assert.notEqual(response.body.date, updateData.date);
     assert.notEqual(response.body.selectedFiatType, updateData.selectedFiatType);

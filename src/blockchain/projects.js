@@ -202,7 +202,7 @@ const projects = (app, liquidPledging) => {
         projectId,
         maxAmount: milestone.maxAmount === '0' ? undefined : milestone.maxAmount,
         reviewerAddress: milestone.reviewer,
-        dacId: milestone.dacId,
+        communityId: milestone.communityId,
         recipientAddress: isAddress(milestone.recipient) ? milestone.recipient : undefined,
         recipientId: !isAddress(milestone.recipient) ? milestone.recipient : undefined,
         campaignReviewerAddress: milestone.campaignReviewer,

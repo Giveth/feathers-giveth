@@ -46,7 +46,7 @@ function Milestone(app) {
       maxAmount: { type: Schema.Types.BN },
       ownerAddress: { type: String, required: true },
       reviewerAddress: { type: String },
-      dacId: { type: Number },
+      communityId: { type: Number },
       recipientAddress: { type: String },
       recipientId: { type: Schema.Types.Long }, // we can use Long here b/c lp only stores adminId in pledges as uint64
       pendingRecipientAddress: { type: String },
