@@ -10,6 +10,9 @@ module.exports = {
       .collection('subscriptions')
       .updateMany({ projectType: 'dac' }, { $set: { projectType: 'community' } });
     await db
+      .collection('donations')
+      .updateMany({ delegateType: 'dac' }, { $set: { delegateType: 'community' } });
+    await db
       .collection('pledgeadmins')
       .updateMany({ type: 'dac' }, { $set: { type: 'community' } });
     await db.collection('dacs').rename('communities');
@@ -28,6 +31,9 @@ module.exports = {
     await db
       .collection('pledgeadmins')
       .updateMany({ type: 'community' }, { $set: { type: 'dac' } });
+    await db
+      .collection('donations')
+      .updateMany({ delegateType: 'community' }, { $set: { delegateType: 'dac' } });
     await db.collection('communities').rename('dacs');
   },
 };
