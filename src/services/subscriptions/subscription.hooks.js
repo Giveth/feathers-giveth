@@ -11,7 +11,7 @@ const validatePayload = () => async context => {
 
   let service;
   switch (projectType) {
-    case ProjectTypes.MILESTONE:
+    case ProjectTypes.TRACE:
       service = app.service('traces');
       break;
     case ProjectTypes.CAMPAIGN:
