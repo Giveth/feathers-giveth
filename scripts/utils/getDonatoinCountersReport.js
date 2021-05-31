@@ -119,7 +119,7 @@ db.once('open', async () => {
   await reportEntity(Campaigns, getCampaignDescription);
 
   console.log('##############################');
-  console.log('REPORTING MILESTONE\n');
+  console.log('REPORTING TRACE\n');
   await reportEntity(Milestones, getMilestoneDescription);
   process.exit(0);
 });
