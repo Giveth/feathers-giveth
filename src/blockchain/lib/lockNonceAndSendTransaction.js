@@ -44,6 +44,10 @@ module.exports = function lockNonceAndSendTransaction(web3, txFn, opts, ...args)
   let txHash;
   nonceCache[from].obtainNonce().then(nonce => {
     const options = Object.assign(opts, { nonce });
+    const onReject = e => {
+      if (!txHash) nonceCache[from].releaseNonce(nonce, false);
+      relayEvent('error')(e);
+    };
     return txFn(...args, options)
       .on('transactionHash', tHash => {
         txHash = tHash;
@@ -52,10 +56,8 @@ module.exports = function lockNonceAndSendTransaction(web3, txFn, opts, ...args)
       })
       .on('confirmation', relayEvent('confirmation'))
       .on('receipt', relayEvent('receipt'))
-      .on('error', e => {
-        if (!txHash) nonceCache[from].releaseNonce(nonce, false);
-        relayEvent('error')(e);
-      });
+      .on('error', onReject)
+      .catch(onReject);
   });
 
   return defer.eventEmitter;

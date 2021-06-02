@@ -59,6 +59,15 @@ function normalizer(app) {
    */
   function sendTx(method, opts, arg) {
     return new Promise((resolve, reject) => {
+      const onRejected = e => {
+        logger.info('Normalizer sendTx lockNonceAndSendTransaction()', {
+          opts,
+          arg,
+          method,
+          error: e,
+        });
+        reject(e);
+      };
       lockNonceAndSendTransaction(web3, method, opts, arg)
         .on('transactionHash', () => {
           logger.info('Normalizer sendTx lockNonceAndSendTransaction() response', {
@@ -70,15 +79,8 @@ function normalizer(app) {
           // if it fails at this point, we will retry in the next poll
           resolve();
         })
-        .catch(e => {
-          logger.info('Normalizer sendTx lockNonceAndSendTransaction()', {
-            opts,
-            arg,
-            method,
-            error: e,
-          });
-          reject(e);
-        });
+        .on('error', onRejected)
+        .catch(onRejected);
     });
   }
 
@@ -97,37 +99,24 @@ function normalizer(app) {
    * @param {Array} pledges the ids of the pledges to normalize
    * @param {int} batchSize (optional) the size of the batch to chunk the requests into. Defaults to 20.
    */
-  async function execute(pledges, batchSize = 20) {
-    logger.info('normalizer execute() called', { pledges, batchSize });
+  async function execute(pledges) {
+    logger.info('normalizer execute() called', { pledges });
     if (pledges.length === 0) return;
-    const batch = pledges.splice(0, batchSize);
     const opts = {
       from: web3.eth.accounts.wallet[0].address,
       $extraGas: 100000,
     };
 
-    try {
-      for (let i = 0; i < batchSize; i += 1) {
-        const pledge = batch[i];
-        try {
-          // eslint-disable-next-line no-await-in-loop
-          await sendTx(liquidPledging.normalizePledge, opts, pledge);
-        } catch (e) {
-          logger.error(`Error in normalizing pledge ${pledge} ->`, e);
-        }
+    for (let i = 0; i < pledges.length; i += 1) {
+      const pledge = pledges[i];
+      try {
+        logger.info(`Normalize pledge ${pledge}`);
+        // eslint-disable-next-line no-await-in-loop
+        await sendTx(liquidPledging.normalizePledge, opts, pledge);
+      } catch (e) {
+        logger.error(`Error in normalizing pledge ${pledge} ->`, e);
       }
-    } catch (e) {
-      logger.error('Failed to normalize ', e);
-      if (batchSize === 1 || batch.length === 1) {
-        logger.error('Failed to normalize pledgeID ->', batch[0]);
-        return;
-      }
-
-      // keep trying with smaller batches
-      await execute(batch, Math.floor(batchSize / 2));
     }
-
-    await execute(pledges, batchSize);
   }
 
   async function normalizePledges() {
