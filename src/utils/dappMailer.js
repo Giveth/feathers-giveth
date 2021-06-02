@@ -244,7 +244,7 @@ const traceProposed = async (app, { trace }) => {
     text: `
         <p><span ${emailStyle}>Hi ${campaignOwner.name}</span></p>
         <p>
-          The Trace <strong>${traceTitle}</strong> for <strong>${amount}</strong> has been proposed to <strong>${campaignTitle}</strong> Campaign .
+          The Trace <strong>${traceTitle}</strong> for <strong>${amount}</strong> has been proposed to <strong>${campaignTitle}</strong> Campaign.
           If you think this is a great idea, then <strong>please approve this Trace within 3 days</strong> to add it to your Campaign.
           If not, then please reject it with comment.
         </p>
