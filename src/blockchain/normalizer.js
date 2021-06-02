@@ -101,15 +101,21 @@ function normalizer(app) {
     logger.info('normalizer execute() called', { pledges, batchSize });
     if (pledges.length === 0) return;
     const batch = pledges.splice(0, batchSize);
-    const method = batchSize > 1 ? liquidPledging.mNormalizePledge : liquidPledging.normalizePledge;
-    const arg = batchSize > 1 ? batch : batch[0];
     const opts = {
       from: web3.eth.accounts.wallet[0].address,
       $extraGas: 100000,
     };
 
     try {
-      await sendTx(method, opts, arg);
+      for (let i = 0; i < batchSize; i += 1) {
+        const pledge = batch[i];
+        try {
+          // eslint-disable-next-line no-await-in-loop
+          await sendTx(liquidPledging.normalizePledge, opts, pledge);
+        } catch (e) {
+          logger.error(`Error in normalizing pledge ${pledge} ->`, e);
+        }
+      }
     } catch (e) {
       logger.error('Failed to normalize ', e);
       if (batchSize === 1 || batch.length === 1) {
