@@ -97,7 +97,7 @@
     "nyc": "^15.1.0",
     "passport-strategy": "^1.0.0",
     "request-promise": "^4.2.2",
-    "sanitize-html": "^2.3.2",
+    "sanitize-html": "^2.4.0",
     "semaphore": "^1.1.0",
     "serve-favicon": "^2.4.3",
     "shortid": "^2.2.8",
