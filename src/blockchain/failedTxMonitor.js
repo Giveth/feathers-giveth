@@ -313,7 +313,7 @@ const failedTxMonitor = (app, eventWatcher) => {
     logger.info('campaign receipt', {
       receipt,
       receiptStatus: receipt && receipt.status,
-      mutation
+      campaign,
     });
     // reset the campaign status if the tx has been pending for more then 2 hrs, otherwise ignore
     if (!receipt && campaign.updatedAt.getTime() >= Date.now() - TWO_HOURS) return;
