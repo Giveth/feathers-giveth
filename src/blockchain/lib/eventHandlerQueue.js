@@ -18,7 +18,7 @@ setInterval(async () => {
     eventHandlerQueueCount,
     NewEventQueueCount,
   });
-}, 1000 * 60 * 2);
+}, 1000 * 60 * 0.2);
 
 const removeEvent = async (app, event) => {
   const { id, transactionHash } = event;
@@ -47,6 +47,7 @@ function similarEventNotFoundOrAllEventsAreFailed(data) {
 }
 
 const addPendingEvent = async (app, event) => {
+  logger.info('addPendingEvent() called', event);
   const eventService = app.service('events');
   const { logIndex, transactionHash } = event;
   const data = await eventService.find({
