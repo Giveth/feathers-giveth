@@ -30,6 +30,7 @@ module.exports = (...fieldNames) => context => {
             'iframe',
             'a',
             'br',
+            'span',
           ],
           allowedAttributes: {
             iframe: ['src', 'allowfullscreen', 'frameborder'],
