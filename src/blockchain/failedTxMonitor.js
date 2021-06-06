@@ -310,7 +310,11 @@ const failedTxMonitor = (app, eventWatcher) => {
     if (!campaign.txHash) return;
 
     const receipt = await web3.eth.getTransactionReceipt(campaign.txHash);
-    logger.info('campaign receipt', receipt);
+    logger.info('campaign receipt', {
+      receipt,
+      receiptStatus: receipt && receipt.status,
+      mutation
+    });
     // reset the campaign status if the tx has been pending for more then 2 hrs, otherwise ignore
     if (!receipt && campaign.updatedAt.getTime() >= Date.now() - TWO_HOURS) return;
     // ignore if there isn't enough confirmations
