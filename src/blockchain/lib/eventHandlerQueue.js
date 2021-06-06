@@ -172,6 +172,7 @@ const initEventHandlerQueue = app => {
         logger.error('Unknown event: ', event.event);
       }
       await eventService.patch(event._id, { status: EventStatus.PROCESSED });
+      logger.info('processing job done...');
     } catch (e) {
       logger.error('processing event failed ', {
         event,
@@ -182,6 +183,7 @@ const initEventHandlerQueue = app => {
         processingError: e.toString(),
       });
     } finally {
+      logger.info('calling done...');
       done();
     }
   });
