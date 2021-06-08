@@ -204,8 +204,8 @@ const donationDelegated = (
            ${capitalizeDelegateType(delegationType)} <strong>${delegatedToTitle}</strong>.
         </p>
         <p>
-          This is a proposed delegation of funds that your sent to the Community ${delegateTitle}.
-          You have until ${commitTime.toUTCString()} to approve or reject this delegation. If you fail to
+          This is a proposed delegation of funds that your sent to the Community <strong>${delegateTitle}</strong>.
+          You have until <strong>${commitTime.toUTCString()}</strong> to approve or reject this delegation. If you fail to
           act before this date, this delegation will be auto-approved.
         </p>
       `,
