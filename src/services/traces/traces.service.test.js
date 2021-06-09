@@ -8,7 +8,7 @@ let app;
 const baseUrl = config.get('givethFathersBaseUrl');
 const relativeUrl = '/traces';
 
-async function createMilestone(data) {
+async function createTrace(data) {
   const response = await request(baseUrl)
     .post(relativeUrl)
     .send(data)
@@ -17,13 +17,13 @@ async function createMilestone(data) {
 }
 
 function getMilestoneTestCases() {
-  it('should get successful result', async function() {
+  it('should get successful result', async () => {
     const response = await request(baseUrl).get(relativeUrl);
     assert.equal(response.statusCode, 200);
     assert.exists(response.body.data);
     assert.notEqual(response.body.data.length, 0);
   });
-  it('getMileStoneDetail', async function() {
+  it('getMileStoneDetail', async () => {
     const response = await request(baseUrl).get(`${relativeUrl}/${SAMPLE_DATA.TRACE_ID}`);
     assert.equal(response.statusCode, 200);
     assert.equal(response.body.ownerAddress, SAMPLE_DATA.USER_ADDRESS);
@@ -31,7 +31,7 @@ function getMilestoneTestCases() {
 }
 
 function postMilestoneTestCases() {
-  it('should create milestone successfully', async () => {
+  it('should create trace successfully', async () => {
     const response = await request(baseUrl)
       .post(relativeUrl)
       .send(SAMPLE_DATA.createTraceData())
@@ -39,7 +39,7 @@ function postMilestoneTestCases() {
     assert.equal(response.statusCode, 201);
     assert.equal(response.body.ownerAddress, SAMPLE_DATA.USER_ADDRESS);
   });
-  it('should create milestone successfully including category', async () => {
+  it('should create trace successfully including category', async () => {
     const formType = 'expense';
     const response = await request(baseUrl)
       .post(relativeUrl)
@@ -50,10 +50,10 @@ function postMilestoneTestCases() {
     assert.equal(response.body.formType, formType);
   });
 
-  it('should create milestone , token must be returned', async function() {
-    // In milestone hooks based on token.symbol set a tokenSymbol field
-    // in milestone, and after all http methods hook when returning milestone
-    // add token to milestone based on tokenSymbol
+  it('should create trace , token must be returned', async () => {
+    // In trace hooks based on token.symbol set a tokenSymbol field
+    // in trace, and after all http methods hook when returning trace
+    // add token to trace based on tokenSymbol
     const ethToken = config.get('tokenWhitelist').find(token => token.symbol === 'ETH');
 
     const response = await request(baseUrl)
@@ -81,7 +81,7 @@ function postMilestoneTestCases() {
     assert.equal(response.statusCode, 401);
     assert.equal(response.body.code, 401);
   });
-  it('should get different slugs for two traces with same title successfully', async function() {
+  it('should get different slugs for two traces with same title successfully', async () => {
     const response1 = await request(baseUrl)
       .post(relativeUrl)
       .send(SAMPLE_DATA.createTraceData())
@@ -94,10 +94,11 @@ function postMilestoneTestCases() {
     assert.isNotNull(response2.body.slug);
     assert.notEqual(response1.body.slug, response2.body.slug);
   });
+
 }
 
 function patchMilestoneTestCases() {
-  it('should update milestone successfully', async function() {
+  it('should update trace successfully', async () => {
     const description = 'Description updated by test';
     const response = await request(baseUrl)
       .patch(`${relativeUrl}/${SAMPLE_DATA.TRACE_ID}`)
@@ -107,7 +108,7 @@ function patchMilestoneTestCases() {
     assert.equal(response.body.description, description);
   });
 
-  it('should not update milestone because status not sent in payload', async function() {
+  it('should not update trace because status not sent in payload', async () => {
     const description = String(new Date());
     const response = await request(baseUrl)
       .patch(`${relativeUrl}/${SAMPLE_DATA.TRACE_ID}`)
@@ -117,7 +118,7 @@ function patchMilestoneTestCases() {
     assert.notEqual(response.body.description, description);
   });
 
-  it('should not update , because data that stored on-chain cant be updated', async function() {
+  it('should not update , because data that stored on-chain cant be updated', async () => {
     const updateData = {
       // this should exists otherwise without status mileston should not updated
       status: SAMPLE_DATA.TRACE_STATUSES.IN_PROGRESS,
@@ -158,7 +159,7 @@ function patchMilestoneTestCases() {
     assert.notEqual(response.body.type, updateData.type);
     assert.notEqual(response.body.token, updateData.token);
   });
-  it('should get unAuthorized error', async function() {
+  it('should get unAuthorized error', async () => {
     const response = await request(baseUrl)
       .patch(`${relativeUrl}/${SAMPLE_DATA.TRACE_ID}`)
       .send(SAMPLE_DATA.createTraceData());
@@ -166,7 +167,7 @@ function patchMilestoneTestCases() {
     assert.equal(response.body.code, 401);
   });
 
-  it('should get unAuthorized error because Only the Milestone and Campaign Manager can edit milestone', async function() {
+  it('should get unAuthorized error because Only the Milestone and Campaign Manager can edit trace', async () => {
     const description = 'Description updated by test';
     const response = await request(baseUrl)
       .patch(`${relativeUrl}/${SAMPLE_DATA.TRACE_ID}`)
@@ -178,7 +179,7 @@ function patchMilestoneTestCases() {
 }
 
 function deleteMilestoneTestCases() {
-  it('should not delete because status is not Proposed or Rejected ', async function() {
+  it('should not delete because status is not Proposed or Rejected ', async () => {
     const statusThatCantBeDeleted = [
       SAMPLE_DATA.TRACE_STATUSES.IN_PROGRESS,
       SAMPLE_DATA.TRACE_STATUSES.ARCHIVED,
@@ -196,61 +197,61 @@ function deleteMilestoneTestCases() {
       createMileStoneData.status = status;
       createMileStoneData.ownerAddress = SAMPLE_DATA.USER_ADDRESS;
 
-      const milestone = await createMilestone(createMileStoneData);
+      const trace = await createTrace(createMileStoneData);
       const response = await request(baseUrl)
-        .delete(`${relativeUrl}/${milestone._id}`)
+        .delete(`${relativeUrl}/${trace._id}`)
         .set({ Authorization: getJwt() });
       assert.equal(response.statusCode, 403);
     }
   });
 
-  it('should be successful for milestone with status Proposed', async function() {
+  it('should be successful for deleting trace with status Proposed', async () => {
     const createMileStoneData = { ...SAMPLE_DATA.createTraceData() };
     createMileStoneData.status = SAMPLE_DATA.TRACE_STATUSES.PROPOSED;
     createMileStoneData.ownerAddress = SAMPLE_DATA.USER_ADDRESS;
-    const milestone = await createMilestone(createMileStoneData);
+    const trace = await createTrace(createMileStoneData);
     const response = await request(baseUrl)
-      .delete(`${relativeUrl}/${milestone._id}`)
+      .delete(`${relativeUrl}/${trace._id}`)
       .set({ Authorization: getJwt() });
     assert.equal(response.statusCode, 200);
   });
 
-  it('should be successful for milestone with status Rejected', async function() {
+  it('should be successful for trace with status Rejected', async () => {
     const createMileStoneData = { ...SAMPLE_DATA.createTraceData() };
     createMileStoneData.status = SAMPLE_DATA.TRACE_STATUSES.REJECTED;
     createMileStoneData.ownerAddress = SAMPLE_DATA.USER_ADDRESS;
-    const milestone = await createMilestone(createMileStoneData);
+    const trace = await createTrace(createMileStoneData);
     const response = await request(baseUrl)
-      .delete(`${relativeUrl}/${milestone._id}`)
+      .delete(`${relativeUrl}/${trace._id}`)
       .set({ Authorization: getJwt() });
     assert.equal(response.statusCode, 200);
   });
 
-  it("should get 403 , users cant delete other's  milestone", async function() {
+  it("should get 403 , users cant delete other's  trace", async () => {
     const createMileStoneData = { ...SAMPLE_DATA.createTraceData() };
     createMileStoneData.status = SAMPLE_DATA.TRACE_STATUSES.REJECTED;
     createMileStoneData.ownerAddress = SAMPLE_DATA.USER_ADDRESS;
-    const milestone = await createMilestone(createMileStoneData);
+    const trace = await createTrace(createMileStoneData);
     const response = await request(baseUrl)
-      .delete(`${relativeUrl}/${milestone._id}`)
+      .delete(`${relativeUrl}/${trace._id}`)
       .set({ Authorization: getJwt(SAMPLE_DATA.SECOND_USER_ADDRESS) });
     // TODO this testCase is for a bug, when bug fixed this testCase should fix and probably the status should be 403 instead of 200
     assert.equal(response.statusCode, 403);
   });
 
-  it('should be successful , delete Proposed milestone', async function() {
+  it('should be successful , delete Proposed trace', async () => {
     const createMileStoneData = { ...SAMPLE_DATA.createTraceData() };
     createMileStoneData.status = SAMPLE_DATA.TRACE_STATUSES.REJECTED;
     createMileStoneData.ownerAddress = SAMPLE_DATA.USER_ADDRESS;
-    const milestone = await createMilestone(createMileStoneData);
+    const trace = await createTrace(createMileStoneData);
     const response = await request(baseUrl)
-      .delete(`${relativeUrl}/${milestone._id}`)
+      .delete(`${relativeUrl}/${trace._id}`)
       .set({ Authorization: getJwt(SAMPLE_DATA.USER_ADDRESS) });
     // TODO this testCase is for a bug, when bug fixed this testCase should fix and probably the status should be 403 instead of 200
     assert.equal(response.statusCode, 200);
   });
 
-  it('should get unAuthorized error', async function() {
+  it('should get unAuthorized error', async () => {
     const response = await request(baseUrl).delete(`${relativeUrl}/${SAMPLE_DATA.TRACE_ID}`);
     assert.equal(response.statusCode, 401);
     assert.equal(response.body.code, 401);

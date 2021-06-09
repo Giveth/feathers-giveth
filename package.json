@@ -90,6 +90,7 @@
     "memory-cache": "^0.2.0",
     "migrate-mongo": "^8.1.4",
     "mkdirp": "^0.5.1",
+    "moment": "^2.29.1",
     "mongodb": "^3.6.3",
     "mongoose": "^5.11.9",
     "mongoose-long": "^0.3.2",
