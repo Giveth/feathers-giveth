@@ -200,11 +200,12 @@ const donationDelegated = (
             delegateType,
           )} <strong>${delegateTitle}</strong> has proposed a delegation of
           <span style='display: block; color: rgb(53, 184, 209); line-height: 72px; font-size: 48px;'>
-          ${normalizeAmount(amount)} ${token.symbol}</span> from your donation to
-          ${capitalizeDelegateType(delegateType)} <strong>${delegateTitle}</strong>.
+          ${normalizeAmount(amount)} ${token.symbol}</span> to the
+           ${capitalizeDelegateType(delegationType)} <strong>${delegatedToTitle}</strong>.
         </p>
         <p>
-          You have until ${commitTime.toUTCString()} to approve or reject this delegation. If you fail to
+          This is a proposed delegation of funds that your sent to the Community <strong>${delegateTitle}</strong>.
+          You have until <strong>${commitTime.toUTCString()}</strong> to approve or reject this delegation. If you fail to
           act before this date, this delegation will be auto-approved.
         </p>
       `,
