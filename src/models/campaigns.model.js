@@ -29,6 +29,7 @@ function createModel(app) {
       reviewerAddress: { type: String, required: true, index: true },
       ownerAddress: { type: String, required: true, index: true },
       coownerAddress: { type: String, required: false, index: true },
+      disableDonate: { type: Boolean, required: false, default: false },
       fundsForwarder: { type: String, required: false, index: true },
       pluginAddress: { type: String },
       tokenAddress: { type: String },
