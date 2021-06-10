@@ -1,7 +1,7 @@
 const ProjectTypes = {
   CAMPAIGN: 'campaign',
-  DAC: 'dac',
-  MILESTONE: 'milestone',
+  COMMUNITY: 'community',
+  TRACE: 'trace',
 };
 
 function createModel(app) {

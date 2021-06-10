@@ -7,6 +7,9 @@ const EmailImages = {
   REVIEW_BANNER: 'Giveth-review-banner-email.png',
 };
 
+// TODO currently if we want to add other types we should add
+// those in https://github.com/Giveth/dapp-mailer, it's better to implement an endpoint
+// then dapp-mailer can get subscribeTypes from that
 const EmailSubscribeTypes = {
   DONATION_RECEIPT: 'donation-receipt',
   DONATION_RECEIVED: 'donation-received',
@@ -50,7 +53,7 @@ function createModel(app) {
       dappMailerResponse: { type: Object },
       dappUrl: { type: String },
       error: { type: String },
-      milestoneId: { type: String },
+      traceId: { type: String },
       campaignId: { type: String },
       status: { type: String, enum: Object.values(EMAIL_STATUS), default: EMAIL_STATUS.PENDING },
     },

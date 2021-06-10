@@ -9,7 +9,12 @@ const to = require('../utils/to');
 const { removeHexPrefix } = require('./lib/web3Helpers');
 const { EventStatus } = require('../models/events.model');
 const { DonationStatus } = require('../models/donations.model');
-const { addEventToQueue, addCreateOrRemoveEventToQueue } = require('./lib/eventHandlerQueue');
+const {
+  addEventToQueue,
+  addCreateOrRemoveEventToQueue,
+  initNewEventQueue,
+  initEventHandlerQueue,
+} = require('./lib/eventHandlerQueue');
 
 /**
  * get the last block that we have gotten logs from
@@ -51,7 +56,7 @@ async function getPendingEvents(eventsService) {
   // all pending events sorted by txHash & logIndex
   const query = {
     status: EventStatus.PENDING,
-    $sort: { blockNumber: 1, transactionIndex: 1, transactionHash: 1, logIndex: 1 },
+    $sort: { isHomeEvent: 1, blockNumber: 1, transactionIndex: 1, logIndex: 1 },
   };
   return eventsService.find({ paginate: false, query });
 }
@@ -253,7 +258,7 @@ const watcher = app => {
   }
 
   /**
-   * subscribe to SetApp events for milestones & lpp-campaign
+   * subscribe to SetApp events for traces & lpp-campaign
    */
   async function subscribeApps() {
     subscriptions.push(
@@ -417,19 +422,20 @@ const watcher = app => {
    *
    * @returns {Promise} Resolves to events sorted by blockNumber, transactionIndex, transactionHash & logIndex
    */
-  function getUnProcessedEvent() {
+  async function getWaitingEvent() {
     const query = {
       status: EventStatus.WAITING,
       $sort: {
         isHomeEvent: 1,
         blockNumber: 1,
         transactionIndex: 1,
-        transactionHash: 1,
         logIndex: 1,
       },
-      $limit: 1,
+      $limit: 100,
     };
-    return eventService.find({ paginate: false, query });
+    return eventService.find({
+      query,
+    });
   }
 
   /**
@@ -483,6 +489,21 @@ const watcher = app => {
     }
   }
 
+  const addWaitingEventsToQueue = async () => {
+    const { data, total, limit } = await getWaitingEvent();
+    // eslint-disable-next-line no-restricted-syntax
+    for (const event of data) {
+      // we should not use forEach, we should use await to make sure events added to queue by order
+      // eslint-disable-next-line no-await-in-loop
+      await addEventToQueue(app, { event });
+    }
+    if (total > limit) {
+      // we should add all Waiting events to queue, but the feathers has a limit for returning just 100 item
+      // in a request, so we should check if there is Waiting events existed we should call this function recursively
+      await addWaitingEventsToQueue();
+    }
+  };
+
   /**
    * Retrieve and process events from the blockchain between last known block and the latest block
    *
@@ -535,8 +556,7 @@ const watcher = app => {
         isFetchingPastHomeEvents = false;
       }
 
-      const unprocessedEvents = await getUnProcessedEvent();
-      unprocessedEvents.forEach(event => addEventToQueue(app, { event }));
+      await addWaitingEventsToQueue();
     } catch (e) {
       logger.error('error in the processing loop: ', e);
     }
@@ -571,7 +591,8 @@ const watcher = app => {
       subscribeApps();
       subscribeCappedMilestones();
       subscribeVault();
-
+      initNewEventQueue(app);
+      initEventHandlerQueue(app);
       // Start polling
       retrieveAndProcessPastEvents();
 

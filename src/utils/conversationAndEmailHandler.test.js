@@ -7,16 +7,16 @@ const { SAMPLE_DATA, generateRandomMongoId, assertThrowsAsync } = require('../..
 let app;
 
 function getPledgeAdminTestCases() {
-  it('should find dac by id', async () => {
-    const dac = await getPledgeAdmin(app, AdminTypes.DAC, SAMPLE_DATA.DAC_ID);
-    assert.isOk(dac);
+  it('should find community by id', async () => {
+    const community = await getPledgeAdmin(app, AdminTypes.COMMUNITY, SAMPLE_DATA.COMMUNITY_ID);
+    assert.isOk(community);
   });
   it('should find campaign by id', async () => {
     const campaign = await getPledgeAdmin(app, AdminTypes.CAMPAIGN, SAMPLE_DATA.CAMPAIGN_ID);
     assert.isOk(campaign);
   });
   it('should find campaign by id', async () => {
-    const milestone = await getPledgeAdmin(app, AdminTypes.MILESTONE, SAMPLE_DATA.MILESTONE_ID);
+    const milestone = await getPledgeAdmin(app, AdminTypes.TRACE, SAMPLE_DATA.TRACE_ID);
     assert.isOk(milestone);
   });
   it('should find user by id', async () => {
@@ -30,7 +30,7 @@ function getPledgeAdminTestCases() {
   it('should throw exception, fake mongoId', async () => {
     const fakeId = generateRandomMongoId();
     const badFunc = async () => {
-      await getPledgeAdmin(app, AdminTypes.MILESTONE, fakeId);
+      await getPledgeAdmin(app, AdminTypes.TRACE, fakeId);
     };
     await assertThrowsAsync(badFunc, `No record found for id '${fakeId}'`);
   });

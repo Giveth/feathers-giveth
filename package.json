@@ -1,7 +1,7 @@
 {
   "name": "feathers-giveth",
   "description": "Real-time json cache for blockchain data.",
-  "version": "0.2.1",
+  "version": "1.0.0",
   "homepage": "",
   "main": "src",
   "keywords": [
@@ -18,8 +18,8 @@
     "test": "test/"
   },
   "engines": {
-    "node": ">= 6.0.0",
-    "yarn": ">= 0.18.0"
+    "node": ">=10.0.0 <11.0.0",
+    "npm": ">= 5.0.0"
   },
   "husky": {
     "hooks": {
@@ -28,7 +28,7 @@
   },
   "scripts": {
     "test-old": "npm run eslint && npm run mocha",
-    "test": "LOG_LEVEL=info  NODE_ENV=test mocha -t 15000  test/pre-tests-script.js  src/**/*.test.js  src/**/**/*.test.js ",
+    "test": "LOG_LEVEL=info  NODE_ENV=test mocha -t 25000  test/pre-tests-script.js  src/**/*.test.js  src/**/**/*.test.js ",
     "test:conversionRate": "LOG_LEVEL=info  NODE_ENV=test mocha -t 10000  test/pre-tests-script.js  src/services/conversionRates/*.test.js ",
     "test:circleci": "LOG_LEVEL=info NODE_ENV=test mocha -t 10000 --reporter mocha-junit-reporter  test/pre-tests-script.js  src/**/*.test.js  src/**/**/*.test.js ",
     "test:coverage": "nyc -e '.ts' --r html -r lcov -r text npm run test",
@@ -97,7 +97,7 @@
     "nyc": "^15.1.0",
     "passport-strategy": "^1.0.0",
     "request-promise": "^4.2.2",
-    "sanitize-html": "^1.14.1",
+    "sanitize-html": "^2.4.0",
     "semaphore": "^1.1.0",
     "serve-favicon": "^2.4.3",
     "shortid": "^2.2.8",

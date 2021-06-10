@@ -80,7 +80,7 @@ const payments = app => ({
     } = returnValues;
 
     const donationModel = app.service('donations').Model;
-    const milestoneModel = app.service('milestones').Model;
+    const traceModel = app.service('traces').Model;
 
     const [{ timestamp, gasPrice, gasUsed, from }, donation] = await Promise.all([
       getTransaction(app, transactionHash, true, true),
@@ -91,9 +91,9 @@ const payments = app => ({
       throw new Error(`No donation found with reference: ${donationTxHash}`);
     }
 
-    const { ownerTypeId: milestoneId } = donation;
+    const { ownerTypeId: traceId } = donation;
 
-    const { campaignId } = await milestoneModel.findById(milestoneId, ['campaignId']);
+    const { campaignId } = await traceModel.findById(traceId, ['campaignId']);
 
     const conversionRate = await app
       .service('conversionRates')
@@ -122,7 +122,7 @@ const payments = app => ({
       event: event.event,
       usdValue,
       recipientAddress: recipient,
-      milestoneId,
+      traceId,
       campaignId,
       donationTxHash,
       transactionFee,
@@ -150,18 +150,9 @@ const payments = app => ({
     const givethAccounts = app.get('givethAccounts');
 
     // If gas is not paid by Giveth we can skip
-    if (!givethAccounts.includes(from)) {
-      logger.error('The from of transaction is not a giveth account', {
-        from,
-        givethAccounts,
-      });
-      return;
-    }
-
+    const paidByGiveth = givethAccounts.includes(from);
     const { idPayment, recipient, amount, token: tokenAddress } = returnValues;
-
     const service = app.service('homePaymentsTransactions');
-
     const result = await service.Model.countDocuments({
       hash: transactionHash,
       event: 'PaymentExecuted',
@@ -212,21 +203,21 @@ const payments = app => ({
       throw new Error(`No token found for address: ${tokenAddress}`);
     }
 
-    const { milestoneId, campaignId, donationTxHash } = paymentAuthorizedTransaction;
+    const { traceId, campaignId, donationTxHash } = paymentAuthorizedTransaction;
 
     await service.create({
       hash: transactionHash,
       event: event.event,
       usdValue,
       recipientAddress: recipient,
-      milestoneId,
+      traceId,
       campaignId,
       transactionFee,
       donationTxHash,
       timestamp,
       from,
       payments: [{ amount, symbol: token.symbol }],
-      paidByGiveth: true,
+      paidByGiveth,
       paymentId: idPayment,
     });
     const payment = {
@@ -235,7 +226,7 @@ const payments = app => ({
       decimals: token.decimals,
     };
     const payoutConversation = await createPayoutConversation(app, {
-      milestoneId,
+      traceId,
       performedByAddress: tx.from,
       timestamp,
       payment,
@@ -243,7 +234,7 @@ const payments = app => ({
     });
     const isAllDonationsPaidOutForTxHash = await isAllDonationsPaidOut(app, {
       txHash: donationTxHash,
-      milestoneId,
+      traceId,
     });
 
     // When running first time on beta, all donations syncing so if we dont set
@@ -251,9 +242,9 @@ const payments = app => ({
     if (app.get('enablePayoutEmail') && isAllDonationsPaidOutForTxHash) {
       // We send email when we are sure all milestone's paid donations
       // with this txHash have filled with bridgePaymentExecutedTxHash
-      const milestone = await app.service('milestones').get(milestoneId);
+      const trace = await app.service('traces').get(traceId);
       moneyWentToRecipientWallet(app, {
-        milestone,
+        trace,
         payments: payoutConversation.payments,
       });
     }

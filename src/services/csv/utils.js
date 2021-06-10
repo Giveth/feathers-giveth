@@ -25,8 +25,8 @@ module.exports = {
         case AdminTypes.CAMPAIGN:
           return `${dappUrl}/campaigns/${entity._id.toString()}`;
 
-        case AdminTypes.MILESTONE:
-          return `${dappUrl}/campaigns/${entity.campaignId}/milestones/${entity._id.toString()}`;
+        case AdminTypes.TRACE:
+          return `${dappUrl}/campaigns/${entity.campaignId}/traces/${entity._id.toString()}`;
 
         case AdminTypes.GIVER:
           return `${dappUrl}/profile/${entity.address}`;

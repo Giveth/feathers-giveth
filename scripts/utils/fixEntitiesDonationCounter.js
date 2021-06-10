@@ -26,13 +26,13 @@ const appFactory = () => {
 const app = appFactory();
 app.set('mongooseClient', mongoose);
 
-const Milestones = require('../../src/models/milestones.model').createModel(app);
-const DACs = require('../../src/models/dacs.model').createModel(app);
+const Milestones = require('../../src/models/traces.model').createModel(app);
+const DACs = require('../../src/models/communities.model').createModel(app);
 const Campaigns = require('../../src/models/campaigns.model').createModel(app);
 const Donations = require('../../src/models/donations.model').createModel(app);
 
 const { DonationStatus } = require('../../src/models/donations.model');
-const { MilestoneStatus } = require('../../src/models/milestones.model');
+const { TraceStatus } = require('../../src/models/traces.model');
 const { CampaignStatus } = require('../../src/models/campaigns.model');
 const { AdminTypes } = require('../../src/models/pledgeAdmins.model');
 const { ANY_TOKEN } = require('../../src/blockchain/lib/web3Helpers');
@@ -52,10 +52,10 @@ const updateEntity = async (model, type) => {
   };
 
   let idFieldName;
-  if (type === AdminTypes.DAC) {
+  if (type === AdminTypes.COMMUNITY) {
     // TODO I think this can be gamed if the donor refunds their donation from the dac
     Object.assign(donationQuery, {
-      delegateType: AdminTypes.DAC,
+      delegateType: AdminTypes.COMMUNITY,
       $and: [
         {
           $or: [{ intendedProjectId: 0 }, { intendedProjectId: undefined }],
@@ -125,9 +125,9 @@ const updateEntity = async (model, type) => {
           },
         );
 
-        // Exclude returned values from canceled milestones
+        // Exclude returned values from canceled traces
         if (
-          !(type === AdminTypes.MILESTONE && entity.status === MilestoneStatus.CANCELED) &&
+          !(type === AdminTypes.MILESTONE && entity.status === TraceStatus.CANCELED) &&
           !(type === AdminTypes.CAMPAIGN && entity.status === CampaignStatus.CANCELED)
         ) {
           totalDonated = returnedTokenDonations.reduce(
@@ -255,7 +255,7 @@ const updateEntity = async (model, type) => {
 };
 const main = async () => {
   await Promise.all([
-    updateEntity(DACs, AdminTypes.DAC),
+    updateEntity(DACs, AdminTypes.COMMUNITY),
     updateEntity(Campaigns, AdminTypes.CAMPAIGN),
     updateEntity(Milestones, AdminTypes.MILESTONE),
   ]);

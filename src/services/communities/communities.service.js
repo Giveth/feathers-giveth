@@ -1,26 +1,26 @@
-// Initializes the `milestones` service on path `/milestones`
+// Initializes the `communities` service on path `/communities`
 const createService = require('feathers-mongoose');
-const { createModel } = require('../../models/milestones.model');
-const hooks = require('./milestones.hooks');
+const { createModel } = require('../../models/communities.model');
+const hooks = require('./communities.hooks');
 const { defaultFeatherMongooseOptions } = require('../serviceCommons');
 
-module.exports = function milestones() {
+module.exports = function communities() {
   const app = this;
   const Model = createModel(app);
   const paginate = app.get('paginate');
 
   const options = {
-    name: 'milestones',
+    name: 'communities',
     Model,
     paginate,
     ...defaultFeatherMongooseOptions,
   };
 
   // Initialize our service with any options it requires
-  app.use('/milestones', createService(options));
+  app.use('/communities', createService(options));
 
   // Get our initialized service so that we can register hooks and filters
-  const service = app.service('milestones');
+  const service = app.service('communities');
 
   service.hooks(hooks);
 };

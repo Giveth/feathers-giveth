@@ -17,13 +17,13 @@ const updateSubscriptionProject = async (
 /**
  * This function return all users that subscribe a project and have emails
  * @param app : feather instance
- * @param projectTypeId : dacId, campaignId or milestoneId
+ * @param projectTypeId : communityId, campaignId or traceId
  * @returns {Promise<[
       {
         "_id": {"$oid": "604d025bf3084e6a0bae608d"},
         "enabled": true,
         "userAddress": "0x28F12d62B5D42ecEf69eAb668A79DD79D762f1cD",
-        "projectType": "dac",
+        "projectType": "community",
         "projectTypeId": "604d025bf3084e6a0bae608c",
         "createdAt": {"$date": "2021-03-13T18:20:11.182Z"},
         "updatedAt": {"$date": "2021-03-13T18:20:11.182Z"},
@@ -35,8 +35,8 @@ const updateSubscriptionProject = async (
           "isProjectOwner": false,
           "isAdmin": true,
           "address": "0x28F12d62B5D42ecEf69eAb668A79DD79D762f1cD",
-          "email": "1615659611075-dacSubscriber@test.giveth",
-          "name": "dac subscriber Sat Mar 13 2021 21:50:11 GMT+0330 (Iran Standard Time)",
+          "email": "1615659611075-communitySubscriber@test.giveth",
+          "name": "community subscriber Sat Mar 13 2021 21:50:11 GMT+0330 (Iran Standard Time)",
           "createdAt": {"$date": "2021-03-13T18:20:11.076Z"},
           "updatedAt": {"$date": "2021-03-13T18:20:11.076Z"},
           "__v": 0
@@ -78,7 +78,7 @@ const findProjectSubscribers = async (app, { projectTypeId }) => {
 };
 
 /**
- * This function return all users that subscribe campaign's parent dac
+ * This function return all users that subscribe campaign's parent community
  * @param app : feather instance
  * @param campaignId
  * @returns {Promise<[
@@ -87,17 +87,17 @@ const findProjectSubscribers = async (app, { projectTypeId }) => {
     "__v": 0,
     "campaigns": ["604d025bf3084e6a0bae608c"],
     "createdAt": {"$date": "2021-03-13T18:20:11.155Z"},
-    "description": "test dac description",
+    "description": "test community description",
     "donationCounters": [],
     "ownerAddress": "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1",
-    "slug": "test-dac-title",
+    "slug": "test-community-title",
     "status": "Pending",
     "subscriptions": [
       {
         "_id": {"$oid": "604d025bf3084e6a0bae608d"},
         "enabled": true,
         "userAddress": "0x28F12d62B5D42ecEf69eAb668A79DD79D762f1cD",
-        "projectType": "dac",
+        "projectType": "community",
         "projectTypeId": "604d025bf3084e6a0bae608c",
         "createdAt": {"$date": "2021-03-13T18:20:11.182Z"},
         "updatedAt": {"$date": "2021-03-13T18:20:11.182Z"},
@@ -109,24 +109,24 @@ const findProjectSubscribers = async (app, { projectTypeId }) => {
           "isProjectOwner": false,
           "isAdmin": true,
           "address": "0x28F12d62B5D42ecEf69eAb668A79DD79D762f1cD",
-          "email": "1615659611075-dacSubscriber@test.giveth",
-          "name": "dac subscriber Sat Mar 13 2021 21:50:11 GMT+0330 (Iran Standard Time)",
+          "email": "1615659611075-communitySubscriber@test.giveth",
+          "name": "community subscriber Sat Mar 13 2021 21:50:11 GMT+0330 (Iran Standard Time)",
           "createdAt": {"$date": "2021-03-13T18:20:11.076Z"},
           "updatedAt": {"$date": "2021-03-13T18:20:11.076Z"},
           "__v": 0
         }
       }
     ],
-    "title": "test dac title",
+    "title": "test community title",
     "txHash": "0xe2a9dcb6789479a3f53bd3de900dc0106ecef348b520bdc3c55bf91492641f",
     "updatedAt": {"$date": "2021-03-13T18:20:11.155Z"}
   }
 ]>}
  */
-const findParentDacSubscribersForCampaign = async (app, { campaignId }) => {
-  const dacService = app.service('dacs');
-  const dacModel = dacService.Model;
-  return dacModel.aggregate([
+const findParentCommunitySubscribersForCampaign = async (app, { campaignId }) => {
+  const communityService = app.service('communities');
+  const communityModel = communityService.Model;
+  return communityModel.aggregate([
     {
       $match: {
         campaigns: campaignId,
@@ -135,7 +135,7 @@ const findParentDacSubscribersForCampaign = async (app, { campaignId }) => {
     {
       $lookup: {
         let: {
-          dacId: {
+          communityId: {
             $toString: '$_id',
           },
         },
@@ -145,7 +145,7 @@ const findParentDacSubscribersForCampaign = async (app, { campaignId }) => {
             $match: {
               enabled: true,
               $expr: {
-                $eq: ['$projectTypeId', '$$dacId'],
+                $eq: ['$projectTypeId', '$$communityId'],
               },
             },
           },
@@ -179,5 +179,5 @@ const findParentDacSubscribersForCampaign = async (app, { campaignId }) => {
 module.exports = {
   updateSubscriptionProject,
   findProjectSubscribers,
-  findParentDacSubscribersForCampaign,
+  findParentCommunitySubscribersForCampaign,
 };

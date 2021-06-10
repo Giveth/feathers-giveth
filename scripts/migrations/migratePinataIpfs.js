@@ -33,9 +33,9 @@ const appFactory = () => {
 const app = appFactory();
 app.set('mongooseClient', mongoose);
 
-const DACs = require('../../src/models/dacs.model').createModel(app);
+const DACs = require('../../src/models/communities.model').createModel(app);
 const Campaigns = require('../../src/models/campaigns.model').createModel(app);
-const Milestones = require('../../src/models/milestones.model').createModel(app);
+const Milestones = require('../../src/models/traces.model').createModel(app);
 const Users = require('../../src/models/users.model')(app);
 
 // IPFS server (ipfsApi) refs local list
@@ -204,7 +204,7 @@ const main = async () => {
   };
 
   await pinOrClearEntityIpfsPathEntries(Users, AdminTypes.GIVER);
-  await pinOrClearEntityIpfsPathEntries(DACs, AdminTypes.DAC);
+  await pinOrClearEntityIpfsPathEntries(DACs, AdminTypes.COMMUNITY);
   await pinOrClearEntityIpfsPathEntries(Campaigns, AdminTypes.CAMPAIGN);
   await pinOrClearEntityIpfsPathEntries(Milestones, AdminTypes.MILESTONE);
 };

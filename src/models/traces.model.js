@@ -1,11 +1,11 @@
 const Item = require('./item.model');
 const DonationCounter = require('./donationCounter.model');
 
-// milestones-model.js - A mongoose model
+// traces-model.js - A mongoose model
 //
 // See http://mongoosejs.com/docs/models.html
 // for more of what you can do here.
-const MilestoneStatus = {
+const TraceStatus = {
   PROPOSED: 'Proposed',
   REJECTED: 'Rejected',
   PENDING: 'Pending',
@@ -19,13 +19,13 @@ const MilestoneStatus = {
   ARCHIVED: 'Archived',
 };
 
-const MilestoneTypes = {
+const TraceTypes = {
   LPPCappedMilestone: 'LPPCappedMilestone',
   BridgedMilestone: 'BridgedMilestone',
   LPMilestone: 'LPMilestone',
 };
 
-const MilestoneFormTypes = {
+const TraceFormTypes = {
   BOUNTY: 'bounty',
   PAYMENT: 'payment',
   EXPENSE: 'expense',
@@ -36,7 +36,7 @@ function Milestone(app) {
   const mongooseClient = app.get('mongooseClient');
   const { Schema } = mongooseClient;
 
-  const milestone = new Schema(
+  const trace = new Schema(
     {
       title: { type: String, required: true },
       slug: { type: String, required: true },
@@ -46,7 +46,7 @@ function Milestone(app) {
       maxAmount: { type: Schema.Types.BN },
       ownerAddress: { type: String, required: true },
       reviewerAddress: { type: String },
-      dacId: { type: Number },
+      communityId: { type: Number },
       recipientAddress: { type: String },
       recipientId: { type: Schema.Types.Long }, // we can use Long here b/c lp only stores adminId in pledges as uint64
       pendingRecipientAddress: { type: String },
@@ -56,11 +56,11 @@ function Milestone(app) {
       status: {
         type: String,
         require: true,
-        enum: Object.values(MilestoneStatus),
+        enum: Object.values(TraceStatus),
       },
       formType: {
         type: String,
-        enum: Object.values(MilestoneFormTypes),
+        enum: Object.values(TraceFormTypes),
       },
       items: [Item],
       conversionRateTimestamp: { type: Date },
@@ -81,7 +81,7 @@ function Milestone(app) {
       type: {
         type: String,
         required: true,
-        enum: Object.values(MilestoneTypes),
+        enum: Object.values(TraceTypes),
       },
 
       // these 2 fields should not be stored in mongo
@@ -91,32 +91,32 @@ function Milestone(app) {
       proofItems: [Item],
       messageContext: { type: String },
       tokenAddress: { type: String, required: true },
-      projectAddedAt: { type: Date }, // Store the time milestone is accepted or added by campaign owner
+      projectAddedAt: { type: Date }, // Store the time trace is accepted or added by campaign owner
       gasPaidUsdValue: { type: Number, default: 0 },
     },
     {
       timestamps: true,
     },
   );
-  milestone.index({
+  trace.index({
     title: 'text',
     description: 'text',
     ownerAddress: 'text',
     recipientAddress: 'text',
     reviewerAddress: 'text',
   });
-  milestone.index({ campaignId: 1, status: 1, projectAddedAt: 1 });
-  milestone.index({ createdAt: 1, ownerAddress: 1, reviewerAddress: 1, recipientAddress: 1 });
-  milestone.index({ status: 1, fullyFunded: 1, createdAt: 1 });
-  milestone.index({ createdAt: 1, campaignId: 1 });
-  milestone.index({ projectId: 1, campaignId: 1 });
-  milestone.index({ slug: 1 }, { unique: true });
+  trace.index({ campaignId: 1, status: 1, projectAddedAt: 1 });
+  trace.index({ createdAt: 1, ownerAddress: 1, reviewerAddress: 1, recipientAddress: 1 });
+  trace.index({ status: 1, fullyFunded: 1, createdAt: 1 });
+  trace.index({ createdAt: 1, campaignId: 1 });
+  trace.index({ projectId: 1, campaignId: 1 });
+  trace.index({ slug: 1 }, { unique: true });
 
-  return mongooseClient.model('milestone', milestone);
+  return mongooseClient.model('trace', trace);
 }
 
 module.exports = {
-  MilestoneStatus,
-  MilestoneTypes,
+  TraceStatus,
+  TraceTypes,
   createModel: Milestone,
 };

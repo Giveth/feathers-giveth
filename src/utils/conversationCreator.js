@@ -44,19 +44,19 @@ async function addPaymentToExistingDelegatedConversation(payment, similarDelegat
 // eslint-disable-next-line consistent-return
 async function createPayoutConversation(
   app,
-  { milestoneId, performedByAddress, timestamp, payment, txHash },
+  { traceId, performedByAddress, timestamp, payment, txHash },
 ) {
   try {
     const service = app.service('conversations');
     const similarPayout = await findSimilarPayoutConversation(app, {
-      milestoneId,
+      traceId,
       txHash,
     });
     if (similarPayout) {
       return addPaymentToExistingPayoutConversation({ payment, similarPayout, app });
     }
     const data = {
-      milestoneId,
+      traceId,
       messageContext: CONVERSATION_MESSAGE_CONTEXT.PAYOUT,
       createdAt: timestamp,
       txHash,
@@ -70,10 +70,10 @@ async function createPayoutConversation(
 
 const createDonatedConversation = async (
   app,
-  { milestoneId, donationId, homeTxHash, payment, giverAddress, actionTakerAddress },
+  { traceId, donationId, homeTxHash, payment, giverAddress, actionTakerAddress },
 ) => {
   const data = {
-    milestoneId,
+    traceId,
     messageContext: CONVERSATION_MESSAGE_CONTEXT.DONATED,
     donationId,
     txHash: homeTxHash,
@@ -94,10 +94,10 @@ const createDonatedConversation = async (
 
 const createDelegatedConversation = async (
   app,
-  { milestoneId, donationId, txHash, payment, parentDonations, actionTakerAddress },
+  { traceId, donationId, txHash, payment, parentDonations, actionTakerAddress },
 ) => {
   const similarDelegation = await findSimilarDelegatedConversation(app, {
-    milestoneId,
+    traceId,
     txHash,
     currencySymbol: payment.symbol,
   });
@@ -107,13 +107,13 @@ const createDelegatedConversation = async (
   const [firstParentId] = parentDonations;
   const firstParent = await app.service('donations').get(firstParentId);
   const data = {
-    milestoneId,
+    traceId,
     messageContext: CONVERSATION_MESSAGE_CONTEXT.DELEGATED,
     donationId,
     txHash,
     payments: [payment],
     donorId: firstParent.delegateTypeId ? firstParent.delegateTypeId : firstParent.ownerTypeId,
-    donorType: firstParent.delegateTypeId ? AdminTypes.DAC : firstParent.ownerType,
+    donorType: firstParent.delegateTypeId ? AdminTypes.COMMUNITY : firstParent.ownerType,
   };
   try {
     const { timestamp } = await getTransaction(app, txHash, false);
@@ -128,10 +128,10 @@ const createDelegatedConversation = async (
 
 const createRecipientChangedConversation = async (
   app,
-  { milestoneId, newRecipientAddress, timestamp, txHash, from },
+  { traceId, newRecipientAddress, timestamp, txHash, from },
 ) => {
   const data = {
-    milestoneId,
+    traceId,
     messageContext: CONVERSATION_MESSAGE_CONTEXT.RECIPIENT_CHANGED,
     recipientAddress: newRecipientAddress,
     txHash,

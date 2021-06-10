@@ -34,7 +34,7 @@ function authorizePaymentTestCases() {
       giverAddress: SAMPLE_DATA.USER_ADDRESS,
       ownerId: 49,
       status: SAMPLE_DATA.DonationStatus.TO_APPROVE,
-      ownerTypeId: SAMPLE_DATA.MILESTONE_ID,
+      ownerTypeId: SAMPLE_DATA.TRACE_ID,
       ownerType: 'milestone',
       pledgeId: hexToNumberString(ref),
       token: {

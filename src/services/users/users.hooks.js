@@ -65,7 +65,7 @@ const notifyParents = [
     watchFields: ['avatar', 'name'],
   },
   {
-    service: 'dacs',
+    service: 'communities',
     parentField: 'ownerAddress',
     childField: 'address',
     watchFields: ['avatar', 'name'],

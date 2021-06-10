@@ -27,7 +27,7 @@ const appFactory = () => {
 const app = appFactory();
 app.set('mongooseClient', mongoose);
 
-const Milestones = require('../../src/models/milestones.model').createModel(app);
+const Milestones = require('../../src/models/traces.model').createModel(app);
 const Events = require('../../src/models/events.model').createModel(app);
 
 const { EventStatus } = require('../../src/models/events.model');

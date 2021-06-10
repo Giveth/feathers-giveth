@@ -20,7 +20,7 @@ function postConversationsTestCases() {
   // TODO should test more testCases for creating milestone, different roles on milestone and etc
   it('should return create conversation successfully', async () => {
     const payload = {
-      milestoneId: SAMPLE_DATA.MILESTONE_ID,
+      traceId: SAMPLE_DATA.TRACE_ID,
       ownerAddress: SAMPLE_DATA.USER_ADDRESS,
       performedByRole: 'Anonymous role',
       message:

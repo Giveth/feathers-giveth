@@ -9,7 +9,7 @@ const baseUrl = config.get('givethFathersBaseUrl');
 const relativeUrl = '/campaigncsv';
 
 function getCampaignCsvTestCases() {
-  it('should return successful result', async function() {
+  it('should return successful result', async () => {
     const response = await request(baseUrl).get(`${relativeUrl}/${SAMPLE_DATA.CAMPAIGN_ID}`);
     assert.equal(response.statusCode, 200);
     assert.isOk(response.body);
@@ -17,7 +17,7 @@ function getCampaignCsvTestCases() {
 }
 
 function postCampaignCsvTestCases() {
-  it('should return 405, POST is disallowed', async function() {
+  it('should return 405, POST is disallowed', async () => {
     const response = await request(baseUrl)
       .post(relativeUrl)
       .set({ Authorization: getJwt() });
@@ -27,7 +27,7 @@ function postCampaignCsvTestCases() {
 }
 
 function putCampaignCsvTestCases() {
-  it('should return 405, PUT is disallowed', async function() {
+  it('should return 405, PUT is disallowed', async () => {
     const response = await request(baseUrl)
       .put(relativeUrl)
       .set({ Authorization: getJwt() });
@@ -47,7 +47,7 @@ function deleteCampaignCsvTestCases() {
 }
 
 function patchCampaignCsvTestCases() {
-  it('should return 405, PATCH is disallowed', async function() {
+  it('should return 405, PATCH is disallowed', async () => {
     const response = await request(baseUrl)
       .patch(relativeUrl)
       .set({ Authorization: getJwt() });

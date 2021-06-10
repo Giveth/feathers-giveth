@@ -13,8 +13,8 @@ const createDonationPayload = {
   amountRemaining: '9793698658625350941',
   giverAddress: SAMPLE_DATA.USER_ADDRESS,
   ownerId: 49,
-  ownerTypeId: SAMPLE_DATA.MILESTONE_ID,
-  ownerType: 'milestone',
+  ownerTypeId: SAMPLE_DATA.TRACE_ID,
+  ownerType: 'trace',
   pledgeId: '89',
   token: {
     name: 'ETH',
@@ -41,9 +41,9 @@ async function createCampaigns(data) {
   return response.body;
 }
 
-async function createMilestone(data) {
+async function createTrace(data) {
   const response = await request(baseUrl)
-    .post('/milestones')
+    .post('/traces')
     .set({ Authorization: getJwt() })
     .send(data);
   return response.body;
@@ -147,8 +147,8 @@ function postDonationsTestCases() {
   });
 }
 
-function postDonationsAddCampaignsToDacTestCases() {
-  it('should create delegate donation and connect campaign to dac', async () => {
+function postDonationsAddCampaignsToCommunityTestCases() {
+  it('should create delegate donation and connect campaign to community', async () => {
     const campaign = await createCampaigns(SAMPLE_DATA.CREATE_CAMPAIGN_DATA);
     const campaignId = campaign._id;
     const response = await request(baseUrl)
@@ -156,34 +156,34 @@ function postDonationsAddCampaignsToDacTestCases() {
       .set({ Authorization: getJwt() })
       .send({
         ...createDonationPayload,
-        delegateTypeId: SAMPLE_DATA.DAC_ID,
+        delegateTypeId: SAMPLE_DATA.COMMUNITY_ID,
         intendedProjectType: 'campaign',
         intendedProjectTypeId: campaignId,
       });
     assert.equal(response.statusCode, 201);
-    const dac = await app.service('dacs').get(SAMPLE_DATA.DAC_ID);
-    assert.isTrue(dac.campaigns.includes(campaignId));
+    const community = await app.service('communities').get(SAMPLE_DATA.COMMUNITY_ID);
+    assert.isTrue(community.campaigns.includes(campaignId));
   });
-  it('should create delegate donation and connect milestone parent campaign to dac', async () => {
+  it('should create delegate donation and connect trace parent campaign to community', async () => {
     const campaign = await createCampaigns(SAMPLE_DATA.CREATE_CAMPAIGN_DATA);
     const campaignId = campaign._id;
-    let dac = await app.service('dacs').get(SAMPLE_DATA.DAC_ID);
-    assert.isNotOk(dac.campaigns && dac.campaigns.includes(campaignId));
-    const milestone = await createMilestone({ ...SAMPLE_DATA.createMilestoneData(), campaignId });
-    assert.equal(milestone.campaignId, campaignId);
+    let community = await app.service('communities').get(SAMPLE_DATA.COMMUNITY_ID);
+    assert.isNotOk(community.campaigns && community.campaigns.includes(campaignId));
+    const trace = await createTrace({ ...SAMPLE_DATA.createTraceData(), campaignId });
+    assert.equal(trace.campaignId, campaignId);
     const response = await request(baseUrl)
       .post(relativeUrl)
       .set({ Authorization: getJwt() })
       .send({
         ...createDonationPayload,
-        delegateTypeId: SAMPLE_DATA.DAC_ID,
-        intendedProjectType: 'milestone',
-        intendedProjectTypeId: milestone._id,
+        delegateTypeId: SAMPLE_DATA.COMMUNITY_ID,
+        intendedProjectType: 'trace',
+        intendedProjectTypeId: trace._id,
       });
     assert.equal(response.statusCode, 201);
 
-    dac = await app.service('dacs').get(SAMPLE_DATA.DAC_ID);
-    assert.isTrue(dac.campaigns.includes(campaignId));
+    community = await app.service('communities').get(SAMPLE_DATA.COMMUNITY_ID);
+    assert.isTrue(community.campaigns.includes(campaignId));
   });
 }
 
@@ -315,8 +315,8 @@ it('should donations service registration be ok', () => {
 describe(`Test GET ${relativeUrl}`, getDonationsTestCases);
 describe(`Test POST ${relativeUrl}`, postDonationsTestCases);
 describe(
-  `Test POST ${relativeUrl} test adding campaigns to dacs`,
-  postDonationsAddCampaignsToDacTestCases,
+  `Test POST ${relativeUrl} test adding campaigns to communities`,
+  postDonationsAddCampaignsToCommunityTestCases,
 );
 describe(`Test DELETE ${relativeUrl}`, deleteDonationsTestCases);
 describe(`Test PUT ${relativeUrl}`, putDonationsTestCases);

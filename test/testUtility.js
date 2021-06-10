@@ -133,8 +133,6 @@ const generateRandomTxHash = () => {
   return `0x${crypto.randomBytes(16).toString('hex')}`;
 };
 
-let milestoneCounter = 1;
-
 const SAMPLE_DATA = {
   // the user in seed data has these values
   USER_ADDRESS: testAddress,
@@ -145,13 +143,13 @@ const SAMPLE_DATA = {
   IN_PROJECT_WHITELIST_USER_ADDRESS: projectOwnerAddress,
   IN_REVIEWER_WHITELIST_USER_ADDRESS: reviewerAddress,
   IN_DELEGATE_WHITELIST_USER_ADDRESS: '0x84DD429D2A54176A971e0993E11020e4Aa81aB13',
-  MILESTONE_ID: '5fd3424c3e403d0c0f9e4487',
+  TRACE_ID: '5fd3424c3e403d0c0f9e4487',
   MILESTONE_PROJECT_ID: 5,
   CAMPAIGN_ID: campaignAddress,
   FAKE_USER_ADDRESS: generateRandomEtheriumAddress(),
-  DAC_ID: '5fd339eaa5ffa2a6198ecd70',
+  COMMUNITY_ID: '5fd339eaa5ffa2a6198ecd70',
   USER_ID: '5fd3385aa5ffa2a6198ecd6e',
-  MILESTONE_STATUSES: {
+  TRACE_STATUSES: {
     PROPOSED: 'Proposed',
     REJECTED: 'Rejected',
     PENDING: 'Pending',
@@ -184,6 +182,7 @@ const SAMPLE_DATA = {
   },
   CREATE_EVENT_DATA: {
     topics: [],
+    isHomeEvent: false,
     status: 'Processed',
     address: '0x8eB047585ABeD935a73ba4b9525213F126A0c979',
     blockNumber: 3051511,
@@ -210,15 +209,15 @@ const SAMPLE_DATA = {
     },
     confirmations: 6,
   },
-  createMilestoneData() {
+  createTraceData() {
     return {
       fullyFunded: false,
       mined: true,
-      title: `test-milestone-${milestoneCounter++}`,
+      title: `test-milestone-${new Date()}`,
       description: '<p>give money for god sake</p>',
       image: '',
       reviewerAddress: testAddress,
-      dacId: 0,
+      communityId: 0,
       date: '2020-11-10T00:00:00.000Z',
       recipientAddress: '0x0000000000000000000000000000000000000000',
       pluginAddress: '0x0000000000000000000000000000000000000001',
@@ -270,19 +269,19 @@ const SAMPLE_DATA = {
     giverAddress: '0xA6012eA4284433baC05e96d352f435265eFa5860',
     homeTxHash: '0xb0cd61d8b5aa3420b860d7985f83451ef0758adee993de038507b89d4a244219',
     ownerTypeId: '5f22b2f69e4f03782453b658',
-    ownerType: 'milestone',
+    ownerType: 'trace',
     tokenAddress: '0x0',
     actionTakerAddress: '0x5AC583Feb2b1f288C0A51d6Cdca2e8c814BFE93B',
   },
-  DacStatus: {
+  CommunityStatus: {
     ACTIVE: 'Active',
     PENDING: 'Pending',
     CANCELED: 'Canceled',
     FAILED: 'Failed',
   },
-  CREATE_DAC_DATA: {
-    title: 'test dac title',
-    description: 'test dac description',
+  CREATE_COMMUNITY_DATA: {
+    title: 'test community title',
+    description: 'test community description',
     status: 'Pending',
     txHash: generateRandomTransactionHash(),
     ownerAddress: testAddress,

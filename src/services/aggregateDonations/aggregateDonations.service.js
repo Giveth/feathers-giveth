@@ -22,10 +22,12 @@ module.exports = function aggregateDonations() {
       const result = await donationModel
         .aggregate()
         .match({
-          status: { $in: [DonationStatus.COMMITTED, DonationStatus.WAITING] },
+          status: {
+            $in: [DonationStatus.COMMITTED, DonationStatus.WAITING, DonationStatus.PENDING],
+          },
           $or: [
             { ownerTypeId: id }, // Committed ones to project
-            // { intendedProjectTypeId: id }, // Delegated via DAC
+            // { intendedProjectTypeId: id }, // Delegated via COMMUNITY
             {
               delegateTypeId: id,
               intendedProjectId: { $exists: false },
