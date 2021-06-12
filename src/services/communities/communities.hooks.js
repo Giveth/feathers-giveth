@@ -8,6 +8,7 @@ const addConfirmations = require('../../hooks/addConfirmations');
 const resolveFiles = require('../../hooks/resolveFiles');
 const createModelSlug = require('../createModelSlug');
 const { isUserInDelegateWhiteList } = require('../../utils/roleUtility');
+const { isRequestInternal } = require('../../utils/feathersUtils');
 
 const restrict = [
   context => commons.deleteByDot(context.data, 'txHash'),
@@ -16,6 +17,13 @@ const restrict = [
     ownerField: 'ownerAddress',
   }),
 ];
+
+const removeProtectedFields = () => context => {
+  if (context && context.data && !isRequestInternal(context)) {
+    delete context.data.verified;
+  }
+  return context;
+};
 
 const schema = {
   include: [
@@ -87,6 +95,7 @@ module.exports = {
     find: [sanitizeAddress('ownerAddress')],
     get: [],
     create: [
+      removeProtectedFields(),
       setAddress('ownerAddress'),
       isDacAllowed(),
       sanitizeAddress('ownerAddress', { required: true, validate: true }),
@@ -95,6 +104,7 @@ module.exports = {
     ],
     update: [commons.disallow()],
     patch: [
+      removeProtectedFields(),
       ...restrict,
       sanitizeAddress('ownerAddress', { validate: true }),
       sanitizeHtml('description'),

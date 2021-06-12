@@ -40,6 +40,15 @@ function postCampaignTestCases() {
     assert.equal(response.statusCode, 201);
     assert.equal(response.body.ownerAddress, SAMPLE_DATA.CREATE_CAMPAIGN_DATA.ownerAddress);
   });
+
+  it('should create campaign successfully, should not set verified', async () => {
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .send({ ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA, verified: true })
+      .set({ Authorization: getJwt(SAMPLE_DATA.CREATE_CAMPAIGN_DATA.ownerAddress) });
+    assert.equal(response.statusCode, 201);
+    assert.isFalse(response.body.verified);
+  });
   it('should get unAuthorized error', async () => {
     const response = await request(baseUrl)
       .post(relativeUrl)

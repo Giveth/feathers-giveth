@@ -40,6 +40,16 @@ function postCommunityTestCases() {
     assert.equal(response.statusCode, 201);
     assert.equal(response.body.ownerAddress, SAMPLE_DATA.USER_ADDRESS);
   });
+
+  it('should create community successfully, but verified should not set', async () => {
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .send({ ...SAMPLE_DATA.CREATE_COMMUNITY_DATA, verified: true })
+      .set({ Authorization: getJwt() });
+    assert.equal(response.statusCode, 201);
+    assert.isFalse(response.body.verified);
+  });
+
   it('should get unAuthorized error', async () => {
     const response = await request(baseUrl)
       .post(relativeUrl)

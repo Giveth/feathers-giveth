@@ -43,6 +43,7 @@ function createModel(app) {
       commitTime: { type: Number },
       campaigns: { type: [String], default: [] },
       mined: { type: Boolean },
+      verified: { type: Boolean, default: false },
       url: { type: String },
       customThanksMessage: { type: String },
       prevUrl: { type: String }, // To store deleted/cleared lost ipfs values

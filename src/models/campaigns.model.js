@@ -33,6 +33,7 @@ function createModel(app) {
       pluginAddress: { type: String },
       tokenAddress: { type: String },
       mined: { type: Boolean, required: true, default: false },
+      verified: { type: Boolean, default: false },
       status: {
         type: String,
         require: true,

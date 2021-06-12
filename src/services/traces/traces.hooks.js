@@ -23,13 +23,13 @@ const checkTraceName = require('./checkTraceName');
 const { getBlockTimestamp, ZERO_ADDRESS } = require('../../blockchain/lib/web3Helpers');
 const { getTokenByAddress } = require('../../utils/tokenHelper');
 const createModelSlug = require('../createModelSlug');
+const { isRequestInternal } = require('../../utils/feathersUtils');
 
-const removeProtectedFields = async context => {
+const removeProtectedFields = () => context => {
+  if (context && context.data && !isRequestInternal(context)) {
+    delete context.data.verified;
+  }
   return context;
-  // if (context && context.data) {
-  //   delete context.data.verified;
-  // }
-  // return context;
 };
 
 const traceResolvers = {

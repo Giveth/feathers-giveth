@@ -95,6 +95,13 @@ function postMilestoneTestCases() {
     assert.notEqual(response1.body.slug, response2.body.slug);
   });
 
+  it('should create trace but verified field should not set', async () => {
+    const createMileStoneData = { ...SAMPLE_DATA.createTraceData(), verified: true };
+    createMileStoneData.status = SAMPLE_DATA.TRACE_STATUSES.PROPOSED;
+    createMileStoneData.ownerAddress = SAMPLE_DATA.USER_ADDRESS;
+    const trace = await createTrace(createMileStoneData);
+    assert.isFalse(trace.verified);
+  });
 }
 
 function patchMilestoneTestCases() {

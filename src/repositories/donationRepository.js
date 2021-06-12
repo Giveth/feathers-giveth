@@ -48,26 +48,28 @@ const isAllDonationsPaidOut = async (app, { txHash, traceId }) => {
 /**
  *
  * @param app: feathers instance
- * @param from: Date, example: 2021-06-08T16:05:28.005Z
+ * @param from: Date, example: 2018-06-08T16:05:28.005Z
  * @param to: Date: example: 2021-06-08T16:05:28.005Z
  * @param projectIds: Array<number>, example: [1340, 2723]
  * @returns {
  * Promise<
    [{
-    "_id" : "0x3ba20bC27c2B65C98A5aBF922a34e6Eb3108A9CB",
-    "totalAmount" : 10.43,
+    "giverAddress" : string,
+    "totalAmount" : number,
     "donations" : [
       {
-       donation
+        "usdValue": number,
+        "amount": number,
+        "homeTxHash": string,
+        "createdAt": string // sample: "2019-04-22T22:14:23.046Z",
+        "token": string //sample : "ETH",
+        "projectId": number
       }
-    ],
-    "giver" : {
-     //userInfo
-    }
+    ]
   }]
   >}
  */
-const listOfUserDonorsOnVerifiedProjects = async (app, { projectIds, from, to }) => {
+const listOfUserDonorsOnVerifiedProjects = async (app, { verifiedProjectIds, from, to }) => {
   const donationModel = app.service('donations').Model;
   return donationModel.aggregate([
     {
@@ -84,12 +86,12 @@ const listOfUserDonorsOnVerifiedProjects = async (app, { projectIds, from, to })
         $or: [
           {
             // it's for communities
-            delegateId: { $in: projectIds },
+            delegateId: { $in: verifiedProjectIds },
             intendedProjectId: { $exists: false },
           },
 
           // it's for traces and campaigns
-          { ownerId: { $in: projectIds } },
+          { ownerId: { $in: verifiedProjectIds } },
         ],
         amount: { $ne: '0' },
         usdValue: { $ne: 0 },
@@ -104,22 +106,6 @@ const listOfUserDonorsOnVerifiedProjects = async (app, { projectIds, from, to })
         donationIds: { $push: '$_id' },
       },
     },
-
-    {
-      $lookup: {
-        from: 'users',
-        let: { giverAddress: '$_id' },
-        pipeline: [
-          {
-            $match: { $expr: { $eq: ['$address', '$$giverAddress'] } },
-          },
-        ],
-        as: 'giver',
-      },
-    },
-    {
-      $unwind: '$giver',
-    },
     {
       $lookup: {
         from: 'donations',
@@ -128,15 +114,26 @@ const listOfUserDonorsOnVerifiedProjects = async (app, { projectIds, from, to })
           {
             $match: { $expr: { $in: ['$_id', '$$donationIds'] } },
           },
+          {
+            $project: {
+              _id: 0,
+              createdAt: 1,
+              token: '$token.symbol',
+              usdValue: 1,
+              amount: 1,
+              homeTxHash: 1,
+              delegateId: 1,
+              ownerId: 1,
+            },
+          },
         ],
         as: 'donations',
       },
     },
     {
       $project: {
-        // giverAddress: '$_id',
+        giverAddress: '$_id',
         donations: 1,
-        giver: 1,
         totalAmount: 1,
         _id: 0,
       },
