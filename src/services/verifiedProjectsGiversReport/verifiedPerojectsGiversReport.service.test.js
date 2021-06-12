@@ -6,12 +6,6 @@ const baseUrl = config.get('givethFathersBaseUrl');
 const relativeUrl = '/verifiedProjectsGiversReport';
 
 function getGasPriceTestCases() {
-  it('get error if projectIds didnt send', async () => {
-    const response = await request(baseUrl).get(relativeUrl);
-    assert.equal(response.statusCode, 400);
-    assert.equal(response.body.message, 'projectIds are required');
-  });
-
   it('get error if fromDate didnt send', async () => {
     const response = await request(baseUrl).get(`${relativeUrl}?projectIds=1,2,3,4,5,22`);
     assert.equal(response.statusCode, 400);
