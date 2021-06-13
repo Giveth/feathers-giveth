@@ -118,7 +118,7 @@ const listOfUserDonorsOnVerifiedProjects = async (app, { verifiedProjectIds, fro
             $project: {
               _id: 0,
               createdAt: 1,
-              token: '$token.symbol',
+              tokenAddress: 1,
               usdValue: 1,
               amount: 1,
               homeTxHash: 1,

@@ -4,6 +4,7 @@ const { listOfUserDonorsOnVerifiedProjects } = require('../../repositories/donat
 const { findVerifiedCommunities } = require('../../repositories/communityRepository');
 const { findVerifiedCampaigns } = require('../../repositories/campaignRepository');
 const { findVerifiedTraces } = require('../../repositories/traceRepository');
+const { getTokenByAddress } = require('../../utils/tokenHelper');
 
 module.exports = function aggregateDonations() {
   const app = this;
@@ -37,11 +38,14 @@ module.exports = function aggregateDonations() {
       });
       result.forEach(giverInfo => {
         giverInfo.donations.forEach(donation => {
+          const token = getTokenByAddress(donation.tokenAddress);
+          donation.amount = Number(donation.amount) / 10 ** 18;
+          donation.token = token.symbol;
+
           // donations to communities may have both delegateId and ownerId but we should consider delegateId for them
           donation.projectId = donation.delegateId || donation.ownerId;
           delete donation.delegateId;
           delete donation.ownerId;
-          donation.amount = Number(donation.amount) / 10 ** 18;
         });
       });
       return {
