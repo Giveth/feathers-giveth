@@ -101,6 +101,11 @@ const listOfDonorsToVerifiedProjects = async (app, { verifiedProjectIds, from, t
       },
     },
     {
+      $sort: {
+        createdAt: -1,
+      },
+    },
+    {
       $project: {
         giverAddress: 1,
         usdValue: 1,
