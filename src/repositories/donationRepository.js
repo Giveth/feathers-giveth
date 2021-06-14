@@ -69,7 +69,7 @@ const isAllDonationsPaidOut = async (app, { txHash, traceId }) => {
   }]
   >}
  */
-const listOfUserDonorsOnVerifiedProjects = async (app, { verifiedProjectIds, from, to }) => {
+const listOfDonorsToVerifiedProjects = async (app, { verifiedProjectIds, from, to }) => {
   const donationModel = app.service('donations').Model;
   return donationModel.aggregate([
     {
@@ -145,5 +145,5 @@ module.exports = {
   updateBridgePaymentExecutedTxHash,
   updateBridgePaymentAuthorizedTxHash,
   isAllDonationsPaidOut,
-  listOfUserDonorsOnVerifiedProjects,
+  listOfDonorsToVerifiedProjects,
 };
