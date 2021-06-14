@@ -1,6 +1,6 @@
 const moment = require('moment');
 const errors = require('@feathersjs/errors');
-const { listOfUserDonorsOnVerifiedProjects } = require('../../repositories/donationRepository');
+const { listOfDonorsToVerifiedProjects } = require('../../repositories/donationRepository');
 const { findVerifiedCommunities } = require('../../repositories/communityRepository');
 const { findVerifiedCampaigns } = require('../../repositories/campaignRepository');
 const { findVerifiedTraces } = require('../../repositories/traceRepository');
@@ -23,15 +23,16 @@ module.exports = function aggregateDonations() {
         findVerifiedCampaigns(app),
         findVerifiedCommunities(app),
       ]);
-      const verifiedProjectIds = traces
-        .map(trace => trace.projectId)
-        .concat(campaigns.map(campaign => campaign.projectId))
-        .concat(communities.map(community => community.delegateId));
+      const verifiedProjectIds = [
+        ...traces.map(trace => trace.projectId),
+        ...campaigns.map(campaign => campaign.projectId),
+        ...communities.map(community => community.delegateId),
+      ];
 
       const from = moment(fromDate, 'YYYY/MM/DD-hh:mm:ss').toDate();
       const to = moment(toDate, 'YYYY/MM/DD-hh:mm:ss').toDate();
 
-      const result = await listOfUserDonorsOnVerifiedProjects(app, {
+      const result = await listOfDonorsToVerifiedProjects(app, {
         verifiedProjectIds,
         from,
         to,
