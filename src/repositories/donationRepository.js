@@ -61,9 +61,11 @@ const isAllDonationsPaidOut = async (app, { txHash, traceId }) => {
         "usdValue": number,
         "amount": number,
         "homeTxHash": string,
+        "giverAddress": string,
         "createdAt": string // sample: "2019-04-22T22:14:23.046Z",
         "token": string //sample : "ETH",
-        "projectId": number
+        "delegateId": number
+        "ownerId": number
       }
     ]
   }]
@@ -98,37 +100,28 @@ const listOfUserDonorsOnVerifiedProjects = async (app, { verifiedProjectIds, fro
         isReturn: false,
       },
     },
-
+    {
+      $project: {
+        giverAddress: 1,
+        usdValue: 1,
+        amount: 1,
+        homeTxHash: 1,
+        ownerId: 1,
+        delegateId: 1,
+        tokenAddress: 1,
+        createdAt: 1,
+        _id: 0,
+      },
+    },
     {
       $group: {
         _id: '$giverAddress',
         totalAmount: { $sum: '$usdValue' },
-        donationIds: { $push: '$_id' },
+        donations: { $push: '$$ROOT' },
       },
     },
     {
-      $lookup: {
-        from: 'donations',
-        let: { donationIds: '$donationIds' },
-        pipeline: [
-          {
-            $match: { $expr: { $in: ['$_id', '$$donationIds'] } },
-          },
-          {
-            $project: {
-              _id: 0,
-              createdAt: 1,
-              tokenAddress: 1,
-              usdValue: 1,
-              amount: 1,
-              homeTxHash: 1,
-              delegateId: 1,
-              ownerId: 1,
-            },
-          },
-        ],
-        as: 'donations',
-      },
+      $sort: { totalAmount: -1 },
     },
     {
       $project: {
