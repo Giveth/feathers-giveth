@@ -138,6 +138,17 @@ function patchUserTestCases() {
     assert.isTrue(response.body.isProjectOwner);
     assert.isTrue(response.body.isDelegator);
   });
+
+  it('Bulk edit should be disabled', async () => {
+    const response = await request(baseUrl)
+      .patch(`${relativeUrl}`)
+      .send({
+        isReviewer: true,
+      })
+      .set({ Authorization: getJwt(SAMPLE_DATA.ADMIN_USER_ADDRESS) });
+    assert.equal(response.statusCode, 400);
+    assert.equal(response.body.message, 'Bulk edit for users entity is disabled');
+  });
 }
 
 function deleteUserTestCases() {

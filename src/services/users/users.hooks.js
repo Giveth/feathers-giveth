@@ -16,6 +16,12 @@ const normalizeId = () => context => {
   }
   return context;
 };
+const disableBulkEdit = () => context => {
+  if (!context.id) {
+    throw new errors.BadRequest('Bulk edit for users entity is disabled');
+  }
+  return context;
+};
 const roleAccessKeys = ['isReviewer', 'isProjectOwner', 'isDelegator'];
 
 const restrictUserdataAndAccess = () => async context => {
@@ -50,7 +56,7 @@ const restrictUserdataAndAccess = () => async context => {
   throw new errors.Forbidden();
 };
 
-const restrict = [normalizeId(), restrictUserdataAndAccess()];
+const restrict = [normalizeId(), disableBulkEdit(), restrictUserdataAndAccess()];
 
 const address = [
   setAddress('address'),
