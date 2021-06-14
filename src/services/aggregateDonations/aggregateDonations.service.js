@@ -58,7 +58,7 @@ module.exports = function aggregateDonations() {
             paginate: false,
             query: {
               _id: { $in: item.donations },
-              $sort: { createAt: -1 },
+              $sort: { createdAt: -1 },
             },
           }),
           usersService.find({
