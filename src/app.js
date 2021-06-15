@@ -23,6 +23,16 @@ const channels = require('./channels');
 
 const app = express(feathers());
 
+const addLogerToServices = () => {
+  const traces = app.service('traces');
+
+  // Listen to a normal service event
+  traces.on('patched', trace => console.log('trace patched', trace));
+
+  // Only listen to an event once
+  traces.on('created', trace => console.log('trace has been created', trace));
+};
+
 function initFeatherApp() {
   // Load app configuration
   app.configure(configuration());
@@ -83,8 +93,10 @@ function initFeatherApp() {
   );
 
   app.hooks(appHooks);
+  addLogerToServices(app);
   return app;
 }
+
 
 function getFeatherAppInstance() {
   return app;
