@@ -8,7 +8,7 @@ const { findVerifiedTraces } = require('../../repositories/traceRepository');
 const { getTokenByAddress } = require('../../utils/tokenHelper');
 const { getTraceUrl, getCampaignUrl, getCommunityUrl } = require('../../utils/urlUtils');
 
-const fillProjectInfo = donation => {
+const extractProjectInfo = donation => {
   const { campaign, trace, community } = donation;
   if (campaign.length === 1) {
     return {
@@ -82,7 +82,7 @@ module.exports = function aggregateDonations() {
           // donations to communities may have both delegateId and ownerId but we should consider delegateId for them
           donation.projectId = donation.delegateId || donation.ownerId;
 
-          donation.projectInfo = fillProjectInfo(donation);
+          donation.projectInfo = extractProjectInfo(donation);
           delete donation.delegateId;
           delete donation.ownerId;
           delete donation.campaign;
