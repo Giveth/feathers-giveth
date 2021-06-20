@@ -83,7 +83,10 @@ The configuration param `blockchain.nodeUrl` is used to establish a connection. 
    ```
    ipfs daemon
    ```
-    
+5. Run db migration files
+   ```
+    ./node_modules/.bin/migrate-mongo up
+   ```
 5. Start your app
 
     ```
