@@ -64,6 +64,11 @@ function createModel(app) {
     coownerAddress: 1,
   });
   campaign.index({ slug: 1 }, { unique: true });
+  // User active campaigns
+  campaign.index(
+    { ownerAddress: 1, createdAt: 1 },
+    { partialFilterExpression: { status: CampaignStatus.ACTIVE } },
+  );
   return mongooseClient.model('campaign', campaign);
 }
 

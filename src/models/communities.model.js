@@ -55,6 +55,11 @@ function createModel(app) {
   community.index({ createdAt: 1 });
   community.index({ status: 1, createdAt: 1 });
   community.index({ ownerAddress: 1, createdAt: 1 });
+  // User active communities
+  community.index(
+    { ownerAddress: 1, createdAt: 1 },
+    { partialFilterExpression: { status: CommunityStatus.ACTIVE } },
+  );
   community.index({ delegateId: 1, ownerAddress: 1 });
   community.index({ slug: 1 }, { unique: true });
   return mongooseClient.model('community', community);

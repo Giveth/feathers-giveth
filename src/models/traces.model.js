@@ -112,6 +112,7 @@ function Milestone(app) {
   trace.index({ createdAt: 1, campaignId: 1 });
   trace.index({ projectId: 1, campaignId: 1 });
   trace.index({ slug: 1 }, { unique: true });
+  trace.index({ status: 1, ownerAddress: 1, reviewerAddress: 1, recipientAddress: 1 }); // User traces query
 
   return mongooseClient.model('trace', trace);
 }
