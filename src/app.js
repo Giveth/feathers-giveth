@@ -1,5 +1,6 @@
 const logger = require('winston');
 const path = require('path');
+const config = require('config');
 const favicon = require('serve-favicon');
 const compress = require('compression');
 const cors = require('cors');
@@ -18,7 +19,7 @@ const blockchain = require('./blockchain');
 const mongoose = require('./mongoose');
 const ipfsFetcher = require('./utils/ipfsFetcher');
 const ipfsPinner = require('./utils/ipfsPinner');
-
+const { configureAuditLog } = require('./auditLog/feathersElasticSearch');
 const channels = require('./channels');
 
 const app = express(feathers());
@@ -83,6 +84,9 @@ function initFeatherApp() {
   );
 
   app.hooks(appHooks);
+  if (config.enableAuditLog) {
+    configureAuditLog(app);
+  }
   return app;
 }
 
