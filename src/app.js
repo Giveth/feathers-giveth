@@ -84,7 +84,7 @@ function initFeatherApp() {
   );
 
   app.hooks(appHooks);
-  if(config.enableAuditLog){
+  if (config.enableAuditLog) {
     configureAuditLog(app);
   }
   return app;
