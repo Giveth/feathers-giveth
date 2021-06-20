@@ -203,6 +203,17 @@ module.exports = {
     yarn start:rsk
     ```
 
+## Audit Log
+The Audit log system logs every Create, Update, Patch and 
+Remove on **Campaigns**, **Traces**, **Events**, **Users**,
+**PledgeAdmins**, **Communities**, **Donations**
+For enabling audit log locally you should change `enableAuditLog`
+in config to `true`, then 
+* cd elk
+* docker-compose up
+
+And then after logging in `localhost:5601` with user:`elastic`, password: `changeme`
+you can see the logs
 
 ## Help
 

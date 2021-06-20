@@ -1,5 +1,6 @@
 const logger = require('winston');
 const path = require('path');
+const config = require('config');
 const favicon = require('serve-favicon');
 const compress = require('compression');
 const cors = require('cors');
@@ -18,20 +19,10 @@ const blockchain = require('./blockchain');
 const mongoose = require('./mongoose');
 const ipfsFetcher = require('./utils/ipfsFetcher');
 const ipfsPinner = require('./utils/ipfsPinner');
-
+const { configureAuditLog } = require('./auditLog/feathersElasticSearch');
 const channels = require('./channels');
 
 const app = express(feathers());
-
-const addLogerToServices = () => {
-  const traces = app.service('traces');
-
-  // Listen to a normal service event
-  traces.on('patched', trace => console.log('trace patched', trace));
-
-  // Only listen to an event once
-  traces.on('created', trace => console.log('trace has been created', trace));
-};
 
 function initFeatherApp() {
   // Load app configuration
@@ -93,10 +84,11 @@ function initFeatherApp() {
   );
 
   app.hooks(appHooks);
-  addLogerToServices(app);
+  if(config.enableAuditLog){
+    configureAuditLog(app);
+  }
   return app;
 }
-
 
 function getFeatherAppInstance() {
   return app;
