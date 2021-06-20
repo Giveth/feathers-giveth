@@ -32,7 +32,8 @@ const extractProjectInfo = donation => {
     };
   }
   logger.error('donation should have trace, campaign or community', donation);
-  throw new Error('donation should have trace, campaign or community');
+  // If we throw exception we get error in UAT env, but in beta all donations have community, campaign or trace
+  return {};
 };
 
 const getAllVerfiedProjectdIds = async app => {
