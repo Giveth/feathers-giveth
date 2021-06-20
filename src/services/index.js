@@ -18,6 +18,7 @@ const whitelist = require('./whitelist/whitelist.service.js');
 const gasprice = require('./gasprice/gasprice.service.js');
 const conversionRates = require('./conversionRates/conversionRates.service.js');
 const conversations = require('./conversations/conversations.service.js');
+const givbackReportDonations = require('./verifiedProjectsGiversReport/verifiedPerojectsGiversReport.service');
 
 module.exports = function configure() {
   const app = this;
@@ -40,4 +41,5 @@ module.exports = function configure() {
   app.configure(subscription);
   app.configure(conversations);
   app.configure(campaigncsv);
+  app.configure(givbackReportDonations);
 };
