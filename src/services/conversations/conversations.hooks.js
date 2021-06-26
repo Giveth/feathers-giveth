@@ -55,7 +55,7 @@ const restrictAndSetOwner = () => context => {
           context.data.performedByRole = 'Campaign Co-Manager';
           break;
         case trace.ownerAddress:
-          context.data.performedByRole = 'Milestone Owner';
+          context.data.performedByRole = 'Trace Owner';
           break;
         case trace.recipientAddress:
           context.data.performedByRole = 'Recipient';
