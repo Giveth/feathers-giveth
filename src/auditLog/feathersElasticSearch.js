@@ -2,7 +2,7 @@ const { sendEventToElasticSearch } = require('./elatikSearchUtils');
 
 const unifyData = ({ item, context, serviceName }) => {
   return {
-    entity: JSON.stringify(item),
+    entity: JSON.stringify(item, null, 4),
     entityType: serviceName,
     provider: (context && context.params && context.params.provider) || 'internal',
     user: context && context.params && context.params.user && context.params.user.address,
