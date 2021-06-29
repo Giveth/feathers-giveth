@@ -76,6 +76,10 @@ const checkConversionRates = () => context => {
         .service('conversionRates')
         .find({ query: { date: new Date(item.date).valueOf(), symbol: fromSymbol } })
         .then(conversionRate => {
+          if (data.token && conversionRate && conversionRate.rates) {
+            // for having the stable coin in the rate response beside the USD
+            conversionRate.rates[data.token.symbol] = 1;
+          }
           calculateCorrectEther(conversionRate, item.fiatAmount, item.wei, item.selectedFiatType);
         }),
     );
@@ -87,6 +91,10 @@ const checkConversionRates = () => context => {
     .service('conversionRates')
     .find({ query: { date: new Date(data.date).valueOf(), symbol: fromSymbol } })
     .then(conversionRate => {
+      if (data.token && conversionRate && conversionRate.rates) {
+        // for having the stable coin in the rate response beside the USD
+        conversionRate.rates[data.token.symbol] = 1;
+      }
       calculateCorrectEther(conversionRate, data.fiatAmount, data.maxAmount, selectedFiatSymbol);
       return context;
     });
