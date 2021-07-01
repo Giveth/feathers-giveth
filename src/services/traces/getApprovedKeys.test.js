@@ -1,6 +1,6 @@
 const { assert, expect } = require('chai');
 const getApprovedKeys = require('./getApprovedKeys');
-const { SAMPLE_DATA } = require('../../../test/testUtility');
+const { SAMPLE_DATA, generateRandomEtheriumAddress } = require('../../../test/testUtility');
 
 function getApprovedKeysTestCases() {
   const trace = {
@@ -300,6 +300,58 @@ function getApprovedKeysTestCases() {
       assert.equal(approvedKeys.length, 0);
     }
   });
+
+  it('should not throw exception when campaign coowner trying to edit inProgress trace', () => {
+    const campaignCoownerAddress = generateRandomEtheriumAddress();
+
+    const goodFunc = () => {
+      getApprovedKeys(
+        {
+          ...trace,
+          status: SAMPLE_DATA.TRACE_STATUSES.IN_PROGRESS,
+          campaign: {
+            coownerAddress: campaignCoownerAddress,
+          },
+        },
+        {
+          status: SAMPLE_DATA.TRACE_STATUSES.IN_PROGRESS,
+          mined: false,
+        },
+        {
+          address: campaignCoownerAddress,
+        },
+      );
+    };
+    assert.doesNotThrow(goodFunc);
+  });
+
+  it(
+    'should  throw exception when someone except campaign coowner,' +
+      ' campaignOwner and traceOwner trying to edit trace',
+    () => {
+      const campaignCoownerAddress = generateRandomEtheriumAddress();
+
+      const badFunc = () => {
+        getApprovedKeys(
+          {
+            ...trace,
+            status: SAMPLE_DATA.TRACE_STATUSES.IN_PROGRESS,
+            campaign: {
+              coownerAddress: campaignCoownerAddress,
+            },
+          },
+          {
+            status: SAMPLE_DATA.TRACE_STATUSES.IN_PROGRESS,
+            mined: false,
+          },
+          {
+            address: generateRandomEtheriumAddress(),
+          },
+        );
+      };
+      assert.throw(badFunc, 'Only the Trace and Campaign Manager can edit trace');
+    },
+  );
 
   it('should throw exception, Only the Trace or Campaign Reviewer can approve trace has been completed', () => {
     const badFunc = () => {
