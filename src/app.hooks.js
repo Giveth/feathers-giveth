@@ -1,7 +1,23 @@
 // Application hooks that run for every service
 const auth = require('@feathersjs/authentication');
 const { discard } = require('feathers-hooks-common');
-const logger = require('./hooks/logger');
+const Sentry = require('@sentry/node');
+const logger = require('winston');
+const loggerHook = require('./hooks/logger');
+
+const errorHandlerHook = () => context => {
+  const e = context.error;
+  Sentry.captureException(e);
+  delete e.context;
+
+  if (context.path === 'authentication') {
+    logger.debug(e);
+  } else if (context.error.name === 'NotFound') {
+    logger.info(`${context.path} - ${context.error.message}`);
+  } else {
+    logger.error('Hook error:', e);
+  }
+};
 
 const authenticate = () => context => {
   // socket connection is already authenticated
@@ -22,7 +38,7 @@ module.exports = {
   },
 
   after: {
-    all: [logger(), discard('__v')],
+    all: [loggerHook(), discard('__v')],
     find: [],
     get: [],
     create: [],
@@ -32,7 +48,7 @@ module.exports = {
   },
 
   error: {
-    all: [logger()],
+    all: [errorHandlerHook()],
     find: [],
     get: [],
     create: [],

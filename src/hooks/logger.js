@@ -22,18 +22,5 @@ module.exports = function loggerFactory() {
     if (hook.result) {
       logger.debug('hook.result', hook.result);
     }
-
-    if (hook.error) {
-      const e = hook.error;
-      delete e.hook;
-
-      if (hook.path === 'authentication') {
-        logger.debug(e);
-      } else if (hook.error.name === 'NotFound') {
-        logger.info(`${hook.path} - ${hook.error.message}`);
-      } else {
-        logger.error('Hook error:', e);
-      }
-    }
   };
 };

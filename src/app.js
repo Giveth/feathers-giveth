@@ -8,6 +8,7 @@ const helmet = require('helmet');
 const feathers = require('@feathersjs/feathers');
 const express = require('@feathersjs/express');
 const configuration = require('@feathersjs/configuration');
+const Sentry = require('@sentry/node');
 const socketsConfig = require('./socketsConfig');
 const configureLogger = require('./utils/configureLogger');
 
@@ -23,6 +24,14 @@ const { configureAuditLog } = require('./auditLog/feathersElasticSearch');
 const channels = require('./channels');
 
 const app = express(feathers());
+
+Sentry.init({
+  dsn: config.sentryDsn,
+  // Set tracesSampleRate to 1.0 to capture 100%
+  // of transactions for performance monitoring.
+  // We recommend adjusting this value in production
+  tracesSampleRate: 1.0,
+});
 
 function initFeatherApp() {
   // Load app configuration

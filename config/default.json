@@ -175,5 +175,6 @@
   "elasticSearchUrl": "http://localhost:9200/entities/_doc",
   "elasticSearchUsername": "elastic",
   "elasticSearchPassword": "changeme",
-  "enableAuditLog": false
+  "enableAuditLog": false,
+  "sentryDsn": ""
 }

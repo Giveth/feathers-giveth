@@ -56,6 +56,8 @@
     "@feathersjs/express": "^4.5.11",
     "@feathersjs/feathers": "^4.5.11",
     "@feathersjs/socketio": "^4.5.11",
+    "@sentry/node": "^6.8.0",
+    "@sentry/tracing": "^6.8.0",
     "async": "^3.2.0",
     "axios": "^0.21.1",
     "bignumber.js": "^8.1.1",
