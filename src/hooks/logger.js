@@ -27,7 +27,7 @@ module.exports = function responseLoggerHook() {
     if (hook.error) {
       const e = hook.error;
       // for making sure the feathers errors like unAuthorized wouldn't capture as exceptions
-      if (e.type !== 'FeathersError'){
+      if (e.type !== 'FeathersError') {
         Sentry.captureException(e);
       }
       delete e.hook;
