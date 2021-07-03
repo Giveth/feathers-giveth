@@ -27,10 +27,15 @@ const app = express(feathers());
 
 Sentry.init({
   dsn: config.sentryDsn,
-  // Set tracesSampleRate to 1.0 to capture 100%
-  // of transactions for performance monitoring.
-  // We recommend adjusting this value in production
-  tracesSampleRate: 1.0,
+  // we want to capture 100% of errors
+  sampleRate: 1,
+
+  /**
+   * @see{@link   https://docs.sentry.io/platforms/node/configuration/sampling/#setting-a-uniform-sample-rate}
+   */
+  // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
+  // But we recommend adjusting this value in production
+  tracesSampleRate: 0.1,
 });
 
 function initFeatherApp() {
