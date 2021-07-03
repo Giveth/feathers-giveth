@@ -1,7 +1,8 @@
 // A hook that logs service method before, after and error
 const logger = require('winston');
+const Sentry = require('@sentry/node');
 
-module.exports = function loggerFactory() {
+module.exports = function responseLoggerHook() {
   return function log(hook) {
     let message = `${hook.type}: ${hook.path} - Method: ${hook.method}`;
 
@@ -21,6 +22,20 @@ module.exports = function loggerFactory() {
 
     if (hook.result) {
       logger.debug('hook.result', hook.result);
+    }
+
+    if (hook.error) {
+      const e = hook.error;
+      Sentry.captureException(e);
+      delete e.hook;
+
+      if (hook.path === 'authentication') {
+        logger.debug(e);
+      } else if (hook.error.name === 'NotFound') {
+        logger.info(`${hook.path} - ${hook.error.message}`);
+      } else {
+        logger.error('Hook error:', e);
+      }
     }
   };
 };
