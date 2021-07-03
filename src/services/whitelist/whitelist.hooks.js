@@ -3,7 +3,6 @@ const { getTokenBySymbol } = require('../../utils/tokenHelper');
 const getWhitelist = () => context => {
   const { app } = context;
 
-  x=y;
   // fetch whitelisted addresses from default.json
   const reviewerWhitelistEnabled = !!app.get('useReviewerWhitelist');
   const delegateWhitelistEnabled = !!app.get('useDelegateWhitelist');

@@ -56,7 +56,10 @@ const responseLoggerHook = () => {
     // I think when hook.params._populate is equal to 'skip` it means we have internal calls
     // that use an extenral call context
     if (sentryTransaction && !hook.params._populate) {
-      sentryTransaction.setHttpStatus(hook.statusCode);
+      // Maybe statusCode is not 200 and be 201 but in this state AFAIK we dont have access to statusCode here
+      // So I set the 200 for success request
+      const statusCode = hook.error ? hook.error.code : 200;
+      sentryTransaction.setHttpStatus(statusCode);
       sentryTransaction.finish();
     }
 
