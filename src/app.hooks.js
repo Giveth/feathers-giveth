@@ -9,10 +9,21 @@ const authenticate = () => context => {
   return auth.hooks.authenticate('jwt')(context);
 };
 
+const convertVerfiedToBoolean = () => context => {
+  // verified field is boolean in Trace, Campaign and Community so for getting this filter
+  // in query string we should cast it to boolean here
+  if (context.params.query && context.params.query.verified === 'true') {
+    context.params.query.verified = true;
+  } else if (context.params.query && context.params.query.verified === 'false') {
+    context.params.query.verified = false;
+  }
+  return context;
+};
+
 module.exports = {
   before: {
     all: [startMonitoring()],
-    find: [],
+    find: [convertVerfiedToBoolean()],
     get: [],
     create: [authenticate()],
     update: [authenticate()],
