@@ -11,7 +11,7 @@ const startMonitoring = () => context => {
    */
   // Add monitoring for external requests
   if (
-    !config.enableMonitoring ||
+    !config.enableSentryMonitoring ||
     isRequestInternal(context) ||
     // internal calls that use the external context doesnt have headers
     !context.params.headers
