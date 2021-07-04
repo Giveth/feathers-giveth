@@ -6,7 +6,7 @@ const { isRequestInternal } = require('../utils/feathersUtils');
 
 const startMonitoring = () => context => {
   /**
-   * inpired by official sentry middleware for express
+   * inspired by official sentry middleware for express
    * @see{@link https://github.com/getsentry/sentry-javascript/blob/ab0bc9313a798403dbaeae1e3d867cdf7841d6e4/packages/node/src/handlers.ts#L62-L93}
    */
   // Add monitoring for external requests
