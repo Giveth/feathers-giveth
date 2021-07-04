@@ -113,7 +113,7 @@ function postMilestoneTestCases() {
     createMileStoneData.status = SAMPLE_DATA.TRACE_STATUSES.PROPOSED;
     createMileStoneData.ownerAddress = generateRandomEtheriumAddress();
     const trace = await createTrace(createMileStoneData);
-    assert.equal(trace.ownerAddress, SAMPLE_DATA.USER_ADDRESS )
+    assert.equal(trace.ownerAddress, SAMPLE_DATA.USER_ADDRESS);
   });
 }
 
