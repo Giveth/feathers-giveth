@@ -1,7 +1,7 @@
 // Application hooks that run for every service
 const auth = require('@feathersjs/authentication');
 const { discard } = require('feathers-hooks-common');
-const logger = require('./hooks/logger');
+const responseLoggerHook = require('./hooks/logger');
 
 const authenticate = () => context => {
   // socket connection is already authenticated
@@ -33,7 +33,7 @@ module.exports = {
   },
 
   after: {
-    all: [logger(), discard('__v')],
+    all: [responseLoggerHook(), discard('__v')],
     find: [],
     get: [],
     create: [],
@@ -43,7 +43,7 @@ module.exports = {
   },
 
   error: {
-    all: [logger()],
+    all: [responseLoggerHook()],
     find: [],
     get: [],
     create: [],

@@ -1,7 +1,8 @@
 // A hook that logs service method before, after and error
 const logger = require('winston');
+const Sentry = require('@sentry/node');
 
-module.exports = function loggerFactory() {
+module.exports = function responseLoggerHook() {
   return function log(hook) {
     let message = `${hook.type}: ${hook.path} - Method: ${hook.method}`;
 
@@ -25,6 +26,10 @@ module.exports = function loggerFactory() {
 
     if (hook.error) {
       const e = hook.error;
+      // for making sure the feathers errors like unAuthorized wouldn't capture as exceptions
+      if (e.type !== 'FeathersError') {
+        Sentry.captureException(e);
+      }
       delete e.hook;
 
       if (hook.path === 'authentication') {
