@@ -177,5 +177,5 @@
   "elasticSearchPassword": "changeme",
   "enableAuditLog": false,
   "enableMonitoring": true,
-  "sentryDsn": "https://17220e8c93224bc288f600551f416015@o218966.ingest.sentry.io/5840267"
+  "sentryDsn": ""
 }
