@@ -54,6 +54,17 @@ module.exports = function csv() {
     },
   };
 
+  getCampaignInfo.docs = {
+    operations: {
+      find: false,
+      update: false,
+      patch: false,
+      remove: false,
+      create: false,
+    },
+    definition: {},
+  };
+
   const csvService = async (req, res, next) => {
     const { campaign } = req;
     const id = campaign._id.toString();

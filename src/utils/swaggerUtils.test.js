@@ -18,7 +18,6 @@ const generateSwaggerDocForCRUDServiceTestCases = () => {
     assert.exists(generatedSchema.definition.properties.lastName);
     assert.equal(generatedSchema.operations.find['parameters[0]'].name, '$limit');
     assert.equal(generatedSchema.operations.find['parameters[1]'].name, '$skip');
-
   });
   it('should disabledMethods set method false', () => {
     const testModel = mongoose.model(`test-${generateRandomNumber(1, 10000)}`, {

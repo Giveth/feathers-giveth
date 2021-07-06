@@ -27,6 +27,16 @@ module.exports = function uploadService() {
 
   // Get our initialized service so that we can register hooks and filters
   const service = app.service('uploads');
+  service.docs = {
+    operations: {
+      update: false,
+      patch: false,
+      remove: false,
+      get: false,
+      create: false,
+    },
+    definition: {},
+  };
 
   service.hooks(hooks);
 };

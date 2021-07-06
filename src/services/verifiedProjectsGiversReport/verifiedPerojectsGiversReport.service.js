@@ -100,5 +100,38 @@ module.exports = function aggregateDonations() {
       };
     },
   };
+  givbackReportDonations.docs = {
+    operations: {
+      find: {
+        'parameters[3]': undefined,
+        'parameters[0]': {
+          description: 'YYYY/MM/DD-hh:mm:ss',
+          default: '2021/07/01-00:00:00',
+          name: 'fromDate',
+          in: 'query',
+        },
+        'parameters[1]': {
+          description: 'YYYY/MM/DD-hh:mm:ss',
+          default: '2021/07/12-00:00:00',
+          name: 'toDate',
+          in: 'query',
+        },
+        'parameters[2]': {
+          name: 'allProjects',
+          in: 'query',
+          schema: {
+            type: 'string',
+            enum: ['true', 'false'],
+          },
+        },
+      },
+      update: false,
+      patch: false,
+      remove: false,
+      get: false,
+      create: false,
+    },
+    definition: {},
+  };
   app.use('/verifiedProjectsGiversReport', givbackReportDonations);
 };
