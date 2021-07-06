@@ -176,5 +176,6 @@
   "elasticSearchUsername": "elastic",
   "elasticSearchPassword": "changeme",
   "enableAuditLog": false,
+  "enableSentryMonitoring": false,
   "sentryDsn": ""
 }

@@ -1,12 +1,11 @@
 // Application hooks that run for every service
 const auth = require('@feathersjs/authentication');
 const { discard } = require('feathers-hooks-common');
-const responseLoggerHook = require('./hooks/logger');
+const { responseLoggerHook, startMonitoring } = require('./hooks/logger');
 
 const authenticate = () => context => {
   // socket connection is already authenticated
   if (context.params.provider !== 'rest') return context;
-
   return auth.hooks.authenticate('jwt')(context);
 };
 
@@ -23,7 +22,7 @@ const convertVerfiedToBoolean = () => context => {
 
 module.exports = {
   before: {
-    all: [],
+    all: [startMonitoring()],
     find: [convertVerfiedToBoolean()],
     get: [],
     create: [authenticate()],
