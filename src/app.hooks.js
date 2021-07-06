@@ -2,8 +2,8 @@
 const auth = require('@feathersjs/authentication');
 const { discard } = require('feathers-hooks-common');
 const { NotAuthenticated } = require('@feathersjs/errors');
-const logger = require('./hooks/logger');
 const { isRequestInternal } = require('./utils/feathersUtils');
+const { responseLoggerHook, startMonitoring } = require('./hooks/logger');
 
 const authenticate = () => context => {
   // No need to authenticate internal calls
@@ -36,7 +36,7 @@ const convertVerifiedToBoolean = () => context => {
 
 module.exports = {
   before: {
-    all: [],
+    all: [startMonitoring()],
     find: [convertVerifiedToBoolean()],
     get: [],
     create: [authenticate()],
@@ -46,7 +46,7 @@ module.exports = {
   },
 
   after: {
-    all: [logger(), discard('__v')],
+    all: [responseLoggerHook(), discard('__v')],
     find: [],
     get: [],
     create: [],
@@ -56,7 +56,7 @@ module.exports = {
   },
 
   error: {
-    all: [logger()],
+    all: [responseLoggerHook()],
     find: [],
     get: [],
     create: [],
