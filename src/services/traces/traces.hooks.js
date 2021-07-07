@@ -24,7 +24,7 @@ const { getBlockTimestamp, ZERO_ADDRESS } = require('../../blockchain/lib/web3He
 const { getTokenByAddress } = require('../../utils/tokenHelper');
 const createModelSlug = require('../createModelSlug');
 const { isRequestInternal } = require('../../utils/feathersUtils');
-const { sendProposedTraceRejectedEvent } = require('../../utils/analyticsUtils');
+const { sendProposedTraceRejectedEvent, viewEntityDetailPage, viewEntitiesPage } = require('../../utils/analyticsUtils');
 
 const removeProtectedFields = () => context => {
   if (context && context.data && !isRequestInternal(context)) {
@@ -42,6 +42,36 @@ const sendAnalyticsData = () => context => {
   }
   return context;
 };
+
+const sendPageViewAnalytics = () => context => {
+  if (
+    !isRequestInternal(context) &&
+    context.params.query &&
+    context.params.query.status === TraceStatus.IN_PROGRESS &&
+    context.params.query.$limit === 20
+  ) {
+    viewEntitiesPage({
+      context,
+      query: context.params.query,
+      entity: 'trace',
+    });
+  } else if (
+    !isRequestInternal(context) &&
+    context.params.query &&
+    context.params.query.slug &&
+    context.params.query.$limit === undefined
+
+
+  ) {
+    viewEntityDetailPage({
+      context,
+      query: context.params.query,
+      entity: 'trace',
+    });
+  }
+  return context;
+};
+
 const traceResolvers = {
   before: context => {
     context._loaders = {
@@ -335,6 +365,7 @@ module.exports = {
   before: {
     all: [tokenAddressConversion()],
     find: [
+      sendPageViewAnalytics(),
       sanitizeAddress([
         'ownerAddress',
         'pluginAddress',

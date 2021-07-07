@@ -13,6 +13,8 @@ const { isRequestInternal } = require('../../utils/feathersUtils');
 const {
   sendCampaignCancelledEvent,
   sendCampaignCreatedEvent,
+  viewEntitiesPage,
+  viewEntityDetailPage,
 } = require('../../utils/analyticsUtils');
 
 const schema = {
@@ -129,11 +131,37 @@ const sendAnalyticsData = () => context => {
   }
   return context;
 };
+const sendPageViewAnalytics = () => context => {
+  if (
+    !isRequestInternal(context) &&
+    context.params.query &&
+    context.params.query.status === CampaignStatus.ACTIVE &&
+    context.params.query.$limit === 20
+  ) {
+    viewEntitiesPage({
+      context,
+      query: context.params.query,
+      entity: 'campaign',
+    });
+  } else if (
+    !isRequestInternal(context) &&
+    context.params.query &&
+    context.params.query.slug &&
+    context.params.query.$limit === undefined
+  ) {
+    viewEntityDetailPage({
+      context,
+      query: context.params.query,
+      entity: 'campaign',
+    });
+  }
+  return context;
+};
 
 module.exports = {
   before: {
     all: [],
-    find: [sanitizeAddress('ownerAddress')],
+    find: [sendPageViewAnalytics(), sanitizeAddress('ownerAddress')],
     get: [],
     create: [
       removeProtectedFields(),

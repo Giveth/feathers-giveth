@@ -7,9 +7,11 @@ const sanitizeHtml = require('../../hooks/sanitizeHtml');
 const addConfirmations = require('../../hooks/addConfirmations');
 const resolveFiles = require('../../hooks/resolveFiles');
 const createModelSlug = require('../createModelSlug');
+const { CommunityStatus } = require('../../models/communities.model');
+
 const { isUserInDelegateWhiteList } = require('../../utils/roleUtility');
 const { isRequestInternal } = require('../../utils/feathersUtils');
-const { sendCommunityCreatedEvent } = require('../../utils/analyticsUtils');
+const { sendCommunityCreatedEvent, viewEntitiesPage, viewEntityDetailPage } = require('../../utils/analyticsUtils');
 
 const restrict = [
   context => commons.deleteByDot(context.data, 'txHash'),
@@ -100,10 +102,38 @@ const sendAnalyticsData = () => context => {
   return context;
 };
 
+
+const sendPageViewAnalytics = () => context => {
+  if (
+    !isRequestInternal(context) &&
+    context.params.query &&
+    context.params.query.status === CommunityStatus.ACTIVE &&
+    context.params.query.$limit === 20
+  ) {
+    viewEntitiesPage({
+      context,
+      query: context.params.query,
+      entity: 'community',
+    });
+  } else if (
+    !isRequestInternal(context) &&
+    context.params.query &&
+    context.params.query.slug &&
+    context.params.query.$limit === undefined
+  ) {
+    viewEntityDetailPage({
+      context,
+      query: context.params.query,
+      entity: 'community',
+    });
+  }
+  return context;
+};
+
 module.exports = {
   before: {
     all: [],
-    find: [sanitizeAddress('ownerAddress')],
+    find: [sendPageViewAnalytics(), sanitizeAddress('ownerAddress')],
     get: [],
     create: [
       removeProtectedFields(),

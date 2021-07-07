@@ -1,4 +1,5 @@
 const { getTokenBySymbol } = require('../../utils/tokenHelper');
+const { viewHomePage } = require('../../utils/analyticsUtils');
 
 const getWhitelist = () => context => {
   const { app } = context;
@@ -30,6 +31,7 @@ const getWhitelist = () => context => {
     nativeCurrencyWhitelist,
     minimumPayoutUsdValue,
   };
+  viewHomePage({ context });
   return context;
 };
 

@@ -68,13 +68,17 @@ if (config.segmentApiKey) {
 const getAnalitycsDataFromContext = context => {
   const data = {
     origin: context.params.headers.origin,
+    referrer: context.params.headers.referrer,
     host: context.params.headers.host,
     userAgent: context.params.headers['user-agent'],
     /**
      * @see{@link https://atlassc.net/2020/02/25/feathersjs-client-real-ip}
      */
     ip: context.params.headers['x-real-ip'],
-    userAddress: context.params.user.address,
+    userAddress: context.params.user && context.params.user.address,
+
+    // If this not good to send it to Segment we should think with another thing for sending as anonymousId
+    websocketKey: context.params.headers['sec-websocket-key'],
   };
   return data;
 };
@@ -94,6 +98,12 @@ const track = data => {
     return;
   }
   analytics.track(data);
+};
+const page = data => {
+  if (!analytics) {
+    return;
+  }
+  analytics.page(data);
 };
 
 const sendProposedTraceAcceptedEvent = ({ trace, userAddress }) => {
@@ -224,13 +234,13 @@ const sendRequestTraceMarkCompletedEvent = ({ trace, userAddress }) => {
   track({
     userId: userAddress,
     event: AnalyticsEvents.TraceMarkCompleted,
-    properties:{
+    properties: {
       category: AnalyticsCategories.Trace,
       action: AnalyticsActions.TraceMarkCompleted,
       label: trace._id,
       id: trace._id,
       title: trace.title,
-    }
+    },
   });
 };
 const sendTraceWithdrawEvent = ({ trace }) => {
@@ -393,6 +403,58 @@ const sendDonationDonatedEvent = ({ donation, context }) => {
     },
   });
 };
+
+const viewHomePage = ({ context }) => {
+  const contextData = getAnalitycsDataFromContext(context);
+  const viewPageData = {
+    name: 'Home page or Reload',
+    userId: contextData.userAddress,
+    properties: {
+      ...contextData,
+      url: '/',
+    },
+  };
+  if (!viewPageData.userId) {
+    viewPageData.anonymousId = contextData.websocketKey;
+  }
+  page(viewPageData);
+};
+
+const viewEntitiesPage = ({ context, query, entity }) => {
+  const contextData = getAnalitycsDataFromContext(context);
+  const entities = entity === 'community' ? 'communities' : `${entity}s`;
+
+  const viewPageData = {
+    name: `${entities} Page`,
+    userId: contextData.userAddress,
+    properties: {
+      ...contextData,
+      query,
+      url: `/${entities}`,
+    },
+  };
+  if (!viewPageData.userId) {
+    viewPageData.anonymousId = contextData.websocketKey;
+  }
+  page(viewPageData);
+};
+
+const viewEntityDetailPage = ({ context, query, entity }) => {
+  const contextData = getAnalitycsDataFromContext(context);
+  const viewPageData = {
+    name: `${entity} Detail`,
+    userId: contextData.userAddress,
+    properties: {
+      ...contextData,
+      query,
+      url: `/${entity}/${query.slug}`,
+    },
+  };
+  if (!viewPageData.userId) {
+    viewPageData.anonymousId = contextData.websocketKey;
+  }
+  page(viewPageData);
+};
 module.exports = {
   identifyUser,
   sendProposedTraceAcceptedEvent,
@@ -414,4 +476,8 @@ module.exports = {
   sendTraceArchivedEvent,
   sendDonationDonatedEvent,
   sendDonationDelegatedEvent,
+
+  viewHomePage,
+  viewEntitiesPage,
+  viewEntityDetailPage,
 };

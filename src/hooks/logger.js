@@ -22,12 +22,6 @@ const startMonitoring = () => context => {
     method: context.method,
     op: context.params.provider,
   });
-  // const span = transaction.startChild({
-  //   data: {
-  //   },
-  //   op: 'task',
-  //   description: `processing shopping cart result`,
-  // });
   context.__sentry_transaction = transaction;
   return context;
 };
