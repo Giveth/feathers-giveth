@@ -24,7 +24,11 @@ const { getBlockTimestamp, ZERO_ADDRESS } = require('../../blockchain/lib/web3He
 const { getTokenByAddress } = require('../../utils/tokenHelper');
 const createModelSlug = require('../createModelSlug');
 const { isRequestInternal } = require('../../utils/feathersUtils');
-const { sendProposedTraceRejectedEvent, viewEntityDetailPage, viewEntitiesPage } = require('../../utils/analyticsUtils');
+const {
+  sendProposedTraceRejectedEvent,
+  viewEntityDetailPage,
+  viewEntitiesPage,
+} = require('../../utils/analyticsUtils');
 
 const removeProtectedFields = () => context => {
   if (context && context.data && !isRequestInternal(context)) {
@@ -60,8 +64,6 @@ const sendPageViewAnalytics = () => context => {
     context.params.query &&
     context.params.query.slug &&
     context.params.query.$limit === undefined
-
-
   ) {
     viewEntityDetailPage({
       context,

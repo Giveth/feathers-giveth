@@ -11,7 +11,11 @@ const { CommunityStatus } = require('../../models/communities.model');
 
 const { isUserInDelegateWhiteList } = require('../../utils/roleUtility');
 const { isRequestInternal } = require('../../utils/feathersUtils');
-const { sendCommunityCreatedEvent, viewEntitiesPage, viewEntityDetailPage } = require('../../utils/analyticsUtils');
+const {
+  sendCommunityCreatedEvent,
+  viewEntitiesPage,
+  viewEntityDetailPage,
+} = require('../../utils/analyticsUtils');
 
 const restrict = [
   context => commons.deleteByDot(context.data, 'txHash'),
@@ -101,7 +105,6 @@ const sendAnalyticsData = () => context => {
   }
   return context;
 };
-
 
 const sendPageViewAnalytics = () => context => {
   if (
