@@ -6,6 +6,7 @@ const { CONVERSATION_MESSAGE_CONTEXT } = require('../models/conversations.model'
 const { getTransaction } = require('./lib/web3Helpers');
 const { donationsCollected } = require('../utils/dappMailer');
 const { createRecipientChangedConversation } = require('../utils/conversationCreator');
+const { sendTraceWithdrawEvent } = require('../utils/analyticsUtils');
 
 const getDonationPaymentsByToken = donations => {
   const tokens = {};
@@ -77,6 +78,7 @@ const createPaymentConversationAndSendEmail = async ({ app, trace, txHash }) => 
       trace,
       conversation,
     });
+    sendTraceWithdrawEvent({ trace });
   } catch (e) {
     logger.error('createConversation and send collectedEmail error', e);
   }

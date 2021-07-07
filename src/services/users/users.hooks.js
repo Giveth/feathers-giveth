@@ -9,6 +9,7 @@ const fundWallet = require('../../hooks/fundWallet');
 const resolveFiles = require('../../hooks/resolveFiles');
 const { isUserAdmin } = require('../../utils/roleUtility');
 const { isRequestInternal } = require('../../utils/feathersUtils');
+const { sendUserCreatedEvent, sendUserUpdatedEvent } = require('../../utils/analyticsUtils');
 
 const normalizeId = () => context => {
   if (context.id) {
@@ -22,6 +23,22 @@ const disableBulkEdit = () => context => {
   }
   return context;
 };
+
+const sendAnalyticsData = () => context => {
+  if (!isRequestInternal(context) && (context.method === 'patch' || context.method === 'update')) {
+    sendUserUpdatedEvent({
+      context,
+      user: context.result,
+    });
+  } else if (!isRequestInternal(context) && context.method === 'create') {
+    sendUserCreatedEvent({
+      context,
+      user: context.result,
+    });
+  }
+  return context;
+};
+
 const roleAccessKeys = ['isReviewer', 'isProjectOwner', 'isDelegator'];
 
 const restrictUserdataAndAccess = () => async context => {
@@ -95,9 +112,9 @@ module.exports = {
     all: [commons.discard('_id')],
     find: [resolveFiles('avatar')],
     get: [resolveFiles('avatar')],
-    create: [fundWallet(), resolveFiles('avatar')],
-    update: [resolveFiles('avatar'), notifyOfChange(...notifyParents)],
-    patch: [resolveFiles('avatar'), notifyOfChange(...notifyParents)],
+    create: [fundWallet(), resolveFiles('avatar'), sendAnalyticsData()],
+    update: [resolveFiles('avatar'), notifyOfChange(...notifyParents), sendAnalyticsData()],
+    patch: [resolveFiles('avatar'), notifyOfChange(...notifyParents), sendAnalyticsData()],
     remove: [notifyOfChange(...notifyParents)],
   },
 

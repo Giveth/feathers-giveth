@@ -16,6 +16,10 @@ const { ZERO_ADDRESS, getTransaction } = require('../../blockchain/lib/web3Helpe
 const { getTokenByAddress } = require('../../utils/tokenHelper');
 const { updateDonationEntityCountersHook } = require('./updateEntityCounters');
 const { isRequestInternal } = require('../../utils/feathersUtils');
+const {
+  sendDonationDelegatedEvent,
+  sendDonationDonatedEvent,
+} = require('../../utils/analyticsUtils');
 
 const poSchemas = {
   'po-giver': {
@@ -491,6 +495,33 @@ const populateSchema = () => context => {
   return context;
 };
 
+const sendAnalyticsData = () => context => {
+  if (
+    !isRequestInternal(context) &&
+    context.method === 'create' &&
+    context.data.status === DonationStatus.COMMITTED &&
+    context.data.delegateType &&
+    context.data.intendedProjectType
+  ) {
+    sendDonationDelegatedEvent({
+      context,
+      donation: context.result,
+    });
+  } else if (
+    !isRequestInternal(context) &&
+    context.method === 'create' &&
+    context.data.status === DonationStatus.PENDING &&
+    context.data.homeTxHash &&
+    context.data.txNonce
+  ) {
+    sendDonationDonatedEvent({
+      context,
+      donation: context.result,
+    });
+  }
+  return context;
+};
+
 module.exports = {
   before: {
     all: [tokenAddressConversion(), commons.paramsFromClient('schema')],
@@ -527,6 +558,7 @@ module.exports = {
       setEntityUpdated(),
       setLessThanCutoffHook(),
       addProjectToCommunity(),
+      sendAnalyticsData(),
     ],
     update: [],
     patch: [

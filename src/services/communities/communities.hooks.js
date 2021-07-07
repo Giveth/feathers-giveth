@@ -9,6 +9,7 @@ const resolveFiles = require('../../hooks/resolveFiles');
 const createModelSlug = require('../createModelSlug');
 const { isUserInDelegateWhiteList } = require('../../utils/roleUtility');
 const { isRequestInternal } = require('../../utils/feathersUtils');
+const { sendCommunityCreatedEvent } = require('../../utils/analyticsUtils');
 
 const restrict = [
   context => commons.deleteByDot(context.data, 'txHash'),
@@ -89,6 +90,16 @@ const isDacAllowed = () => context => {
   return context;
 };
 
+const sendAnalyticsData = () => context => {
+  if (!isRequestInternal(context) && context.method === 'create') {
+    sendCommunityCreatedEvent({
+      context,
+      community: context.result,
+    });
+  }
+  return context;
+};
+
 module.exports = {
   before: {
     all: [],
@@ -117,7 +128,7 @@ module.exports = {
     all: [commons.populate({ schema })],
     find: [addCampaignCounts(), addConfirmations(), resolveFiles('image')],
     get: [addCampaignCounts(), addConfirmations(), resolveFiles('image')],
-    create: [resolveFiles('image')],
+    create: [resolveFiles('image'), sendAnalyticsData()],
     update: [resolveFiles('image')],
     patch: [resolveFiles('image')],
     remove: [],

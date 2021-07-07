@@ -24,6 +24,7 @@ const { getBlockTimestamp, ZERO_ADDRESS } = require('../../blockchain/lib/web3He
 const { getTokenByAddress } = require('../../utils/tokenHelper');
 const createModelSlug = require('../createModelSlug');
 const { isRequestInternal } = require('../../utils/feathersUtils');
+const { sendProposedTraceRejectedEvent } = require('../../utils/analyticsUtils');
 
 const removeProtectedFields = () => context => {
   if (context && context.data && !isRequestInternal(context)) {
@@ -32,6 +33,15 @@ const removeProtectedFields = () => context => {
   return context;
 };
 
+const sendAnalyticsData = () => context => {
+  if (!isRequestInternal(context) && context.data.status === TraceStatus.REJECTED) {
+    sendProposedTraceRejectedEvent({
+      context,
+      trace: context.result,
+    });
+  }
+  return context;
+};
 const traceResolvers = {
   before: context => {
     context._loaders = {
@@ -369,6 +379,7 @@ module.exports = {
       convertTokenToTokenAddress(),
       checkTraceName(),
       createModelSlug('traces'),
+      sendAnalyticsData(),
     ],
     remove: [
       restrictToOwner({

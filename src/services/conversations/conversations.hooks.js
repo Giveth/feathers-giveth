@@ -7,6 +7,7 @@ const sanitizeAddress = require('../../hooks/sanitizeAddress');
 const sanitizeHtml = require('../../hooks/sanitizeHtml');
 const resolveFiles = require('../../hooks/resolveFiles');
 const onlyInternal = require('../../hooks/onlyInternal');
+const { sendCommentAddedEvent } = require('../../utils/analyticsUtils');
 const { AdminTypes } = require('../../models/pledgeAdmins.model');
 const { CONVERSATION_MESSAGE_CONTEXT } = require('../../models/conversations.model');
 const { isRequestInternal } = require('../../utils/feathersUtils');
@@ -108,6 +109,15 @@ const checkMessageContext = () => context => {
   return context;
 };
 
+const sendAnalyticsData = () => context => {
+  if (!isRequestInternal(context)) {
+    sendCommentAddedEvent({
+      context,
+      conversation: context.result,
+    });
+  }
+};
+
 /**
  * populate delegator title
  */
@@ -193,7 +203,7 @@ module.exports = {
     all: [],
     find: [commons.populate({ schema }), populateDonorTitle(), resolveFiles(['items'])],
     get: [commons.populate({ schema }), populateDonorTitle(), resolveFiles(['items'])],
-    create: [],
+    create: [sendAnalyticsData()],
     update: [],
     patch: [],
     remove: [],

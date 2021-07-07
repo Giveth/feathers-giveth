@@ -10,6 +10,10 @@ const addConfirmations = require('../../hooks/addConfirmations');
 const { CampaignStatus } = require('../../models/campaigns.model');
 const createModelSlug = require('../createModelSlug');
 const { isRequestInternal } = require('../../utils/feathersUtils');
+const {
+  sendCampaignCancelledEvent,
+  sendCampaignCreatedEvent,
+} = require('../../utils/analyticsUtils');
 
 const schema = {
   include: [
@@ -106,6 +110,26 @@ const addTraceCounts = () => context => {
   );
 };
 
+const sendAnalyticsData = () => context => {
+  if (
+    !isRequestInternal(context) &&
+    context.method === 'patch' &&
+    context.data.status === CampaignStatus.CANCELED
+  ) {
+    sendCampaignCancelledEvent({
+      context,
+      campaign: context.result,
+    });
+  }
+  if (!isRequestInternal(context) && context.method === 'create') {
+    sendCampaignCreatedEvent({
+      context,
+      campaign: context.result,
+    });
+  }
+  return context;
+};
+
 module.exports = {
   before: {
     all: [],
@@ -143,9 +167,9 @@ module.exports = {
     all: [commons.populate({ schema })],
     find: [addTraceCounts(), addConfirmations(), resolveFiles('image')],
     get: [addTraceCounts(), addConfirmations(), resolveFiles('image')],
-    create: [resolveFiles('image')],
+    create: [resolveFiles('image'), sendAnalyticsData()],
     update: [resolveFiles('image')],
-    patch: [resolveFiles('image')],
+    patch: [resolveFiles('image'), sendAnalyticsData()],
     remove: [],
   },
 

@@ -1,4 +1,16 @@
 const logger = require('winston');
+const {
+  sendProposedTraceRejectedEvent,
+  sendTraceProposedEvent,
+  sendTraceReproposedEvent,
+  sendTraceArchivedEvent,
+  sendProposedTraceEditedEvent,
+  sendTraceCompletionApprovedEvent,
+  sendTraceCompletionRejectedEvent,
+  sendRequestTraceMarkCompletedEvent,
+  sendTraceCancelledEvent,
+  sendProposedTraceAcceptedEvent,
+} = require('./analyticsUtils');
 
 const { DonationStatus } = require('../models/donations.model');
 const { AdminTypes } = require('../models/pledgeAdmins.model');
@@ -21,13 +33,104 @@ const getPledgeAdmin = (app, type, id) => {
   }
 };
 
-async function sendTraceProposedEmail(app, { trace }) {
+async function sendTraceProposedEmail(context, { trace }) {
   try {
-    await Mailer.traceProposed(app, {
+    sendTraceProposedEvent({
+      context,
+      trace,
+    });
+    await Mailer.traceProposed(context.app, {
       trace,
     });
   } catch (e) {
     logger.error('error sending proposed trace notification', e);
+  }
+}
+
+async function handleConversationForMinedEvents(
+  data,
+  IN_PROGRESS,
+  prevStatus,
+  PROPOSED,
+  _createConversation,
+  app,
+  result,
+  message,
+  status,
+  REJECTED,
+  NEEDS_REVIEW,
+  COMPLETED,
+  mined,
+  performedByAddress,
+  CANCELED,
+) {
+  if (data.status === IN_PROGRESS && prevStatus === PROPOSED) {
+    _createConversation(CONVERSATION_MESSAGE_CONTEXT.PROPOSED_ACCEPTED);
+    Mailer.proposedTraceAccepted(app, {
+      trace: result,
+      message,
+    });
+    sendProposedTraceAcceptedEvent({ trace: result, userAddress: performedByAddress });
+  } else if (status === PROPOSED && prevStatus === REJECTED) {
+    await sendTraceProposedEmail(context, {
+      trace: result,
+    });
+  } else if (data.status === NEEDS_REVIEW) {
+    // find the trace reviewer owner and send a notification that this trace is been marked as complete and needs review
+    _createConversation(status);
+    Mailer.traceRequestReview(app, {
+      trace: result,
+      message,
+    });
+    sendRequestTraceMarkCompletedEvent({
+      trace: result,
+      userAddress: performedByAddress,
+    });
+  } else if (status === COMPLETED && mined) {
+    _createConversation(status);
+    // find the trace owner and send a notification that his/her trace is marked complete
+    Mailer.traceMarkedCompleted(app, {
+      trace: result,
+      message,
+    });
+    // track({
+    //   userAddress: performedByAddress,
+    //   event: AnalyticsEvents.TraceCompletionApproved,
+    //   metadata: data,
+    // });
+  } else if (data.status === IN_PROGRESS && prevStatus === NEEDS_REVIEW) {
+    _createConversation(CONVERSATION_MESSAGE_CONTEXT.REJECTED);
+
+    // find the trace reviewer and send a notification that his/her trace has been rejected by reviewer
+    // it's possible to have a null reviewer if that address has never logged in
+    // if (reviewer) {
+    // TODO I think it was wrong that we were sending emails to reviewer in this case
+    // TODO so I sent to trace owner instead
+    Mailer.traceReviewRejected(app, {
+      trace: result,
+      message,
+    });
+    sendTraceCompletionRejectedEvent({
+      trace: result,
+      userAddress: performedByAddress,
+    });
+  } else if (status === CANCELED && mined) {
+    _createConversation(CONVERSATION_MESSAGE_CONTEXT.CANCELLED);
+
+    // find the trace owner and send a notification that his/her trace is canceled
+    Mailer.traceCancelled(app, {
+      trace: result,
+      message,
+    });
+    sendTraceCancelledEvent({
+      trace: result,
+      userAddress: performedByAddress,
+    });
+    // track({
+    //   userAddress: performedByAddress,
+    //   event: AnalyticsEvents.TraceCancelled,
+    //   metadata: data,
+    // });
   }
 }
 
@@ -105,7 +208,7 @@ const handleTraceConversationAndEmail = () => async context => {
     method: context.method,
   });
   if (context.method === 'create' && status === PROPOSED) {
-    await sendTraceProposedEmail(app, {
+    await sendTraceProposedEmail(context, {
       trace: result,
     });
     return;
@@ -125,68 +228,61 @@ const handleTraceConversationAndEmail = () => async context => {
    * Which basically means the event is really mined
    * */
   if (eventTxHash) {
-    if (data.status === IN_PROGRESS && prevStatus === PROPOSED) {
-      _createConversation(CONVERSATION_MESSAGE_CONTEXT.PROPOSED_ACCEPTED);
-      Mailer.proposedTraceAccepted(app, {
-        trace: result,
-        message,
-      });
-    } else if (status === PROPOSED && prevStatus === REJECTED) {
-      await sendTraceProposedEmail(app, {
-        trace: result,
-      });
-    } else if (data.status === NEEDS_REVIEW) {
-      // find the trace reviewer owner and send a notification that this trace is been marked as complete and needs review
-      _createConversation(status);
-      Mailer.traceRequestReview(app, {
-        trace: result,
-        message,
-      });
-    } else if (status === COMPLETED && mined) {
-      _createConversation(status);
-      // find the trace owner and send a notification that his/her trace is marked complete
-      Mailer.traceMarkedCompleted(app, {
-        trace: result,
-        message,
-      });
-    } else if (data.status === IN_PROGRESS && prevStatus === NEEDS_REVIEW) {
-      _createConversation(CONVERSATION_MESSAGE_CONTEXT.REJECTED);
-
-      // find the trace reviewer and send a notification that his/her trace has been rejected by reviewer
-      // it's possible to have a null reviewer if that address has never logged in
-      // if (reviewer) {
-      // TODO I think it was wrong that we were sending emails to reviewer in this case
-      // TODO so I sent to trace owner instead
-      Mailer.traceReviewRejected(app, {
-        trace: result,
-        message,
-      });
-      // }
-    } else if (status === CANCELED && mined) {
-      _createConversation(CONVERSATION_MESSAGE_CONTEXT.CANCELLED);
-
-      // find the trace owner and send a notification that his/her trace is canceled
-      Mailer.traceCancelled(app, {
-        trace: result,
-        message,
-      });
-    }
+    await handleConversationForMinedEvents(
+      data,
+      IN_PROGRESS,
+      prevStatus,
+      PROPOSED,
+      _createConversation,
+      app,
+      result,
+      message,
+      status,
+      REJECTED,
+      NEEDS_REVIEW,
+      COMPLETED,
+      mined,
+      performedByAddress,
+      CANCELED,
+    );
   } else if (data.status === REJECTED && prevStatus === PROPOSED) {
     _createConversation(CONVERSATION_MESSAGE_CONTEXT.PROPOSED_REJECTED);
     Mailer.proposedTraceRejected(app, {
       trace: result,
       message,
     });
+    sendProposedTraceRejectedEvent({
+      userAddress: performedByAddress,
+      context,
+      trace: result,
+    });
   } else if (data.status === PROPOSED && prevStatus === REJECTED) {
     _createConversation(CONVERSATION_MESSAGE_CONTEXT.RE_PROPOSE);
+    sendTraceReproposedEvent({
+      context,
+      trace: result,
+    });
   } else if (result.status === PROPOSED && !prevStatus) {
     Mailer.proposedTraceEdited(app, {
       trace: result,
       user,
     });
+    sendProposedTraceEditedEvent({
+      context,
+      trace: result,
+    });
   } else if (data.status === ARCHIVED && prevStatus !== ARCHIVED) {
     // Completed and InProgress traces could become archived
     _createConversation(CONVERSATION_MESSAGE_CONTEXT.ARCHIVED);
+    sendTraceArchivedEvent({
+      context,
+      trace: result,
+    });
+  } else if (data.status === COMPLETED && prevStatus !== COMPLETED) {
+    sendTraceCompletionApprovedEvent({
+      context,
+      trace: result,
+    });
   }
 };
 
@@ -301,6 +397,11 @@ const handleDonationConversationAndEmail = async (app, donation) => {
         giverAddress,
         actionTakerAddress,
       });
+      // track({
+      //   userAddress: actionTakerAddress,
+      //   event: AnalyticsEvents.Donated,
+      //   metadata: donation,
+      // });
     } else {
       await createDelegatedConversation(app, {
         traceId: pledgeAdmin._id,
@@ -310,6 +411,11 @@ const handleDonationConversationAndEmail = async (app, donation) => {
         parentDonations,
         actionTakerAddress,
       });
+      // track({
+      //   userAddress: actionTakerAddress,
+      //   event: AnalyticsEvents.Delegated,
+      //   metadata: donation,
+      // });
     }
   }
 };
