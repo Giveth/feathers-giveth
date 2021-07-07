@@ -47,93 +47,6 @@ async function sendTraceProposedEmail(context, { trace }) {
   }
 }
 
-async function handleConversationForMinedEvents(
-  data,
-  IN_PROGRESS,
-  prevStatus,
-  PROPOSED,
-  _createConversation,
-  app,
-  result,
-  message,
-  status,
-  REJECTED,
-  NEEDS_REVIEW,
-  COMPLETED,
-  mined,
-  performedByAddress,
-  CANCELED,
-) {
-  if (data.status === IN_PROGRESS && prevStatus === PROPOSED) {
-    _createConversation(CONVERSATION_MESSAGE_CONTEXT.PROPOSED_ACCEPTED);
-    Mailer.proposedTraceAccepted(app, {
-      trace: result,
-      message,
-    });
-    sendProposedTraceAcceptedEvent({ trace: result, userAddress: performedByAddress });
-  } else if (status === PROPOSED && prevStatus === REJECTED) {
-    await sendTraceProposedEmail(context, {
-      trace: result,
-    });
-  } else if (data.status === NEEDS_REVIEW) {
-    // find the trace reviewer owner and send a notification that this trace is been marked as complete and needs review
-    _createConversation(status);
-    Mailer.traceRequestReview(app, {
-      trace: result,
-      message,
-    });
-    sendRequestTraceMarkCompletedEvent({
-      trace: result,
-      userAddress: performedByAddress,
-    });
-  } else if (status === COMPLETED && mined) {
-    _createConversation(status);
-    // find the trace owner and send a notification that his/her trace is marked complete
-    Mailer.traceMarkedCompleted(app, {
-      trace: result,
-      message,
-    });
-    // track({
-    //   userAddress: performedByAddress,
-    //   event: AnalyticsEvents.TraceCompletionApproved,
-    //   metadata: data,
-    // });
-  } else if (data.status === IN_PROGRESS && prevStatus === NEEDS_REVIEW) {
-    _createConversation(CONVERSATION_MESSAGE_CONTEXT.REJECTED);
-
-    // find the trace reviewer and send a notification that his/her trace has been rejected by reviewer
-    // it's possible to have a null reviewer if that address has never logged in
-    // if (reviewer) {
-    // TODO I think it was wrong that we were sending emails to reviewer in this case
-    // TODO so I sent to trace owner instead
-    Mailer.traceReviewRejected(app, {
-      trace: result,
-      message,
-    });
-    sendTraceCompletionRejectedEvent({
-      trace: result,
-      userAddress: performedByAddress,
-    });
-  } else if (status === CANCELED && mined) {
-    _createConversation(CONVERSATION_MESSAGE_CONTEXT.CANCELLED);
-
-    // find the trace owner and send a notification that his/her trace is canceled
-    Mailer.traceCancelled(app, {
-      trace: result,
-      message,
-    });
-    sendTraceCancelledEvent({
-      trace: result,
-      userAddress: performedByAddress,
-    });
-    // track({
-    //   userAddress: performedByAddress,
-    //   event: AnalyticsEvents.TraceCancelled,
-    //   metadata: data,
-    // });
-  }
-}
-
 /**
  *
  * Conditionally sends a notification after patch or create
@@ -190,6 +103,7 @@ const handleTraceConversationAndEmail = () => async context => {
       logger.error('could not create conversation', e);
     }
   };
+
   const {
     REJECTED,
     COMPLETED,
@@ -200,6 +114,66 @@ const handleTraceConversationAndEmail = () => async context => {
     ARCHIVED,
   } = TraceStatus;
   const { status, _id, prevStatus, message, mined } = result;
+  async function handleConversationForMinedEvents() {
+    if (data.status === IN_PROGRESS && prevStatus === PROPOSED) {
+      _createConversation(CONVERSATION_MESSAGE_CONTEXT.PROPOSED_ACCEPTED);
+      Mailer.proposedTraceAccepted(app, {
+        trace: result,
+        message,
+      });
+      sendProposedTraceAcceptedEvent({ trace: result, userAddress: performedByAddress });
+    } else if (status === PROPOSED && prevStatus === REJECTED) {
+      await sendTraceProposedEmail(context, {
+        trace: result,
+      });
+    } else if (data.status === NEEDS_REVIEW) {
+      // find the trace reviewer owner and send a notification that this trace is been marked as complete and needs review
+      _createConversation(status);
+      Mailer.traceRequestReview(app, {
+        trace: result,
+        message,
+      });
+      sendRequestTraceMarkCompletedEvent({
+        trace: result,
+        userAddress: performedByAddress,
+      });
+    } else if (status === COMPLETED && mined) {
+      _createConversation(status);
+      // find the trace owner and send a notification that his/her trace is marked complete
+      Mailer.traceMarkedCompleted(app, {
+        trace: result,
+        message,
+      });
+    } else if (data.status === IN_PROGRESS && prevStatus === NEEDS_REVIEW) {
+      _createConversation(CONVERSATION_MESSAGE_CONTEXT.REJECTED);
+
+      // find the trace reviewer and send a notification that his/her trace has been rejected by reviewer
+      // it's possible to have a null reviewer if that address has never logged in
+      // if (reviewer) {
+      // TODO I think it was wrong that we were sending emails to reviewer in this case
+      // TODO so I sent to trace owner instead
+      Mailer.traceReviewRejected(app, {
+        trace: result,
+        message,
+      });
+      sendTraceCompletionRejectedEvent({
+        trace: result,
+        userAddress: performedByAddress,
+      });
+    } else if (status === CANCELED && mined) {
+      _createConversation(CONVERSATION_MESSAGE_CONTEXT.CANCELLED);
+
+      // find the trace owner and send a notification that his/her trace is canceled
+      Mailer.traceCancelled(app, {
+        trace: result,
+        message,
+      });
+      sendTraceCancelledEvent({
+        trace: result,
+        userAddress: performedByAddress,
+      });
+    }
+  }
   logger.info('handleTraceConversationAndEmail() called', {
     traceId: _id,
     eventTxHash,
@@ -228,23 +202,7 @@ const handleTraceConversationAndEmail = () => async context => {
    * Which basically means the event is really mined
    * */
   if (eventTxHash) {
-    await handleConversationForMinedEvents(
-      data,
-      IN_PROGRESS,
-      prevStatus,
-      PROPOSED,
-      _createConversation,
-      app,
-      result,
-      message,
-      status,
-      REJECTED,
-      NEEDS_REVIEW,
-      COMPLETED,
-      mined,
-      performedByAddress,
-      CANCELED,
-    );
+    await handleConversationForMinedEvents();
   } else if (data.status === REJECTED && prevStatus === PROPOSED) {
     _createConversation(CONVERSATION_MESSAGE_CONTEXT.PROPOSED_REJECTED);
     Mailer.proposedTraceRejected(app, {
@@ -397,11 +355,6 @@ const handleDonationConversationAndEmail = async (app, donation) => {
         giverAddress,
         actionTakerAddress,
       });
-      // track({
-      //   userAddress: actionTakerAddress,
-      //   event: AnalyticsEvents.Donated,
-      //   metadata: donation,
-      // });
     } else {
       await createDelegatedConversation(app, {
         traceId: pledgeAdmin._id,
@@ -411,11 +364,6 @@ const handleDonationConversationAndEmail = async (app, donation) => {
         parentDonations,
         actionTakerAddress,
       });
-      // track({
-      //   userAddress: actionTakerAddress,
-      //   event: AnalyticsEvents.Delegated,
-      //   metadata: donation,
-      // });
     }
   }
 };
