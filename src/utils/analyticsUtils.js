@@ -66,8 +66,9 @@ if (config.segmentApiKey) {
 }
 
 const getAnalitycsDataFromContext = context => {
-  return {
+  const data = {
     origin: context.params.headers.origin,
+    host: context.params.headers.host,
     userAgent: context.params.headers['user-agent'],
     /**
      * @see{@link https://atlassc.net/2020/02/25/feathersjs-client-real-ip}
@@ -75,6 +76,7 @@ const getAnalitycsDataFromContext = context => {
     ip: context.params.headers['x-real-ip'],
     userAddress: context.params.user.address,
   };
+  return data;
 };
 const identifyUser = user => {
   if (!analytics) {
@@ -161,25 +163,29 @@ const sendTraceCompletionApprovedEvent = ({ trace, context }) => {
 
 const sendTraceCompletionRejectedEvent = ({ trace, userAddress }) => {
   track({
-    category: AnalyticsCategories.Trace,
-    action: AnalyticsActions.TraceCompletionRejected,
-    event: AnalyticsEvents.TraceCompletionRejected,
-    label: trace._id,
-    id: trace._id,
-    title: trace.title,
     userId: userAddress,
+    event: AnalyticsEvents.TraceCompletionRejected,
+    properties: {
+      category: AnalyticsCategories.Trace,
+      action: AnalyticsActions.TraceCompletionRejected,
+      label: trace._id,
+      id: trace._id,
+      title: trace.title,
+    },
   });
 };
 const sendTraceCancelledEvent = ({ trace, userAddress }) => {
   track({
-    category: AnalyticsCategories.Trace,
-    action: AnalyticsActions.TraceCancelled,
     event: AnalyticsEvents.TraceCancelled,
-    label: trace._id,
-    id: trace._id,
-    title: trace.title,
-    donationCounters: trace.donationCounters,
     userId: userAddress,
+    properties: {
+      category: AnalyticsCategories.Trace,
+      action: AnalyticsActions.TraceCancelled,
+      label: trace._id,
+      id: trace._id,
+      title: trace.title,
+      donationCounters: trace.donationCounters,
+    },
   });
 };
 const sendTraceReproposedEvent = ({ trace, context }) => {
@@ -216,13 +222,15 @@ const sendTraceProposedEvent = ({ trace, context }) => {
 };
 const sendRequestTraceMarkCompletedEvent = ({ trace, userAddress }) => {
   track({
-    category: AnalyticsCategories.Trace,
-    action: AnalyticsActions.TraceMarkCompleted,
-    event: AnalyticsEvents.TraceMarkCompleted,
-    label: trace._id,
-    id: trace._id,
-    title: trace.title,
     userId: userAddress,
+    event: AnalyticsEvents.TraceMarkCompleted,
+    properties:{
+      category: AnalyticsCategories.Trace,
+      action: AnalyticsActions.TraceMarkCompleted,
+      label: trace._id,
+      id: trace._id,
+      title: trace.title,
+    }
   });
 };
 const sendTraceWithdrawEvent = ({ trace }) => {
