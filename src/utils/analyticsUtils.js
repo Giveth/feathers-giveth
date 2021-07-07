@@ -97,13 +97,23 @@ const track = data => {
   if (!analytics) {
     return;
   }
-  analytics.track(data);
+  try {
+    logger.debug('send segment tracking', data);
+    analytics.track(data);
+  } catch (e) {
+    logger.error('send segment tracking error', { e, data });
+  }
 };
 const page = data => {
   if (!analytics) {
     return;
   }
-  analytics.page(data);
+  try {
+    logger.debug('send segment page', data);
+    analytics.page(data);
+  } catch (e) {
+    logger.error('send segment page error', { e, data });
+  }
 };
 
 const sendProposedTraceAcceptedEvent = ({ trace, userAddress }) => {
