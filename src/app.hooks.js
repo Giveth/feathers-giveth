@@ -17,6 +17,14 @@ const authenticate = () => context => {
   if (context.params.provider === 'socketio' && context.path === 'authentication') {
     return context;
   }
+  if (
+    context.params.provider === 'socketio' &&
+    context.path === 'donations' &&
+    context.method === 'create'
+  ) {
+    // for creating donations it's not needed to be authenticated, anonymous users can donate
+    return context;
+  }
   if (context.params.provider === 'rest') {
     return auth.hooks.authenticate('jwt')(context);
   }
