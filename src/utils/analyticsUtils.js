@@ -49,7 +49,7 @@ const sendAnalytics = ({ data, params }) => {
     userAgent: params.headers['user-agent'],
     properties: data.properties,
   };
-  if (!eventData.userId){
+  if (!eventData.userId) {
     eventData.anonymousId = data.anonymousId;
   }
   if (data.reportType === 'track') {
