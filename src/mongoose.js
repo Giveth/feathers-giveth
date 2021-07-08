@@ -2,6 +2,7 @@ const mongoose = require('mongoose');
 require('mongoose-long')(mongoose);
 require('./models/mongoose-bn')(mongoose);
 const logger = require('winston');
+const Sentry = require('@sentry/node');
 
 // mongoose query hook function that will
 // remove the key from the doc if the value is undefined
@@ -36,7 +37,10 @@ module.exports = function mongooseFactory() {
   });
 
   const db = mongoose.connection;
-  db.on('error', err => logger.error('Could not connect to Mongo', err));
+  db.on('error', err => {
+    logger.error('Could not connect to Mongo', err);
+    Sentry.captureException(err);
+  });
   db.once('open', () => logger.info('Connected to Mongo'));
 
   mongoose.plugin(schema => {
