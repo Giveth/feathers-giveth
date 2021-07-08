@@ -8,7 +8,9 @@ const { responseLoggerHook, startMonitoring } = require('./hooks/logger');
 const authenticate = () => context => {
   // No need to authenticate internal calls
   if (isRequestInternal(context)) return context;
-
+  if (context.path === 'analytics') {
+    return context;
+  }
   // socket connection is already authenticated, we just check if user has been set on context.params
   if (context.params.provider === 'socketio' && context.params.user) {
     return context;
