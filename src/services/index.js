@@ -4,6 +4,7 @@ const events = require('./events/events.service');
 const homePaymentsTransactions = require('./homePaymentsTransactions/homePaymentsTransactions.service');
 const emails = require('./emails/emails.service');
 const subscription = require('./subscriptions/subscription.service');
+const analytics = require('./analytics/analytics.service');
 
 const communities = require('./communities/communities.service.js');
 const milestones = require('./traces/traces.service.js');
@@ -39,6 +40,7 @@ module.exports = function configure() {
   app.configure(homePaymentsTransactions);
   app.configure(emails);
   app.configure(subscription);
+  app.configure(analytics);
   app.configure(conversations);
   app.configure(campaigncsv);
   app.configure(givbackReportDonations);

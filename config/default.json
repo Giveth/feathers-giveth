@@ -177,5 +177,6 @@
   "elasticSearchPassword": "changeme",
   "enableAuditLog": false,
   "enableSentryMonitoring": false,
-  "sentryDsn": ""
+  "sentryDsn": "",
+  "segmentApiKey": ""
 }
