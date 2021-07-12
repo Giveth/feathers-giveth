@@ -46,7 +46,7 @@ Welcome to the server code for Giveth's [dapp](https://github.com/Giveth/giveth-
       ```
       cd feathers-giveth
       ```
-  5. Make sure you have [NodeJS](https://nodejs.org/) (v8.4.0 or higher), [yarn](https://www.yarnpkg.com/) (v0.27.5 or higher), and npm (5.4.1 or higher) installed.
+  5. Make sure you have [NodeJS](https://nodejs.org/) (v10.24.0 or higher), [yarn](https://www.yarnpkg.com/) (v0.27.5 or higher), and npm (5.4.1 or higher) installed.
   6. Install dependencies from within feathers-giveth directory:
       ```
       npm install
@@ -83,7 +83,10 @@ The configuration param `blockchain.nodeUrl` is used to establish a connection. 
    ```
    ipfs daemon
    ```
-    
+5. Run db migration files ( if this the first time you want to start application, it's not needed to run migrations)
+   ```
+    ./node_modules/.bin/migrate-mongo up
+   ```
 5. Start your app
 
     ```
@@ -120,9 +123,11 @@ The `feathers-giveth/scripts` directory contains a few scripts to help developme
 * `confirm.js` - confirms any payments that are pending in the vault
 
 * `makeUserAdmin.js` - make a user admin
+
 ## Testing
 
-Simply run `yarn test` and all your tests in the `test/` directory will be run.
+Simply run `yarn test` and all your tests in the `/src` directory will be run.
+It's included some integration tests so for running tests, you need to run a mongodb in your local system (on port 27017)
 
 ## Debugging
 
@@ -136,14 +141,20 @@ Each of these services are available via rest or websockets:
 
 ```
 campaigns
-dacs
+communities
 donations
 donationsHistory
-milestones
+traces
 uploads
 users
+emails
+homePaymentsTransactions
+subscriptions
 ```
 If the server is using default configurations, you can see data for any of these services through your web browser at `http://localhost:3030/SERVICE_NAME`
+
+PS: For accessing all features like creating `communities` and `campaigns` it's suggested to 
+make `isAdmin` field true, for your user in you local MongoDb 
 
 
 ## Production
@@ -172,7 +183,7 @@ module.exports = {
   ],
 };
 ```
-
+PS: It's good to see [Github Actions config](./.github/workflows/CI-CD.yml) to better understanding of deploy structure
 ## RSK
 
 1. You will need to download the [rsk node](https://github.com/rsksmart/rskj/wiki/Install-RskJ-and-join-the-RSK-Orchid-Mainnet-Beta). After installing, you will run the node w/ the `regtest` network for local development.
@@ -203,6 +214,17 @@ module.exports = {
     yarn start:rsk
     ```
 
+## Audit Log
+The Audit log system logs every Create, Update, Patch and 
+Remove on **Campaigns**, **Traces**, **Events**, **Users**,
+**PledgeAdmins**, **Communities**, **Donations**
+For enabling audit log locally you should change `enableAuditLog`
+in config to `true`, then 
+* cd elk
+* docker-compose up
+
+And then after logging in `localhost:5601` with user:`elastic`, password: `changeme`
+you can see the logs
 
 ## Help
 

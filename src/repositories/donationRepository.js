@@ -45,8 +45,180 @@ const isAllDonationsPaidOut = async (app, { txHash, traceId }) => {
   return notPaidOutDonationsCount === 0;
 };
 
+/**
+ *
+ * @param app: feathers instance
+ * @param from: Date, example: 2018-06-08T16:05:28.005Z
+ * @param to: Date: example: 2021-06-08T16:05:28.005Z
+ * @param projectIds ?: Array<number>, example: [1340, 2723]
+ * @returns {
+ * Promise<
+   [{
+    "giverAddress" : string,
+    "totalAmount" : number,
+    "donations" : [
+      {
+        "usdValue": number,
+        "amount": number,
+        "homeTxHash": string,
+        "giverAddress": string,
+        "createdAt": string // sample: "2019-04-22T22:14:23.046Z",
+        "token": string //sample : "ETH",
+        "delegateId": number
+        "ownerId": number
+      }
+    ]
+  }]
+  >}
+ */
+const listOfDonorsToVerifiedProjects = async (app, { verifiedProjectIds, from, to }) => {
+  const donationModel = app.service('donations').Model;
+  // If verifiedProjectIds is falsy it means we should use all donations
+  const orCondition = verifiedProjectIds
+    ? [
+        {
+          // it's for communities
+          delegateId: { $in: verifiedProjectIds },
+          intendedProjectId: { $exists: false },
+        },
+
+        // it's for traces and campaigns
+        { ownerId: { $in: verifiedProjectIds } },
+      ]
+    : [
+        {
+          // it's for communities
+          delegateId: { $exists: true },
+          intendedProjectId: { $exists: false },
+        },
+
+        // it's for traces and campaigns
+        { ownerId: { $exists: true }, ownerType: { $in: ['campaign', 'trace'] } },
+      ];
+
+  return donationModel.aggregate([
+    {
+      $match: {
+        status: {
+          $in: ['Waiting', 'Committed'],
+        },
+        createdAt: {
+          $gte: from,
+          $lte: to,
+        },
+
+        homeTxHash: { $exists: true },
+        $or: orCondition,
+        amount: { $ne: '0' },
+        usdValue: { $ne: 0 },
+        isReturn: false,
+      },
+    },
+    {
+      $sort: {
+        createdAt: -1,
+      },
+    },
+    {
+      $project: {
+        giverAddress: 1,
+        usdValue: 1,
+        amount: 1,
+        homeTxHash: 1,
+        ownerId: 1,
+        delegateId: 1,
+        tokenAddress: 1,
+        createdAt: 1,
+        _id: 0,
+      },
+    },
+    {
+      $lookup: {
+        from: 'communities',
+        let: { delegateId: '$delegateId' },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $eq: ['$delegateId', '$$delegateId'] },
+            },
+          },
+          {
+            $project: {
+              _id: 1,
+              title: 1,
+            },
+          },
+        ],
+        as: 'community',
+      },
+    },
+    {
+      $lookup: {
+        from: 'campaigns',
+        let: { projectId: '$ownerId' },
+        pipeline: [
+          {
+            $match: {
+              $expr: { $eq: ['$projectId', '$$projectId'] },
+            },
+          },
+          {
+            $project: {
+              _id: 1,
+              title: 1,
+            },
+          },
+        ],
+        as: 'campaign',
+      },
+    },
+    {
+      $lookup: {
+        from: 'traces',
+        let: { projectId: '$ownerId' },
+        pipeline: [
+          {
+            $match: {
+              projectId: { $exists: true },
+              $expr: { $eq: ['$projectId', '$$projectId'] },
+            },
+          },
+          {
+            $project: {
+              _id: 1,
+              title: 1,
+              campaignId: 1,
+            },
+          },
+        ],
+        as: 'trace',
+      },
+    },
+
+    {
+      $group: {
+        _id: '$giverAddress',
+        totalAmount: { $sum: '$usdValue' },
+        donations: { $push: '$$ROOT' },
+      },
+    },
+    {
+      $sort: { totalAmount: -1 },
+    },
+    {
+      $project: {
+        giverAddress: '$_id',
+        donations: 1,
+        totalAmount: 1,
+        _id: 0,
+      },
+    },
+  ]);
+};
+
 module.exports = {
   updateBridgePaymentExecutedTxHash,
   updateBridgePaymentAuthorizedTxHash,
   isAllDonationsPaidOut,
+  listOfDonorsToVerifiedProjects,
 };

@@ -9,6 +9,7 @@ const { checkReviewer, checkOwner } = require('../../hooks/isProjectAllowed');
 const addConfirmations = require('../../hooks/addConfirmations');
 const { CampaignStatus } = require('../../models/campaigns.model');
 const createModelSlug = require('../createModelSlug');
+const { isRequestInternal } = require('../../utils/feathersUtils');
 
 const schema = {
   include: [
@@ -70,6 +71,13 @@ const restrict = () => context => {
   );
 };
 
+const removeProtectedFields = () => context => {
+  if (context && context.data && !isRequestInternal(context)) {
+    delete context.data.verified;
+  }
+  return context;
+};
+
 const countTraces = (item, service) =>
   service.Model.countDocuments({
     campaignId: item._id,
@@ -104,6 +112,7 @@ module.exports = {
     find: [sanitizeAddress('ownerAddress')],
     get: [],
     create: [
+      removeProtectedFields(),
       setAddress('coownerAddress'),
       sanitizeAddress('coownerAddress', {
         required: true,
@@ -121,6 +130,7 @@ module.exports = {
     ],
     update: [commons.disallow()],
     patch: [
+      removeProtectedFields(),
       restrict(),
       sanitizeAddress('ownerAddress', { validate: true }),
       sanitizeHtml('description'),

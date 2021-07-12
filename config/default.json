@@ -171,5 +171,12 @@
   "dappMailerSecret": "xxMv8a13I3YOZSKq9XmX285N0o4m1qHyKjgQWb2g83daGtPI4VmEw7dImu8kvO2ovG4EMC1bvjO906o365BaJBZtArpnxJCoYsCJ",
   "minimumPayoutUsdValue": 2,
   "givethAccounts": [],
-  "enablePayoutEmail": true
+  "enablePayoutEmail": true,
+  "elasticSearchUrl": "http://localhost:9200/entities/_doc",
+  "elasticSearchUsername": "elastic",
+  "elasticSearchPassword": "changeme",
+  "enableAuditLog": false,
+  "enableSentryMonitoring": false,
+  "sentryDsn": "",
+  "segmentApiKey": ""
 }

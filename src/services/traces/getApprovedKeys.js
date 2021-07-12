@@ -76,9 +76,11 @@ const getApprovedKeys = (trace, data, user) => {
       // Editing trace can be done by Trace or Campaign Manager
       if (data.status === TraceStatus.PROPOSED) {
         if (
-          ![trace.ownerAddress, trace.campaign.ownerAddress, trace.campaign.coownerAddess].includes(
-            user.address,
-          )
+          ![
+            trace.ownerAddress,
+            trace.campaign.ownerAddress,
+            trace.campaign.coownerAddress,
+          ].includes(user.address)
         ) {
           throw new errors.Forbidden('Only the Trace or Campaign Manager can edit proposed trace');
         }
@@ -127,9 +129,11 @@ const getApprovedKeys = (trace, data, user) => {
       // Archive trace by Trace Manager or Campaign Manager
       if (data.status === TraceStatus.ARCHIVED) {
         if (
-          ![trace.campaign.ownerAddress, trace.campaign.coownerAddess, trace.ownerAddress].includes(
-            user.address,
-          )
+          ![
+            trace.campaign.ownerAddress,
+            trace.campaign.coownerAddress,
+            trace.ownerAddress,
+          ].includes(user.address)
         ) {
           throw new errors.Forbidden(
             'Only the Trace Manager or Campaign Manager can archive a trace',
@@ -150,9 +154,11 @@ const getApprovedKeys = (trace, data, user) => {
       // Editing trace can be done by Campaign or Trace Manager
       if (data.status === TraceStatus.IN_PROGRESS) {
         if (
-          ![trace.ownerAddress, trace.campaign.ownerAddress, trace.campaign.coownerAddess].includes(
-            user.address,
-          )
+          ![
+            trace.ownerAddress,
+            trace.campaign.ownerAddress,
+            trace.campaign.coownerAddress,
+          ].includes(user.address)
         ) {
           throw new errors.Forbidden('Only the Trace and Campaign Manager can edit trace');
         }
@@ -163,9 +169,11 @@ const getApprovedKeys = (trace, data, user) => {
       // Editing a proposed trace can be done by either manager and all usual properties can be changed since it's not on chain
       if (data.status === TraceStatus.PROPOSED) {
         if (
-          ![trace.ownerAddress, trace.campaign.ownerAddress, trace.campaign.coownerAddess].includes(
-            user.address,
-          )
+          ![
+            trace.ownerAddress,
+            trace.campaign.ownerAddress,
+            trace.campaign.coownerAddress,
+          ].includes(user.address)
         ) {
           throw new errors.Forbidden('Only the Trace and Campaign Manager can edit proposed trace');
         }
@@ -212,9 +220,11 @@ const getApprovedKeys = (trace, data, user) => {
       // Editing trace can be done by Trace or Campaign Manager
       if (data.status === TraceStatus.NEEDS_REVIEW) {
         if (
-          ![trace.ownerAddress, trace.campaign.ownerAddress, trace.campaign.coownerAddess].includes(
-            user.address,
-          )
+          ![
+            trace.ownerAddress,
+            trace.campaign.ownerAddress,
+            trace.campaign.coownerAddress,
+          ].includes(user.address)
         ) {
           throw new errors.Forbidden('Only the Trace and Campaign Manager can edit trace');
         }
@@ -240,9 +250,11 @@ const getApprovedKeys = (trace, data, user) => {
 
       if (data.status === TraceStatus.ARCHIVED) {
         if (
-          ![trace.campaign.ownerAddress, trace.campaign.coownerAddess, trace.ownerAddress].includes(
-            user.address,
-          )
+          ![
+            trace.campaign.ownerAddress,
+            trace.campaign.coownerAddress,
+            trace.ownerAddress,
+          ].includes(user.address)
         ) {
           throw new errors.Forbidden(
             'Only the Trace Manager or Campaign Manager can archive a trace',
