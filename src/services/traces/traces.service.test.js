@@ -1,7 +1,12 @@
 const request = require('supertest');
 const config = require('config');
 const { assert, expect } = require('chai');
-const { getJwt, SAMPLE_DATA, generateRandomMongoId } = require('../../../test/testUtility');
+const {
+  getJwt,
+  SAMPLE_DATA,
+  generateRandomMongoId,
+  generateRandomEtheriumAddress,
+} = require('../../../test/testUtility');
 const { getFeatherAppInstance } = require('../../app');
 
 let app;
@@ -101,6 +106,14 @@ function postMilestoneTestCases() {
     createMileStoneData.ownerAddress = SAMPLE_DATA.USER_ADDRESS;
     const trace = await createTrace(createMileStoneData);
     assert.isFalse(trace.verified);
+  });
+
+  it('should set userAddress as ownerAddress of trace, doesnt matter what you send', async () => {
+    const createMileStoneData = { ...SAMPLE_DATA.createTraceData(), verified: true };
+    createMileStoneData.status = SAMPLE_DATA.TRACE_STATUSES.PROPOSED;
+    createMileStoneData.ownerAddress = generateRandomEtheriumAddress();
+    const trace = await createTrace(createMileStoneData);
+    assert.equal(trace.ownerAddress, SAMPLE_DATA.USER_ADDRESS);
   });
 }
 
