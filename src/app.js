@@ -65,12 +65,12 @@ function initSwagger() {
         },
         servers: [
           {
-            url: 'https://feathers.develop.giveth.io',
-            description: 'UAT',
-          },
-          {
             url: 'http://localhost:3030',
             description: 'Localhost',
+          },
+          {
+            url: 'https://feathers.develop.giveth.io',
+            description: 'UAT',
           },
           {
             url: 'https://feathers.beta.giveth.io',
