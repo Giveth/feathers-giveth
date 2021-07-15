@@ -20,6 +20,10 @@ module.exports = function serviceFactory() {
 
   const service = createService(options);
   service.docs = generateSwaggerDocForCRUDService(service);
+  service.docs.operations.create = {
+    description:
+      'This method has authentication for REST requests but in websocket request not needed accessToken',
+  };
   // Initialize our service with any options it requires
   app.use('/donations', service);
 
