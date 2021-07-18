@@ -1,5 +1,6 @@
 const logger = require('winston');
 const path = require('path');
+const config = require('config');
 const favicon = require('serve-favicon');
 const compress = require('compression');
 const cors = require('cors');
@@ -7,7 +8,7 @@ const helmet = require('helmet');
 const feathers = require('@feathersjs/feathers');
 const express = require('@feathersjs/express');
 const configuration = require('@feathersjs/configuration');
-const notFound = require('@feathersjs/errors/not-found');
+const Sentry = require('@sentry/node');
 const socketsConfig = require('./socketsConfig');
 const configureLogger = require('./utils/configureLogger');
 
@@ -19,10 +20,24 @@ const blockchain = require('./blockchain');
 const mongoose = require('./mongoose');
 const ipfsFetcher = require('./utils/ipfsFetcher');
 const ipfsPinner = require('./utils/ipfsPinner');
-
+const { configureAuditLog } = require('./auditLog/feathersElasticSearch');
 const channels = require('./channels');
 
 const app = express(feathers());
+Sentry.init({
+  dsn: config.sentryDsn,
+  environment: process.env.NODE_ENV,
+  release: `Giveth-Feathers@${process.env.npm_package_version}`,
+  // we want to capture 100% of errors
+  sampleRate: 1,
+
+  /**
+   * @see{@link   https://docs.sentry.io/platforms/node/configuration/sampling/#setting-a-uniform-sample-rate}
+   */
+  // Set tracesSampleRate to 1.0 to capture 100% of transactions for performance monitoring.
+  // But we recommend adjusting this value in production
+  tracesSampleRate: 0.1,
+});
 
 function initFeatherApp() {
   // Load app configuration
@@ -61,11 +76,18 @@ function initFeatherApp() {
   app.configure(ipfsFetcher);
   app.configure(ipfsPinner);
   // Configure a middleware for 404s and the error handler
-  app.use(notFound());
+  app.use(express.notFound());
   app.use(
     express.errorHandler({
       logger: {
         error: e => {
+          if (e.name === 'NotFound') {
+            logger.warn(`404 - NotFound - ${e.data.url}`);
+          } else {
+            logger.error('Express error handler:', e);
+          }
+        },
+        info: e => {
           if (e.name === 'NotFound') {
             logger.warn(`404 - NotFound - ${e.data.url}`);
           } else {
@@ -77,6 +99,9 @@ function initFeatherApp() {
   );
 
   app.hooks(appHooks);
+  if (config.enableAuditLog) {
+    configureAuditLog(app);
+  }
   return app;
 }
 

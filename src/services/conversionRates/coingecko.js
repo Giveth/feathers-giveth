@@ -7,7 +7,9 @@ const fetchCoingecko = async (timestampMS, coingeckoId, toSymbol) => {
    * based on documentation, Hourly data will be used for duration between 1 day and 90 day
    * @see{@link https://www.coingecko.com/api/documentations/v3#/coins/get_coins__id__market_chart_range}
    */
-  const timestampFrom = timestampTo - 3600 * 24;
+
+  // for values below 72 hours sometime coingecko return empty values so I had to increate the range
+  const timestampFrom = timestampTo - 3600 * 72;
   let bestPrice = 1;
   let resp;
   try {

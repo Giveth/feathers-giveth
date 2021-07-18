@@ -32,16 +32,22 @@ function createModel(app) {
         require: true,
         enum: Object.values(EventStatus),
         default: EventStatus.WAITING,
+        index: true,
       },
       processingError: { type: String },
       confirmations: { type: Number, require: true },
+      isHomeEvent: { type: Boolean, default: false },
     },
     {
       timestamps: true,
     },
   );
-  event.index({ transactionHash: 1, logIndex: 1, transactionIndex: 1, blockNumber: 1, status: 1 });
   event.index({ transactionHash: 1, event: 1 });
+  event.index({ blockNumber: 1, transactionIndex: 1, logIndex: 1 }); // Used in CSV sorting
+  event.index(
+    { isHomeEvent: 1, blockNumber: 1, transactionIndex: 1, logIndex: 1 }, // Used in ordering Pending and Waiting events
+    { unique: true },
+  );
   return mongooseClient.model('event', event);
 }
 

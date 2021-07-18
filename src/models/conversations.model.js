@@ -1,20 +1,45 @@
 const Item = require('./item.model');
+const { AdminTypes } = require('./pledgeAdmins.model');
 
 // conversations-model.js - A mongoose model
 //
 // See http://mongoosejs.com/docs/models.html
 // for more of what you can do here.
-module.exports = function Conversations(app) {
+
+/**
+ Available conversation types. This roughly follows the trace status
+ replyTo is for threaded messages
+ * */
+const CONVERSATION_MESSAGE_CONTEXT = {
+  CANCELLED: 'Canceled',
+  COMPLETED: 'Completed',
+  NEEDS_REVIEW: 'NeedsReview',
+  ARCHIVED: 'archived',
+  COMMENT: 'comment',
+  DELEGATED: 'delegated',
+  DONATED: 'donated',
+  PAYOUT: 'payout',
+  PAYMENT: 'payment',
+  PROPOSED_ACCEPTED: 'proposedAccepted',
+  PROPOSED_REJECTED: 'proposedRejected',
+  RE_PROPOSE: 'rePropose',
+  REJECTED: 'rejected',
+  REPLY_TO: 'replyTo',
+  PROPOSED: 'proposed',
+  RECIPIENT_CHANGED: 'recipientChanged',
+};
+
+const createModel = function Conversations(app) {
   const mongooseClient = app.get('mongooseClient');
   const { Schema } = mongooseClient;
 
   const conversation = new Schema(
     {
-      milestoneId: { type: String, required: true },
+      traceId: { type: String, required: true },
       messageContext: { type: String, required: true },
       message: { type: String },
       replyToId: { type: String },
-      performedByRole: { type: String, required: true },
+      performedByRole: { type: String, default: '' },
       ownerAddress: { type: String, required: true },
       recipientAddress: { type: String },
       payments: [
@@ -24,6 +49,11 @@ module.exports = function Conversations(app) {
           tokenDecimals: { type: String },
         },
       ],
+      donorType: { type: String, enum: Object.values(AdminTypes) },
+      donorId: { type: String },
+
+      // this is for payment conversations
+      donationId: { type: String },
       items: [Item],
       txHash: { type: String },
       mined: { type: Boolean, default: false },
@@ -33,7 +63,12 @@ module.exports = function Conversations(app) {
     },
   );
 
-  conversation.index({ milestoneId: 1, txHash: 1, messageContext: 1 });
-  conversation.index({ milestoneId: 1, createdAt: 1 });
+  conversation.index({ traceId: 1, txHash: 1, messageContext: 1 });
+  conversation.index({ traceId: 1, createdAt: 1 });
   return mongooseClient.model('conversation', conversation);
+};
+
+module.exports = {
+  createModel,
+  CONVERSATION_MESSAGE_CONTEXT,
 };

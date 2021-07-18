@@ -1,7 +1,8 @@
 const Web3 = require('web3');
 const { LiquidPledging } = require('giveth-liquidpledging');
 
-const liquidPledgingAddress = '0x8eB047585ABeD935a73ba4b9525213F126A0c979';
+const liquidPledgingAddress = '0x8eB047585ABeD935a73ba4b9525213F126A0c979'; // beta
+// const liquidPledgingAddress = '0x8eB047585ABeD935a73ba4b9525213F126A0c979'; // develop
 
 const foreignWeb3 = new Web3('https://rinkeby2.giveth.io');
 

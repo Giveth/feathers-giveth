@@ -7,11 +7,11 @@ const topicsFromArtifacts = require('./lib/topicsFromArtifacts');
 const { getTransaction, executeRequestsAsBatch, ANY_TOKEN } = require('./lib/web3Helpers');
 const { CampaignStatus } = require('../models/campaigns.model');
 const { DonationStatus } = require('../models/donations.model');
-const { MilestoneStatus, MilestoneTypes } = require('../models/milestones.model');
+const { TraceStatus, TraceTypes } = require('../models/traces.model');
 const { AdminTypes } = require('../models/pledgeAdmins.model');
 const toWrapper = require('../utils/to');
 const reprocess = require('../utils/reprocess');
-const notify = require('../utils/sendPledgeNotifications');
+const { handleDonationConversationAndEmail } = require('../utils/conversationAndEmailHandler');
 
 function isOlderThenAMin(ts) {
   return Date.now() - ts > 1000 * 60;
@@ -132,8 +132,8 @@ const isRejectedDelegation = ({ fromPledge, toPledge }) =>
  * @param {object} transferInfo
  */
 const isLPMilestonePayout = ({ fromPledgeAdmin }) =>
-  fromPledgeAdmin.type === AdminTypes.MILESTONE &&
-  fromPledgeAdmin.admin.type === MilestoneTypes.LPMilestone;
+  fromPledgeAdmin.type === AdminTypes.TRACE &&
+  fromPledgeAdmin.admin.type === TraceTypes.LPMilestone;
 
 /**
  * @param {object} transferInfo
@@ -208,8 +208,8 @@ const pledges = (app, liquidPledging) => {
    */
   async function isReturnTransfer(transferInfo) {
     const { fromPledge, fromPledgeAdmin, toPledgeId, txHash, donations } = transferInfo;
-    // currently only milestones will can be over-funded
-    if (fromPledgeAdmin.type !== AdminTypes.MILESTONE) return false;
+    // currently only traces will can be over-funded
+    if (fromPledgeAdmin.type !== AdminTypes.TRACE) return false;
 
     const from = donations[0].pledgeId; // all donations will have same pledgeId
     const transferEventsInTx = await app
@@ -280,7 +280,7 @@ const pledges = (app, liquidPledging) => {
       mutation.comment = comment;
       mutation.actionTakerAddress = actionTakerAddress;
     }
-    // Propagate comment for donations created by delegating from DAC
+    // Propagate comment for donations created by delegating from COMMUNITY
     if (
       donations.length === 1 &&
       ownerType === AdminTypes.GIVER &&
@@ -464,13 +464,13 @@ const pledges = (app, liquidPledging) => {
   async function createToDonation(transferInfo) {
     const mutation = await createToDonationMutation(transferInfo);
     // if tx is older then 1 min, set retry = true to instantly create the donation if necessary
-    const r = await createDonation(
+    const donation = await createDonation(
       mutation,
       transferInfo.initialTransfer,
       isOlderThenAMin(transferInfo.ts),
     );
-    notify(app, mutation);
-    return r;
+    handleDonationConversationAndEmail(app, donation);
+    return donation;
   }
 
   /**
@@ -631,8 +631,8 @@ const pledges = (app, liquidPledging) => {
       };
 
       if (
-        (fromPledgeAdmin.type === AdminTypes.MILESTONE &&
-          fromPledgeAdmin.admin.status === MilestoneStatus.CANCELED) ||
+        (fromPledgeAdmin.type === AdminTypes.TRACE &&
+          fromPledgeAdmin.admin.status === TraceStatus.CANCELED) ||
         (fromPledgeAdmin.type === AdminTypes.CAMPAIGN &&
           fromPledgeAdmin.admin.status === CampaignStatus.CANCELED)
       ) {

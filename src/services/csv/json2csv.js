@@ -70,8 +70,8 @@ module.exports = app => {
             default: '0',
           },
           {
-            label: `${token.symbol} Committed in All Milestones`,
-            value: tokenKey(token.symbol, 'milestones', TokenKeyType.BALANCE),
+            label: `${token.symbol} Committed in All Traces`,
+            value: tokenKey(token.symbol, 'traces', TokenKeyType.BALANCE),
             default: '0',
           },
         ])
@@ -79,18 +79,28 @@ module.exports = app => {
       ...tokenWhiteList
         .map(token => [
           {
-            label: `${token.symbol} Amount Milestone Requested`,
-            value: tokenKey(token.symbol, 'milestone', TokenKeyType.REQUESTED),
+            label: `${token.symbol} Amount Trace Requested`,
+            value: tokenKey(token.symbol, 'trace', TokenKeyType.REQUESTED),
             default: '-',
           },
           {
-            label: `${token.symbol} Amount Milestone Holds`,
-            value: tokenKey(token.symbol, 'milestone', TokenKeyType.HOLD),
+            label: `${token.symbol} Amount Trace Holds`,
+            value: tokenKey(token.symbol, 'trace', TokenKeyType.HOLD),
             default: '-',
           },
           {
-            label: `${token.symbol} Amount Milestone Paid Out`,
-            value: tokenKey(token.symbol, 'milestone', TokenKeyType.PAID),
+            label: `${token.symbol} Amount Trace Paid Out`,
+            value: tokenKey(token.symbol, 'trace', TokenKeyType.PAID),
+            default: '-',
+          },
+          {
+            label: `${token.symbol} bridgePaymentExecutedTime`,
+            value: `${token.symbol}-bridgePaymentExecutedTime`,
+            default: '-',
+          },
+          {
+            label: `${token.symbol} bridgeTransactionLink`,
+            value: `${token.symbol}-bridgeTransactionLink`,
             default: '-',
           },
         ])

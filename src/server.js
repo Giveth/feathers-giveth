@@ -15,6 +15,7 @@ const startServer = async () => {
 
   queryGasPrice();
   queryConversionRates(app);
+
   return server;
 };
 module.exports = {

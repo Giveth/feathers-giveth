@@ -7,9 +7,9 @@ const { getTransaction } = require('../../blockchain/lib/web3Helpers');
 const { AdminTypes } = require('../../models/pledgeAdmins.model');
 const { DonationStatus } = require('../../models/donations.model');
 const utils = require('./utils');
+const { TraceTypes } = require('../../models/traces.model');
 
 const capitalizeAdminType = type => {
-  if (type.toLowerCase() === 'dac') return 'DAC';
   return type.charAt(0).toUpperCase() + type.slice(1);
 };
 
@@ -26,78 +26,85 @@ module.exports = app => {
   const tokenWhiteList = app.get('tokenWhitelist');
 
   const donationService = app.service('donations');
-  const dacService = app.service('dacs');
+  const communityService = app.service('communities');
+  const traceService = app.service('traces');
 
-  const newEventTransform = ({ campaign, milestones, pledgeIds }) => {
+  const newEventTransform = ({ campaign, traces, pledgeIds }) => {
     const campaignId = campaign._id.toString();
     const campaignBalance = {
       campaignCommitted: {},
-      milestonesCommitted: {},
+      tracesCommitted: {},
     };
-    const milestonesBalance = {};
-    const milestoneMap = new Map();
-    milestones.forEach(milestone => {
-      const { projectId, migratedProjectId } = milestone;
+    const tracesBalance = {};
+    const traceMap = new Map();
+    traces.forEach(trace => {
+      const { projectId, migratedProjectId } = trace;
       const key = migratedProjectId || projectId;
-      milestoneMap.set(key, milestone);
+      traceMap.set(key, trace);
     });
 
-    const initializeMilestoneBalance = milestone => {
-      const { _id, maxAmount, token } = milestone;
+    const initializeTraceBalance = trace => {
+      const { _id, maxAmount, token } = trace;
       const { symbol } = token;
       const balance = {};
       if (symbol === 'ANY_TOKEN') {
         tokenWhiteList.forEach(t => {
-          balance[t.symbol] = {};
-          balance[t.symbol][TokenKeyType.HOLD] = new BigNumber(0);
-          balance[t.symbol][TokenKeyType.PAID] = new BigNumber(0);
+          balance[t.symbol] = {
+            [TokenKeyType.HOLD]: new BigNumber(0),
+            [TokenKeyType.PAID]: new BigNumber(0),
+          };
         });
       } else {
-        balance[symbol] = {};
-        balance[symbol][TokenKeyType.HOLD] = new BigNumber(0);
-        balance[symbol][TokenKeyType.PAID] = new BigNumber(0);
+        balance[symbol] = {
+          [TokenKeyType.HOLD]: new BigNumber(0),
+          [TokenKeyType.PAID]: new BigNumber(0),
+        };
         if (maxAmount) balance[symbol][TokenKeyType.REQUESTED] = new BigNumber(maxAmount);
       }
 
-      milestonesBalance[_id.toString()] = balance;
+      tracesBalance[_id.toString()] = balance;
       return balance;
     };
 
     const insertCampaignBalanceItems = result => {
-      const { campaignCommitted, milestonesCommitted } = campaignBalance;
+      const { campaignCommitted, tracesCommitted } = campaignBalance;
       Object.keys(campaignCommitted).forEach(symbol => {
         result[tokenKey(symbol, 'campaign', TokenKeyType.BALANCE)] = Web3.utils.fromWei(
           campaignCommitted[symbol].toFixed(),
         );
       });
-      Object.keys(milestonesCommitted).forEach(symbol => {
-        result[tokenKey(symbol, 'milestones', TokenKeyType.BALANCE)] = Web3.utils.fromWei(
-          milestonesCommitted[symbol].toFixed(),
+      Object.keys(tracesCommitted).forEach(symbol => {
+        result[tokenKey(symbol, 'traces', TokenKeyType.BALANCE)] = Web3.utils.fromWei(
+          tracesCommitted[symbol].toFixed(),
         );
       });
     };
 
-    // Get milestone balance items
-    const insertMilestoneBalanceItems = (id, result) => {
-      const balance = milestonesBalance[id.toString()];
+    // Get trace balance items
+    const insertTraceBalanceItems = (id, result, bridgeInfo) => {
+      const balance = tracesBalance[id.toString()];
       Object.keys(balance).forEach(symbol => {
         const tokenBalance = balance[symbol];
         [TokenKeyType.REQUESTED, TokenKeyType.HOLD, TokenKeyType.PAID].forEach(type => {
           const value = tokenBalance[type];
           if (value) {
-            const key = tokenKey(symbol, AdminTypes.MILESTONE, type);
+            const key = tokenKey(symbol, AdminTypes.TRACE, type);
             result[key] = Web3.utils.fromWei(value.toFixed());
           } else if (type === TokenKeyType.REQUESTED) {
-            const key = tokenKey(symbol, AdminTypes.MILESTONE, type);
+            const key = tokenKey(symbol, AdminTypes.TRACE, type);
             result[key] = 'Uncapped';
           }
         });
+        const transactionTimeKey = `${symbol}-bridgePaymentExecutedTime`;
+        const transactionLinkKey = `${symbol}-bridgeTransactionLink`;
+        result[transactionTimeKey] = bridgeInfo && bridgeInfo[transactionTimeKey];
+        result[transactionLinkKey] = bridgeInfo && bridgeInfo[transactionLinkKey];
       });
     };
 
     let campaignOwner;
 
-    const updateBalance = ({
+    const updateBalance = async ({
       donation,
       isDelegate = false,
       parentId,
@@ -126,10 +133,21 @@ module.exports = app => {
         }
       }
 
-      let updateMilestoneCommitted = false;
-      if (ownerType === AdminTypes.MILESTONE) {
-        updateMilestoneCommitted = true;
-        const balance = milestonesBalance[ownerTypeId];
+      let updateTraceCommitted = false;
+      if (ownerType === AdminTypes.TRACE) {
+        updateTraceCommitted = true;
+        // In case trace balance is not initialized (ProjectAdded event is not processed well! gh giveth/feathers-giveth#437
+        if (!tracesBalance[ownerTypeId]) {
+          const [trace] = await traceService.find({
+            query: {
+              _id: ownerTypeId,
+              $select: ['maxAmount', 'token'],
+            },
+            paginate: false,
+          });
+          initializeTraceBalance(trace);
+        }
+        const balance = tracesBalance[ownerTypeId];
         if (status === DonationStatus.PAID) {
           balance[symbol][TokenKeyType.HOLD] = balance[symbol][TokenKeyType.HOLD].minus(amount);
           balance[symbol][TokenKeyType.PAID] = balance[symbol][TokenKeyType.PAID].plus(amount);
@@ -140,21 +158,21 @@ module.exports = app => {
         }
       }
 
-      // Money reverted from milestone
-      if (milestonesBalance[revertedFrom]) {
-        updateMilestoneCommitted = true;
-        const balance = milestonesBalance[revertedFrom];
+      // Money reverted from trace
+      if (tracesBalance[revertedFrom]) {
+        updateTraceCommitted = true;
+        const balance = tracesBalance[revertedFrom];
         balance[symbol][TokenKeyType.HOLD] = balance[symbol][TokenKeyType.HOLD].minus(amount);
         balanceChange = new BigNumber(amount.toString()).negated();
       }
 
-      if (updateMilestoneCommitted) {
-        const { milestonesCommitted } = campaignBalance;
-        const currentMilestonesCommitted = milestonesCommitted[symbol];
-        if (!currentMilestonesCommitted) {
-          milestonesCommitted[symbol] = balanceChange;
+      if (updateTraceCommitted) {
+        const { tracesCommitted } = campaignBalance;
+        const currentTracesCommitted = tracesCommitted[symbol];
+        if (!currentTracesCommitted) {
+          tracesCommitted[symbol] = balanceChange;
         } else {
-          milestonesCommitted[symbol] = currentMilestonesCommitted.plus(balanceChange);
+          tracesCommitted[symbol] = currentTracesCommitted.plus(balanceChange);
         }
       }
     };
@@ -163,7 +181,6 @@ module.exports = app => {
 
     const flushPayouts = async stream => {
       const { transactionHash } = payouts;
-
       // Do nothing if payouts is empty
       if (transactionHash) {
         const { ownerEntity, actionTakerAddress, commitTime } = payouts;
@@ -173,7 +190,7 @@ module.exports = app => {
         recipient.address = recipientAddress;
         const result = {
           createdAt: commitTime.toString(),
-          action: 'Milestone Paid Out',
+          action: 'Trace Paid Out',
           actor: actionTaker && actionTaker.name ? actionTaker.name : actionTakerAddress,
           actionOnBehalfOf: title,
           recipientName: recipient.name || recipientAddress,
@@ -187,7 +204,7 @@ module.exports = app => {
         };
 
         insertCampaignBalanceItems(result);
-        insertMilestoneBalanceItems(_id, result);
+        insertTraceBalanceItems(_id, result, payouts.bridgeInfo);
 
         // Clear payouts
         payouts = {};
@@ -197,8 +214,8 @@ module.exports = app => {
     };
 
     const addPayout = async (stream, donation, createdAt) => {
-      updateBalance({ donation });
-      const { transactionHash, balance = {} } = payouts;
+      await updateBalance({ donation });
+      const { transactionHash, balance = {}, bridgeInfo = {} } = payouts;
       const {
         amount,
         actionTakerAddress,
@@ -207,6 +224,9 @@ module.exports = app => {
         txHash,
         token,
         ownerTypeId,
+        bridgePaymentExecutedTime,
+        bridgePaymentExecutedTxHash,
+        bridgeStatus,
       } = donation;
       // Its a new payouts, the collected one should be printed
       if (transactionHash && transactionHash !== txHash) {
@@ -218,12 +238,16 @@ module.exports = app => {
       const tokenBalance = balance[symbol] || new BigNumber(0);
       tokenBalance.plus(amount);
       balance[symbol] = tokenBalance;
+      bridgeInfo[`${symbol}-bridgePaymentExecutedTime`] = bridgePaymentExecutedTime;
+      bridgeInfo[`${symbol}-bridgeTransactionLink`] =
+        bridgeStatus === 'Paid' ? getHomeEtherscanLink(bridgePaymentExecutedTxHash) : bridgeStatus;
 
       // This is new payout, info should be filled.
       // Fill the info by the first donation only, all donations of one payout has the similar value;
       if (transactionHash !== txHash) {
         payouts.transactionHash = txHash;
         payouts.balance = balance;
+        payouts.bridgeInfo = bridgeInfo;
         payouts.ownerEntity = ownerEntity;
         payouts.actionTakerAddress = actionTakerAddress;
         payouts.commitTime = commitTime;
@@ -268,28 +292,31 @@ module.exports = app => {
                   etherscanLink: getEtherscanLink(transactionHash),
                 };
               } else {
-                const milestone = milestoneMap.get(projectId);
-                if (milestone) {
+                const trace = traceMap.get(projectId);
+                if (trace) {
                   const { from } = await getTransaction(app, transactionHash);
                   const actionTaker = await getUser(from);
                   const action =
                     campaignOwner === actionTaker
-                      ? 'Milestone Created by Campaign Manager'
-                      : 'Milestone Accepted';
+                      ? 'Trace Created by Campaign Manager'
+                      : 'Trace Accepted';
                   result = {
                     ...result,
                     action,
                     actor: actionTaker.name,
                     actionOnBehalfOf: campaign.title,
-                    recipientName: milestone.title,
-                    recipientType: 'Milestone',
-                    recipient: getEntityLink(milestone, AdminTypes.MILESTONE),
+                    recipientName: trace.title,
+                    recipientType: 'Trace',
+                    recipient: getEntityLink(trace, AdminTypes.TRACE),
                     actionTakerAddress: from,
-                    actionRecipientAddress: milestone.pluginAddress,
+                    actionRecipientAddress:
+                      trace.type === TraceTypes.LPMilestone
+                        ? campaign.title
+                        : trace.recipientAddress,
                     etherscanLink: getEtherscanLink(transactionHash),
                   };
-                  initializeMilestoneBalance(milestone);
-                  insertMilestoneBalanceItems(milestone._id, result);
+                  initializeTraceBalance(trace);
+                  insertTraceBalanceItems(trace._id, result, payouts.bridgeInfo);
                 } else {
                   logger.error(
                     `campaign csv could'nt find corresponding project to id ${projectId}`,
@@ -334,13 +361,13 @@ module.exports = app => {
                   etherscanLink: getEtherscanLink(transactionHash),
                 };
               } else {
-                const milestone = milestoneMap.get(projectId);
-                if (milestone) {
+                const trace = traceMap.get(projectId);
+                if (trace) {
                   const { from } = await getTransaction(app, transactionHash);
                   const actionTaker = await getUser(from);
 
                   // let actionOnBehalfOf;
-                  // const { ownerAddress, reviewerAddress, recipientAddress } = milestone;
+                  // const { ownerAddress, reviewerAddress, recipientAddress } = trace;
                   // if (ownerAddress === from) {
                   //   actionOnBehalfOf = 'Proposer';
                   // } else if (reviewerAddress === from) {
@@ -357,18 +384,18 @@ module.exports = app => {
                   //
                   result = {
                     ...result,
-                    action: 'Milestone Canceled',
+                    action: 'Trace Canceled',
                     actor: actionTaker && actionTaker.name ? actionTaker.name : from,
-                    actionOnBehalfOf: milestone.title,
+                    actionOnBehalfOf: trace.title,
                     recipientName: campaign.title,
                     recipientType: 'Campaign',
                     recipient: getEntityLink(campaign, AdminTypes.CAMPAIGN),
                     actionTakerAddress: from,
-                    actionRecipientAddress: milestone.pluginAddress,
+                    actionRecipientAddress: trace.pluginAddress,
                     etherscanLink: getEtherscanLink(transactionHash),
                   };
-                  initializeMilestoneBalance(milestone);
-                  insertMilestoneBalanceItems(milestone._id, result);
+                  initializeTraceBalance(trace);
+                  insertTraceBalanceItems(trace._id, result, payouts.bridgeInfo);
                 } else {
                   logger.error(
                     `campaign csv could'nt find corresponding project to id ${projectId}`,
@@ -381,7 +408,7 @@ module.exports = app => {
             {
               const { from, to, amount } = returnValues;
 
-              // Money is moved to pledge owned by campaign or one of its milestones
+              // Money is moved to pledge owned by campaign or one of its traces
               const toPledgeIds = pledgeIds.has(to);
               // Money is exited from a pledge owned by canceled donation
               // const fromCanceledPledge = canceledPledgeIds.has(from);
@@ -402,7 +429,6 @@ module.exports = app => {
                 callback(null, result);
                 return;
               }
-
               const {
                 homeTxHash,
                 giverAddress,
@@ -426,7 +452,7 @@ module.exports = app => {
               let resolvedActionTakerAddress;
               let actionOnBehalfOf;
               let actionRecipientAddress;
-              let insertMilestoneId;
+              let insertTraceId;
 
               const capitalizeOwnerType = capitalizeAdminType(ownerType);
 
@@ -435,11 +461,11 @@ module.exports = app => {
               if (isReturn) {
                 switch (ownerType) {
                   case AdminTypes.GIVER:
-                    if (delegateType === AdminTypes.DAC) {
-                      action = 'Donation returned to DAC';
+                    if (delegateType === AdminTypes.COMMUNITY) {
+                      action = 'Donation returned to COMMUNITY';
                       recipientName = delegateEntity.title;
                       recipientType = 'DAC';
-                      recipient = getEntityLink(delegateEntity, AdminTypes.DAC);
+                      recipient = getEntityLink(delegateEntity, AdminTypes.COMMUNITY);
                       actionRecipientAddress = delegateEntity.pluginAddress;
                     } else {
                       action = "Donation returned to Giver's Delegation Account";
@@ -478,12 +504,12 @@ module.exports = app => {
                 });
                 if (fromDonation) {
                   actionOnBehalfOf = capitalizeAdminType(fromDonation.ownerType);
-                  if (fromDonation.ownerType === AdminTypes.MILESTONE) {
-                    insertMilestoneId = fromDonation.ownerTypeId;
+                  if (fromDonation.ownerType === AdminTypes.TRACE) {
+                    insertTraceId = fromDonation.ownerTypeId;
                   }
                 }
 
-                updateBalance({ donation, revertedFrom: fromDonation.ownerTypeId });
+                await updateBalance({ donation, revertedFrom: fromDonation.ownerTypeId });
               } else if (toPledgeIds) {
                 if (status === DonationStatus.PAID) {
                   await addPayout(this, donation, createdAt);
@@ -500,8 +526,8 @@ module.exports = app => {
                   parentOwnerType,
                 } = await donationDelegateStatus(parentDonations[0]);
 
-                // Update campaign and milestones balance
-                updateBalance({ donation, isDelegate, parentId: parentOwnerTypeId });
+                // Update campaign and traces balance
+                await updateBalance({ donation, isDelegate, parentId: parentOwnerTypeId });
 
                 if (actionTakerAddress) {
                   resolvedActionTakerAddress = actionTakerAddress;
@@ -548,7 +574,7 @@ module.exports = app => {
                 } else if (ownerType === AdminTypes.CAMPAIGN) {
                   action = 'Campaign Received Donation';
                 } else {
-                  action = 'Direct Donation to Milestone';
+                  action = 'Direct Donation to Trace';
                 }
 
                 resolvedActionTakerAddress = isDelegate ? actionTakerAddress : giverAddress;
@@ -558,8 +584,8 @@ module.exports = app => {
 
                 if (!isDelegate) {
                   actionOnBehalfOf = giver.name;
-                } else if (parentOwnerType === AdminTypes.DAC) {
-                  const [parentOwner] = await dacService.find({
+                } else if (parentOwnerType === AdminTypes.COMMUNITY) {
+                  const [parentOwner] = await communityService.find({
                     query: {
                       _id: parentOwnerTypeId,
                       $select: ['title'],
@@ -574,11 +600,16 @@ module.exports = app => {
                 recipientName = ownerEntity.title;
                 recipientType = capitalizeOwnerType;
                 recipient = getEntityLink(ownerEntity, ownerType);
-                actionRecipientAddress = ownerEntity.pluginAddress;
-                if (ownerType === AdminTypes.MILESTONE) {
-                  insertMilestoneId = ownerEntity._id;
+                if (ownerType === AdminTypes.TRACE) {
+                  const trace = ownerEntity;
+                  actionRecipientAddress =
+                    trace.type === TraceTypes.LPMilestone ? campaign.title : trace.recipientAddress;
+                  insertTraceId = ownerEntity._id;
+                } else {
+                  actionRecipientAddress = ownerEntity.title;
                 }
               }
+
               result = {
                 ...result,
                 action,
@@ -595,9 +626,8 @@ module.exports = app => {
                 etherscanLink: getEtherscanLink(transactionHash),
                 homeEtherscanLink: getHomeEtherscanLink(homeTxHash),
               };
-
-              if (insertMilestoneId) {
-                insertMilestoneBalanceItems(insertMilestoneId, result);
+              if (insertTraceId) {
+                insertTraceBalanceItems(insertTraceId, result, payouts.bridgeInfo);
               }
             }
             break;

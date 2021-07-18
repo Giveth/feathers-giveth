@@ -8,6 +8,8 @@ const resolveFiles = require('../../hooks/resolveFiles');
 const { checkReviewer, checkOwner } = require('../../hooks/isProjectAllowed');
 const addConfirmations = require('../../hooks/addConfirmations');
 const { CampaignStatus } = require('../../models/campaigns.model');
+const createModelSlug = require('../createModelSlug');
+const { isRequestInternal } = require('../../utils/feathersUtils');
 
 const schema = {
   include: [
@@ -69,7 +71,14 @@ const restrict = () => context => {
   );
 };
 
-const countMilestones = (item, service) =>
+const removeProtectedFields = () => context => {
+  if (context && context.data && !isRequestInternal(context)) {
+    delete context.data.verified;
+  }
+  return context;
+};
+
+const countTraces = (item, service) =>
   service.Model.countDocuments({
     campaignId: item._id,
     projectId: {
@@ -77,17 +86,17 @@ const countMilestones = (item, service) =>
     },
   }).then(count => Object.assign(item, { milestonesCount: count }));
 
-// add milestonesCount to each DAC object
-const addMilestoneCounts = () => context => {
-  const service = context.app.service('milestones');
+// add milestonesCount to each COMMUNITY object
+const addTraceCounts = () => context => {
+  const service = context.app.service('traces');
 
   const items = commons.getItems(context);
 
   let promises;
   if (Array.isArray(items)) {
-    promises = items.map(item => countMilestones(item, service));
+    promises = items.map(item => countTraces(item, service));
   } else {
-    promises = [countMilestones(items, service)];
+    promises = [countTraces(items, service)];
   }
 
   return Promise.all(promises).then(results =>
@@ -103,6 +112,7 @@ module.exports = {
     find: [sanitizeAddress('ownerAddress')],
     get: [],
     create: [
+      removeProtectedFields(),
       setAddress('coownerAddress'),
       sanitizeAddress('coownerAddress', {
         required: true,
@@ -116,20 +126,23 @@ module.exports = {
       checkReviewer(),
       checkOwner(),
       sanitizeHtml('description'),
+      createModelSlug('campaigns'),
     ],
     update: [commons.disallow()],
     patch: [
+      removeProtectedFields(),
       restrict(),
       sanitizeAddress('ownerAddress', { validate: true }),
       sanitizeHtml('description'),
+      createModelSlug('campaigns'),
     ],
     remove: [commons.disallow()],
   },
 
   after: {
     all: [commons.populate({ schema })],
-    find: [addMilestoneCounts(), addConfirmations(), resolveFiles('image')],
-    get: [addMilestoneCounts(), addConfirmations(), resolveFiles('image')],
+    find: [addTraceCounts(), addConfirmations(), resolveFiles('image')],
+    get: [addTraceCounts(), addConfirmations(), resolveFiles('image')],
     create: [resolveFiles('image')],
     update: [resolveFiles('image')],
     patch: [resolveFiles('image')],

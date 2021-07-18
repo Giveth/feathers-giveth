@@ -1,12 +1,14 @@
 const commons = require('feathers-hooks-common');
-const { restrictToOwner } = require('feathers-authentication-hooks');
 const { toChecksumAddress } = require('web3-utils');
+const errors = require('@feathersjs/errors');
 
 const notifyOfChange = require('../../hooks/notifyOfChange');
 const sanitizeAddress = require('../../hooks/sanitizeAddress');
 const setAddress = require('../../hooks/setAddress');
 const fundWallet = require('../../hooks/fundWallet');
 const resolveFiles = require('../../hooks/resolveFiles');
+const { isUserAdmin } = require('../../utils/roleUtility');
+const { isRequestInternal } = require('../../utils/feathersUtils');
 
 const normalizeId = () => context => {
   if (context.id) {
@@ -14,14 +16,47 @@ const normalizeId = () => context => {
   }
   return context;
 };
+const disableBulkEdit = () => context => {
+  if (!context.id) {
+    throw new errors.BadRequest('Bulk edit for users entity is disabled');
+  }
+  return context;
+};
+const roleAccessKeys = ['isReviewer', 'isProjectOwner', 'isDelegator'];
 
-const restrict = [
-  normalizeId(),
-  restrictToOwner({
-    idField: 'address',
-    ownerField: 'address',
-  }),
-];
+const restrictUserdataAndAccess = () => async context => {
+  if (isRequestInternal(context)) {
+    return context;
+  }
+  const { user } = context.params;
+  const { data } = context;
+  const sentUserAddress = context.id;
+  // isAdmin just should update manually in DB
+  delete data.isAdmin;
+  const isAdmin = await isUserAdmin(context.app, user.address);
+  if (isAdmin && user.address === sentUserAddress) {
+    return context;
+  }
+  if (!isAdmin && user.address === sentUserAddress) {
+    roleAccessKeys.forEach(key => {
+      delete data[key];
+    });
+    return context;
+  }
+  if (isAdmin && user.address !== sentUserAddress) {
+    Object.keys(data).forEach(key => {
+      if (!roleAccessKeys.includes(key)) {
+        delete data[key];
+      }
+    });
+
+    return context;
+  }
+  // when user is not admin and the sent user and the token user is not the same
+  throw new errors.Forbidden();
+};
+
+const restrict = [normalizeId(), disableBulkEdit(), restrictUserdataAndAccess()];
 
 const address = [
   setAddress('address'),
@@ -36,7 +71,7 @@ const notifyParents = [
     watchFields: ['avatar', 'name'],
   },
   {
-    service: 'dacs',
+    service: 'communities',
     parentField: 'ownerAddress',
     childField: 'address',
     watchFields: ['avatar', 'name'],

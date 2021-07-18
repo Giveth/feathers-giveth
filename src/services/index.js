@@ -1,9 +1,13 @@
 const challenges = require('./challenges/challenges.service');
 const pledgeAdmins = require('./pledgeAdmins/pledgeAdmins.service');
 const events = require('./events/events.service');
+const homePaymentsTransactions = require('./homePaymentsTransactions/homePaymentsTransactions.service');
+const emails = require('./emails/emails.service');
+const subscription = require('./subscriptions/subscription.service');
+const analytics = require('./analytics/analytics.service');
 
-const dacs = require('./dacs/dacs.service.js');
-const milestones = require('./milestones/milestones.service.js');
+const communities = require('./communities/communities.service.js');
+const milestones = require('./traces/traces.service.js');
 const campaigns = require('./campaigns/campaigns.service.js');
 const campaigncsv = require('./csv/campaigncsv.service.js');
 const users = require('./users/users.service.js');
@@ -15,10 +19,11 @@ const whitelist = require('./whitelist/whitelist.service.js');
 const gasprice = require('./gasprice/gasprice.service.js');
 const conversionRates = require('./conversionRates/conversionRates.service.js');
 const conversations = require('./conversations/conversations.service.js');
+const givbackReportDonations = require('./verifiedProjectsGiversReport/verifiedPerojectsGiversReport.service');
 
 module.exports = function configure() {
   const app = this;
-  app.configure(dacs);
+  app.configure(communities);
   app.configure(milestones);
   app.configure(campaigns);
   app.configure(users);
@@ -32,6 +37,11 @@ module.exports = function configure() {
   app.configure(gasprice);
   app.configure(conversionRates);
   app.configure(events);
+  app.configure(homePaymentsTransactions);
+  app.configure(emails);
+  app.configure(subscription);
+  app.configure(analytics);
   app.configure(conversations);
   app.configure(campaigncsv);
+  app.configure(givbackReportDonations);
 };

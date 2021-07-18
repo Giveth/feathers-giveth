@@ -15,17 +15,19 @@ module.exports = function aggregateDonations() {
 
       const donationModel = donationsService.Model;
 
-      const dataQuery = [{ $sort: { totalAmount: -1 } }];
+      const dataQuery = [{ $sort: { totalAmount: -1, updatedAt: 1, 'giver.address': -1 } }];
       if ($skip) dataQuery.push({ $skip: Number($skip) });
       if ($limit) dataQuery.push({ $limit: Number($limit) });
 
       const result = await donationModel
         .aggregate()
         .match({
-          status: { $in: [DonationStatus.COMMITTED, DonationStatus.WAITING] },
+          status: {
+            $in: [DonationStatus.COMMITTED, DonationStatus.WAITING, DonationStatus.PENDING],
+          },
           $or: [
             { ownerTypeId: id }, // Committed ones to project
-            // { intendedProjectTypeId: id }, // Delegated via DAC
+            // { intendedProjectTypeId: id }, // Delegated via COMMUNITY
             {
               delegateTypeId: id,
               intendedProjectId: { $exists: false },
@@ -39,6 +41,7 @@ module.exports = function aggregateDonations() {
           totalAmount: { $sum: '$usdValue' },
           count: { $sum: 1 },
           donations: { $push: '$_id' },
+          updatedAt: { $max: '$updatedAt' },
         })
         .facet({
           data: dataQuery,
@@ -55,7 +58,7 @@ module.exports = function aggregateDonations() {
             paginate: false,
             query: {
               _id: { $in: item.donations },
-              $sort: { createAt: -1 },
+              $sort: { createdAt: -1 },
             },
           }),
           usersService.find({

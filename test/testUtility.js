@@ -6,6 +6,7 @@ const restore = require('mongodb-restore-dump');
 const { ObjectID } = require('bson');
 const { assert } = require('chai');
 const mongoose = require('mongoose');
+const crypto = require('crypto');
 
 const assertThrowsAsync = async (fn, errorMessage) => {
   let f = () => {
@@ -26,6 +27,10 @@ const assertThrowsAsync = async (fn, errorMessage) => {
   }
 };
 
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
 const assertNotThrowsAsync = async fn => {
   let f = () => {
     // empty function
@@ -42,11 +47,13 @@ const assertNotThrowsAsync = async fn => {
 };
 
 const testAddress = '0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1';
+const reviewerAddress = '0xd00cc82a132f421bA6414D196BC830Db95e2e7Dd';
 const campaignAddress = '5fd3412e3e403d0c0f9e4463';
+const projectOwnerAddress = '0x839395e20bbB182fa440d08F850E6c7A8f6F0780';
 
 function getJwt(address = testAddress) {
   const authentication = config.get('authentication');
-  const jwtData = authentication.jwt;
+  const jwtData = authentication.jwtOptions;
   const token = jwt.sign(
     {
       userId: address,
@@ -57,7 +64,7 @@ function getJwt(address = testAddress) {
       algorithm: jwtData.algorithm,
       expiresIn: jwtData.expiresIn,
       issuer: jwtData.issuer,
-      subject: jwtData.subject,
+      subject: address,
       header: jwtData.header,
     },
   );
@@ -77,6 +84,7 @@ async function dropDb() {
     });
   });
 }
+
 async function seedData() {
   await dropDb();
   console.log('test db dropped');
@@ -121,17 +129,27 @@ function generateRandomTransactionHash() {
   return `0x${generateHexNumber(62)}`;
 }
 
+const generateRandomTxHash = () => {
+  return `0x${crypto.randomBytes(16).toString('hex')}`;
+};
+
 const SAMPLE_DATA = {
   // the user in seed data has these values
   USER_ADDRESS: testAddress,
+  ADMIN_USER_ADDRESS: '0xb192Ade5c76209655380285d3D2F3AfA16C44727',
   USER_GIVER_ID: 1,
 
   SECOND_USER_ADDRESS: '0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0',
-  MILESTONE_ID: '5fd3424c3e403d0c0f9e4487',
+  IN_PROJECT_WHITELIST_USER_ADDRESS: projectOwnerAddress,
+  IN_REVIEWER_WHITELIST_USER_ADDRESS: reviewerAddress,
+  IN_DELEGATE_WHITELIST_USER_ADDRESS: '0x84DD429D2A54176A971e0993E11020e4Aa81aB13',
+  TRACE_ID: '5fd3424c3e403d0c0f9e4487',
+  MILESTONE_PROJECT_ID: 5,
   CAMPAIGN_ID: campaignAddress,
   FAKE_USER_ADDRESS: generateRandomEtheriumAddress(),
-  DAC_ID: '5fd339eaa5ffa2a6198ecd70',
-  MILESTONE_STATUSES: {
+  COMMUNITY_ID: '5fd339eaa5ffa2a6198ecd70',
+  USER_ID: '5fd3385aa5ffa2a6198ecd6e',
+  TRACE_STATUSES: {
     PROPOSED: 'Proposed',
     REJECTED: 'Rejected',
     PENDING: 'Pending',
@@ -162,60 +180,108 @@ const SAMPLE_DATA = {
     PROCESSED: 'Processed',
     FAILED: 'Failed',
   },
-  CREATE_MILESTONE_DATA: {
-    fullyFunded: false,
-    mined: true,
-    title: 'test-milestone',
-    description: '<p>give money for god sake</p>',
-    image: '',
-    reviewerAddress: testAddress,
-    dacId: 0,
-    date: '2020-11-10T00:00:00.000Z',
-    recipientAddress: '0x0000000000000000000000000000000000000000',
-    pluginAddress: '0x0000000000000000000000000000000000000001',
-    campaignId: campaignAddress,
-    status: 'InProgress',
-    items: [],
-    token: {
-      name: 'ANY_TOKEN',
-      address: '0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF',
-      foreignAddress: '0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF',
-      symbol: 'ANY_TOKEN',
-      decimals: '1',
+  CREATE_EVENT_DATA: {
+    topics: [],
+    isHomeEvent: false,
+    status: 'Processed',
+    address: '0x8eB047585ABeD935a73ba4b9525213F126A0c979',
+    blockNumber: 3051511,
+    transactionHash: '0x28a99355b05336993764f39d383a47b7b4577c3186d59fe55afb2cd0b4c15347',
+    transactionIndex: 9,
+    blockHash: '0xcdee74b8a7c19540b619672e260b0a88b8e81887de676a5da839fade04970688',
+    logIndex: 6,
+    id: 'log_69157b69',
+    returnValues: {
+      0: '261',
+      1: '',
+      idProject: '261',
+      url: '',
     },
-    owner: {
-      address: testAddress,
-      createdAt: '2018-08-22T00:34:52.691Z',
-      updatedAt: '2020-10-22T00:16:39.775Z',
-      email: 'test@giveth.io',
+    event: 'ProjectAdded',
+    signature: '0x9958fc92731727637b02f1ac1e6caf2814442c27e1d962f0c477cd14280f586d',
+    raw: {
+      data:
+        '0x00000000000000000000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000',
+      topics: [
+        '0x9958fc92731727637b02f1ac1e6caf2814442c27e1d962f0c477cd14280f586d',
+        '0x0000000000000000000000000000000000000000000000000000000000000105',
+      ],
     },
-    type: 'BridgedMilestone',
-    maxAmount: null,
-    txHash: '0x8b0abaa5f5d3cc87c3d52362ef147b8a0fd4ccb02757f5f48b6048aa2e9d86c0',
-    proofItems: [],
-    pendingRecipientAddress: '0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1',
-    peopleCount: 3,
+    confirmations: 6,
+  },
+  createTraceData() {
+    return {
+      fullyFunded: false,
+      mined: true,
+      title: `test-milestone-${new Date()}`,
+      description: '<p>give money for god sake</p>',
+      image: '',
+      reviewerAddress: testAddress,
+      communityId: 0,
+      date: '2020-11-10T00:00:00.000Z',
+      recipientAddress: '0x0000000000000000000000000000000000000000',
+      pluginAddress: '0x0000000000000000000000000000000000000001',
+      campaignId: campaignAddress,
+      status: 'InProgress',
+      items: [],
+      token: {
+        name: 'ANY_TOKEN',
+        address: '0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF',
+        foreignAddress: '0xFFfFfFffFFfffFFfFFfFFFFFffFFFffffFfFFFfF',
+        symbol: 'ANY_TOKEN',
+        decimals: '1',
+      },
+      owner: {
+        address: testAddress,
+        createdAt: '2018-08-22T00:34:52.691Z',
+        updatedAt: '2020-10-22T00:16:39.775Z',
+        email: 'test@giveth.io',
+      },
+      type: 'BridgedMilestone',
+      maxAmount: null,
+      txHash: '0x8b0abaa5f5d3cc87c3d52362ef147b8a0fd4ccb02757f5f48b6048aa2e9d86c0',
+      proofItems: [],
+      pendingRecipientAddress: '0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1',
+      peopleCount: 3,
+    };
   },
   CREATE_CAMPAIGN_DATA: {
     title: 'Hello I;m new Campaign',
     projectId: 10,
     image: 'This should be image :))',
     mined: false,
-    reviewerAddress: testAddress,
-    ownerAddress: testAddress,
+    reviewerAddress,
+    pluginAddress: '0x0000000000000000000000000000000000000001',
+    ownerAddress: projectOwnerAddress,
     status: 'Pending',
     txHash: generateRandomTransactionHash(),
     description: 'test description for campaign',
   },
-  DacStatus: {
+  DONATION_DATA: {
+    status: 'Committed',
+    parentDonations: [],
+    usdValue: 19,
+    txHash: '0xc58ba07cd7ad6a324d203d95b38205f3c9d1d9cc07aeed2031027eda58c3a9b7',
+    pledgeId: '321',
+    amount: '300000000000000',
+    amountRemaining: '0',
+    ownerId: 481,
+    giverAddress: '0xA6012eA4284433baC05e96d352f435265eFa5860',
+    homeTxHash: '0xb0cd61d8b5aa3420b860d7985f83451ef0758adee993de038507b89d4a244219',
+    ownerTypeId: '5f22b2f69e4f03782453b658',
+    ownerType: 'trace',
+    tokenAddress: '0x0',
+    actionTakerAddress: '0x5AC583Feb2b1f288C0A51d6Cdca2e8c814BFE93B',
+  },
+  CommunityStatus: {
     ACTIVE: 'Active',
     PENDING: 'Pending',
     CANCELED: 'Canceled',
     FAILED: 'Failed',
   },
-  CREATE_DAC_DATA: {
-    title: 'test dac title',
-    description: 'test dac description',
+  CREATE_COMMUNITY_DATA: {
+    title: 'test community title',
+    description: 'test community description',
     status: 'Pending',
     txHash: generateRandomTransactionHash(),
     ownerAddress: testAddress,
@@ -251,4 +317,6 @@ module.exports = {
   generateRandomNumber,
   generateRandomTransactionHash,
   padWithZero,
+  sleep,
+  generateRandomTxHash,
 };

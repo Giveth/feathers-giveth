@@ -17,6 +17,7 @@ function createModel(app) {
   const campaign = new Schema(
     {
       title: { type: String, required: true },
+      slug: { type: String, required: true },
       description: { type: String, required: true },
       projectId: { type: Schema.Types.Long, index: true }, // we can use Long here b/c lp only stores adminId in pledges as uint64
       image: { type: String, required: true },
@@ -24,14 +25,16 @@ function createModel(app) {
       txHash: { type: String, index: true, required: true },
       peopleCount: { type: Number },
       donationCounters: [DonationCounter],
-      dacs: { type: [String] },
+      communities: { type: [String] },
       reviewerAddress: { type: String, required: true, index: true },
       ownerAddress: { type: String, required: true, index: true },
       coownerAddress: { type: String, required: false, index: true },
+      disableDonate: { type: Boolean, required: false, default: false },
       fundsForwarder: { type: String, required: false, index: true },
       pluginAddress: { type: String },
       tokenAddress: { type: String },
       mined: { type: Boolean, required: true, default: false },
+      verified: { type: Boolean, default: false },
       status: {
         type: String,
         require: true,
@@ -43,7 +46,8 @@ function createModel(app) {
       prevUrl: { type: String }, // To store deleted/cleared lost ipfs values
       commitTime: { type: Number },
       communityUrl: { type: String },
-      archivedMilestones: { type: [Schema.Types.Long] },
+      archivedTraces: { type: [Schema.Types.Long] },
+      gasPaidUsdValue: { type: Number, default: 0 },
     },
     {
       timestamps: true,
@@ -59,6 +63,7 @@ function createModel(app) {
     reviewerAddress: 1,
     coownerAddress: 1,
   });
+  campaign.index({ slug: 1 }, { unique: true });
   return mongooseClient.model('campaign', campaign);
 }
 

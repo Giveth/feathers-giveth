@@ -8,10 +8,10 @@ const BridgedMilestoneArtifact = require('lpp-milestones/build/BridgedMilestone.
 
 const eventDecodersFromArtifact = require('./lib/eventDecodersFromArtifact');
 const topicsFromArtifacts = require('./lib/topicsFromArtifacts');
-const { DacStatus } = require('../models/dacs.model');
+const { CommunityStatus } = require('../models/communities.model');
 const { DonationStatus } = require('../models/donations.model');
 const { CampaignStatus } = require('../models/campaigns.model');
-const { MilestoneStatus } = require('../models/milestones.model');
+const { TraceStatus } = require('../models/traces.model');
 
 const FIFTEEN_MINUTES = 1000 * 60 * 15;
 const TWO_HOURS = 1000 * 60 * 60 * 2;
@@ -42,9 +42,9 @@ function getPendingDonations(app) {
   return getPending(app, 'donations', query);
 }
 
-function getPendingDacs(app) {
-  const query = { status: DacStatus.PENDING };
-  return getPending(app, 'dacs', query);
+function getPendingCommunities(app) {
+  const query = { status: CommunityStatus.PENDING };
+  return getPending(app, 'communities', query);
 }
 
 function getPendingCampaigns(app) {
@@ -56,9 +56,9 @@ function getPendingCampaigns(app) {
 
 function getPendingMilestones(app) {
   const query = {
-    $or: [{ status: MilestoneStatus.PENDING }, { mined: false }],
+    $or: [{ status: TraceStatus.PENDING }, { mined: false }],
   };
-  return getPending(app, 'milestones', query);
+  return getPending(app, 'traces', query);
 }
 
 function createFailedDonationSingleParentMutation(parentDonation, donation) {
@@ -190,13 +190,17 @@ const failedTxMonitor = (app, eventWatcher) => {
       if (parentDonations.length > 0) {
         updateFailedDonationParents(donation);
       }
-      app
-        .service('donations')
-        .patch(_id, {
+
+      try {
+        // delete conversation related to that donation
+        await app.service('conversations').Model.deleteOne({ donationId: String(_id) });
+        await app.service('donations').patch(_id, {
           status: DonationStatus.FAILED,
           mined: true,
-        })
-        .catch(logger.error);
+        });
+      } catch (e) {
+        logger.error('update donation to Failed and delete related conversation error ', e);
+      }
       return;
     }
 
@@ -255,20 +259,20 @@ const failedTxMonitor = (app, eventWatcher) => {
     handlePendingDonation(currentBlock, donation, receipt, topics);
   }
 
-  async function updateDACIfFailed(currentBlock, dac) {
-    if (!dac.txHash) return;
+  async function updateDACIfFailed(currentBlock, community) {
+    if (!community.txHash) return;
 
-    const receipt = await web3.eth.getTransactionReceipt(dac.txHash);
-    // reset the dac status if the tx has been pending for more then 2 hrs, otherwise ignore
-    if (!receipt && dac.updatedAt.getTime() >= Date.now() - TWO_HOURS) return;
+    const receipt = await web3.eth.getTransactionReceipt(community.txHash);
+    // reset the community status if the tx has been pending for more then 2 hrs, otherwise ignore
+    if (!receipt && community.updatedAt.getTime() >= Date.now() - TWO_HOURS) return;
     // ignore if there isn't enough confirmations
     if (receipt && currentBlock - receipt.blockNumber < requiredConfirmations) return;
 
     if (!receipt || !receipt.status) {
       app
-        .service('dacs')
-        .patch(dac._id, {
-          status: DacStatus.FAILED,
+        .service('communities')
+        .patch(community._id, {
+          status: CommunityStatus.FAILED,
         })
         .catch(logger.error);
 
@@ -282,8 +286,8 @@ const failedTxMonitor = (app, eventWatcher) => {
 
     if (logs.length === 0) {
       logger.error(
-        'dac has no delegateId but transaction was successful dac:',
-        dac,
+        'community has no delegateId but transaction was successful community:',
+        community,
         'receipt:',
         receipt,
       );
@@ -291,8 +295,8 @@ const failedTxMonitor = (app, eventWatcher) => {
 
     logs.forEach(log => {
       logger.info(
-        'dac has no delegateId but transaction was successful. re-emitting AddDelegate event. dac:',
-        { ...dac, image: null },
+        'community has no delegateId but transaction was successful. re-emitting AddDelegate event. community:',
+        { ...community, image: null },
         'receipt:',
         receipt,
       );
@@ -364,7 +368,7 @@ const failedTxMonitor = (app, eventWatcher) => {
     if (!receipt || !receipt.status) {
       // Here we simply revert back to the previous state of the milestone
       app
-        .service('milestones')
+        .service('traces')
         .patch(milestone._id, {
           status: milestone.prevStatus,
           mined: true,
@@ -448,16 +452,16 @@ const failedTxMonitor = (app, eventWatcher) => {
     }
   }
 
-  async function checkPendingDACS() {
+  async function checkPendingCommunities() {
     try {
-      const [blockNumber, pendingDacs] = await Promise.all([
+      const [blockNumber, pendingCommunities] = await Promise.all([
         web3.eth.getBlockNumber(),
-        getPendingDacs(app),
+        getPendingCommunities(app),
       ]);
 
-      pendingDacs.forEach(d => updateDACIfFailed(blockNumber, d));
+      pendingCommunities.forEach(d => updateDACIfFailed(blockNumber, d));
     } catch (e) {
-      logger.error('Check pending DACs error:', e);
+      logger.error('Check pending Communities error:', e);
     }
   }
 
@@ -483,7 +487,7 @@ const failedTxMonitor = (app, eventWatcher) => {
 
       pendingMilestones.forEach(m => updateMilestoneIfFailed(blockNumber, m));
     } catch (e) {
-      logger.error('Check pending milestones error:', e);
+      logger.error('Check pending traces error:', e);
     }
   }
 
@@ -495,11 +499,11 @@ const failedTxMonitor = (app, eventWatcher) => {
      */
     start() {
       intervals.push(setInterval(checkPendingDonations, FIFTEEN_MINUTES));
-      intervals.push(setInterval(checkPendingDACS, FIFTEEN_MINUTES));
+      intervals.push(setInterval(checkPendingCommunities, FIFTEEN_MINUTES));
       intervals.push(setInterval(checkPendingCampaigns, FIFTEEN_MINUTES));
       intervals.push(setInterval(checkPendingMilestones, FIFTEEN_MINUTES));
       checkPendingDonations();
-      checkPendingDACS();
+      checkPendingCommunities();
       checkPendingCampaigns();
       checkPendingMilestones();
     },

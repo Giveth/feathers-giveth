@@ -16,8 +16,13 @@ module.exports = function User(app) {
       prevAvatar: { type: String }, // To store deleted/cleared lost ipfs values
       linkedin: { type: String },
       url: { type: String },
+      isReviewer: { type: Boolean, default: false },
+      isDelegator: { type: Boolean, default: false },
+      isProjectOwner: { type: Boolean, default: false },
+      isAdmin: { type: Boolean, default: false },
       prevUrl: { type: String }, // To store deleted/cleared lost ipfs values
       currency: { type: String }, // Users's native currency
+      gasPaidUsdValue: { type: Number, default: 0 },
     },
     {
       timestamps: true,

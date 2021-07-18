@@ -1,7 +1,23 @@
-const { seedData } = require('./testUtility');
+const { database, config: migrationConfig, up } = require('migrate-mongo');
+const config = require('config');
+const { seedData, sleep } = require('./testUtility');
 
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
+async function runMigrationsOnDbDump() {
+  console.log('migrating up ....');
+  const { db, client } = await database.connect();
+  const myConfig = {
+    mongodb: {
+      url: config.get('mongodb'),
+      options: { useNewUrlParser: true },
+    },
+    migrationsDir: './migrations',
+    changelogCollectionName: 'changelog',
+    migrationFileExtension: '.js',
+  };
+
+  migrationConfig.set(myConfig);
+  const migrated = await up(db, client);
+  migrated.forEach(fileName => console.log('Migrated:', fileName));
 }
 
 before(async () => {
@@ -9,6 +25,7 @@ before(async () => {
     // await mongoServer.getUri();
     await seedData();
     console.log('test db restored');
+    await runMigrationsOnDbDump();
 
     // If we require startServer before initializing mongo the server will not responding, I dont know the reason yet
     /* eslint-disable-next-line */

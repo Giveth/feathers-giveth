@@ -9,7 +9,7 @@ const baseUrl = config.get('givethFathersBaseUrl');
 const relativeUrl = '/conversations';
 
 function getConversationsTestCases() {
-  it('should return some values', async function() {
+  it('should return some values', async () => {
     const response = await request(baseUrl).get(relativeUrl);
     assert.equal(response.statusCode, 200);
     assert.isArray(response.body.data);
@@ -18,9 +18,9 @@ function getConversationsTestCases() {
 
 function postConversationsTestCases() {
   // TODO should test more testCases for creating milestone, different roles on milestone and etc
-  it('should return create conversation successfully', async function() {
+  it('should return create conversation successfully', async () => {
     const payload = {
-      milestoneId: SAMPLE_DATA.MILESTONE_ID,
+      traceId: SAMPLE_DATA.TRACE_ID,
       ownerAddress: SAMPLE_DATA.USER_ADDRESS,
       performedByRole: 'Anonymous role',
       message:
@@ -38,7 +38,7 @@ function postConversationsTestCases() {
 }
 
 function patchConversationsTestCases() {
-  it('should get 403, PATCH is allowed for internal calls', async function() {
+  it('should get 403, PATCH is allowed for internal calls', async () => {
     const response = await request(baseUrl)
       .patch(relativeUrl)
       .set({ Authorization: getJwt() });
@@ -48,7 +48,7 @@ function patchConversationsTestCases() {
 }
 
 function deleteConversationsTestCases() {
-  it('should get 405, DEELTE method is no allowed', async function() {
+  it('should get 405, DEELTE method is no allowed', async () => {
     const response = await request(baseUrl)
       .delete(relativeUrl)
       .set({ Authorization: getJwt() });
@@ -58,7 +58,7 @@ function deleteConversationsTestCases() {
 }
 
 function putConversationsTestCases() {
-  it('should get 405, PUT method is no allowed', async function() {
+  it('should get 405, PUT method is no allowed', async () => {
     const response = await request(baseUrl)
       .put(relativeUrl)
       .set({ Authorization: getJwt() });

@@ -124,3 +124,7 @@ data/
 .nyc_output
 test-results.xml
 simulation/**/*.js
+
+scripts/uploadAndPinProjectImagesToPinata.json
+directDonationsReport.csv
+usersActivityReport.csv

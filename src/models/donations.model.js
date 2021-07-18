@@ -15,6 +15,10 @@ const DonationStatus = {
   FAILED: 'Failed',
 };
 
+const DonationBridgeStatus = {
+  PAID: 'Paid',
+};
+
 function Donation(app) {
   const mongooseClient = app.get('mongooseClient');
   const { Schema } = mongooseClient;
@@ -40,11 +44,18 @@ function Donation(app) {
       campaignId: { type: String },
       status: {
         type: String,
-        require: true,
+        required: true,
         enum: Object.values(DonationStatus),
         default: DonationStatus.PENDING,
         index: true,
       },
+      bridgeStatus: {
+        type: String,
+        enum: Object.values(DonationBridgeStatus),
+      },
+      bridgePaymentAuthorizedTxHash: { type: String }, // The first transaction made by bridge on payment
+      bridgePaymentExecutedTxHash: { type: String }, // The second one which transfer money to user wallet
+      bridgePaymentExecutedTime: { type: Date },
       txHash: { type: String, index: true },
       homeTxHash: { type: String },
       commitTime: { type: Date },
@@ -126,5 +137,6 @@ function Donation(app) {
 
 module.exports = {
   DonationStatus,
+  DonationBridgeStatus,
   createModel: Donation,
 };
