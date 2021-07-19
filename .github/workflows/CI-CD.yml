@@ -31,11 +31,11 @@ jobs:
     steps:
       - name: Check out the repo
         uses: actions/checkout@v2
-      - name: Push to GitHub Packages
+      - name: Build image and push to GitHub Packages
         uses: docker/build-push-action@v1
         with:
           username: ${{ github.actor }}
-          password: ${{ secrets.CR_PAT }}
+          password: ${{ github.token }}
           registry: ghcr.io
           repository: giveth/feathers-giveth
           add_git_labels: true
