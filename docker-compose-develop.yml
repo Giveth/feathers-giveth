@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  feathers-giveth:
+    #see https://github.com/docker/build-push-action/tree/releases/v1#tag_with_ref
+
+    # is sometime you want to rollback you can change the tag manually in server( not commit to git)
+    # from master to your desired commit hash and the run command:
+    # 1. docker-compose -f docker-compose-develop.yml pull
+    # 2. docker-compose -f docker-compose-develop.yml down
+    # 3. docker-compose -f docker-compose-develop.yml up
+    image: ghcr.io/giveth/feathers-giveth:develop
+    environment:
+      - logDir=/usr/src/app/logs
+      - NODE_ENV=develop
+    volumes:
+    # You should have a develop.json file in the config folder
+      - ./config: /usr/src/app/config
+    # Make sure create the log path in the server
+      - /opt/logs/feathers-giveth: /usr/src/app/logs
+    ports:
+      - "3031:3030"
+    depends_on:
+      - redis-giveth
+
+  redis-giveth:
+    # it's better to not using latest tag, maybe latest tag have some breaking changes
+    image: bitnami/redis:5.0.9-debian-10-r142
+    container_name: redis-giveth
+    environment:
+      - ALLOW_EMPTY_PASSWORD=yes
+    restart: always
+    volumes:
+      - redis-data:/bitnami/redis/data
+    ports:
+      - 6379:6379
+
+volumes:
+  redis-data:

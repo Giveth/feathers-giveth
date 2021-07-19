@@ -38,6 +38,7 @@ jobs:
           password: ${{ secrets.CR_PAT }}
           registry: ghcr.io
           repository: giveth/feathers-giveth
+          add_git_labels: true
           # Add branch name to docker image tag @see{@link https://github.com/docker/build-push-action/tree/releases/v1#tag_with_ref}
           tag_with_ref: true
           # Add commit hash to docker image tag @see{@link https://github.com/docker/build-push-action/tree/releases/v1#tag_with_sha}
@@ -52,7 +53,7 @@ jobs:
         if: github.ref == 'refs/heads/develop'
         uses: garygrossgarten/github-action-ssh@v0.6.4
         with:
-          command: cd feathers-giveth-develop && git checkout develop && git pull origin develop && [[ -s $HOME/.nvm/nvm.sh ]] && . $HOME/.nvm/nvm.sh && nvm use 10  && npm ci &&  NODE_ENV=develop ./node_modules/.bin/migrate-mongo up && npm run serve
+          command: cd feathers-giveth-develop && git checkout develop && git pull origin develop && git pull origin develop && docker-compose -f docker-compose-develop.yml pull && docker-compose -f docker-compose-develop.yml down && docker-compose -f docker-compose-develop.yml up
           host: ${{ secrets.DEVELOP_HOST }}
           username: ${{ secrets.DEVELOP_USERNAME }}
           #          passphrase: ${{ secrets.PASSPHRASE }}
@@ -62,7 +63,7 @@ jobs:
         if: github.ref == 'refs/heads/master'
         uses: garygrossgarten/github-action-ssh@v0.6.4
         with:
-          command: cd feathers-giveth-beta && git checkout master && git pull origin master && [[ -s $HOME/.nvm/nvm.sh ]] && . $HOME/.nvm/nvm.sh && nvm use 10  && npm ci &&  NODE_ENV=production ./node_modules/.bin/migrate-mongo up && npm run serve
+          command: cd feathers-giveth-beta && git checkout master && git pull origin master && docker-compose -f docker-compose-production.yml pull && docker-compose -f docker-compose-production.yml down && docker-compose -f docker-compose-production.yml up
           host: ${{ secrets.BETA_HOST }}
           username: ${{ secrets.BETA_USERNAME }}
           #          passphrase: ${{ secrets.PASSPHRASE }}
