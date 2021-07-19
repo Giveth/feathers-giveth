@@ -53,7 +53,7 @@ jobs:
         if: github.ref == 'refs/heads/develop'
         uses: garygrossgarten/github-action-ssh@v0.6.4
         with:
-          command: cd feathers-giveth-develop && git checkout develop && git pull origin develop && git pull origin develop && docker-compose -f docker-compose-develop.yml pull && docker-compose -f docker-compose-develop.yml down && docker-compose -f docker-compose-develop.yml up
+          command: cd feathers-giveth-develop && git checkout develop && git pull origin develop && git pull origin develop && docker-compose -f docker-compose-develop.yml pull && docker-compose -f docker-compose-develop.yml down && docker-compose -f docker-compose-develop.yml up -d
           host: ${{ secrets.DEVELOP_HOST }}
           username: ${{ secrets.DEVELOP_USERNAME }}
           #          passphrase: ${{ secrets.PASSPHRASE }}
@@ -63,7 +63,7 @@ jobs:
         if: github.ref == 'refs/heads/master'
         uses: garygrossgarten/github-action-ssh@v0.6.4
         with:
-          command: cd feathers-giveth-beta && git checkout master && git pull origin master && docker-compose -f docker-compose-production.yml pull && docker-compose -f docker-compose-production.yml down && docker-compose -f docker-compose-production.yml up
+          command: cd feathers-giveth-beta && git checkout master && git pull origin master && docker-compose -f docker-compose-production.yml pull && docker-compose -f docker-compose-production.yml down && docker-compose -f docker-compose-production.yml up -d
           host: ${{ secrets.BETA_HOST }}
           username: ${{ secrets.BETA_USERNAME }}
           #          passphrase: ${{ secrets.PASSPHRASE }}

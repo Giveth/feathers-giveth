@@ -8,16 +8,20 @@ services:
     # from master to your desired commit hash and the run command:
     # 1. docker-compose -f docker-compose-production.yml pull
     # 2. docker-compose -f docker-compose-production.yml down
-    # 3. docker-compose -f docker-compose-production.yml up
+    # 3. docker-compose -f docker-compose-production.yml up -d
     image: ghcr.io/giveth/feathers-giveth:latest
     environment:
       - logDir=/usr/src/app/logs
       - NODE_ENV=production
     volumes:
-    # You should have a production.json file in the config folder
-      - ./config: /usr/src/app/config
-    # Make sure create the log path in the server
-      - /opt/logs/feathers-giveth: /usr/src/app/logs
+      # You should have a production.json file in the config folder
+      - type: bind
+        source: ./config
+        target: /usr/src/app/config
+      # Make sure create the log path in the server
+      - type: bind
+        source: /opt/logs/feathers-giveth
+        target: /usr/src/app/logs
     ports:
       - "3031:3030"
     depends_on:
@@ -32,8 +36,6 @@ services:
     restart: always
     volumes:
       - redis-data:/bitnami/redis/data
-    ports:
-      - 6379:6379
 
 volumes:
   redis-data:
