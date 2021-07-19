@@ -85,5 +85,24 @@ module.exports = function aggregateDonations() {
       };
     },
   };
+  aggregateDonationsService.docs = {
+    operations: {
+      find: {
+        'parameters[2]': {
+          name: 'id',
+          description: 'It could be campaignId, traceId or communityId',
+          in: 'query',
+        },
+        'parameters[3]': undefined,
+      },
+      update: false,
+      patch: false,
+      remove: false,
+      get: false,
+      create: false,
+    },
+    definition: {},
+  };
+
   app.use('/aggregateDonations', aggregateDonationsService);
 };

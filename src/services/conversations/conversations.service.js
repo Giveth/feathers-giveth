@@ -3,6 +3,7 @@ const createService = require('feathers-mongoose');
 const { createModel } = require('../../models/conversations.model');
 const hooks = require('./conversations.hooks');
 const { defaultFeatherMongooseOptions } = require('../serviceCommons');
+const { generateSwaggerDocForCRUDService } = require('../../utils/swaggerUtils');
 
 module.exports = function conversations() {
   const app = this;
@@ -16,11 +17,11 @@ module.exports = function conversations() {
     ...defaultFeatherMongooseOptions,
   };
 
+  const service = createService(options);
+  service.docs = generateSwaggerDocForCRUDService(service, ['remove', 'update', 'patch']);
   // Initialize our service with any options it requires
-  app.use('/conversations', createService(options));
+  app.use('/conversations', service);
 
   // Get our initialized service so that we can register hooks and filters
-  const service = app.service('conversations');
-
-  service.hooks(hooks);
+  app.service('conversations').hooks(hooks);
 };

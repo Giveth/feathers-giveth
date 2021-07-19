@@ -1,5 +1,7 @@
 // Initializes the `pledgeAdmins` service on path `/pledgeAdmins`
 const createService = require('feathers-mongoose');
+const { generateSwaggerDocForCRUDService } = require('../../utils/swaggerUtils');
+
 const { createModel } = require('../../models/pledgeAdmins.model');
 const hooks = require('./pledgeAdmins.hooks');
 const { defaultFeatherMongooseOptions } = require('../serviceCommons');
@@ -17,11 +19,12 @@ module.exports = function pledgeAdmins() {
     ...defaultFeatherMongooseOptions,
   };
 
+  const service = createService(options);
+  service.docs = generateSwaggerDocForCRUDService(service, ['remove', 'create', 'patch', 'update']);
+
   // Initialize our service with any options it requires
-  app.use('/pledgeAdmins', createService(options));
+  app.use('/pledgeAdmins', service);
 
   // Get our initialized service so that we can register hooks and filters
-  const service = app.service('pledgeAdmins');
-
-  service.hooks(hooks);
+  app.service('pledgeAdmins').hooks(hooks);
 };

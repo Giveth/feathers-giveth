@@ -17,16 +17,23 @@ module.exports = function uploadService() {
   // In production, nginx will serve the file. This is a fallback if that isn't setup
   app.use('/uploads', express.static(app.get('uploads')));
 
+  const service = blobService({ Model: blobStorage });
+  service.docs = {
+    operations: {
+      update: false,
+      patch: false,
+      remove: false,
+      get: false,
+      create: {
+        description: 'Currently I dont know what parameter is needed for this endpoint',
+      },
+    },
+    definition: {},
+  };
+
   // Initialize our service with any options it requires
-  app.use(
-    '/uploads',
-    multipartMiddleware.single('uri'),
-    multipartTransfer,
-    blobService({ Model: blobStorage }),
-  );
+  app.use('/uploads', multipartMiddleware.single('uri'), multipartTransfer, service);
 
   // Get our initialized service so that we can register hooks and filters
-  const service = app.service('uploads');
-
-  service.hooks(hooks);
+  app.service('uploads').hooks(hooks);
 };

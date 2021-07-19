@@ -1,4 +1,6 @@
 const createService = require('feathers-mongoose');
+const { generateSwaggerDocForCRUDService } = require('../../utils/swaggerUtils');
+
 const { createModel } = require('../../models/emails.model');
 const hooks = require('./emails.hooks');
 const { defaultFeatherMongooseOptions } = require('../serviceCommons');
@@ -15,11 +17,11 @@ module.exports = function emails() {
     ...defaultFeatherMongooseOptions,
   };
 
+  const service = createService(options);
+  service.docs = generateSwaggerDocForCRUDService(service, ['remove', 'create', 'update', 'patch']);
   // Initialize our service with any options it requires
-  app.use('/emails', createService(options));
+  app.use('/emails', service);
 
   // Get our initialized service so that we can register hooks and filters
-  const service = app.service('emails');
-
-  service.hooks(hooks);
+  app.service('emails').hooks(hooks);
 };
