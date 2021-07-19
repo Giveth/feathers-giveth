@@ -210,7 +210,7 @@ const donationDelegated = (
         </p>
       `,
     cta: `View Donations`,
-    ctaRelativeUrl: `/donations`,
+    ctaRelativeUrl: `/delegations`,
     unsubscribeType: EmailSubscribeTypes.DONATION_DELEGATED,
     unsubscribeReason: `You receive this email because your donation was delegated`,
   };
