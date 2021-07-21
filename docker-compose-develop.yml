@@ -23,7 +23,7 @@ services:
         source: ./logs
         target: /usr/src/app/logs
     ports:
-      - "3031:3030"
+      - "3032:3030"
     depends_on:
       - redis-giveth
 
