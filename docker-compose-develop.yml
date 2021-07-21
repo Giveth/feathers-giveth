@@ -9,7 +9,7 @@ services:
     # 1. docker-compose -f docker-compose-develop.yml pull
     # 2. docker-compose -f docker-compose-develop.yml down
     # 3. docker-compose -f docker-compose-develop.yml up -d
-    image: ghcr.io/giveth/feathers-giveth:dockerize-with-github-package
+    image: ghcr.io/giveth/feathers-giveth:develop
     environment:
       - logDir=/usr/src/app/logs
       - NODE_ENV=develop
@@ -20,7 +20,7 @@ services:
         target: /usr/src/app/config
     # Make sure create the log path in the server
       - type: bind
-        source: /opt/logs/feathers-giveth
+        source: ./logs
         target: /usr/src/app/logs
     ports:
       - "3031:3030"

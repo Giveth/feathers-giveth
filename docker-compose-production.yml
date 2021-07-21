@@ -20,7 +20,7 @@ services:
         target: /usr/src/app/config
       # Make sure create the log path in the server
       - type: bind
-        source: /opt/logs/feathers-giveth
+        source: ./logs
         target: /usr/src/app/logs
     ports:
       - "3031:3030"
