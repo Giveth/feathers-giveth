@@ -57,7 +57,7 @@ const donationReceipt = (app, { recipient, user, amount, token, donationType, do
         </p>
       `,
     cta: 'Manage your Donations',
-    ctaRelativeUrl: '/donations',
+    ctaRelativeUrl: '/my-donations',
     unsubscribeType: EmailSubscribeTypes.DONATION_RECEIPT,
     unsubscribeReason: 'You receive this email from Giveth because you have made a donation',
   };
@@ -162,7 +162,7 @@ const requestDelegation = (
         </p>
       `,
     cta: `Delegate Donation`,
-    ctaRelativeUrl: `/delegations`,
+    ctaRelativeUrl: `/my-delegations`,
     unsubscribeType: EmailSubscribeTypes.REQUEST_DELEGATION,
     unsubscribeReason: `You receive this email because you run a ${donationType}`,
   };
@@ -210,7 +210,7 @@ const donationDelegated = (
         </p>
       `,
     cta: `View Donations`,
-    ctaRelativeUrl: `/delegations`,
+    ctaRelativeUrl: `/my-donations`,
     unsubscribeType: EmailSubscribeTypes.DONATION_DELEGATED,
     unsubscribeReason: `You receive this email because your donation was delegated`,
   };
