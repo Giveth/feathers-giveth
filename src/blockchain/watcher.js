@@ -278,7 +278,7 @@ const watcher = app => {
         .on('data', newPendingEvent)
         .on('changed', e => e.removed && removeEvent(e))
         .on('error', err => {
-          Sentry.captureMessage(err);
+          Sentry.captureException(err);
           logger.error('SUBSCRIPTION ERROR: ', err);
         }),
     );
@@ -306,7 +306,7 @@ const watcher = app => {
         .on('data', newPendingEvent)
         .on('changed', e => e.removed && removeEvent(e))
         .on('error', err => {
-          Sentry.captureMessage(err);
+          Sentry.captureException(err);
           logger.error('SUBSCRIPTION ERROR: ', err);
         }),
     );

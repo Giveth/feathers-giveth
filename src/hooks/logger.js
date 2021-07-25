@@ -68,7 +68,9 @@ const responseLoggerHook = () => {
 
       // for making sure the feathers errors like unAuthorized wouldn't capture as exceptions
       if (e.type !== 'FeathersError') {
-        Sentry.captureException(e);
+        Sentry.captureException(e, {
+          user: hook.params.user,
+        });
       }
       delete e.hook;
 

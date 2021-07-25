@@ -101,7 +101,7 @@ const _getRatesCryptocompare = async (timestamp, ratesToGet, symbol) => {
   try {
     await Promise.all(promises);
   } catch (e) {
-    Sentry.captureMessage(e);
+    Sentry.captureException(e);
     logger.error('Crypto Compare get rate error:', e);
   }
 
@@ -343,7 +343,7 @@ const getHourlyMultipleCryptoConversion = async (
     .catch(e => {
       if (e.response) {
         // send error to sentry if there was an error from calling API
-        Sentry.captureMessage(e);
+        Sentry.captureException(e);
       }
     });
 };

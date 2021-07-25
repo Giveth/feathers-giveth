@@ -269,7 +269,7 @@ function checkWeb3ConnectionAndSendToSentryIfNeeded(w3) {
       .isListening()
       .then()
       .catch(e => {
-        Sentry.captureMessage(e);
+        Sentry.captureException(e);
         logger.error('[ - ] Lost connection to the node, reconnecting', e);
       });
   }, THIRTY_SECONDS);
