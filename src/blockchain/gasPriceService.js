@@ -1,7 +1,7 @@
 const logger = require('winston');
 const rp = require('request-promise');
-const { getFeatherAppInstance } = require('../app');
 const Sentry = require('@sentry/node');
+const { getFeatherAppInstance } = require('../app');
 
 const FIVE_MINUTES = 1000 * 60 * 5;
 
