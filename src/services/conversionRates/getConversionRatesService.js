@@ -87,7 +87,7 @@ const _getRatesCryptocompare = async (timestamp, ratesToGet, symbol) => {
     if (rateSymbol !== requestSymbol) {
       const resp = JSON.parse(
         await rp(
-          `https://min-api.cryptocomparetocompare.com/data/dayAvg?fsym=${requestSymbol}&tsym=${rateSymbol}&toTs=${timestampMS}&extraParams=giveth`,
+          `https://min-api.cryptocompare.com/data/dayAvg?fsym=${requestSymbol}&tsym=${rateSymbol}&toTs=${timestampMS}&extraParams=giveth`,
         ),
       );
 
@@ -148,7 +148,7 @@ const getHourlyRateCryptocompare = async (timestamp, fromToken, toToken) => {
 
   const resp = JSON.parse(
     await rp(
-      `https://min-api.cryptocomparetocompare.com/data/histohour?fsym=${fromToken.rateEqSymbol ||
+      `https://min-api.cryptocompare.com/data/histohour?fsym=${fromToken.rateEqSymbol ||
         fromToken.symbol}&tsym=${toToken.rateEqSymbol ||
         toToken.symbol}&toTs=${timestampMS}&limit=1`,
     ),
