@@ -1,5 +1,7 @@
 const rp = require('request-promise');
 const logger = require('winston');
+const Sentry = require('@sentry/node');
+
 const { getTokenBySymbol } = require('../../utils/tokenHelper');
 const { fetchCoingecko } = require('./coingecko');
 
@@ -99,6 +101,7 @@ const _getRatesCryptocompare = async (timestamp, ratesToGet, symbol) => {
   try {
     await Promise.all(promises);
   } catch (e) {
+    Sentry.captureException(new Error(`Error requesting to cryptocompare: ${e.message}`));
     logger.error('Crypto Compare get rate error:', e);
   }
 
@@ -333,14 +336,18 @@ const getHourlyMultipleCryptoConversion = async (
         timestamp = result.timestamp;
       });
     }),
-  ).then(() => {
-    return { timestamp, rates };
-  });
+  )
+    .then(() => {
+      return { timestamp, rates };
+    })
+    .catch(e => {
+      if (e.response) {
+        // send error to sentry if there was an error from calling API
+        Sentry.captureException(new Error(`Error requesting to cryptocompare: ${e.message}`));
+      }
+    });
 };
 
-const getHourlyUSDCryptoConversion = async (app, ts, fromSymbol = 'ETH') => {
-  return getHourlyCryptoConversion(app, ts, fromSymbol, 'USD');
-};
 // Query the conversion rate every minute
 const queryConversionRates = app => {
   getConversionRates(app);
@@ -357,7 +364,6 @@ module.exports = {
 
   getConversionRates,
   queryConversionRates,
-  getHourlyUSDCryptoConversion,
   getHourlyCryptoConversion,
   getHourlyMultipleCryptoConversion,
 };

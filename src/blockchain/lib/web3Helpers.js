@@ -2,6 +2,7 @@ const Web3 = require('web3');
 const logger = require('winston');
 const EventEmitter = require('events');
 const errors = require('@feathersjs/errors');
+const Sentry = require('@sentry/node');
 
 const THIRTY_SECONDS = 30 * 1000;
 
@@ -262,6 +263,18 @@ const reconnectOnEnd = (web3Core, nodeUrl) => {
   });
 };
 
+function checkWeb3ConnectionAndSendToSentryIfNeeded(w3) {
+  setInterval(() => {
+    w3.eth.net
+      .isListening()
+      .then()
+      .catch(e => {
+        Sentry.captureException(new Error(`Error connecting to web3 ${e.message}`));
+        logger.error('[ - ] Lost connection to the node, reconnecting', e);
+      });
+  }, THIRTY_SECONDS);
+}
+
 function instantiateWeb3(nodeUrl) {
   const provider =
     nodeUrl && nodeUrl.startsWith('ws')
@@ -288,6 +301,7 @@ function instantiateWeb3(nodeUrl) {
       RECONNECT_EVENT: 'reconnect',
     });
   }
+  checkWeb3ConnectionAndSendToSentryIfNeeded(w3);
 
   return w3;
 }
