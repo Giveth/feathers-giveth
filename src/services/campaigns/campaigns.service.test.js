@@ -1,7 +1,7 @@
 const request = require('supertest');
 const config = require('config');
 const { assert } = require('chai');
-const { getJwt, SAMPLE_DATA } = require('../../../test/testUtility');
+const { getJwt, SAMPLE_DATA, generateRandomEtheriumAddress } = require('../../../test/testUtility');
 const { getFeatherAppInstance } = require('../../app');
 
 let app;
@@ -39,6 +39,27 @@ function postCampaignTestCases() {
       .set({ Authorization: getJwt(SAMPLE_DATA.CREATE_CAMPAIGN_DATA.ownerAddress) });
     assert.equal(response.statusCode, 201);
     assert.equal(response.body.ownerAddress, SAMPLE_DATA.CREATE_CAMPAIGN_DATA.ownerAddress);
+  });
+  it('should create campaign successfully, should not set coownerAddress by default', async () => {
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .send(SAMPLE_DATA.CREATE_CAMPAIGN_DATA)
+      .set({ Authorization: getJwt(SAMPLE_DATA.CREATE_CAMPAIGN_DATA.ownerAddress) });
+    assert.equal(response.statusCode, 201);
+    assert.equal(response.body.ownerAddress, SAMPLE_DATA.CREATE_CAMPAIGN_DATA.ownerAddress);
+    assert.notExists(response.body.coownerAddress);
+  });
+
+  it('should create campaign successfully, should set coownerAddress with address we send', async () => {
+    const coownerAddress = generateRandomEtheriumAddress();
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .send({ ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA, coownerAddress })
+      .set({ Authorization: getJwt(SAMPLE_DATA.CREATE_CAMPAIGN_DATA.ownerAddress) });
+    assert.equal(response.statusCode, 201);
+    assert.equal(response.body.ownerAddress, SAMPLE_DATA.CREATE_CAMPAIGN_DATA.ownerAddress);
+    assert.exists(response.body.coownerAddress);
+    assert.equal(response.body.coownerAddress.toLowerCase(), coownerAddress);
   });
 
   it('should create campaign successfully, should not set verified', async () => {
