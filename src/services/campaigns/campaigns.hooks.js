@@ -113,9 +113,9 @@ module.exports = {
     get: [],
     create: [
       removeProtectedFields(),
-      setAddress('coownerAddress'),
+      // setAddress('coownerAddress'),
       sanitizeAddress('coownerAddress', {
-        required: true,
+        required: false,
         validate: true,
       }),
       setAddress('ownerAddress'),
