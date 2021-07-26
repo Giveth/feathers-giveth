@@ -21,7 +21,7 @@ const fetchCoingecko = async (timestampMS, coingeckoId, toSymbol) => {
     );
   } catch (e) {
     logger.error(`coingecko fetch (id:${coingeckoId}, toSymbol:${toSymbol})`, e);
-    Sentry.captureException(e);
+    Sentry.captureException(new Error(`Error requesting to coingecko: ${e.message}`));
     return undefined;
   }
 

@@ -30,7 +30,7 @@ const sendEventToElasticSearch = async data => {
     });
   } catch (e) {
     logger.info('sendEventToElasticSearch error', { e, message: e.message });
-    Sentry.captureException(e);
+    Sentry.captureException(new Error(`Error requesting to elastic search: ${e.message}`));
   }
 };
 

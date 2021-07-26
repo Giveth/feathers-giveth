@@ -87,7 +87,7 @@ const _getRatesCryptocompare = async (timestamp, ratesToGet, symbol) => {
     if (rateSymbol !== requestSymbol) {
       const resp = JSON.parse(
         await rp(
-          `https://min-api.cryptocompare.com/data/dayAvg?fsym=${requestSymbol}&tsym=${rateSymbol}&toTs=${timestampMS}&extraParams=giveth`,
+          `https://min-api.cryptocomparetocompare.com/data/dayAvg?fsym=${requestSymbol}&tsym=${rateSymbol}&toTs=${timestampMS}&extraParams=giveth`,
         ),
       );
 
@@ -101,7 +101,7 @@ const _getRatesCryptocompare = async (timestamp, ratesToGet, symbol) => {
   try {
     await Promise.all(promises);
   } catch (e) {
-    Sentry.captureException(e);
+    Sentry.captureException(new Error(`Error requesting to cryptocompare: ${e.message}`));
     logger.error('Crypto Compare get rate error:', e);
   }
 
@@ -148,7 +148,7 @@ const getHourlyRateCryptocompare = async (timestamp, fromToken, toToken) => {
 
   const resp = JSON.parse(
     await rp(
-      `https://min-api.cryptocompare.com/data/histohour?fsym=${fromToken.rateEqSymbol ||
+      `https://min-api.cryptocomparetocompare.com/data/histohour?fsym=${fromToken.rateEqSymbol ||
         fromToken.symbol}&tsym=${toToken.rateEqSymbol ||
         toToken.symbol}&toTs=${timestampMS}&limit=1`,
     ),
@@ -343,7 +343,7 @@ const getHourlyMultipleCryptoConversion = async (
     .catch(e => {
       if (e.response) {
         // send error to sentry if there was an error from calling API
-        Sentry.captureException(e);
+        Sentry.captureException(new Error(`Error requesting to cryptocompare: ${e.message}`));
       }
     });
 };

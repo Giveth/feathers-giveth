@@ -18,7 +18,7 @@ const queryGasPrice = () => {
       return data;
     })
     .catch(e => {
-      Sentry.captureException(e);
+      Sentry.captureException(new Error(`Error requesting to ethgasstation: ${e.message}`));
       logger.error('could not fetch gas = require(ethgasstation', e.statusCode || e);
     });
 };
