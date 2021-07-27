@@ -20,7 +20,7 @@ const checkIfTraceNameIsUnique = () => async context => {
   const query = {
     _id: { $ne: context.id },
     campaignId: data.campaignId,
-    title: new RegExp(`\\s*^${title.replace(/^\s+|\s+$|\s+(?=\s)/g, '')}\\s*`, 'i'),
+    title: new RegExp(`^\\s*${title.replace(/^\s+|\s+$|\s+(?=\s)/g, '')}\\s*`, 'i'),
   };
   const traceWithSameName = await traceService.find({
     query,
