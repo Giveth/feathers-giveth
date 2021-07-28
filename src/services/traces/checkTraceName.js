@@ -1,6 +1,6 @@
 const errors = require('@feathersjs/errors');
 const logger = require('winston');
-const {getSimilarTitleInTraceRegex} = require('../../utils/regexUtils')
+const { getSimilarTitleInTraceRegex } = require('../../utils/regexUtils');
 /**
  * This function checks if traces name is unique in the campaign scope
  * */
