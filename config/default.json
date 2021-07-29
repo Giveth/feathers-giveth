@@ -178,5 +178,6 @@
   "enableAuditLog": false,
   "enableSentryMonitoring": false,
   "sentryDsn": "",
-  "segmentApiKey": ""
+  "segmentApiKey": "",
+  "givethIoUrl": "https://mainnet.serve.giveth.io/graphql"
 }

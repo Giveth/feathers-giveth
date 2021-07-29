@@ -80,6 +80,8 @@
     "fs-blob-store": "^5.2.1",
     "giveth-bridge": "^1.0.5",
     "giveth-liquidpledging": "1.0.1",
+    "graphql": "^15.5.1",
+    "graphql-request": "^3.5.0",
     "helmet": "^3.8.1",
     "ipfs-api": "^24.0.0",
     "is-ipfs": "^0.4.2",
