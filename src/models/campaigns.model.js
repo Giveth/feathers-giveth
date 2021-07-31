@@ -48,6 +48,7 @@ function createModel(app) {
       communityUrl: { type: String },
       archivedTraces: { type: [Schema.Types.Long] },
       gasPaidUsdValue: { type: Number, default: 0 },
+      givethIoProjectId: { type: String, unique: true },
     },
     {
       timestamps: true,

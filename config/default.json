@@ -179,5 +179,6 @@
   "enableSentryMonitoring": false,
   "sentryDsn": "",
   "segmentApiKey": "",
-  "givethIoUrl": "https://mainnet.serve.giveth.io/graphql"
+  "givethIoUrl": "https://mainnet.serve.giveth.io/graphql",
+  "givethIoProjectsReviewerAddress": "0x5AC583Feb2b1f288C0A51d6Cdca2e8c814BFE93B"
 }
