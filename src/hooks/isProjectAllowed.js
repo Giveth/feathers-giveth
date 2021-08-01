@@ -1,6 +1,6 @@
 const commons = require('feathers-hooks-common');
 const errors = require('@feathersjs/errors');
-const logger = require('winston')
+const logger = require('winston');
 const { TraceStatus } = require('../models/traces.model');
 const { ZERO_ADDRESS } = require('../blockchain/lib/web3Helpers');
 const { isUserInProjectWhiteList, isUserInReviewerWhiteList } = require('../utils/roleUtility');
