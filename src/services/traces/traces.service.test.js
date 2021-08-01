@@ -14,10 +14,14 @@ const baseUrl = config.get('givethFathersBaseUrl');
 const relativeUrl = '/traces';
 
 async function createTrace(data) {
+  return app.service('traces').create(data);
+}
+
+async function createTraceWithRest(data, userAddress) {
   const response = await request(baseUrl)
     .post(relativeUrl)
     .send(data)
-    .set({ Authorization: getJwt() });
+    .set({ Authorization: getJwt(userAddress || data.ownerAddress) });
   return response.body;
 }
 
@@ -104,7 +108,7 @@ function postMilestoneTestCases() {
     const createMileStoneData = { ...SAMPLE_DATA.createTraceData(), verified: true };
     createMileStoneData.status = SAMPLE_DATA.TRACE_STATUSES.PROPOSED;
     createMileStoneData.ownerAddress = SAMPLE_DATA.USER_ADDRESS;
-    const trace = await createTrace(createMileStoneData);
+    const trace = await createTraceWithRest(createMileStoneData);
     assert.isFalse(trace.verified);
   });
 
@@ -112,7 +116,7 @@ function postMilestoneTestCases() {
     const createMileStoneData = { ...SAMPLE_DATA.createTraceData(), verified: true };
     createMileStoneData.status = SAMPLE_DATA.TRACE_STATUSES.PROPOSED;
     createMileStoneData.ownerAddress = generateRandomEtheriumAddress();
-    const trace = await createTrace(createMileStoneData);
+    const trace = await createTraceWithRest(createMileStoneData, SAMPLE_DATA.USER_ADDRESS);
     assert.equal(trace.ownerAddress, SAMPLE_DATA.USER_ADDRESS);
   });
 }

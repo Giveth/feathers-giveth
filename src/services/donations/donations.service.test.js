@@ -36,7 +36,7 @@ async function createDonation(data) {
 async function createCampaigns(data) {
   const response = await request(baseUrl)
     .post('/campaigns')
-    .set({ Authorization: getJwt() })
+    .set({ Authorization: getJwt(data.ownerAddress) })
     .send(data);
   return response.body;
 }

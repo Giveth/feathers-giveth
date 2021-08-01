@@ -18,7 +18,7 @@ async function createCampaign(data) {
   const response = await request(baseUrl)
     .post(relativeUrl)
     .send(data)
-    .set({ Authorization: getJwt() });
+    .set({ Authorization: getJwt(data.ownerAddress) });
   return response.body;
 }
 

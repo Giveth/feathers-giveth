@@ -1,9 +1,10 @@
 const commons = require('feathers-hooks-common');
 const errors = require('@feathersjs/errors');
-const { CampaignStatus } = require('../models/campaigns.model');
+const logger = require('winston')
 const { TraceStatus } = require('../models/traces.model');
 const { ZERO_ADDRESS } = require('../blockchain/lib/web3Helpers');
 const { isUserInProjectWhiteList, isUserInReviewerWhiteList } = require('../utils/roleUtility');
+const { isRequestInternal } = require('../utils/feathersUtils');
 
 const checkReviewer = async context => {
   if (!context.app.get('useReviewerWhitelist')) {
@@ -44,7 +45,7 @@ const checkReviewer = async context => {
   return context;
 };
 
-const checkOwner = context => {
+const checkCampaignOwner = async context => {
   if (!context.app.get('useProjectOwnerWhitelist')) {
     return context;
   }
@@ -53,30 +54,43 @@ const checkOwner = context => {
 
   const inWhitelist = async project => {
     if (
-      (await isUserInProjectWhiteList(context.app, project.ownerAddress.toLowerCase())) ||
-      [TraceStatus.PROPOSED, CampaignStatus.PROPOSED].includes(project.status)
+      isRequestInternal(context) ||
+      (await isUserInProjectWhiteList(context.app, project.ownerAddress.toLowerCase()))
     ) {
       return;
     }
-
     throw new errors.BadRequest(
       `project owner address ${project.ownerAddress} is not in the whitelist`,
     );
   };
 
   if (Array.isArray(items)) {
-    items.forEach(inWhitelist);
+    // eslint-disable-next-line no-restricted-syntax
+    for (const item of items) {
+      // eslint-disable-next-line no-await-in-loop
+      await inWhitelist(item);
+    }
   } else {
-    inWhitelist(items);
+    await inWhitelist(items);
   }
   return context;
 };
+const checkTraceStatusIsProposed = context => {
+  if (isRequestInternal(context) || context.data.status === TraceStatus.PROPOSED) {
+    return context;
+  }
+  logger.error('trace status should just be proposed for external requests', {
+    inputData: context.data,
+    provider: context.params.provider,
+  });
+  throw new errors.BadRequest(`trace status is not proposed`);
+};
 
 module.exports = {
-  isProjectAllowed: () => context => {
-    checkOwner(context);
-    checkReviewer(context);
+  isTraceAllowed: () => async context => {
+    checkTraceStatusIsProposed(context);
+    await checkReviewer(context);
   },
-  checkOwner: () => context => checkOwner(context),
+  checkCampaignOwner: () => context => checkCampaignOwner(context),
   checkReviewer: () => context => checkReviewer(context),
 };
