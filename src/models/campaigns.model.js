@@ -49,7 +49,7 @@ function createModel(app) {
       archivedTraces: { type: [Schema.Types.Long] },
       gasPaidUsdValue: { type: Number, default: 0 },
 
-      // to note set null if  givethIoProjectId doesn't exist
+      // to not set null if  givethIoProjectId doesn't exist
       givethIoProjectId: { type: String, unique: true, sparse: true },
     },
     {
