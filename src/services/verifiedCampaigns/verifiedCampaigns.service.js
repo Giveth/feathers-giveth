@@ -5,7 +5,7 @@ const { findCampaignByGivethIoProjectId } = require('../../repositories/campaign
 const { getGivethIoAdapter } = require('../../adapters/adapterFactory');
 
 const givethIoAdapter = getGivethIoAdapter();
-module.exports = function aggregateDonations() {
+module.exports = function verifiedCampaigns() {
   const app = this;
 
   const service = {
@@ -19,7 +19,7 @@ module.exports = function aggregateDonations() {
         description,
         walletAddress: ownerAddress,
       } = projectInfo;
-      if (params.user.address !== ownerAddress) {
+      if (params.user.address.toLowerCase() !== ownerAddress.toLowerCase()) {
         throw new errors.Forbidden('The owner of project in givethIo is not you');
       }
       let campaign = await findCampaignByGivethIoProjectId(app, givethIoProjectId);
@@ -95,5 +95,5 @@ module.exports = function aggregateDonations() {
       },
     },
   };
-  app.use('/createCampaignForGivethioProjects', service);
+  app.use('/verifiedCampaigns', service);
 };

@@ -4,7 +4,7 @@ const { assert } = require('chai');
 const { SAMPLE_DATA, getJwt, generateRandomTxHash } = require('../../../test/testUtility');
 
 const baseUrl = config.get('givethFathersBaseUrl');
-const relativeUrl = '/createCampaignForGivethioProjects';
+const relativeUrl = '/verifiedCampaigns';
 
 function GetCreateCampaignForGivethioProjectsTestCases() {
   it('get projectInfo with right input data', async () => {
