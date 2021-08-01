@@ -1,35 +1,71 @@
 const request = require('supertest');
 const config = require('config');
 const { assert } = require('chai');
+const { SAMPLE_DATA, getJwt, generateRandomTxHash } = require('../../../test/testUtility');
 
 const baseUrl = config.get('givethFathersBaseUrl');
 const relativeUrl = '/createCampaignForGivethioProjects';
 
-function getGasPriceTestCases() {
-  it('get error if fromDate didnt send', async () => {
-    const response = await request(baseUrl).get(`${relativeUrl}?projectIds=1,2,3,4,5,22`);
-    assert.equal(response.statusCode, 400);
-    assert.equal(
-      response.body.message,
-      'fromDate is required with this format: YYYY/MM/DD-hh:mm:ss',
-    );
-  });
-  it('get error if toDate didnt send', async () => {
+function GetCreateCampaignForGivethioProjectsTestCases() {
+  it('get projectInfo with right input data', async () => {
+    const slug = 'test';
     const response = await request(baseUrl).get(
-      `${relativeUrl}?projectIds=1,2,3,4,5,22&fromDate=2018/01/01-00:00:00`,
-    );
-    assert.equal(response.statusCode, 400);
-    assert.equal(response.body.message, 'toDate is required with this format: YYYY/MM/DD-hh:mm:ss');
-  });
-  it('get success response', async () => {
-    const response = await request(baseUrl).get(
-      `${relativeUrl}?projectIds=1,2,3,4,5,22&fromDate=2020/01/01-00:00:00&toDate=2020/01/01-00:00:00`,
+      `${relativeUrl}?slug=${slug}&userAddress=${SAMPLE_DATA.GIVETH_IO_PROJECT_OWNER_ADDRESS}`,
     );
     assert.equal(response.statusCode, 200);
-    assert.exists(response.body.total);
-    assert.exists(response.body.data);
-    assert.isArray(response.body.data);
+    assert.equal(response.body.slug, slug);
+    assert.exists(response.body.id);
+  });
+  it('Get 403 for getting projectInfo with invalid walletAddress', async () => {
+    const slug = 'test';
+    const response = await request(baseUrl).get(
+      `${relativeUrl}?slug=${slug}&userAddress=${SAMPLE_DATA.USER_ADDRESS}`,
+    );
+    assert.equal(response.statusCode, 403);
+  });
+}
+function CreateCampaignForGivethioProjectsTestCases() {
+  it('Create campaign with gievthIo project successful', async () => {
+    const slug = 'test';
+    const response = await request(baseUrl)
+      .post(`${relativeUrl}`)
+      .send({
+        slug,
+        txHash: generateRandomTxHash(),
+        image: '/ipfs/dshdkjsahdkahkdsa',
+      })
+      .set({ Authorization: getJwt(SAMPLE_DATA.GIVETH_IO_PROJECT_OWNER_ADDRESS) });
+    assert.equal(response.statusCode, 201);
+    assert.equal(response.body.slug, slug);
+  });
+
+  it('Get 403 for creating campaign with invalid walletAddress', async () => {
+    const slug = 'test';
+    const response = await request(baseUrl)
+      .post(`${relativeUrl}`)
+      .send({
+        slug,
+        txHash: generateRandomTxHash(),
+        image: 'testImage',
+      })
+      .set({ Authorization: getJwt(SAMPLE_DATA.USER_ADDRESS) });
+
+    assert.equal(response.statusCode, 403);
+  });
+
+  it('Get 401 for creating campaign when not sending Access token', async () => {
+    const slug = 'test';
+    const response = await request(baseUrl)
+      .post(`${relativeUrl}`)
+      .send({
+        slug,
+        txHash: generateRandomTxHash(),
+        image: 'testImage',
+      });
+
+    assert.equal(response.statusCode, 401);
   });
 }
 
-describe(`Test GET ${relativeUrl}`, getGasPriceTestCases);
+describe(`Test GET ${relativeUrl}`, GetCreateCampaignForGivethioProjectsTestCases);
+describe(`Test POST ${relativeUrl}`, CreateCampaignForGivethioProjectsTestCases);
