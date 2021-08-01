@@ -1,9 +1,10 @@
 const errors = require('@feathersjs/errors');
 const config = require('config');
 const logger = require('winston');
-const { getProjectInfoBySLug } = require('../../utils/givethIoUtils');
 const { findCampaignByGivethIoProjectId } = require('../../repositories/campaignRepository');
+const { getGivethIoAdapter } = require('../../adapters/adapterFactory');
 
+const givethIoAdapter = getGivethIoAdapter();
 module.exports = function aggregateDonations() {
   const app = this;
 
@@ -11,21 +12,17 @@ module.exports = function aggregateDonations() {
     async create(data, params) {
       const { txHash, image, slug } = data;
 
-      // TODO should remove below line
-      const { projectId } = data;
-      const projectInfo = await getProjectInfoBySLug(slug);
+      const projectInfo = await givethIoAdapter.getProjectInfoBySLug(slug);
       const {
         id: givethIoProjectId,
         title,
         description,
         walletAddress: ownerAddress,
       } = projectInfo;
-      // TODO uncomment below lines
-      // if (params.user.address !== ownerAddress){
-      //   throw new errors.Forbidden('The owner of project in givethIo is not you');
-      // }
-      // let campaign = await findCampaignByGivethIoProjectId(app, projectInfo.id);
-      let campaign = await findCampaignByGivethIoProjectId(app, projectId);
+      if (params.user.address !== ownerAddress) {
+        throw new errors.Forbidden('The owner of project in givethIo is not you');
+      }
+      let campaign = await findCampaignByGivethIoProjectId(app, givethIoProjectId);
       if (campaign) {
         throw new errors.BadRequest('Campaign with this givethIo projectId exists');
       }
@@ -36,23 +33,19 @@ module.exports = function aggregateDonations() {
         description,
         txHash,
         image,
-        // TODO uncomment below lines
-        // ownerAddress,
-        // givethIoProjectId,
-        givethIoProjectId: data.projectId,
-        ownerAddress: '0x5AC583Feb2b1f288C0A51d6Cdca2e8c814BFE93B',
+        ownerAddress,
+        givethIoProjectId,
       });
       return campaign;
     },
     async find({ query }) {
       const { slug, userAddress } = query;
-      const projectInfo = await getProjectInfoBySLug(slug);
+      const projectInfo = await givethIoAdapter.getProjectInfoBySLug(slug);
       const { id: givethIoProjectId, walletAddress: ownerAddress } = projectInfo;
       if (ownerAddress !== userAddress) {
         logger.error('The owner of givethIo project is ', ownerAddress);
         throw new errors.Forbidden('The owner of project in givethIo is not you');
       }
-      // TODO uncomment below lines
       const campaign = await findCampaignByGivethIoProjectId(app, givethIoProjectId);
       if (campaign) {
         throw new errors.BadRequest('Campaign with this givethIo projectId exists');
@@ -61,8 +54,7 @@ module.exports = function aggregateDonations() {
     },
   };
   service.docs = {
-    // TODO uncomment below lines
-    // securities: ['create'],
+    securities: ['create'],
     operations: {
       update: false,
       patch: false,
