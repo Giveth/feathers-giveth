@@ -82,6 +82,16 @@ function postCampaignTestCases() {
     assert.equal(response.statusCode, 400);
   });
 
+  it('should fail create campaign, because reviewerAddress is not isReviewer in Db', async () => {
+    const userAddress = generateRandomEtheriumAddress();
+    await app.service('users').create({ address: userAddress });
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .send({ ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA, reviewerAddress: userAddress })
+      .set({ Authorization: getJwt(SAMPLE_DATA.CREATE_CAMPAIGN_DATA.ownerAddress) });
+    assert.equal(response.statusCode, 400);
+  });
+
   it('should get unAuthorized error', async () => {
     const response = await request(baseUrl)
       .post(relativeUrl)

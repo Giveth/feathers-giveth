@@ -119,6 +119,18 @@ function postMilestoneTestCases() {
     const trace = await createTraceWithRest(createMileStoneData, SAMPLE_DATA.USER_ADDRESS);
     assert.equal(trace.ownerAddress, SAMPLE_DATA.USER_ADDRESS);
   });
+
+  it('should fail create trace, because reviewerAddress is not isReviewer in Db', async () => {
+    const userAddress = generateRandomEtheriumAddress();
+    await app.service('users').create({ address: userAddress });
+    const createTraceData = { ...SAMPLE_DATA.createTraceData(), reviewerAddress: userAddress };
+
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .send(createTraceData)
+      .set({ Authorization: getJwt(createTraceData.ownerAddress) });
+    assert.equal(response.statusCode, 400);
+  });
 }
 
 function patchMilestoneTestCases() {
