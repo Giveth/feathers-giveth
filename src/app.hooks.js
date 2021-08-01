@@ -27,10 +27,7 @@ const authenticate = () => context => {
     // for creating donations it's not needed to be authenticated, anonymous users can donate
     return context;
   }
-  if (
-    context.path === 'createCampaignForGivethioProjects' &&
-    context.method === 'create'
-  ) {
+  if (context.path === 'createCampaignForGivethioProjects' && context.method === 'create') {
     // for creating donations it's not needed to be authenticated, anonymous users can donate
     return context;
   }
