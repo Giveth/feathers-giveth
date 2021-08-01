@@ -24,7 +24,7 @@ async function createCampaign(data) {
 
 function findCampaignByGivethIoProjectIdTestCases() {
   it('should found campaign with givethIoProjectId', async () => {
-    const givethIoProjectId = "10";
+    const givethIoProjectId = '10';
     const campaign = await createCampaign({
       ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
       givethIoProjectId,
