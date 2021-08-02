@@ -1,7 +1,12 @@
 const request = require('supertest');
 const config = require('config');
 const { assert } = require('chai');
-const { getJwt, SAMPLE_DATA, generateRandomTransactionHash } = require('../../../test/testUtility');
+const {
+  getJwt,
+  SAMPLE_DATA,
+  generateRandomTransactionHash,
+  generateRandomEtheriumAddress,
+} = require('../../../test/testUtility');
 const { getFeatherAppInstance } = require('../../app');
 
 let app;
@@ -69,6 +74,29 @@ function postCommunityTestCases() {
     assert.isNotNull(response1.body.slug);
     assert.isNotNull(response2.body.slug);
     assert.notEqual(response1.body.slug, response2.body.slug);
+  });
+
+  it('should fail create community, because reviewerAddress is not isReviewer in Db', async () => {
+    const userAddress = generateRandomEtheriumAddress();
+    await app.service('users').create({ address: userAddress });
+    const createTraceData = { ...SAMPLE_DATA.createTraceData(), reviewerAddress: userAddress };
+
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .send(createTraceData)
+      .set({ Authorization: getJwt(createTraceData.ownerAddress) });
+    assert.equal(response.statusCode, 400);
+  });
+  it('should fail create community, because ownerAddress is not isDelegator in Db', async () => {
+    const userAddress = generateRandomEtheriumAddress();
+    await app.service('users').create({ address: userAddress });
+    const createTraceData = { ...SAMPLE_DATA.createTraceData(), ownerAddress: userAddress };
+
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .send(createTraceData)
+      .set({ Authorization: getJwt(createTraceData.ownerAddress) });
+    assert.equal(response.statusCode, 400);
   });
 }
 
