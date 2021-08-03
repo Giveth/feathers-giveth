@@ -70,6 +70,7 @@
     "cors": "^2.8.4",
     "dauria": "^2.0.0",
     "debug": "^3.1.0",
+    "fast-ratelimit": "^2.2.0",
     "feathers-authentication-hooks": "0.3.0",
     "feathers-blob": "2.0.1",
     "feathers-hooks-common": "^4.20.7",

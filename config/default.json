@@ -178,5 +178,14 @@
   "enableAuditLog": false,
   "enableSentryMonitoring": false,
   "sentryDsn": "",
-  "segmentApiKey": ""
+  "segmentApiKey": "",
+  "rateLimit": {
+    "disable": false,
+    "ttlSeconds": 30,
+    "threshold": 3,
+    "createProjectTtlSeconds":86400,
+    "createProjectThreshold":20
+  }
+
+
 }

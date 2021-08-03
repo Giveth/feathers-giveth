@@ -1,10 +1,13 @@
 // Application hooks that run for every service
 const auth = require('@feathersjs/authentication');
+const config = require('config');
 const { discard } = require('feathers-hooks-common');
 const { NotAuthenticated } = require('@feathersjs/errors');
 const { isRequestInternal } = require('./utils/feathersUtils');
 const { responseLoggerHook, startMonitoring } = require('./hooks/logger');
-
+const { rateLimit } = require('./utils/rateLimit');
+const rateLimitTtlSeconds = config.rateLimit.ttlSeconds;
+const rateLimitThreshold = config.rateLimit.threshold;
 const authenticate = () => context => {
   // No need to authenticate internal calls
   if (isRequestInternal(context)) return context;
@@ -50,9 +53,27 @@ module.exports = {
     find: [convertVerifiedToBoolean()],
     get: [],
     create: [authenticate()],
-    update: [authenticate()],
-    patch: [authenticate()],
-    remove: [authenticate()],
+    update: [
+      authenticate(),
+      rateLimit({
+        threshold: rateLimitThreshold,
+        ttl: rateLimitTtlSeconds,
+      }),
+    ],
+    patch: [
+      authenticate(),
+      rateLimit({
+        threshold: rateLimitThreshold,
+        ttl: rateLimitTtlSeconds,
+      }),
+    ],
+    remove: [
+      authenticate(),
+      rateLimit({
+        threshold: rateLimitThreshold,
+        ttl: rateLimitTtlSeconds,
+      }),
+    ],
   },
 
   after: {
