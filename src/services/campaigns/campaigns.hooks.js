@@ -5,7 +5,7 @@ const sanitizeAddress = require('../../hooks/sanitizeAddress');
 const setAddress = require('../../hooks/setAddress');
 const sanitizeHtml = require('../../hooks/sanitizeHtml');
 const resolveFiles = require('../../hooks/resolveFiles');
-const { checkReviewer, checkOwner } = require('../../hooks/isProjectAllowed');
+const { checkReviewer, checkCampaignOwner } = require('../../hooks/isProjectAllowed');
 const addConfirmations = require('../../hooks/addConfirmations');
 const { CampaignStatus } = require('../../models/campaigns.model');
 const createModelSlug = require('../createModelSlug');
@@ -124,7 +124,7 @@ module.exports = {
         validate: true,
       }),
       checkReviewer(),
-      checkOwner(),
+      checkCampaignOwner(),
       sanitizeHtml('description'),
       createModelSlug('campaigns'),
     ],
