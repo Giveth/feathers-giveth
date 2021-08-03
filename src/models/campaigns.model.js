@@ -48,6 +48,9 @@ function createModel(app) {
       communityUrl: { type: String },
       archivedTraces: { type: [Schema.Types.Long] },
       gasPaidUsdValue: { type: Number, default: 0 },
+
+      // to not set null if  givethIoProjectId doesn't exist
+      givethIoProjectId: { type: String, unique: true, sparse: true },
     },
     {
       timestamps: true,

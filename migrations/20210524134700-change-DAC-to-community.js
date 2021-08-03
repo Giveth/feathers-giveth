@@ -15,7 +15,12 @@ module.exports = {
     await db
       .collection('pledgeadmins')
       .updateMany({ type: 'dac' }, { $set: { type: 'community' } });
-    await db.collection('dacs').rename('communities');
+    try {
+      // add This line in try-catch, otherwise it will get error if there is communities already
+      await db.collection('dacs').rename('communities');
+    } catch (e) {
+      //
+    }
   },
 
   async down(db, _client) {
@@ -34,6 +39,11 @@ module.exports = {
     await db
       .collection('donations')
       .updateMany({ delegateType: 'community' }, { $set: { delegateType: 'dac' } });
-    await db.collection('communities').rename('dacs');
+    try {
+      // add This line in try-catch, otherwise it will get error if there is dacs already
+      await db.collection('communities').rename('dacs');
+    } catch (e) {
+      //
+    }
   },
 };

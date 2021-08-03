@@ -21,7 +21,12 @@ module.exports = {
     await db
       .collection('donations')
       .updateMany({ ownerType: 'milestone' }, { $set: { ownerType: 'trace' } });
-    await db.collection('milestones').rename('traces');
+    try {
+      // add This line in try-catch, otherwise it will get error if there is traces already
+      await db.collection('milestones').rename('traces');
+    } catch (e) {
+      //
+    }
   },
 
   async down(db, _client) {
@@ -42,13 +47,21 @@ module.exports = {
       .updateMany({ intendedProjectType: 'trace' }, { $set: { intendedProjectType: 'milestone' } });
     await db
       .collection('campaigns')
-      .updateMany({ archivedMilestones: {$exists:true} },  { $rename: { archivedMilestones: 'archivedTraces' }  });
+      .updateMany(
+        { archivedMilestones: { $exists: true } },
+        { $rename: { archivedMilestones: 'archivedTraces' } },
+      );
     await db
       .collection('pledgeadmins')
       .updateMany({ type: 'trace' }, { $set: { type: 'milestone' } });
     await db
       .collection('donations')
       .updateMany({ ownerType: 'trace' }, { $set: { ownerType: 'milestone' } });
-    await db.collection('traces').rename('milestones');
+    try {
+      // add This line in try-catch, otherwise it will get error if there is milestones already
+      await db.collection('traces').rename('milestones');
+    } catch (e) {
+      //
+    }
   },
 };

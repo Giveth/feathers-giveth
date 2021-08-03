@@ -11,7 +11,7 @@ const setAddress = require('../../hooks/setAddress');
 const sanitizeHtml = require('../../hooks/sanitizeHtml');
 const tokenAddressConversion = require('../../hooks/tokenAddressConversion');
 const resolveFiles = require('../../hooks/resolveFiles');
-const { isProjectAllowed } = require('../../hooks/isProjectAllowed');
+const { isTraceAllowed } = require('../../hooks/isProjectAllowed');
 const { isTokenAllowed } = require('../../hooks/isTokenAllowed');
 const addConfirmations = require('../../hooks/addConfirmations');
 const { TraceStatus } = require('../../models/traces.model');
@@ -341,7 +341,7 @@ module.exports = {
       checkTraceName(),
       setAddress('ownerAddress'),
       ...address,
-      isProjectAllowed(),
+      isTraceAllowed(),
       isTokenAllowed(),
       sanitizeHtml('description'),
       convertTokenToTokenAddress(),
