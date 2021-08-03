@@ -61,20 +61,19 @@ module.exports = function verifiedCampaigns() {
       remove: false,
       find: {
         description: 'Check if user can create campaign base on givethIo project',
-        'parameters[0]': {
-          type: 'string',
-          in: 'query',
-          description: 'The slug of project in givethIo',
-          name: 'slug',
-        },
-        'parameters[1]': {
-          type: 'string',
-          in: 'query',
-          name: 'userAddress',
-        },
-
-        // removing extra fields from query that swagger automatically ($sort)
-        'parameters[2]': undefined,
+        parameters: [
+          {
+            type: 'string',
+            in: 'query',
+            description: 'The slug of project in givethIo',
+            name: 'slug',
+          },
+          {
+            type: 'string',
+            in: 'query',
+            name: 'userAddress',
+          },
+        ],
       },
       create: {
         description: 'Create campaign base on givethIo project',
