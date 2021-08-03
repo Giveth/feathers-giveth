@@ -48,6 +48,44 @@ function postMilestoneTestCases() {
     assert.equal(response.statusCode, 201);
     assert.equal(response.body.ownerAddress, SAMPLE_DATA.USER_ADDRESS);
   });
+  it('non-campaign owner should not create trace with Pending status', async () => {
+    const user = await app.service('users').create({ address: generateRandomEtheriumAddress() });
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .send({ ...SAMPLE_DATA.createTraceData(), status: SAMPLE_DATA.TRACE_STATUSES.PENDING })
+      .set({ Authorization: getJwt(user.address) });
+    assert.equal(response.statusCode, 400);
+    assert.equal(response.body.message, 'trace status is not proposed');
+  });
+  it('campaign owner should create trace with Pending status', async () => {
+    const campaign = await app.service('campaigns').get(SAMPLE_DATA.CAMPAIGN_ID);
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .send({
+        ...SAMPLE_DATA.createTraceData(),
+        campaignId: campaign._id,
+        status: SAMPLE_DATA.TRACE_STATUSES.PENDING,
+      })
+      .set({ Authorization: getJwt(campaign.ownerAddress) });
+    assert.equal(response.statusCode, 201);
+  });
+  it('campaign owner should not create Pending trace in another campaign ', async () => {
+    const campaign = await app.service('campaigns').get(SAMPLE_DATA.CAMPAIGN_ID);
+    const user = await app.service('users').create({ address: generateRandomEtheriumAddress() });
+    const newCampaign = await app
+      .service('campaigns')
+      .create({ ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA, ownerAddress: user.address });
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .send({
+        ...SAMPLE_DATA.createTraceData(),
+        campaignId: newCampaign._id,
+        status: SAMPLE_DATA.TRACE_STATUSES.PENDING,
+      })
+      .set({ Authorization: getJwt(campaign.ownerAddress) });
+    assert.equal(response.statusCode, 400);
+    assert.equal(response.body.message, 'trace status is not proposed');
+  });
   it('should create trace successfully including category', async () => {
     const formType = 'expense';
     const response = await request(baseUrl)

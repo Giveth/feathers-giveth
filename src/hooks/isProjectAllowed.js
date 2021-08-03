@@ -75,8 +75,16 @@ const checkCampaignOwner = async context => {
   }
   return context;
 };
-const checkTraceStatusIsProposed = context => {
+const checkTraceStatus = async context => {
   if (isRequestInternal(context) || context.data.status === TraceStatus.PROPOSED) {
+    return context;
+  }
+  const campaign = await context.app.service('campaigns').get(context.data.campaignId);
+  if (
+    campaign.ownerAddress.toLowerCase() === context.params.user.address.toLowerCase() &&
+    context.data.status === TraceStatus.PENDING
+  ) {
+    // campaignOwner can create Pending Trace
     return context;
   }
   logger.error('trace status should just be proposed for external requests', {
@@ -88,7 +96,7 @@ const checkTraceStatusIsProposed = context => {
 
 module.exports = {
   isTraceAllowed: () => async context => {
-    checkTraceStatusIsProposed(context);
+    await checkTraceStatus(context);
     await checkReviewer(context);
   },
   checkCampaignOwner: () => context => checkCampaignOwner(context),
