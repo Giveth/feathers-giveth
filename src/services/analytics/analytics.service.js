@@ -17,7 +17,8 @@ module.exports = function analytics() {
       remove: false,
       find: false,
       create: {
-        description: 'For subscribe and unsubscribe call this endpoint with enabled',
+        description:
+          'This is for sending analytics event, Brave block analytics, so the gievth-dapp send analytic event by feathers-giveth in this case',
       },
     },
     definition: {
