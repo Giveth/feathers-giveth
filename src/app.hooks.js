@@ -6,6 +6,7 @@ const { NotAuthenticated } = require('@feathersjs/errors');
 const { isRequestInternal } = require('./utils/feathersUtils');
 const { responseLoggerHook, startMonitoring } = require('./hooks/logger');
 const { rateLimit } = require('./utils/rateLimit');
+
 const rateLimitTtlSeconds = config.rateLimit.ttlSeconds;
 const rateLimitThreshold = config.rateLimit.threshold;
 const authenticate = () => context => {

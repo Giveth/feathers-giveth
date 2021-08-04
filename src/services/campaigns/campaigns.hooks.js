@@ -1,6 +1,8 @@
 const commons = require('feathers-hooks-common');
 const errors = require('@feathersjs/errors');
+const config = require('config');
 
+const { rateLimit } = require('../../utils/rateLimit');
 const sanitizeAddress = require('../../hooks/sanitizeAddress');
 const setAddress = require('../../hooks/setAddress');
 const sanitizeHtml = require('../../hooks/sanitizeHtml');
@@ -127,6 +129,12 @@ module.exports = {
       checkCampaignOwner(),
       sanitizeHtml('description'),
       createModelSlug('campaigns'),
+
+      // We dont count failed requests so I put it in last before hook
+      rateLimit({
+        threshold: config.rateLimit.createProjectThreshold,
+        ttl: config.rateLimit.createProjectTtlSeconds,
+      }),
     ],
     update: [commons.disallow()],
     patch: [

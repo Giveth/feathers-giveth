@@ -3,6 +3,9 @@ const commons = require('feathers-hooks-common');
 const { disallow } = require('feathers-hooks-common');
 const errors = require('@feathersjs/errors');
 const { getItems } = require('feathers-hooks-common');
+const config = require('config');
+
+const { rateLimit } = require('../../utils/rateLimit');
 const sanitizeAddress = require('../../hooks/sanitizeAddress');
 const sanitizeHtml = require('../../hooks/sanitizeHtml');
 const resolveFiles = require('../../hooks/resolveFiles');
@@ -183,7 +186,16 @@ module.exports = {
     all: [],
     find: [sanitizeAddress(['ownerAddress'])],
     get: [],
-    create: [restrictAndSetOwner(), checkMessageContext(), sanitizeHtml('message')],
+    create: [
+      restrictAndSetOwner(),
+      checkMessageContext(),
+      sanitizeHtml('message'),
+      // We dont count failed requests so I put it in last before hook
+      rateLimit({
+        threshold: config.rateLimit.threshold,
+        ttl: config.rateLimit.ttlSeconds,
+      }),
+    ],
     update: [disallow()],
     patch: [onlyInternal()],
     remove: [disallow()],

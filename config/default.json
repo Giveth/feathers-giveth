@@ -181,10 +181,12 @@
   "segmentApiKey": "",
   "rateLimit": {
     "disable": false,
-    "ttlSeconds": 30,
-    "threshold": 3,
+    "ttlSeconds": 60,
+    "threshold": 60,
     "createProjectTtlSeconds":86400,
-    "createProjectThreshold":20
+    "createProjectThreshold":10,
+    "createDonationTtlSeconds":3600,
+    "createDonationThreshold":50
   },
   "givethIoUrl": "https://mainnet.serve.giveth.io/graphql",
   "givethIoProjectsReviewerAddress": "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1"

@@ -1,4 +1,5 @@
 const { sendAnalytics } = require('../../utils/analyticsUtils');
+const hooks = require('./analytics.hooks');
 
 module.exports = function analytics() {
   const app = this;
@@ -8,5 +9,7 @@ module.exports = function analytics() {
       return result;
     },
   };
+  // TODO write swagger
   app.use('/analytics', analyticsService);
+  app.service('analytics').hooks(hooks);
 };

@@ -26,9 +26,6 @@ const rateLimit = (options = {}) => {
       return context;
     }
     const ip = context.params.headers['x-real-ip'] || context.params.headers.cookie;
-
-    console.log("ratelimiter : ", {params: context.params, disableRateLimit:config.disableRateLimit})
-
     try {
       await messageLimiter.consume(ip);
     } catch (e) {
