@@ -185,7 +185,7 @@
     "threshold": 3,
     "createProjectTtlSeconds":86400,
     "createProjectThreshold":20
-  }
-
-
+  },
+  "givethIoUrl": "https://mainnet.serve.giveth.io/graphql",
+  "givethIoProjectsReviewerAddress": "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1"
 }

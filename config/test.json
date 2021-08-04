@@ -188,5 +188,7 @@
   "enablePayoutEmail": true,
   "rateLimit": {
     "disable": true
-  }
+  },
+  "givethIoProjectsReviewerAddress": "0xd00cc82a132f421bA6414D196BC830Db95e2e7Dd",
+  "mockGivethIo": true
 }
