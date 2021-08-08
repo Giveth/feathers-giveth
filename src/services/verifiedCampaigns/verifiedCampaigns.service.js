@@ -22,7 +22,7 @@ module.exports = function verifiedCampaigns() {
       if (campaign) {
         throw new errors.BadRequest('Campaign with this givethIo projectId exists');
       }
-      const pianataBaseUrl = 'https://gateway.pinata.cloud';
+      const imageIpfsPath = image.match(/\/ipfs\/.*/);
       campaign = await app.service('campaigns').create({
         title,
         url,
@@ -30,8 +30,7 @@ module.exports = function verifiedCampaigns() {
         reviewerAddress: config.givethIoProjectsReviewerAddress,
         description,
         txHash,
-        // Image sometimes is null or "" or something like "3" so we should do some checking on it
-        image: image && image.includes(pianataBaseUrl) ? image.replace(pianataBaseUrl, '') : image,
+        image: imageIpfsPath ? imageIpfsPath[0] : image,
         ownerAddress: owner.walletAddress,
         givethIoProjectId,
       });
