@@ -14,6 +14,8 @@ function GetCreateCampaignForGivethioProjectsTestCases() {
     );
     assert.equal(response.statusCode, 200);
     assert.equal(response.body.slug, slug);
+    assert.exists(response.body.owner);
+    assert.equal(response.body.owner.walletAddress, SAMPLE_DATA.GIVETH_IO_PROJECT_OWNER_ADDRESS);
     assert.exists(response.body.id);
   });
   it('Get 403 for getting projectInfo with invalid walletAddress', async () => {
@@ -32,7 +34,7 @@ function CreateCampaignForGivethioProjectsTestCases() {
       .send({
         slug,
         txHash: generateRandomTxHash(),
-        image: '/ipfs/dshdkjsahdkahkdsa',
+        url: '/ipfs/dshdkjsahdkahkdsa',
       })
       .set({ Authorization: getJwt(SAMPLE_DATA.GIVETH_IO_PROJECT_OWNER_ADDRESS) });
     assert.equal(response.statusCode, 201);
@@ -46,7 +48,7 @@ function CreateCampaignForGivethioProjectsTestCases() {
       .send({
         slug,
         txHash: generateRandomTxHash(),
-        image: 'testImage',
+        url: '/ipfs/kjlfkjsdlkfjdksl',
       })
       .set({ Authorization: getJwt(SAMPLE_DATA.USER_ADDRESS) });
 
@@ -60,7 +62,7 @@ function CreateCampaignForGivethioProjectsTestCases() {
       .send({
         slug,
         txHash: generateRandomTxHash(),
-        image: 'testImage',
+        url: '/ipfs/dkjalkdjaslkjdas',
       });
 
     assert.equal(response.statusCode, 401);

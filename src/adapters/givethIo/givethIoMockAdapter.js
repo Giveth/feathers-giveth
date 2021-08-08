@@ -22,5 +22,13 @@ const getProjectInfoBySLug = slug => {
     ],
   };
 };
-
-module.exports = { getProjectInfoBySLug };
+const getUserByUserId = address => {
+  return {
+    walletAddress: address,
+    name: 'John Smith',
+    firstName: 'James',
+    lastName: 'Smith',
+    email: 'john.smith@gmail.com',
+  };
+};
+module.exports = { getProjectInfoBySLug, getUserByUserId };

@@ -10,47 +10,49 @@ module.exports = function verifiedCampaigns() {
 
   const service = {
     async create(data, params) {
-      const { txHash, image, slug } = data;
+      const { txHash, url, slug } = data;
 
       const projectInfo = await givethIoAdapter.getProjectInfoBySLug(slug);
-      const {
-        id: givethIoProjectId,
-        title,
-        description,
-        walletAddress: ownerAddress,
-      } = projectInfo;
-      if (params.user.address.toLowerCase() !== ownerAddress.toLowerCase()) {
+      const { id: givethIoProjectId, title, description, image } = projectInfo;
+      const owner = await givethIoAdapter.getUserByUserId(projectInfo.admin);
+      if (params.user.address.toLowerCase() !== owner.walletAddress.toLowerCase()) {
         throw new errors.Forbidden('The owner of project in givethIo is not you');
       }
       let campaign = await findCampaignByGivethIoProjectId(app, givethIoProjectId);
       if (campaign) {
         throw new errors.BadRequest('Campaign with this givethIo projectId exists');
       }
+      const pianataBaseUrl = 'https://gateway.pinata.cloud';
       campaign = await app.service('campaigns').create({
         title,
+        url,
         slug,
         reviewerAddress: config.givethIoProjectsReviewerAddress,
         description,
         txHash,
-        image,
-        ownerAddress,
+        // Image sometimes is null or "" or something like "3" so we should do some checking on it
+        image: image && image.includes(pianataBaseUrl) ? image.replace(pianataBaseUrl, '') : image,
+        ownerAddress: owner.walletAddress,
         givethIoProjectId,
       });
       return campaign;
     },
+
     async find({ query }) {
       const { slug, userAddress } = query;
       const projectInfo = await givethIoAdapter.getProjectInfoBySLug(slug);
-      const { id: givethIoProjectId, walletAddress: ownerAddress } = projectInfo;
-      if (ownerAddress !== userAddress) {
-        logger.error('The owner of givethIo project is ', ownerAddress);
+      const { id: givethIoProjectId } = projectInfo;
+      const owner = await givethIoAdapter.getUserByUserId(projectInfo.admin);
+
+      if (owner.walletAddress !== userAddress) {
+        logger.error('The owner of givethIo project is ', owner.walletAddress);
         throw new errors.Forbidden('The owner of project in givethIo is not you');
       }
       const campaign = await findCampaignByGivethIoProjectId(app, givethIoProjectId);
       if (campaign) {
         throw new errors.BadRequest('Campaign with this givethIo projectId exists');
       }
-      return projectInfo;
+      return { ...projectInfo, owner };
     },
   };
   service.docs = {
@@ -88,7 +90,8 @@ module.exports = function verifiedCampaigns() {
         txHash: {
           type: 'string',
         },
-        image: {
+        url: {
+          description: 'ipfs url for project',
           type: 'string',
         },
       },
