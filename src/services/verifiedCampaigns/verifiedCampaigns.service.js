@@ -68,11 +68,13 @@ module.exports = function verifiedCampaigns() {
             type: 'string',
             in: 'query',
             description: 'The slug of project in givethIo',
+            default: 'testing-another-project',
             name: 'slug',
           },
           {
             type: 'string',
             in: 'query',
+            default: '0x826976d7c600d45fb8287ca1d7c76fc8eb732030',
             name: 'userAddress',
           },
         ],
