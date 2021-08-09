@@ -183,6 +183,8 @@
     "disable": false,
     "ttlSeconds": 60,
     "threshold": 60,
+    "getTtlSeconds":60,
+    "getThreshold":200,
     "createProjectTtlSeconds":86400,
     "createProjectThreshold":10,
     "createDonationTtlSeconds":3600,

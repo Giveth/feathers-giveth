@@ -7,8 +7,12 @@ const { isRequestInternal } = require('./utils/feathersUtils');
 const { responseLoggerHook, startMonitoring } = require('./hooks/logger');
 const { rateLimit } = require('./utils/rateLimit');
 
-const rateLimitTtlSeconds = config.rateLimit.ttlSeconds;
-const rateLimitThreshold = config.rateLimit.threshold;
+const {
+  getTtlSeconds,
+  getThreshold,
+  threshold: rateLimitThreshold,
+  ttlSeconds: rateLimitTtlSeconds,
+} = config.rateLimit;
 const authenticate = () => context => {
   // No need to authenticate internal calls
   if (isRequestInternal(context)) return context;
@@ -52,8 +56,19 @@ const convertVerifiedToBoolean = () => context => {
 module.exports = {
   before: {
     all: [startMonitoring()],
-    find: [convertVerifiedToBoolean()],
-    get: [],
+    find: [
+      convertVerifiedToBoolean(),
+      rateLimit({
+        threshold: getThreshold,
+        ttl: getTtlSeconds,
+      }),
+    ],
+    get: [
+      rateLimit({
+        threshold: getThreshold,
+        ttl: getTtlSeconds,
+      }),
+    ],
     create: [authenticate()],
     update: [
       authenticate(),
