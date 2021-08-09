@@ -43,4 +43,26 @@ const getProjectInfoBySLug = async slug => {
   }
 };
 
-module.exports = { getProjectInfoBySLug };
+const getUserByUserId = async userId => {
+  try {
+    const query = gql`
+      query user($userId: Int!) {
+        user(userId: $userId) {
+          name
+          firstName
+          lastName
+          email
+          avatar
+          walletAddress
+        }
+      }
+    `;
+    const result = await client.request(query, { userId: Number(userId) });
+    return result.user;
+  } catch (e) {
+    logger.error('getUserByUserId error', e);
+    throw e;
+  }
+};
+
+module.exports = { getProjectInfoBySLug, getUserByUserId };
