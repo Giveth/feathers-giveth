@@ -1,5 +1,8 @@
 const errors = require('@feathersjs/errors');
 const commons = require('feathers-hooks-common');
+const config = require('config');
+
+const { rateLimit } = require('../../utils/rateLimit');
 const { ProjectTypes } = require('../../models/subscription.model');
 
 const validatePayload = () => async context => {
@@ -39,7 +42,15 @@ module.exports = {
     all: [],
     find: [],
     get: [],
-    create: [validatePayload()],
+    create: [
+      validatePayload(),
+
+      // We dont count failed requests so I put it in last before hook
+      rateLimit({
+        threshold: config.rateLimit.threshold,
+        ttl: config.rateLimit.ttlSeconds,
+      }),
+    ],
     update: [commons.disallow()],
     patch: [commons.disallow()],
     remove: [commons.disallow()],

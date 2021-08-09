@@ -1,7 +1,9 @@
 const { JWTStrategy } = require('@feathersjs/authentication');
 const { expressOauth } = require('@feathersjs/authentication-oauth');
+const config = require('config');
 const { MyAuthenticationService } = require('./authenticationService');
 const { Web3Strategy } = require('./Web3Strategy');
+const { rateLimit } = require('./utils/rateLimit');
 
 module.exports = app => {
   const authentication = new MyAuthenticationService(app);
@@ -43,5 +45,17 @@ module.exports = app => {
   };
 
   app.use('/authentication', authentication);
+  const hooks = {
+    before: {
+      create: [
+        rateLimit({
+          threshold: config.rateLimit.createAuthenticationThreshold,
+          ttl: config.rateLimit.createAuthenticationTtlSeconds,
+        }),
+      ],
+    },
+  };
+  app.service('authentication').hooks(hooks);
+
   app.configure(expressOauth());
 };

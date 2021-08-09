@@ -179,6 +179,20 @@
   "enableSentryMonitoring": false,
   "sentryDsn": "",
   "segmentApiKey": "",
+  "rateLimit": {
+    "disable": false,
+    "ttlSeconds": 60,
+    "threshold": 60,
+    "getTtlSeconds":60,
+    "getThreshold":200,
+    "createProjectTtlSeconds":86400,
+    "createProjectThreshold":10,
+    "createDonationTtlSeconds":3600,
+    "createDonationThreshold":300,
+    "createAuthenticationTtlSeconds":60,
+    "createAuthenticationThreshold":10
+  },
+
   "givethIoUrl": "https://serve.giveth.io/graphql",
   "givethIoProjectsReviewerAddress": "0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1"
 }
