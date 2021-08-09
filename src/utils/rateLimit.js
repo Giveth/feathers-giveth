@@ -36,9 +36,11 @@ const rateLimit = (options = {}) => {
       return context;
     }
     const ip = context.params.headers['x-real-ip'] || context.params.headers.cookie;
+    // if we just use ip as key, can not use separate rate limit for separate web services
+    const key = `${context.path}-${context.method}-${ip}`;
     try {
       // await messageLimiter.consume(ip);
-      await rateLimiter.consume(ip);
+      await rateLimiter.consume(key);
     } catch (e) {
       throw new errors.TooManyRequests(errorMessage || 'Too many requests');
     }
