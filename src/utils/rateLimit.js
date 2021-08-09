@@ -1,6 +1,8 @@
-// it's written based on https://github.com/AZaviruha/feathers-hooks-ratelimit
 const config = require('config');
-const { FastRateLimit } = require('fast-ratelimit');
+const { RateLimiterRedis } = require('rate-limiter-flexible');
+const Redis = require('ioredis');
+
+const redisClient = new Redis({ ...config.redis, enableOfflineQueue: false });
 const errors = require('@feathersjs/errors');
 const { isRequestInternal } = require('./feathersUtils');
 
@@ -11,7 +13,15 @@ const { isRequestInternal } = require('./feathersUtils');
  */
 const rateLimit = (options = {}) => {
   const { threshold, ttl, errorMessage } = options;
-  const messageLimiter = new FastRateLimit({ threshold, ttl });
+  /**
+   * @see {@link https://github.com/animir/node-rate-limiter-flexible/wiki/Overall-example#create-rate-limiter-and-consume-points-on-every-request}
+   */
+  const opts = {
+    storeClient: redisClient,
+    points: threshold,
+    duration: ttl, // Per second
+  };
+  const rateLimiter = new RateLimiterRedis(opts);
 
   return async context => {
     if (
@@ -27,7 +37,8 @@ const rateLimit = (options = {}) => {
     }
     const ip = context.params.headers['x-real-ip'] || context.params.headers.cookie;
     try {
-      await messageLimiter.consume(ip);
+      // await messageLimiter.consume(ip);
+      await rateLimiter.consume(ip);
     } catch (e) {
       throw new errors.TooManyRequests(errorMessage || 'Too many requests');
     }
