@@ -2,6 +2,7 @@
 const auth = require('@feathersjs/authentication');
 const { discard } = require('feathers-hooks-common');
 const { NotAuthenticated } = require('@feathersjs/errors');
+const { DonationStatus } = require('./models/donations.model');
 const { isRequestInternal } = require('./utils/feathersUtils');
 const { responseLoggerHook, startMonitoring } = require('./hooks/logger');
 
@@ -22,7 +23,8 @@ const authenticate = () => context => {
   if (
     context.params.provider === 'socketio' &&
     context.path === 'donations' &&
-    context.method === 'create'
+    context.method === 'create' &&
+    context.data.status === DonationStatus.PENDING
   ) {
     // for creating donations it's not needed to be authenticated, anonymous users can donate
     return context;
