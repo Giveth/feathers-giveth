@@ -14,7 +14,9 @@ const startMonitoring = () => context => {
     !config.enableSentryMonitoring ||
     isRequestInternal(context) ||
     // internal calls that use the external context doesnt have headers
-    !context.params.headers
+    !context.params.headers ||
+    // for requests that use _populate it will fill after first call
+    context.params._populate
   )
     return context;
   const transaction = Sentry.startTransaction({
