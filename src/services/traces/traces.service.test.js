@@ -68,6 +68,26 @@ function postMilestoneTestCases() {
       })
       .set({ Authorization: getJwt(campaign.ownerAddress) });
     assert.equal(response.statusCode, 201);
+    assert.equal(response.body.status, SAMPLE_DATA.TRACE_STATUSES.PENDING);
+  });
+  it('campaign coowner should create trace with Pending status', async () => {
+    const coownerAddress = generateRandomEtheriumAddress();
+    await app.service('users').create({ address: coownerAddress, isAdmin: true });
+    const campaign = await app.service('campaigns').create({
+      ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
+      coownerAddress,
+    });
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .send({
+        ...SAMPLE_DATA.createTraceData(),
+        campaignId: campaign._id,
+        status: SAMPLE_DATA.TRACE_STATUSES.PENDING,
+        ownerAddress: coownerAddress,
+      })
+      .set({ Authorization: getJwt(coownerAddress) });
+    assert.equal(response.statusCode, 201);
+    assert.equal(response.body.status, SAMPLE_DATA.TRACE_STATUSES.PENDING);
   });
   it('campaign owner should not create Pending trace in another campaign ', async () => {
     const campaign = await app.service('campaigns').get(SAMPLE_DATA.CAMPAIGN_ID);

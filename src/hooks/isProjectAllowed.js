@@ -75,13 +75,19 @@ const checkCampaignOwner = async context => {
   }
   return context;
 };
+const isUserCampaignOwnerOrCoowner = ({ campaign, userAddress }) => {
+  const isCampaignOwner = campaign.ownerAddress.toLowerCase() === userAddress.toLowerCase();
+  const isCampaignCoowner =
+    campaign.coownerAddress && campaign.coownerAddress.toLowerCase() === userAddress.toLowerCase();
+  return isCampaignOwner || isCampaignCoowner;
+};
 const checkTraceStatus = async context => {
   if (isRequestInternal(context) || context.data.status === TraceStatus.PROPOSED) {
     return context;
   }
   const campaign = await context.app.service('campaigns').get(context.data.campaignId);
   if (
-    campaign.ownerAddress.toLowerCase() === context.params.user.address.toLowerCase() &&
+    isUserCampaignOwnerOrCoowner({ campaign, userAddress: context.params.user.address }) &&
     context.data.status === TraceStatus.PENDING
   ) {
     // campaignOwner can create Pending Trace
