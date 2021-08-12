@@ -13,13 +13,6 @@ const findVerifiedTraces = async app => {
   });
 };
 
-const findTraceByQuery = async (app, query) => {
-  const tracesService = app.service('traces');
-  const tracesModel = tracesService.Model;
-  return tracesModel.find(query);
-};
-
 module.exports = {
   findVerifiedTraces,
-  findTraceByQuery,
 };

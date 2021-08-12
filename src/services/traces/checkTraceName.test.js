@@ -17,10 +17,10 @@ const checkTraceNameTestCases = () => {
   it('should throw error for repetitive title', async () => {
     const traceData = {
       ...SAMPLE_DATA.createTraceData(),
+      title: 'test-trace-unique',
       ownerAddress: SAMPLE_DATA.USER_ADDRESS,
     };
     await app.service('traces').create(traceData);
-
     const context = {
       id: generateRandomMongoId(),
       app,
@@ -30,7 +30,7 @@ const checkTraceNameTestCases = () => {
       },
     };
     const badFunc = async () => {
-      await checkTraceName(context);
+      await checkTraceName()(context);
     };
     await assertThrowsAsync(
       badFunc,
@@ -53,7 +53,54 @@ const checkTraceNameTestCases = () => {
       },
     };
     const goodFunc = async () => {
-      await checkTraceName(context);
+      await checkTraceName()(context);
+    };
+    await assertNotThrowsAsync(goodFunc);
+  });
+  it('should not throw error for similar title with extra spaces between words', async () => {
+    const title = 'test repetetive title with space between words';
+    const titleWithExtraSpaces = 'test    repetetive   title    with   space    between  words';
+    const traceData = {
+      ...SAMPLE_DATA.createTraceData(),
+      title,
+      ownerAddress: SAMPLE_DATA.USER_ADDRESS,
+    };
+    await app.service('traces').create(traceData);
+
+    const context = {
+      id: generateRandomMongoId(),
+      app,
+      data: {
+        title: titleWithExtraSpaces,
+        campaignId: generateRandomMongoId(),
+      },
+    };
+    const goodFunc = async () => {
+      await checkTraceName()(context);
+    };
+    await assertNotThrowsAsync(goodFunc);
+  });
+  it('should not throw error for similar title with extra spaces at end of title', async () => {
+    const title = 'test repetetive title with extra spaces at end of title';
+    const titleWithExtraSpaces =
+      'test    repetetive   title  with extra spaces at end of title       ';
+    const traceData = {
+      ...SAMPLE_DATA.createTraceData(),
+      title,
+      ownerAddress: SAMPLE_DATA.USER_ADDRESS,
+    };
+    await app.service('traces').create(traceData);
+
+    const context = {
+      id: generateRandomMongoId(),
+      app,
+      data: {
+        title: titleWithExtraSpaces,
+        campaignId: generateRandomMongoId(),
+      },
+    };
+    const goodFunc = async () => {
+      await checkTraceName()(context);
     };
     await assertNotThrowsAsync(goodFunc);
   });
