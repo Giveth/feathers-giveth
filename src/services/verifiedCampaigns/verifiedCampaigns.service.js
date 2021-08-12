@@ -11,11 +11,10 @@ module.exports = function verifiedCampaigns() {
   const service = {
     async create(data, params) {
       const { txHash, url, slug } = data;
-
       const projectInfo = await givethIoAdapter.getProjectInfoBySLug(slug);
       const { id: givethIoProjectId, title, description, image } = projectInfo;
       const owner = await givethIoAdapter.getUserByUserId(projectInfo.admin);
-      if (params.user.address.toLowerCase() !== owner.walletAddress.toLowerCase()) {
+      if (params.user.address.toLowerCase() !== owner.address.toLowerCase()) {
         throw new errors.Forbidden('The owner of project in givethIo is not you');
       }
       let campaign = await findCampaignByGivethIoProjectId(app, givethIoProjectId);
@@ -31,7 +30,7 @@ module.exports = function verifiedCampaigns() {
         description,
         txHash,
         image: imageIpfsPath ? imageIpfsPath[0] : image,
-        ownerAddress: owner.walletAddress,
+        ownerAddress: owner.address,
         givethIoProjectId,
       });
       return campaign;
@@ -43,8 +42,8 @@ module.exports = function verifiedCampaigns() {
       const { id: givethIoProjectId } = projectInfo;
       const owner = await givethIoAdapter.getUserByUserId(projectInfo.admin);
 
-      if (owner.walletAddress !== userAddress) {
-        logger.error('The owner of givethIo project is ', owner.walletAddress);
+      if (owner.address !== userAddress) {
+        logger.error('The owner of givethIo project is ', owner.address);
         throw new errors.Forbidden('The owner of project in givethIo is not you');
       }
       const campaign = await findCampaignByGivethIoProjectId(app, givethIoProjectId);
@@ -54,6 +53,7 @@ module.exports = function verifiedCampaigns() {
       return { ...projectInfo, owner };
     },
   };
+
   service.docs = {
     securities: ['create'],
     operations: {

@@ -23,10 +23,10 @@ const getProjectInfoBySLug = slug => {
 const getUserByUserId = _userId => {
   return {
     // Please dont change this it's needed for tests
-    walletAddress: '0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0',
+    address: '0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0',
     name: 'John Smith',
-    firstName: 'James',
-    lastName: 'Smith',
+    avatar:
+      'https://lh3.googleusercontent.com/a-/AOh14GhZ2FbGT9rWS2yI9X9FxCFkzTxRrMV65C9iB8n58g=s96-c',
     email: 'john.smith@gmail.com',
   };
 };
