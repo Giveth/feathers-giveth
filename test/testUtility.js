@@ -216,7 +216,7 @@ const SAMPLE_DATA = {
     return {
       fullyFunded: false,
       mined: true,
-      title: `test-milestone-${new Date()}`,
+      title: `test-milestone-${new Date().getTime()}`,
       description: '<p>give money for god sake</p>',
       image: '',
       reviewerAddress,

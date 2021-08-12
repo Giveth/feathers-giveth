@@ -48,6 +48,71 @@ function postMilestoneTestCases() {
     assert.equal(response.statusCode, 201);
     assert.equal(response.body.ownerAddress, SAMPLE_DATA.USER_ADDRESS);
   });
+
+  it('should not create trace with repetitive title', async () => {
+    const traceData = SAMPLE_DATA.createTraceData();
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .send(traceData)
+      .set({ Authorization: getJwt() });
+    assert.equal(response.statusCode, 201);
+    assert.equal(response.body.ownerAddress, SAMPLE_DATA.USER_ADDRESS);
+
+    const response2 = await request(baseUrl)
+      .post(relativeUrl)
+      .send(traceData)
+      .set({ Authorization: getJwt() });
+    assert.equal(response2.statusCode, 403);
+    assert.equal(
+      response2.body.message,
+      'Trace title is repetitive. Please select a different title for the trace.',
+    );
+  });
+  it('should not create trace with similar title with extra spaces between words', async () => {
+    const title = 'test similar title with extra spaces between words';
+    const titleWithSpace = 'test   similar   title    with extra   spaces between words';
+
+    const traceData = SAMPLE_DATA.createTraceData();
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .send({ ...traceData, title })
+      .set({ Authorization: getJwt() });
+    assert.equal(response.statusCode, 201);
+    assert.equal(response.body.ownerAddress, SAMPLE_DATA.USER_ADDRESS);
+
+    const response2 = await request(baseUrl)
+      .post(relativeUrl)
+      .send({ ...traceData, title: titleWithSpace })
+      .set({ Authorization: getJwt() });
+    assert.equal(response2.statusCode, 403);
+    assert.equal(
+      response2.body.message,
+      'Trace title is repetitive. Please select a different title for the trace.',
+    );
+  });
+  it('should not create trace with similar title with extra spaces at end of title', async () => {
+    const title = 'test similar title with extra spaces at end of title';
+    const titleWithSpace = 'test similar title with extra spaces at end of title           ';
+
+    const traceData = SAMPLE_DATA.createTraceData();
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .send({ ...traceData, title })
+      .set({ Authorization: getJwt() });
+    assert.equal(response.statusCode, 201);
+    assert.equal(response.body.ownerAddress, SAMPLE_DATA.USER_ADDRESS);
+
+    const response2 = await request(baseUrl)
+      .post(relativeUrl)
+      .send({ ...traceData, title: titleWithSpace })
+      .set({ Authorization: getJwt() });
+    assert.equal(response2.statusCode, 403);
+    assert.equal(
+      response2.body.message,
+      'Trace title is repetitive. Please select a different title for the trace.',
+    );
+  });
+
   it('non-campaign owner should not create trace with Pending status', async () => {
     const user = await app.service('users').create({ address: generateRandomEtheriumAddress() });
     const response = await request(baseUrl)
