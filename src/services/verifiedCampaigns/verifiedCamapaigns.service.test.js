@@ -15,7 +15,7 @@ function GetCreateCampaignForGivethioProjectsTestCases() {
     assert.equal(response.statusCode, 200);
     assert.equal(response.body.slug, slug);
     assert.exists(response.body.owner);
-    assert.equal(response.body.owner.walletAddress, SAMPLE_DATA.GIVETH_IO_PROJECT_OWNER_ADDRESS);
+    assert.equal(response.body.owner.address, SAMPLE_DATA.GIVETH_IO_PROJECT_OWNER_ADDRESS);
     assert.exists(response.body.id);
   });
   it('Get 403 for getting projectInfo with invalid walletAddress', async () => {
