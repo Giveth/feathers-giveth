@@ -14,6 +14,7 @@ function GetCreateCampaignForGivethioProjectsTestCases() {
     );
     assert.equal(response.statusCode, 200);
     assert.equal(response.body.slug, slug);
+    assert.equal(response.body.reviewerAddress, config.givethIoProjectsReviewerAddress);
     assert.exists(response.body.owner);
     assert.equal(response.body.owner.address, SAMPLE_DATA.GIVETH_IO_PROJECT_OWNER_ADDRESS);
     assert.exists(response.body.id);
