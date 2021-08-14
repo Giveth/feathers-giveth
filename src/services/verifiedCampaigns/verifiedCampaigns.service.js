@@ -50,7 +50,7 @@ module.exports = function verifiedCampaigns() {
       if (campaign) {
         throw new errors.BadRequest('Campaign with this givethIo projectId exists');
       }
-      return { ...projectInfo, owner, reviewerAddress: config.givethIoProjectsReviewerAddress};
+      return { ...projectInfo, owner, reviewerAddress: config.givethIoProjectsReviewerAddress };
     },
   };
 
