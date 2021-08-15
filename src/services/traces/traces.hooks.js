@@ -3,15 +3,17 @@ const BatchLoader = require('@feathers-plus/batch-loader');
 const errors = require('@feathersjs/errors');
 const logger = require('winston');
 const { restrictToOwner } = require('feathers-authentication-hooks');
+const config = require('config');
+
+const { rateLimit } = require('../../utils/rateLimit');
 
 const { getResultsByKey, getUniqueKeys } = BatchLoader;
-
 const sanitizeAddress = require('../../hooks/sanitizeAddress');
 const setAddress = require('../../hooks/setAddress');
 const sanitizeHtml = require('../../hooks/sanitizeHtml');
 const tokenAddressConversion = require('../../hooks/tokenAddressConversion');
 const resolveFiles = require('../../hooks/resolveFiles');
-const { isProjectAllowed } = require('../../hooks/isProjectAllowed');
+const { isTraceAllowed } = require('../../hooks/isProjectAllowed');
 const { isTokenAllowed } = require('../../hooks/isTokenAllowed');
 const addConfirmations = require('../../hooks/addConfirmations');
 const { TraceStatus } = require('../../models/traces.model');
@@ -341,11 +343,17 @@ module.exports = {
       checkTraceName(),
       setAddress('ownerAddress'),
       ...address,
-      isProjectAllowed(),
+      isTraceAllowed(),
       isTokenAllowed(),
       sanitizeHtml('description'),
       convertTokenToTokenAddress(),
       createModelSlug('traces'),
+
+      // We dont count failed requests so I put it in last before hook
+      rateLimit({
+        threshold: config.rateLimit.createProjectThreshold,
+        ttl: config.rateLimit.createProjectTtlSeconds,
+      }),
     ],
     update: [
       removeProtectedFields(),

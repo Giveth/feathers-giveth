@@ -272,10 +272,11 @@ const handleDonationConversationAndEmail = async (app, donation) => {
     Mailer.requestDelegation(app, {
       recipient: pledgeAdmin.owner.email,
       user: pledgeAdmin.owner.name,
-      donationType: delegateType || ownerType, // dac / campaign
+      donationType: delegateType || ownerType, // community / campaign
       donatedToTitle: pledgeAdmin.title || pledgeAdmin.name,
       amount,
       token,
+      donation,
     });
   } else {
     // if this is a trace then no action is required

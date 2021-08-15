@@ -1,5 +1,6 @@
 const rp = require('request-promise');
 const logger = require('winston');
+const Sentry = require('@sentry/node');
 
 const fetchCoingecko = async (timestampMS, coingeckoId, toSymbol) => {
   const timestampTo = Math.round(timestampMS / 1000);
@@ -20,6 +21,7 @@ const fetchCoingecko = async (timestampMS, coingeckoId, toSymbol) => {
     );
   } catch (e) {
     logger.error(`coingecko fetch (id:${coingeckoId}, toSymbol:${toSymbol})`, e);
+    Sentry.captureException(new Error(`Error requesting to coingecko: ${e.message}`));
     return undefined;
   }
 

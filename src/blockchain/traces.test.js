@@ -1,6 +1,6 @@
 const { assert } = require('chai');
 const { getFeatherAppInstance } = require('../app');
-const milestoneFactory = require('./traces');
+const traceFactory = require('./traces');
 const {
   assertThrowsAsync,
   generateRandomEtheriumAddress,
@@ -9,7 +9,7 @@ const {
   generateRandomNumber,
 } = require('../../test/testUtility');
 
-let milestoneEventListener;
+let traceEventListener;
 let app;
 
 function reviewRequestedTestCases() {
@@ -34,12 +34,12 @@ function reviewRequestedTestCases() {
       transactionHash,
       event: 'RequestReview',
     };
-    return milestoneEventListener.reviewRequested(event);
+    return traceEventListener.reviewRequested(event);
   }
 
   it('should throw exception , invalid event passed', async () => {
     const badFunc = async () => {
-      await milestoneEventListener.reviewRequested({
+      await traceEventListener.reviewRequested({
         event: 'Not RequestReview or MilestoneCompleteRequested',
       });
     };
@@ -67,19 +67,19 @@ function reviewRequestedTestCases() {
       });
     }
   });
-  it('should not update milestone (with Paying status) by eventData', async () => {
+  it('should not update trace (with Paying status) by eventData', async () => {
     const upsertedMilestone = await updateMileStoneByRequestReviewEventData(
       SAMPLE_DATA.TRACE_STATUSES.PAYING,
     );
     assert.isNotOk(upsertedMilestone);
   });
-  it('should not update milestone (with Paid status) by eventData', async () => {
+  it('should not update trace (with Paid status) by eventData', async () => {
     const upsertedMilestone = await updateMileStoneByRequestReviewEventData(
       SAMPLE_DATA.TRACE_STATUSES.PAID,
     );
     assert.isNotOk(upsertedMilestone);
   });
-  it('should not update milestone (with Canceled status) by eventData', async () => {
+  it('should not update trace (with Canceled status) by eventData', async () => {
     const upsertedMilestone = await updateMileStoneByRequestReviewEventData(
       SAMPLE_DATA.TRACE_STATUSES.CANCELED,
     );
@@ -109,12 +109,12 @@ function rejectTestCases() {
       transactionHash,
       event: 'RejectCompleted',
     };
-    return milestoneEventListener.rejected(event);
+    return traceEventListener.rejected(event);
   }
 
   it('should throw exception , invalid event passed', async () => {
     const badFunc = async () => {
-      await milestoneEventListener.rejected({
+      await traceEventListener.rejected({
         event: 'Not MilestoneCompleteRequestRejected or RejectCompleted',
       });
     };
@@ -143,19 +143,19 @@ function rejectTestCases() {
     }
   });
 
-  it('should not update milestone (with Paying status) by eventData', async () => {
+  it('should not update trace (with Paying status) by eventData', async () => {
     const upsertedMilestone = await updateMileStoneByRejectEventData(
       SAMPLE_DATA.TRACE_STATUSES.PAYING,
     );
     assert.isNotOk(upsertedMilestone);
   });
-  it('should not update milestone (with Paid status) by eventData', async () => {
+  it('should not update trace (with Paid status) by eventData', async () => {
     const upsertedMilestone = await updateMileStoneByRejectEventData(
       SAMPLE_DATA.TRACE_STATUSES.PAID,
     );
     assert.isNotOk(upsertedMilestone);
   });
-  it('should not update milestone (with Canceled status) by eventData', async () => {
+  it('should not update trace (with Canceled status) by eventData', async () => {
     const upsertedMilestone = await updateMileStoneByRejectEventData(
       SAMPLE_DATA.TRACE_STATUSES.CANCELED,
     );
@@ -185,12 +185,12 @@ function acceptedTestCases() {
       transactionHash,
       event: 'ApproveCompleted',
     };
-    return milestoneEventListener.accepted(event);
+    return traceEventListener.accepted(event);
   }
 
   it('should throw exception , invalid event passed', async () => {
     const badFunc = async () => {
-      await milestoneEventListener.accepted({
+      await traceEventListener.accepted({
         event: 'Not MilestoneCompleteRequestApproved or ApproveCompleted',
       });
     };
@@ -200,16 +200,16 @@ function acceptedTestCases() {
     );
   });
 
-  it('should change milestone status to accepted', async () => {
-    const milestone = await updateMileStoneByAcceptedEventData(SAMPLE_DATA.TRACE_STATUSES.PROPOSED);
-    assert.equal(milestone.status, SAMPLE_DATA.TRACE_STATUSES.COMPLETED);
+  it('should change trace status to accepted', async () => {
+    const trace = await updateMileStoneByAcceptedEventData(SAMPLE_DATA.TRACE_STATUSES.PROPOSED);
+    assert.equal(trace.status, SAMPLE_DATA.TRACE_STATUSES.COMPLETED);
   });
 }
 
 function reviewerChangedTestCases() {
   async function updateMileStoneByReviewerChangedEventData(status, reviewerAddress) {
     const transactionHash = generateRandomTransactionHash();
-    const from = SAMPLE_DATA.USER_ADDRESS;
+    const from = SAMPLE_DATA.IN_REVIEWER_WHITELIST_USER_ADDRESS;
     const Transaction = app.get('transactionsModel');
     await new Transaction({ hash: transactionHash, from }).save();
     const idProject = generateRandomNumber(10, 100000);
@@ -232,12 +232,12 @@ function reviewerChangedTestCases() {
       transactionHash,
       event: 'ReviewerChanged',
     };
-    return milestoneEventListener.reviewerChanged(event);
+    return traceEventListener.reviewerChanged(event);
   }
 
   it('should throw exception , invalid event passed', async () => {
     const badFunc = async () => {
-      await milestoneEventListener.reviewerChanged({
+      await traceEventListener.reviewerChanged({
         event: 'Not MilestoneReviewerChanged or ReviewerChanged',
       });
     };
@@ -247,9 +247,9 @@ function reviewerChangedTestCases() {
     );
   });
 
-  describe('should reviewerChanged()  update milestone successfully by eventData', async () => {
+  describe('should reviewerChanged()  update trace successfully by eventData', async () => {
     for (const status of Object.values(SAMPLE_DATA.TRACE_STATUSES)) {
-      it(`should update milestone with status: ${status} `, async () => {
+      it(`should update trace with status: ${status} `, async () => {
         const reviewerAddress = SAMPLE_DATA.SECOND_USER_ADDRESS;
         const upsertedMilestone = await updateMileStoneByReviewerChangedEventData(
           status,
@@ -286,12 +286,12 @@ function recipientChangedTestCases() {
       transactionHash,
       event: 'RecipientChanged',
     };
-    return milestoneEventListener.recipientChanged(event);
+    return traceEventListener.recipientChanged(event);
   }
 
   it('should throw exception , invalid event passed', async () => {
     const badFunc = async () => {
-      await milestoneEventListener.recipientChanged({
+      await traceEventListener.recipientChanged({
         event: 'Not MilestoneRecipientChanged or RecipientChanged',
       });
     };
@@ -301,10 +301,10 @@ function recipientChangedTestCases() {
     );
   });
 
-  describe('should update milestone successfully by eventData', async () => {
+  describe('should update trace successfully by eventData', async () => {
     /* eslint-disable no-restricted-syntax */
     for (const status of Object.values(SAMPLE_DATA.TRACE_STATUSES)) {
-      it(`should recipientChanged update milestone with status: ${status} `, async () => {
+      it(`should recipientChanged update trace with status: ${status} `, async () => {
         const recipient = SAMPLE_DATA.SECOND_USER_ADDRESS;
         const upsertedMilestone = await updateMileStoneByRecipientChangedEventData(
           status,
@@ -324,7 +324,7 @@ function paymentCollectedTestCases() {
   //   const Transaction = app.get('transactionsModel');
   //   await new Transaction({ hash: transactionHash, from }).save();
   //   const idProject = generateRandomNumber(10, 100000);
-  //   const milestone = await app.service('traces').create({
+  //   const trace = await app.service('traces').create({
   //     ...SAMPLE_DATA.createTraceData(),
   //     ownerAddress: from,
   //     fullyFunded: true,
@@ -338,11 +338,11 @@ function paymentCollectedTestCases() {
   //     status: 'Committed',
   //     amountRemaining: '20',
   //     giverAddress: generateRandomEtheriumAddress(),
-  //     ownerType: 'milestone',
+  //     ownerType: 'trace',
   //     ownerId: from,
   //     pledgeId: process,
   //     amount: '21',
-  //     ownerTypeId: milestone._id,
+  //     ownerTypeId: trace._id,
   //     token: {
   //       name: 'Ropsten ETH',
   //       address: '0x0',
@@ -358,12 +358,12 @@ function paymentCollectedTestCases() {
   //     transactionHash,
   //     event: 'paymentCollected',
   //   };
-  //   return milestoneEventListener.paymentCollected(event);
+  //   return traceEventListener.paymentCollected(event);
   // }
 
   it('should throw exception , invalid event passed', async () => {
     const badFunc = async () => {
-      await milestoneEventListener.paymentCollected({
+      await traceEventListener.paymentCollected({
         event: 'Not paymentCollected',
       });
     };
@@ -372,10 +372,10 @@ function paymentCollectedTestCases() {
 
   // When executing tests, this case blocks exucte and finally it failed (I dont know why)
   // So I comment it for now
-  // describe('should paymentCollected() update milestone successfully by eventData',
+  // describe('should paymentCollected() update trace successfully by eventData',
   //   async () => {
   //     for (const status of Object.values(SAMPLE_DATA.TRACE_STATUSES)) {
-  //       it(`should update milestone with status: ${status} `, async function() {
+  //       it(`should update trace with status: ${status} `, async function() {
   //         const upsertedMilestone = await updateMileStoneByRecipientChangedEventData(
   //           status,
   //         );
@@ -396,5 +396,5 @@ describe('paymentCollected() function tests', paymentCollectedTestCases);
 
 before(() => {
   app = getFeatherAppInstance();
-  milestoneEventListener = milestoneFactory(app);
+  traceEventListener = traceFactory(app);
 });

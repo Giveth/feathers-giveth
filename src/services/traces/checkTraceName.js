@@ -1,6 +1,6 @@
 const errors = require('@feathersjs/errors');
 const logger = require('winston');
-
+const { getSimilarTitleInTraceRegex } = require('../../utils/regexUtils');
 /**
  * This function checks if traces name is unique in the campaign scope
  * */
@@ -20,7 +20,7 @@ const checkIfTraceNameIsUnique = () => async context => {
   const query = {
     _id: { $ne: context.id },
     campaignId: data.campaignId,
-    title: new RegExp(`^\\s*${title.replace(/^\s+|\s+$|\s+(?=\s)/g, '')}\\s*`, 'i'),
+    title: getSimilarTitleInTraceRegex(title),
   };
   const traceWithSameName = await traceService.find({
     query,

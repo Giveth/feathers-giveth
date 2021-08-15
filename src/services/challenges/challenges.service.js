@@ -76,11 +76,32 @@ module.exports = function factory() {
     paginate,
   };
 
+  const service = new ChallengeService(options);
+  service.docs = {
+    operations: {
+      find: false,
+      update: false,
+      patch: false,
+      remove: false,
+      get: false,
+      create: {
+        description:
+          'Create a message then sign it with metamask to get accessToken (with websocket)' +
+          'but Currently I dont know how exactly should use this endpoint',
+      },
+    },
+    definition: {
+      type: 'object',
+      properties: {
+        address: {
+          type: 'string',
+        },
+      },
+    },
+  };
   // Initialize our service with any options it requires
-  app.use('/authentication/challenges', new ChallengeService(options));
+  app.use('/authentication/challenges', service);
 
   // Get our initialized service so that we can register hooks and filters
-  const service = app.service('authentication/challenges');
-
-  service.hooks(hooks);
+  app.service('authentication/challenges').hooks(hooks);
 };

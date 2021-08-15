@@ -50,6 +50,8 @@ const testAddress = '0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1';
 const reviewerAddress = '0xd00cc82a132f421bA6414D196BC830Db95e2e7Dd';
 const campaignAddress = '5fd3412e3e403d0c0f9e4463';
 const projectOwnerAddress = '0x839395e20bbB182fa440d08F850E6c7A8f6F0780';
+const secondUserAddress = '0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0';
+const givethIoProjectOwnerAddress = secondUserAddress;
 
 function getJwt(address = testAddress) {
   const authentication = config.get('authentication');
@@ -139,9 +141,10 @@ const SAMPLE_DATA = {
   ADMIN_USER_ADDRESS: '0xb192Ade5c76209655380285d3D2F3AfA16C44727',
   USER_GIVER_ID: 1,
 
-  SECOND_USER_ADDRESS: '0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0',
+  SECOND_USER_ADDRESS: secondUserAddress,
   IN_PROJECT_WHITELIST_USER_ADDRESS: projectOwnerAddress,
   IN_REVIEWER_WHITELIST_USER_ADDRESS: reviewerAddress,
+  GIVETH_IO_PROJECT_OWNER_ADDRESS: givethIoProjectOwnerAddress,
   IN_DELEGATE_WHITELIST_USER_ADDRESS: '0x84DD429D2A54176A971e0993E11020e4Aa81aB13',
   TRACE_ID: '5fd3424c3e403d0c0f9e4487',
   MILESTONE_PROJECT_ID: 5,
@@ -213,16 +216,16 @@ const SAMPLE_DATA = {
     return {
       fullyFunded: false,
       mined: true,
-      title: `test-milestone-${new Date()}`,
+      title: `test-milestone-${new Date().getTime()}`,
       description: '<p>give money for god sake</p>',
       image: '',
-      reviewerAddress: testAddress,
+      reviewerAddress,
       communityId: 0,
       date: '2020-11-10T00:00:00.000Z',
       recipientAddress: '0x0000000000000000000000000000000000000000',
       pluginAddress: '0x0000000000000000000000000000000000000001',
       campaignId: campaignAddress,
-      status: 'InProgress',
+      status: 'Proposed',
       items: [],
       token: {
         name: 'ANY_TOKEN',

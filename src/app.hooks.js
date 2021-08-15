@@ -1,10 +1,19 @@
 // Application hooks that run for every service
 const auth = require('@feathersjs/authentication');
+const config = require('config');
 const { discard } = require('feathers-hooks-common');
 const { NotAuthenticated } = require('@feathersjs/errors');
+const { DonationStatus } = require('./models/donations.model');
 const { isRequestInternal } = require('./utils/feathersUtils');
 const { responseLoggerHook, startMonitoring } = require('./hooks/logger');
+const { rateLimit } = require('./utils/rateLimit');
 
+const {
+  getTtlSeconds,
+  getThreshold,
+  threshold: rateLimitThreshold,
+  ttlSeconds: rateLimitTtlSeconds,
+} = config.rateLimit;
 const authenticate = () => context => {
   // No need to authenticate internal calls
   if (isRequestInternal(context)) return context;
@@ -22,11 +31,13 @@ const authenticate = () => context => {
   if (
     context.params.provider === 'socketio' &&
     context.path === 'donations' &&
-    context.method === 'create'
+    context.method === 'create' &&
+    context.data.status === DonationStatus.PENDING
   ) {
     // for creating donations it's not needed to be authenticated, anonymous users can donate
     return context;
   }
+
   if (context.params.provider === 'rest') {
     return auth.hooks.authenticate('jwt')(context);
   }
@@ -47,12 +58,41 @@ const convertVerifiedToBoolean = () => context => {
 module.exports = {
   before: {
     all: [startMonitoring()],
-    find: [convertVerifiedToBoolean()],
-    get: [],
+    find: [
+      convertVerifiedToBoolean(),
+      rateLimit({
+        threshold: getThreshold,
+        ttl: getTtlSeconds,
+      }),
+    ],
+    get: [
+      rateLimit({
+        threshold: getThreshold,
+        ttl: getTtlSeconds,
+      }),
+    ],
     create: [authenticate()],
-    update: [authenticate()],
-    patch: [authenticate()],
-    remove: [authenticate()],
+    update: [
+      authenticate(),
+      rateLimit({
+        threshold: rateLimitThreshold,
+        ttl: rateLimitTtlSeconds,
+      }),
+    ],
+    patch: [
+      authenticate(),
+      rateLimit({
+        threshold: rateLimitThreshold,
+        ttl: rateLimitTtlSeconds,
+      }),
+    ],
+    remove: [
+      authenticate(),
+      rateLimit({
+        threshold: rateLimitThreshold,
+        ttl: rateLimitTtlSeconds,
+      }),
+    ],
   },
 
   after: {

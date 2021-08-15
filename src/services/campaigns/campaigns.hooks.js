@@ -1,11 +1,13 @@
 const commons = require('feathers-hooks-common');
 const errors = require('@feathersjs/errors');
+const config = require('config');
 
+const { rateLimit } = require('../../utils/rateLimit');
 const sanitizeAddress = require('../../hooks/sanitizeAddress');
 const setAddress = require('../../hooks/setAddress');
 const sanitizeHtml = require('../../hooks/sanitizeHtml');
 const resolveFiles = require('../../hooks/resolveFiles');
-const { checkReviewer, checkOwner } = require('../../hooks/isProjectAllowed');
+const { checkReviewer, checkCampaignOwner } = require('../../hooks/isProjectAllowed');
 const addConfirmations = require('../../hooks/addConfirmations');
 const { CampaignStatus } = require('../../models/campaigns.model');
 const createModelSlug = require('../createModelSlug');
@@ -113,9 +115,9 @@ module.exports = {
     get: [],
     create: [
       removeProtectedFields(),
-      setAddress('coownerAddress'),
+      // setAddress('coownerAddress'),
       sanitizeAddress('coownerAddress', {
-        required: true,
+        required: false,
         validate: true,
       }),
       setAddress('ownerAddress'),
@@ -124,9 +126,15 @@ module.exports = {
         validate: true,
       }),
       checkReviewer(),
-      checkOwner(),
+      checkCampaignOwner(),
       sanitizeHtml('description'),
       createModelSlug('campaigns'),
+
+      // We dont count failed requests so I put it in last before hook
+      rateLimit({
+        threshold: config.rateLimit.createProjectThreshold,
+        ttl: config.rateLimit.createProjectTtlSeconds,
+      }),
     ],
     update: [commons.disallow()],
     patch: [

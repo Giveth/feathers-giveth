@@ -1,6 +1,7 @@
 const axios = require('axios');
 const config = require('config');
 const logger = require('winston');
+const Sentry = require('@sentry/node');
 
 const createBasicAuthentication = ({ username, password }) => {
   return `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
@@ -29,6 +30,7 @@ const sendEventToElasticSearch = async data => {
     });
   } catch (e) {
     logger.info('sendEventToElasticSearch error', { e, message: e.message });
+    Sentry.captureException(new Error(`Error requesting to elastic search: ${e.message}`));
   }
 };
 

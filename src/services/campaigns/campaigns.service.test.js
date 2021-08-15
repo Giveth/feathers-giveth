@@ -1,7 +1,7 @@
 const request = require('supertest');
 const config = require('config');
 const { assert } = require('chai');
-const { getJwt, SAMPLE_DATA } = require('../../../test/testUtility');
+const { getJwt, SAMPLE_DATA, generateRandomEtheriumAddress } = require('../../../test/testUtility');
 const { getFeatherAppInstance } = require('../../app');
 
 let app;
@@ -13,7 +13,7 @@ async function createCampaign(data) {
   const response = await request(baseUrl)
     .post(relativeUrl)
     .send(data)
-    .set({ Authorization: getJwt() });
+    .set({ Authorization: getJwt(data.ownerAddress) });
   return response.body;
 }
 
@@ -41,6 +41,28 @@ function postCampaignTestCases() {
     assert.equal(response.body.ownerAddress, SAMPLE_DATA.CREATE_CAMPAIGN_DATA.ownerAddress);
   });
 
+  it('should create campaign successfully, should not set coownerAddress by default', async () => {
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .send(SAMPLE_DATA.CREATE_CAMPAIGN_DATA)
+      .set({ Authorization: getJwt(SAMPLE_DATA.CREATE_CAMPAIGN_DATA.ownerAddress) });
+    assert.equal(response.statusCode, 201);
+    assert.equal(response.body.ownerAddress, SAMPLE_DATA.CREATE_CAMPAIGN_DATA.ownerAddress);
+    assert.notExists(response.body.coownerAddress);
+  });
+
+  it('should create campaign successfully, should set coownerAddress with address we send', async () => {
+    const coownerAddress = generateRandomEtheriumAddress();
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .send({ ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA, coownerAddress })
+      .set({ Authorization: getJwt(SAMPLE_DATA.CREATE_CAMPAIGN_DATA.ownerAddress) });
+    assert.equal(response.statusCode, 201);
+    assert.equal(response.body.ownerAddress, SAMPLE_DATA.CREATE_CAMPAIGN_DATA.ownerAddress);
+    assert.exists(response.body.coownerAddress);
+    assert.equal(response.body.coownerAddress.toLowerCase(), coownerAddress);
+  });
+
   it('should create campaign successfully, should not set verified', async () => {
     const response = await request(baseUrl)
       .post(relativeUrl)
@@ -49,6 +71,27 @@ function postCampaignTestCases() {
     assert.equal(response.statusCode, 201);
     assert.isFalse(response.body.verified);
   });
+
+  it('should fail create campaign, because user is not projectOwner', async () => {
+    const userAddress = generateRandomEtheriumAddress();
+    await app.service('users').create({ address: userAddress });
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .send({ ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA, ownerAddress: userAddress })
+      .set({ Authorization: getJwt(userAddress) });
+    assert.equal(response.statusCode, 400);
+  });
+
+  it('should fail create campaign, because reviewerAddress is not isReviewer in Db', async () => {
+    const userAddress = generateRandomEtheriumAddress();
+    await app.service('users').create({ address: userAddress });
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .send({ ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA, reviewerAddress: userAddress })
+      .set({ Authorization: getJwt(SAMPLE_DATA.CREATE_CAMPAIGN_DATA.ownerAddress) });
+    assert.equal(response.statusCode, 400);
+  });
+
   it('should get unAuthorized error', async () => {
     const response = await request(baseUrl)
       .post(relativeUrl)
@@ -56,15 +99,15 @@ function postCampaignTestCases() {
     assert.equal(response.statusCode, 401);
     assert.equal(response.body.code, 401);
   });
-  it('should get different slugs for two campaigns with same title successfully', async function() {
+  it('should get different slugs for two campaigns with same title successfully', async () => {
     const response1 = await request(baseUrl)
       .post(relativeUrl)
       .send(SAMPLE_DATA.CREATE_CAMPAIGN_DATA)
-      .set({ Authorization: getJwt() });
+      .set({ Authorization: getJwt(SAMPLE_DATA.CREATE_CAMPAIGN_DATA.ownerAddress) });
     const response2 = await request(baseUrl)
       .post(relativeUrl)
       .send(SAMPLE_DATA.CREATE_CAMPAIGN_DATA)
-      .set({ Authorization: getJwt() });
+      .set({ Authorization: getJwt(SAMPLE_DATA.CREATE_CAMPAIGN_DATA.ownerAddress) });
     assert.isNotNull(response1.body.slug);
     assert.isNotNull(response2.body.slug);
     assert.notEqual(response1.body.slug, response2.body.slug);
@@ -84,11 +127,8 @@ function patchCampaignTestCases() {
 
   it('should update campaign successfully, reviewer can cancel the campaign', async () => {
     const description = 'Description updated by test';
-    const reviewerAddress = SAMPLE_DATA.IN_REVIEWER_WHITELIST_USER_ADDRESS;
-    const campaign = await createCampaign({
-      ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
-      reviewerAddress,
-    });
+    const { reviewerAddress } = SAMPLE_DATA.CREATE_CAMPAIGN_DATA;
+    const campaign = await createCampaign(SAMPLE_DATA.CREATE_CAMPAIGN_DATA);
     const response = await request(baseUrl)
       .patch(`${relativeUrl}/${campaign._id}`)
       .send({ status: SAMPLE_DATA.CAMPAIGN_STATUSES.CANCELED, description, mined: false })
@@ -119,11 +159,8 @@ function patchCampaignTestCases() {
 
   it('should not update campaign successfully, reviewer just can change status to Canceled', async () => {
     const description = 'Description updated by test';
-    const reviewerAddress = SAMPLE_DATA.IN_REVIEWER_WHITELIST_USER_ADDRESS;
-    const campaign = await createCampaign({
-      ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
-      reviewerAddress,
-    });
+    const { reviewerAddress } = SAMPLE_DATA.CREATE_CAMPAIGN_DATA;
+    const campaign = await createCampaign(SAMPLE_DATA.CREATE_CAMPAIGN_DATA);
     const response = await request(baseUrl)
       .patch(`${relativeUrl}/${campaign._id}`)
       .send({
@@ -138,11 +175,8 @@ function patchCampaignTestCases() {
 
   it('should not update campaign successfully, reviewer need to send mined:false in data', async () => {
     const description = 'Description updated by test';
-    const reviewerAddress = SAMPLE_DATA.IN_REVIEWER_WHITELIST_USER_ADDRESS;
-    const campaign = await createCampaign({
-      ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
-      reviewerAddress,
-    });
+    const { reviewerAddress } = SAMPLE_DATA.CREATE_CAMPAIGN_DATA;
+    const campaign = await createCampaign(SAMPLE_DATA.CREATE_CAMPAIGN_DATA);
     const response = await request(baseUrl)
       .patch(`${relativeUrl}/${campaign._id}`)
       .send({

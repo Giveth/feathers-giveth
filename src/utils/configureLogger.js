@@ -52,16 +52,22 @@ module.exports = function configureLogger() {
 
   const config = {
     level,
-    transports: [
+    transports: [],
+    exitOnError: false,
+  };
+
+  if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'develop') {
+    // we just log in console in develop in localhost
+    // for develop and production we should use log files
+    config.transports.push(
       new winston.transports.Console({
         format: combine(customFormatter({ prettyPrint: true }), simple()),
         handleExceptions: true,
       }),
-    ],
-    exitOnError: false,
-  };
+    );
+  }
 
-  const logDir = app.get('logDir');
+  const logDir = process.env.logDir || app.get('logDir');
 
   if (logDir) {
     // - Write all logs error (and below) to `error.log`.

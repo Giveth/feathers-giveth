@@ -1,5 +1,6 @@
 const logger = require('winston');
 const rp = require('request-promise');
+const Sentry = require('@sentry/node');
 const { getFeatherAppInstance } = require('../app');
 
 const FIVE_MINUTES = 1000 * 60 * 5;
@@ -17,6 +18,7 @@ const queryGasPrice = () => {
       return data;
     })
     .catch(e => {
+      Sentry.captureException(new Error(`Error requesting to ethgasstation: ${e.message}`));
       logger.error('could not fetch gas = require(ethgasstation', e.statusCode || e);
     });
 };

@@ -1,5 +1,6 @@
 // Initializes the `traces` service on path `/traces`
 const createService = require('feathers-mongoose');
+const { generateSwaggerDocForCRUDService } = require('../../utils/swaggerUtils');
 const { createModel } = require('../../models/traces.model');
 const hooks = require('./traces.hooks');
 const { defaultFeatherMongooseOptions } = require('../serviceCommons');
@@ -16,9 +17,10 @@ module.exports = function traces() {
     ...defaultFeatherMongooseOptions,
   };
 
-  // Initialize our service with any options it requires
-  app.use('/traces', createService(options));
-  // Get our initialized service so that we can register hooks and filters
-  const service = app.service('traces');
-  service.hooks(hooks);
+  const service = createService(options);
+  service.docs = generateSwaggerDocForCRUDService(service);
+
+  app.use('/traces', service);
+
+  app.service('traces').hooks(hooks);
 };

@@ -1,5 +1,7 @@
 const { disallow } = require('feathers-hooks-common');
+const config = require('config');
 
+const { rateLimit } = require('../../utils/rateLimit');
 const onlyInternal = require('../../hooks/onlyInternal');
 const {
   getConversionRates,
@@ -39,7 +41,12 @@ const findConversionRates = () => async context => {
 module.exports = {
   before: {
     all: [],
-    find: [],
+    find: [
+      rateLimit({
+        threshold: config.rateLimit.threshold,
+        ttl: config.rateLimit.ttlSeconds,
+      }),
+    ],
     get: [disallow()],
     create: [onlyInternal()],
     update: [disallow()],

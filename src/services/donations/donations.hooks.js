@@ -4,6 +4,9 @@ const errors = require('@feathersjs/errors');
 const commons = require('feathers-hooks-common');
 const logger = require('winston');
 const { ObjectId } = require('mongoose').Types;
+const config = require('config');
+
+const { rateLimit } = require('../../utils/rateLimit');
 
 const sanitizeAddress = require('../../hooks/sanitizeAddress');
 const addConfirmations = require('../../hooks/addConfirmations');
@@ -505,6 +508,12 @@ module.exports = {
       updateMilestoneIfNotPledged(),
       addActionTakerAddress(),
       convertTokenToTokenAddress(),
+
+      // We dont count failed requests so I put it in last before hook
+      rateLimit({
+        threshold: config.rateLimit.createDonationThreshold,
+        ttl: config.rateLimit.createDonationTtlSeconds,
+      }),
     ],
     update: [commons.disallow()],
     patch: [

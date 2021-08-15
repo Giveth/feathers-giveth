@@ -17,6 +17,7 @@ const aggregateDonations = require('./aggregateDonations/aggregateDonations.serv
 const transactions = require('./transactions/transactions.service.js');
 const whitelist = require('./whitelist/whitelist.service.js');
 const gasprice = require('./gasprice/gasprice.service.js');
+const verifiedCampaigns = require('./verifiedCampaigns/verifiedCampaigns.service');
 const conversionRates = require('./conversionRates/conversionRates.service.js');
 const conversations = require('./conversations/conversations.service.js');
 const givbackReportDonations = require('./verifiedProjectsGiversReport/verifiedPerojectsGiversReport.service');
@@ -44,4 +45,5 @@ module.exports = function configure() {
   app.configure(conversations);
   app.configure(campaigncsv);
   app.configure(givbackReportDonations);
+  app.configure(verifiedCampaigns);
 };

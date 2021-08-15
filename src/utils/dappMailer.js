@@ -57,7 +57,7 @@ const donationReceipt = (app, { recipient, user, amount, token, donationType, do
         </p>
       `,
     cta: 'Manage your Donations',
-    ctaRelativeUrl: '/donations',
+    ctaRelativeUrl: '/my-donations',
     unsubscribeType: EmailSubscribeTypes.DONATION_RECEIPT,
     unsubscribeReason: 'You receive this email from Giveth because you have made a donation',
   };
@@ -126,48 +126,81 @@ const traceReceivedDonation = (app, { trace, amount, token }) => {
   sendEmail(app, recipientEmailData);
 };
 
-const requestDelegation = (
+const requestDelegation = async (
   app,
   {
     recipient,
     user,
-    donationType, // community / campaign
-    donatedToTitle,
+    donationType: projectType, // community / campaign
+    donatedToTitle: campaignOrCommunityName,
     amount,
     token,
+    donation,
   },
 ) => {
   const normalizedAmount = normalizeAmount(amount);
-  const data = {
-    recipient,
-    user,
-    template: emailNotificationTemplate,
-    subject: 'Giveth - Delegation required for new donation!',
-    secretIntro: `Take action! Please delegate a new donation of ${normalizedAmount} ${token.symbol} for the ${donationType} "${donatedToTitle}"!`,
-    title: "Take action! You've received a donation, delegate now!",
-    image: EmailImages.DONATION_BANNER,
-    text: `
+  if (projectType === AdminTypes.COMMUNITY && donation.isReturn) {
+    const parentDonation = await app.service('donations').get(donation.parentDonations[0]);
+    const parentDonationProject = await app
+      // it can be campaign or trace
+      .service(`${parentDonation.intendedProjectType}s`)
+      .get(parentDonation.intendedProjectTypeId);
+    const data = {
+      recipient,
+      user,
+      template: emailNotificationTemplate,
+      subject: 'Giveth - Rejected Delegation',
+      secretIntro: `A Giver to your Community ${campaignOrCommunityName} has rejected your delegation to the ${parentDonation.intendedProjectType} ${parentDonationProject.title}`,
+      title: 'Delegation Rejected :-(',
+      image: EmailImages.DONATION_BANNER,
+      text: `
+        <p><span ${emailStyle}>Hi ${user}</span></p>
+        <p>
+          Unfortunately, your proposed delegation of
+          <span style='display: block; color: rgb(53, 184, 209); line-height: 72px; font-size: 48px;'>${normalizedAmount} ${token.symbol}</span>
+          from your Community <strong>${campaignOrCommunityName}</strong> to the <strong>${parentDonationProject.title}</strong>
+        </p>
+        <p>
+           has been rejected by the Giver. The donation will be returned to the Community.
+        </p>
+      `,
+      cta: `Manage your Community`,
+      ctaRelativeUrl: `/my-communities`,
+      unsubscribeType: EmailSubscribeTypes.REQUEST_DELEGATION,
+      unsubscribeReason: `You receive this email because you run a ${AdminTypes.COMMUNITY}`,
+    };
+    sendEmail(app, data);
+  } else {
+    const data = {
+      recipient,
+      user,
+      template: emailNotificationTemplate,
+      subject: 'Giveth - Delegation required for new donation!',
+      secretIntro: `Take action! Please delegate a new donation of ${normalizedAmount} ${token.symbol} for the ${projectType} "${campaignOrCommunityName}"!`,
+      title: "Take action! You've received a donation, delegate now!",
+      image: EmailImages.DONATION_BANNER,
+      text: `
         <p><span ${emailStyle}>Hi ${user}</span></p>
         <p>
           You have received a donation of
           <span style='display: block; color: rgb(53, 184, 209); line-height: 72px; font-size: 48px;'>${normalizedAmount} ${
-      token.symbol
-    }</span>
-          for your ${donationType} <strong>${donatedToTitle}</strong>.
+        token.symbol
+      }</span>
+          for your ${projectType} <strong>${campaignOrCommunityName}</strong>.
         </p>
         <p>
           You can now delegate this money to a ${
-            donationType === AdminTypes.COMMUNITY ? 'Campaign or a Trace' : 'Trace'
+            projectType === AdminTypes.COMMUNITY ? 'Campaign or a Trace' : 'Trace'
           }.
         </p>
       `,
-    cta: `Delegate Donation`,
-    ctaRelativeUrl: `/delegations`,
-    unsubscribeType: EmailSubscribeTypes.REQUEST_DELEGATION,
-    unsubscribeReason: `You receive this email because you run a ${donationType}`,
-  };
-
-  sendEmail(app, data);
+      cta: `Delegate Donation`,
+      ctaRelativeUrl: `/my-delegations`,
+      unsubscribeType: EmailSubscribeTypes.REQUEST_DELEGATION,
+      unsubscribeReason: `You receive this email because you run a ${projectType}`,
+    };
+    sendEmail(app, data);
+  }
 };
 
 const donationDelegated = (
@@ -210,7 +243,7 @@ const donationDelegated = (
         </p>
       `,
     cta: `View Donations`,
-    ctaRelativeUrl: `/donations`,
+    ctaRelativeUrl: `/my-donations`,
     unsubscribeType: EmailSubscribeTypes.DONATION_DELEGATED,
     unsubscribeReason: `You receive this email because your donation was delegated`,
   };

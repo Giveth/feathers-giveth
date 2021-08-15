@@ -1,7 +1,9 @@
 const commons = require('feathers-hooks-common');
 const { toChecksumAddress } = require('web3-utils');
 const errors = require('@feathersjs/errors');
+const config = require('config');
 
+const { rateLimit } = require('../../utils/rateLimit');
 const notifyOfChange = require('../../hooks/notifyOfChange');
 const sanitizeAddress = require('../../hooks/sanitizeAddress');
 const setAddress = require('../../hooks/setAddress');
@@ -85,7 +87,16 @@ module.exports = {
     all: [commons.discardQuery('$disableStashBefore')],
     find: [sanitizeAddress('address')],
     get: [normalizeId()],
-    create: [commons.discard('_id'), ...address],
+    create: [
+      commons.discard('_id'),
+      ...address,
+
+      // We dont count failed requests so I put it in last before hook
+      rateLimit({
+        threshold: config.rateLimit.threshold,
+        ttl: config.rateLimit.ttlSeconds,
+      }),
+    ],
     update: [...restrict, commons.stashBefore()],
     patch: [...restrict, commons.stashBefore()],
     remove: [commons.disallow()],

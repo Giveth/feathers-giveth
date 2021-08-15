@@ -9,6 +9,7 @@ const feathers = require('@feathersjs/feathers');
 const express = require('@feathersjs/express');
 const configuration = require('@feathersjs/configuration');
 const Sentry = require('@sentry/node');
+const swagger = require('feathers-swagger');
 const socketsConfig = require('./socketsConfig');
 const configureLogger = require('./utils/configureLogger');
 
@@ -39,6 +40,50 @@ Sentry.init({
   tracesSampleRate: 0.1,
 });
 
+function initSwagger() {
+  app.configure(
+    swagger({
+      docsPath: '/docs',
+      openApiVersion: 3,
+      idType: 'string',
+      uiIndex: true,
+      specs: {
+        info: {
+          title: 'Feathers-Giveth API',
+          description: 'In reality the user use socketio instead of REST',
+          version: process.env.npm_package_version,
+        },
+        components: {
+          securitySchemes: {
+            BearerAuth: {
+              type: 'http',
+              scheme: 'bearer',
+              description:
+                'Open giveth-dapp in chrome and copy accessToken from Network -> WS -> Messages section',
+            },
+          },
+        },
+        servers: [
+          {
+            url: 'http://localhost:3030',
+            description: 'Localhost',
+          },
+          {
+            url: 'https://feathers.develop.giveth.io',
+            description: 'UAT',
+          },
+          {
+            url: 'https://feathers.beta.giveth.io',
+            description: 'Production',
+          },
+        ],
+        security: [{ BearerAuth: [] }],
+        schemes: ['http', 'https'], // Optionally set the protocol schema used (sometimes required when host on https)
+      },
+    }),
+  );
+}
+
 function initFeatherApp() {
   // Load app configuration
   app.configure(configuration());
@@ -64,6 +109,7 @@ function initFeatherApp() {
   app.configure(mongoose);
   app.configure(express.rest());
   app.configure(socketsConfig);
+  initSwagger();
 
   // Configure other middleware (see `middleware/index.js`)
   app.configure(middleware);

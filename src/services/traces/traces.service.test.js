@@ -14,10 +14,14 @@ const baseUrl = config.get('givethFathersBaseUrl');
 const relativeUrl = '/traces';
 
 async function createTrace(data) {
+  return app.service('traces').create(data);
+}
+
+async function createTraceWithRest(data, userAddress) {
   const response = await request(baseUrl)
     .post(relativeUrl)
     .send(data)
-    .set({ Authorization: getJwt() });
+    .set({ Authorization: getJwt(userAddress || data.ownerAddress) });
   return response.body;
 }
 
@@ -43,6 +47,129 @@ function postMilestoneTestCases() {
       .set({ Authorization: getJwt() });
     assert.equal(response.statusCode, 201);
     assert.equal(response.body.ownerAddress, SAMPLE_DATA.USER_ADDRESS);
+  });
+
+  it('should not create trace with repetitive title', async () => {
+    const traceData = SAMPLE_DATA.createTraceData();
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .send(traceData)
+      .set({ Authorization: getJwt() });
+    assert.equal(response.statusCode, 201);
+    assert.equal(response.body.ownerAddress, SAMPLE_DATA.USER_ADDRESS);
+
+    const response2 = await request(baseUrl)
+      .post(relativeUrl)
+      .send(traceData)
+      .set({ Authorization: getJwt() });
+    assert.equal(response2.statusCode, 403);
+    assert.equal(
+      response2.body.message,
+      'Trace title is repetitive. Please select a different title for the trace.',
+    );
+  });
+  it('should not create trace with similar title with extra spaces between words', async () => {
+    const title = 'test similar title with extra spaces between words';
+    const titleWithSpace = 'test   similar   title    with extra   spaces between words';
+
+    const traceData = SAMPLE_DATA.createTraceData();
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .send({ ...traceData, title })
+      .set({ Authorization: getJwt() });
+    assert.equal(response.statusCode, 201);
+    assert.equal(response.body.ownerAddress, SAMPLE_DATA.USER_ADDRESS);
+
+    const response2 = await request(baseUrl)
+      .post(relativeUrl)
+      .send({ ...traceData, title: titleWithSpace })
+      .set({ Authorization: getJwt() });
+    assert.equal(response2.statusCode, 403);
+    assert.equal(
+      response2.body.message,
+      'Trace title is repetitive. Please select a different title for the trace.',
+    );
+  });
+  it('should not create trace with similar title with extra spaces at end of title', async () => {
+    const title = 'test similar title with extra spaces at end of title';
+    const titleWithSpace = 'test similar title with extra spaces at end of title           ';
+
+    const traceData = SAMPLE_DATA.createTraceData();
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .send({ ...traceData, title })
+      .set({ Authorization: getJwt() });
+    assert.equal(response.statusCode, 201);
+    assert.equal(response.body.ownerAddress, SAMPLE_DATA.USER_ADDRESS);
+
+    const response2 = await request(baseUrl)
+      .post(relativeUrl)
+      .send({ ...traceData, title: titleWithSpace })
+      .set({ Authorization: getJwt() });
+    assert.equal(response2.statusCode, 403);
+    assert.equal(
+      response2.body.message,
+      'Trace title is repetitive. Please select a different title for the trace.',
+    );
+  });
+
+  it('non-campaign owner should not create trace with Pending status', async () => {
+    const user = await app.service('users').create({ address: generateRandomEtheriumAddress() });
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .send({ ...SAMPLE_DATA.createTraceData(), status: SAMPLE_DATA.TRACE_STATUSES.PENDING })
+      .set({ Authorization: getJwt(user.address) });
+    assert.equal(response.statusCode, 400);
+    assert.equal(response.body.message, 'trace status is not proposed');
+  });
+  it('campaign owner should create trace with Pending status', async () => {
+    const campaign = await app.service('campaigns').get(SAMPLE_DATA.CAMPAIGN_ID);
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .send({
+        ...SAMPLE_DATA.createTraceData(),
+        campaignId: campaign._id,
+        status: SAMPLE_DATA.TRACE_STATUSES.PENDING,
+      })
+      .set({ Authorization: getJwt(campaign.ownerAddress) });
+    assert.equal(response.statusCode, 201);
+    assert.equal(response.body.status, SAMPLE_DATA.TRACE_STATUSES.PENDING);
+  });
+  it('campaign coowner should create trace with Pending status', async () => {
+    const coownerAddress = generateRandomEtheriumAddress();
+    await app.service('users').create({ address: coownerAddress, isAdmin: true });
+    const campaign = await app.service('campaigns').create({
+      ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
+      coownerAddress,
+    });
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .send({
+        ...SAMPLE_DATA.createTraceData(),
+        campaignId: campaign._id,
+        status: SAMPLE_DATA.TRACE_STATUSES.PENDING,
+        ownerAddress: coownerAddress,
+      })
+      .set({ Authorization: getJwt(coownerAddress) });
+    assert.equal(response.statusCode, 201);
+    assert.equal(response.body.status, SAMPLE_DATA.TRACE_STATUSES.PENDING);
+  });
+  it('campaign owner should not create Pending trace in another campaign ', async () => {
+    const campaign = await app.service('campaigns').get(SAMPLE_DATA.CAMPAIGN_ID);
+    const user = await app.service('users').create({ address: generateRandomEtheriumAddress() });
+    const newCampaign = await app
+      .service('campaigns')
+      .create({ ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA, ownerAddress: user.address });
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .send({
+        ...SAMPLE_DATA.createTraceData(),
+        campaignId: newCampaign._id,
+        status: SAMPLE_DATA.TRACE_STATUSES.PENDING,
+      })
+      .set({ Authorization: getJwt(campaign.ownerAddress) });
+    assert.equal(response.statusCode, 400);
+    assert.equal(response.body.message, 'trace status is not proposed');
   });
   it('should create trace successfully including category', async () => {
     const formType = 'expense';
@@ -104,7 +231,7 @@ function postMilestoneTestCases() {
     const createMileStoneData = { ...SAMPLE_DATA.createTraceData(), verified: true };
     createMileStoneData.status = SAMPLE_DATA.TRACE_STATUSES.PROPOSED;
     createMileStoneData.ownerAddress = SAMPLE_DATA.USER_ADDRESS;
-    const trace = await createTrace(createMileStoneData);
+    const trace = await createTraceWithRest(createMileStoneData);
     assert.isFalse(trace.verified);
   });
 
@@ -112,8 +239,20 @@ function postMilestoneTestCases() {
     const createMileStoneData = { ...SAMPLE_DATA.createTraceData(), verified: true };
     createMileStoneData.status = SAMPLE_DATA.TRACE_STATUSES.PROPOSED;
     createMileStoneData.ownerAddress = generateRandomEtheriumAddress();
-    const trace = await createTrace(createMileStoneData);
+    const trace = await createTraceWithRest(createMileStoneData, SAMPLE_DATA.USER_ADDRESS);
     assert.equal(trace.ownerAddress, SAMPLE_DATA.USER_ADDRESS);
+  });
+
+  it('should fail create trace, because reviewerAddress is not isReviewer in Db', async () => {
+    const userAddress = generateRandomEtheriumAddress();
+    await app.service('users').create({ address: userAddress });
+    const createTraceData = { ...SAMPLE_DATA.createTraceData(), reviewerAddress: userAddress };
+
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .send(createTraceData)
+      .set({ Authorization: getJwt(createTraceData.ownerAddress) });
+    assert.equal(response.statusCode, 400);
   });
 }
 

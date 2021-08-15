@@ -5,6 +5,7 @@ const { GivethBridge } = require('giveth-bridge');
 const semaphore = require('semaphore');
 const { keccak256, padLeft, toHex } = require('web3-utils');
 const logger = require('winston');
+const Sentry = require('@sentry/node');
 const to = require('../utils/to');
 const { removeHexPrefix } = require('./lib/web3Helpers');
 const { EventStatus } = require('../models/events.model');
@@ -253,7 +254,12 @@ const watcher = app => {
         .allEvents({})
         .on('data', newPendingEvent)
         .on('changed', e => e.removed && removeEvent(e))
-        .on('error', err => logger.error('SUBSCRIPTION ERROR: ', err)),
+        .on('error', err => {
+          Sentry.captureException(
+            new Error(`Error blockchain connection subscribeLp: ${err.message}`),
+          );
+          logger.error('SUBSCRIPTION ERROR: ', err);
+        }),
     );
   }
 
@@ -276,7 +282,13 @@ const watcher = app => {
         })
         .on('data', newPendingEvent)
         .on('changed', e => e.removed && removeEvent(e))
-        .on('error', err => logger.error('SUBSCRIPTION ERROR: ', err)),
+        .on('error', err => {
+          Sentry.captureException(
+            new Error(`Error blockchain connection subscribeApp: ${err.message}`),
+          );
+
+          logger.error('SUBSCRIPTION ERROR: ', err);
+        }),
     );
   }
 
@@ -301,7 +313,12 @@ const watcher = app => {
         .allEvents({})
         .on('data', newPendingEvent)
         .on('changed', e => e.removed && removeEvent(e))
-        .on('error', err => logger.error('SUBSCRIPTION ERROR: ', err)),
+        .on('error', err => {
+          Sentry.captureException(
+            new Error(`Error blockchain connection subscribe Vault: ${err.message}`),
+          );
+          logger.error('SUBSCRIPTION ERROR: ', err);
+        }),
     );
   }
 

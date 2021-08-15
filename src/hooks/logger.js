@@ -14,7 +14,9 @@ const startMonitoring = () => context => {
     !config.enableSentryMonitoring ||
     isRequestInternal(context) ||
     // internal calls that use the external context doesnt have headers
-    !context.params.headers
+    !context.params.headers ||
+    // for requests that use _populate it will fill after first call
+    context.params._populate
   )
     return context;
   const transaction = Sentry.startTransaction({
@@ -68,7 +70,9 @@ const responseLoggerHook = () => {
 
       // for making sure the feathers errors like unAuthorized wouldn't capture as exceptions
       if (e.type !== 'FeathersError') {
-        Sentry.captureException(e);
+        Sentry.captureException(e, {
+          user: hook.params.user,
+        });
       }
       delete e.hook;
 
