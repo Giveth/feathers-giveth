@@ -6,7 +6,7 @@ const { SAMPLE_DATA, getJwt, generateRandomTxHash } = require('../../../test/tes
 const baseUrl = config.get('givethFathersBaseUrl');
 const relativeUrl = '/verifiedCampaigns';
 
-function GetCreateCampaignForGivethioProjectsTestCases() {
+function GetVerifiedCampaignsTestCases() {
   it('get projectInfo with right input data', async () => {
     const slug = 'test';
     const response = await request(baseUrl).get(
@@ -27,7 +27,7 @@ function GetCreateCampaignForGivethioProjectsTestCases() {
     assert.equal(response.statusCode, 403);
   });
 }
-function CreateCampaignForGivethioProjectsTestCases() {
+function PostVerifiedCampaignsTestCases() {
   it('Create campaign with gievthIo project successful', async () => {
     const slug = 'test';
     const response = await request(baseUrl)
@@ -40,6 +40,7 @@ function CreateCampaignForGivethioProjectsTestCases() {
       .set({ Authorization: getJwt(SAMPLE_DATA.GIVETH_IO_PROJECT_OWNER_ADDRESS) });
     assert.equal(response.statusCode, 201);
     assert.equal(response.body.slug, slug);
+    assert.isTrue(response.body.verified);
   });
 
   it('Get 403 for creating campaign with invalid walletAddress', async () => {
@@ -70,5 +71,5 @@ function CreateCampaignForGivethioProjectsTestCases() {
   });
 }
 
-describe(`Test GET ${relativeUrl}`, GetCreateCampaignForGivethioProjectsTestCases);
-describe(`Test POST ${relativeUrl}`, CreateCampaignForGivethioProjectsTestCases);
+describe(`Test GET ${relativeUrl}`, GetVerifiedCampaignsTestCases);
+describe(`Test POST ${relativeUrl}`, PostVerifiedCampaignsTestCases);
