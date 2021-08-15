@@ -466,7 +466,14 @@ const projects = (app, liquidPledging) => {
         logger.warn('Ignoring addCampaign. Failed whitelist check -> projectId:', projectId);
         return;
       }
-
+      if (campaign.verified && campaign.reviewerAddress.toLowerCase() !== reviewer.toLowerCase()) {
+        // See /verifiedCampaigns POST, we set the reviewerAddress there, so user cant create with different data
+        logger.error('created verified campaign has different reviewerAddress', {
+          campaign,
+          reviewer,
+        });
+        return;
+      }
       const profile = await fetchProfile(project.url, AdminTypes.CAMPAIGN, projectId);
       const mutation = {
         title: project.name,

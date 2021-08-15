@@ -28,6 +28,7 @@ module.exports = function verifiedCampaigns() {
         slug,
         reviewerAddress: config.givethIoProjectsReviewerAddress,
         description,
+        verified: true,
         txHash,
         image: imageIpfsPath ? imageIpfsPath[0] : image,
         ownerAddress: owner.address,
