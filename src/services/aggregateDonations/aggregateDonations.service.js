@@ -23,7 +23,7 @@ module.exports = function aggregateDonations() {
         .aggregate()
         .match({
           status: {
-            $in: [DonationStatus.COMMITTED, DonationStatus.WAITING, DonationStatus.PENDING],
+            $in: [DonationStatus.COMMITTED, DonationStatus.WAITING],
           },
           $or: [
             { ownerTypeId: id }, // Committed ones to project

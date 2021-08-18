@@ -1,3 +1,4 @@
+const { ObjectId } = require('mongoose').Types;
 const { DonationBridgeStatus, DonationStatus } = require('../models/donations.model');
 
 const updateBridgePaymentExecutedTxHash = async (
@@ -43,6 +44,18 @@ const isAllDonationsPaidOut = async (app, { txHash, traceId }) => {
     },
   });
   return notPaidOutDonationsCount === 0;
+};
+
+const findDonationById = (app, { donationId }) => {
+  const donationModel = app.service('donations').Model;
+  return donationModel.findOne({ _id: ObjectId(donationId) });
+};
+
+const findParentDonation = (app, { parentDonations }) => {
+  if (parentDonations.length === 0) {
+    return undefined;
+  }
+  return findDonationById(app, { donationId: parentDonations[0] });
 };
 
 /**
@@ -221,4 +234,6 @@ module.exports = {
   updateBridgePaymentAuthorizedTxHash,
   isAllDonationsPaidOut,
   listOfDonorsToVerifiedProjects,
+  findParentDonation,
+  findDonationById,
 };
