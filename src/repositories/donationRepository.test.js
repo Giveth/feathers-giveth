@@ -5,6 +5,7 @@ const {
   updateBridgePaymentExecutedTxHash,
   updateBridgePaymentAuthorizedTxHash,
   isAllDonationsPaidOut,
+  findDonationById,
 } = require('./donationRepository');
 
 let app;
@@ -82,6 +83,7 @@ function updateBridgePaymentAuthorizedTxHashTests() {
     assert.equal(donations[1].bridgePaymentAuthorizedTxHash, bridgePaymentAuthorizedTxHash);
   });
 }
+
 function isAllDonationsPaidOutForTraceAndTxHashTests() {
   it('should return false,  when all donations are not paid out', async () => {
     const txHash = generateRandomTxHash();
@@ -129,6 +131,24 @@ function isAllDonationsPaidOutForTraceAndTxHashTests() {
     assert.isTrue(isAllDonationsPaidOutForTxHash);
   });
 }
+
+function findDonationByIdTests() {
+  it('should find donation by id', async () => {
+    const txHash = generateRandomTxHash();
+    const DonationModel = app.service('donations').Model;
+
+    const donation = await new DonationModel({
+      ...SAMPLE_DATA.DONATION_DATA,
+      ownerTypeId: SAMPLE_DATA.TRACE_ID,
+      status: 'Paid',
+      txHash,
+    }).save();
+    const foundDonation = await findDonationById(app, { donationId: donation._id });
+    assert.isOk(foundDonation);
+    assert.equal(String(foundDonation._id), String(donation._id));
+  });
+}
+
 describe(`updateBridgePaymentExecutedTxHash test cases`, updateBridgePaymentExecutedTxHashTests);
 describe(
   `updateBridgePaymentAuthorizedTxHash test cases`,
@@ -136,3 +156,4 @@ describe(
 );
 
 describe(`isAllDonationsPaidOut test cases`, isAllDonationsPaidOutForTraceAndTxHashTests);
+describe(`findDonationById test cases`, findDonationByIdTests);
