@@ -7,6 +7,7 @@ module.exports = function aggregateDonations() {
   const usersService = app.service('users');
 
   const aggregateDonationsService = {
+    // This service used in campaign leaderboard
     async find({ query, provider }) {
       const { id, $limit, $skip } = query;
       if (!id || !ObjectId.isValid(id)) {
@@ -23,7 +24,7 @@ module.exports = function aggregateDonations() {
         .aggregate()
         .match({
           status: {
-            $in: [DonationStatus.COMMITTED, DonationStatus.WAITING],
+            $in: [DonationStatus.COMMITTED, DonationStatus.WAITING, DonationStatus.PENDING],
           },
           $or: [
             { ownerTypeId: id }, // Committed ones to project
@@ -88,12 +89,14 @@ module.exports = function aggregateDonations() {
   aggregateDonationsService.docs = {
     operations: {
       find: {
-        'parameters[2]': {
-          name: 'id',
-          description: 'It could be campaignId, traceId or communityId',
-          in: 'query',
-        },
-        'parameters[3]': undefined,
+        description: 'This service used in campaign leaderboard',
+        parameters: [
+          {
+            name: 'id',
+            description: 'It could be campaignId, traceId or communityId',
+            in: 'query',
+          },
+        ],
       },
       update: false,
       patch: false,
