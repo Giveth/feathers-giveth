@@ -1,5 +1,5 @@
 const ForeignGivethBridgeArtifact = require('giveth-bridge/build/ForeignGivethBridge.json');
-const LiquidPledgingArtifact = require('giveth-liquidpledging/build/LiquidPledging.json');
+const LiquidPledgingArtifact = require('@giveth/liquidpledging-contract/build/LiquidPledging.json');
 const logger = require('winston');
 const { toBN } = require('web3-utils');
 const eventDecodersFromArtifact = require('./lib/eventDecodersFromArtifact');

@@ -1,4 +1,4 @@
-const { LiquidPledging, LPVault, Kernel } = require('giveth-liquidpledging');
+const { LiquidPledging, LPVault, Kernel } = require('@giveth/liquidpledging-contract');
 const { LPPCappedMilestone } = require('lpp-capped-milestone');
 const { BridgedMilestone, LPMilestone } = require('lpp-milestones');
 const { GivethBridge } = require('giveth-bridge');

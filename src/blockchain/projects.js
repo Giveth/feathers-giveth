@@ -1,6 +1,6 @@
 /* eslint-disable consistent-return */
 
-const { Kernel, AppProxyUpgradeable } = require('giveth-liquidpledging/build/contracts');
+const { Kernel, AppProxyUpgradeable } = require('@giveth/liquidpledging-contract');
 const isIPFS = require('is-ipfs');
 const { LPPCappedMilestone } = require('lpp-capped-milestone');
 const { LPMilestone, BridgedMilestone } = require('lpp-milestones');
