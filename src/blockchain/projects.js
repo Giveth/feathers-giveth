@@ -2,9 +2,9 @@
 
 const { Kernel, AppProxyUpgradeable } = require('@giveth/liquidpledging-contract');
 const isIPFS = require('is-ipfs');
-const { LPPCappedMilestone } = require('lpp-capped-milestone');
-const { LPMilestone, BridgedMilestone } = require('lpp-milestones');
-const { LPPCampaign } = require('lpp-campaign');
+const { LPPCappedMilestone } = require('@giveth/lpp-capped-milestone');
+const { LPMilestone, BridgedMilestone } = require('@giveth/lpp-milestones');
+const { LPPCampaign } = require('@giveth/lpp-campaign');
 const { keccak256, isAddress } = require('web3-utils');
 const logger = require('winston');
 
