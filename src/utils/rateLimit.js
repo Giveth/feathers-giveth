@@ -1,6 +1,7 @@
 const config = require('config');
 const { RateLimiterRedis } = require('rate-limiter-flexible');
 const Redis = require('ioredis');
+const Sentry = require('@sentry/node');
 
 const redisClient = new Redis({ ...config.redis, enableOfflineQueue: false });
 const errors = require('@feathersjs/errors');
@@ -42,6 +43,13 @@ const rateLimit = (options = {}) => {
       // await messageLimiter.consume(ip);
       await rateLimiter.consume(key);
     } catch (e) {
+      // It's for knowing how much user got rate limit, maybe should change the threshold configs
+      Sentry.captureException(new Error(`Someone got rate limit error ${key}`), {
+        user: context.params.user,
+        ip,
+        path: context.path,
+        method: context.method,
+      });
       throw new errors.TooManyRequests(errorMessage || 'Too many requests');
     }
 
