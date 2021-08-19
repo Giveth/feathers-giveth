@@ -10,11 +10,7 @@ const baseUrl = config.get('givethFathersBaseUrl');
 const relativeUrl = '/campaigns';
 
 async function createCampaign(data) {
-  const response = await request(baseUrl)
-    .post(relativeUrl)
-    .send(data)
-    .set({ Authorization: getJwt(data.ownerAddress) });
-  return response.body;
+  return app.service('campaigns').create(data);
 }
 
 function getCampaignTestCases() {
@@ -186,6 +182,94 @@ function patchCampaignTestCases() {
       .set({ Authorization: getJwt(reviewerAddress) });
     assert.equal(response.statusCode, 403);
     assert.equal(response.body.code, 403);
+  });
+  it('Admin should can archive campaign', async () => {
+    const campaign = await createCampaign(SAMPLE_DATA.CREATE_CAMPAIGN_DATA);
+    const admin = await app
+      .service('users')
+      .create({ address: generateRandomEtheriumAddress(), isAdmin: true });
+    const response = await request(baseUrl)
+      .patch(`${relativeUrl}/${campaign._id}`)
+      .send({
+        status: SAMPLE_DATA.CAMPAIGN_STATUSES.ARCHIVED,
+      })
+      .set({ Authorization: getJwt(admin.address) });
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.body.status, SAMPLE_DATA.CAMPAIGN_STATUSES.ARCHIVED);
+  });
+
+  it('Campaign owner should can archive campaign', async () => {
+    const campaign = await createCampaign(SAMPLE_DATA.CREATE_CAMPAIGN_DATA);
+    const response = await request(baseUrl)
+      .patch(`${relativeUrl}/${campaign._id}`)
+      .send({
+        status: SAMPLE_DATA.CAMPAIGN_STATUSES.ARCHIVED,
+      })
+      .set({ Authorization: getJwt(campaign.ownerAddress) });
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.body.status, SAMPLE_DATA.CAMPAIGN_STATUSES.ARCHIVED);
+  });
+
+  it('Campaign reviewer should not can archive campaign', async () => {
+    const reviewer = await app
+      .service('users')
+      .create({ isReviewer: true, address: generateRandomEtheriumAddress() });
+    const campaign = await createCampaign({
+      ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
+      reviewerAddress: reviewer.address,
+    });
+    const response = await request(baseUrl)
+      .patch(`${relativeUrl}/${campaign._id}`)
+      .send({
+        status: SAMPLE_DATA.CAMPAIGN_STATUSES.ARCHIVED,
+      })
+      .set({ Authorization: getJwt(campaign.reviewerAddress) });
+    assert.equal(response.statusCode, 403);
+  });
+
+  it('Campaign coowner should not can archive campaign', async () => {
+    const coowner = await app.service('users').create({ address: generateRandomEtheriumAddress() });
+    const campaign = await createCampaign({
+      ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
+      coownerAddress: coowner.address,
+    });
+    const response = await request(baseUrl)
+      .patch(`${relativeUrl}/${campaign._id}`)
+      .send({
+        status: SAMPLE_DATA.CAMPAIGN_STATUSES.ARCHIVED,
+      })
+      .set({ Authorization: getJwt(campaign.coownerAddress) });
+    assert.equal(response.statusCode, 403);
+  });
+
+  it('Campaign owner can not edit archived campaign', async () => {
+    const campaign = await createCampaign({
+      ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
+      status: SAMPLE_DATA.CAMPAIGN_STATUSES.ARCHIVED,
+    });
+    const response = await request(baseUrl)
+      .patch(`${relativeUrl}/${campaign._id}`)
+      .send({
+        title: 'test title',
+      })
+      .set({ Authorization: getJwt(campaign.ownerAddress) });
+    assert.equal(response.statusCode, 403);
+  });
+  it('Could not un archive campaign', async () => {
+    const campaign = await createCampaign({
+      ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
+      status: SAMPLE_DATA.CAMPAIGN_STATUSES.ARCHIVED,
+    });
+    const admin = await app
+      .service('users')
+      .create({ address: generateRandomEtheriumAddress(), isAdmin: true });
+    const response = await request(baseUrl)
+      .patch(`${relativeUrl}/${campaign._id}`)
+      .send({
+        status: SAMPLE_DATA.CAMPAIGN_STATUSES.ACTIVE,
+      })
+      .set({ Authorization: getJwt(admin.address) });
+    assert.equal(response.statusCode, 403);
   });
 
   it('should get unAuthorized error', async () => {

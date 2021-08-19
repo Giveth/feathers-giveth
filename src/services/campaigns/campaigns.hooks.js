@@ -12,6 +12,7 @@ const addConfirmations = require('../../hooks/addConfirmations');
 const { CampaignStatus } = require('../../models/campaigns.model');
 const createModelSlug = require('../createModelSlug');
 const { isRequestInternal } = require('../../utils/feathersUtils');
+const { errorMessages } = require('../../utils/errorMessages');
 
 const schema = {
   include: [
@@ -50,6 +51,22 @@ const restrict = () => context => {
 
   const canUpdate = campaign => {
     if (!campaign) throw new errors.Forbidden();
+
+    if (campaign.status === CampaignStatus.ARCHIVED) {
+      throw new errors.Forbidden(errorMessages.CANT_UPDATE_ARCHIVED_CAMPAIGNS);
+    }
+    if (data.status === CampaignStatus.ARCHIVED) {
+      if (user.address === campaign.ownerAddress || user.isAdmin) {
+        // when archiving campaign, user jus can status not any other field
+        Object.keys(data).forEach(key => {
+          if (key !== 'status') {
+            delete data[key];
+          }
+        });
+        return;
+      }
+      throw new errors.Forbidden(errorMessages.JUST_CAMPAIGN_OWNER_AND_ADMIN_CAN_ARCHIVE_CAMPAIGN);
+    }
 
     // reviewer Canceled
     if (data.status === CampaignStatus.CANCELED && data.mined === false) {
