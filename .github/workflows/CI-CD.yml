@@ -61,14 +61,13 @@ jobs:
           #          passphrase: ${{ secrets.PASSPHRASE }}
           privateKey: ${{ secrets.DEVELOP_PRIVATE_KEY}}
 
-      - name: beta deploy
+      - name: production deploy
         if: github.ref == 'refs/heads/master'
         uses: garygrossgarten/github-action-ssh@v0.6.4
         with:
-#          command: cd feathers-giveth-beta && git checkout master && git pull origin master && [[ -s $HOME/.nvm/nvm.sh ]] && . $HOME/.nvm/nvm.sh && nvm use 10  && npm ci &&  NODE_ENV=production ./node_modules/.bin/migrate-mongo up && npm run serve
           # pull images, restart docker, then remove unused docker images
-          command: cd feathers-giveth-beta && git checkout master && git pull origin master && docker-compose -f docker-compose-production.yml pull && docker-compose -f docker-compose-production.yml down && docker-compose -f docker-compose-production.yml up -d && docker image prune -a --force
-          host: ${{ secrets.BETA_HOST }}
-          username: ${{ secrets.BETA_USERNAME }}
+          command: cd feathers-giveth-trace && git checkout master && git pull origin master && docker-compose -f docker-compose-production.yml pull && docker-compose -f docker-compose-production.yml down && docker-compose -f docker-compose-production.yml up -d && docker image prune -a --force
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USERNAME }}
           #          passphrase: ${{ secrets.PASSPHRASE }}
-          privateKey: ${{ secrets.BETA_PRIVATE_KEY}}
+          privateKey: ${{ secrets.PRODUCTION_PRIVATE_KEY}}
