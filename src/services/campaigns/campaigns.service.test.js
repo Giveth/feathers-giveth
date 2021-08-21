@@ -1,6 +1,7 @@
 const request = require('supertest');
 const config = require('config');
 const { assert } = require('chai');
+const { errorMessages } = require('../../utils/errorMessages');
 const { getJwt, SAMPLE_DATA, generateRandomEtheriumAddress } = require('../../../test/testUtility');
 const { getFeatherAppInstance } = require('../../app');
 
@@ -86,6 +87,19 @@ function postCampaignTestCases() {
       .send({ ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA, reviewerAddress: userAddress })
       .set({ Authorization: getJwt(SAMPLE_DATA.CREATE_CAMPAIGN_DATA.ownerAddress) });
     assert.equal(response.statusCode, 400);
+  });
+
+  it('Should not create Active campaign', async () => {
+    const campaignData = {
+      ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
+      status: SAMPLE_DATA.CAMPAIGN_STATUSES.ACTIVE,
+    };
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .send(campaignData)
+      .set({ Authorization: getJwt(campaignData.ownerAddress) });
+    assert.equal(response.statusCode, 201);
+    assert.equal(response.body.status, SAMPLE_DATA.CAMPAIGN_STATUSES.PENDING);
   });
 
   it('should get unAuthorized error', async () => {
@@ -184,7 +198,10 @@ function patchCampaignTestCases() {
     assert.equal(response.body.code, 403);
   });
   it('Admin should can archive campaign', async () => {
-    const campaign = await createCampaign(SAMPLE_DATA.CREATE_CAMPAIGN_DATA);
+    const campaign = await createCampaign({
+      ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
+      status: SAMPLE_DATA.CAMPAIGN_STATUSES.ACTIVE,
+    });
     const admin = await app
       .service('users')
       .create({ address: generateRandomEtheriumAddress(), isAdmin: true });
@@ -198,8 +215,30 @@ function patchCampaignTestCases() {
     assert.equal(response.body.status, SAMPLE_DATA.CAMPAIGN_STATUSES.ARCHIVED);
   });
 
+  it('Should not archive non Active campaigns', async () => {
+    const campaign = await createCampaign({
+      ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
+      status: SAMPLE_DATA.CAMPAIGN_STATUSES.PENDING,
+    });
+    const admin = await app
+      .service('users')
+      .create({ address: generateRandomEtheriumAddress(), isAdmin: true });
+    const response = await request(baseUrl)
+      .patch(`${relativeUrl}/${campaign._id}`)
+      .send({
+        status: SAMPLE_DATA.CAMPAIGN_STATUSES.ARCHIVED,
+      })
+      .set({ Authorization: getJwt(admin.address) });
+    assert.equal(response.statusCode, 400);
+
+    assert.equal(response.body.message, errorMessages.JUST_ACTIVE_CAMPAIGNS_COULD_BE_ARCHIVED);
+  });
+
   it('Campaign owner should can archive campaign', async () => {
-    const campaign = await createCampaign(SAMPLE_DATA.CREATE_CAMPAIGN_DATA);
+    const campaign = await createCampaign({
+      ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
+      status: SAMPLE_DATA.CAMPAIGN_STATUSES.ACTIVE,
+    });
     const response = await request(baseUrl)
       .patch(`${relativeUrl}/${campaign._id}`)
       .send({
@@ -225,6 +264,10 @@ function patchCampaignTestCases() {
       })
       .set({ Authorization: getJwt(campaign.reviewerAddress) });
     assert.equal(response.statusCode, 403);
+    assert.equal(
+      response.body.message,
+      errorMessages.JUST_CAMPAIGN_OWNER_AND_ADMIN_CAN_ARCHIVE_CAMPAIGN,
+    );
   });
 
   it('Campaign coowner should not can archive campaign', async () => {
@@ -240,9 +283,26 @@ function patchCampaignTestCases() {
       })
       .set({ Authorization: getJwt(campaign.coownerAddress) });
     assert.equal(response.statusCode, 403);
+    assert.equal(
+      response.body.message,
+      errorMessages.JUST_CAMPAIGN_OWNER_AND_ADMIN_CAN_ARCHIVE_CAMPAIGN,
+    );
   });
 
-  it('Campaign owner can not edit archived campaign', async () => {
+  it('Should not create Archived campaign', async () => {
+    const campaignData = {
+      ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
+      status: SAMPLE_DATA.CAMPAIGN_STATUSES.ARCHIVED,
+    };
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .send(campaignData)
+      .set({ Authorization: getJwt(campaignData.ownerAddress) });
+    assert.equal(response.statusCode, 201);
+    assert.equal(response.body.status, SAMPLE_DATA.CAMPAIGN_STATUSES.PENDING);
+  });
+
+  it('Could campaignOwner can archive campaign', async () => {
     const campaign = await createCampaign({
       ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
       status: SAMPLE_DATA.CAMPAIGN_STATUSES.ARCHIVED,
@@ -250,12 +310,13 @@ function patchCampaignTestCases() {
     const response = await request(baseUrl)
       .patch(`${relativeUrl}/${campaign._id}`)
       .send({
-        title: 'test title',
+        status: SAMPLE_DATA.CAMPAIGN_STATUSES.ACTIVE,
       })
       .set({ Authorization: getJwt(campaign.ownerAddress) });
-    assert.equal(response.statusCode, 403);
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.body.status, SAMPLE_DATA.CAMPAIGN_STATUSES.ACTIVE);
   });
-  it('Could not un archive campaign', async () => {
+  it('should admin can unArchive campaign', async () => {
     const campaign = await createCampaign({
       ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
       status: SAMPLE_DATA.CAMPAIGN_STATUSES.ARCHIVED,
@@ -269,7 +330,43 @@ function patchCampaignTestCases() {
         status: SAMPLE_DATA.CAMPAIGN_STATUSES.ACTIVE,
       })
       .set({ Authorization: getJwt(admin.address) });
+    assert.equal(response.statusCode, 200);
+    assert.equal(response.body.status, SAMPLE_DATA.CAMPAIGN_STATUSES.ACTIVE);
+  });
+  it('Campaign coowner could not unArchive campaign', async () => {
+    const coowner = await app.service('users').create({ address: generateRandomEtheriumAddress() });
+    const campaign = await createCampaign({
+      ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
+      coownerAddress: coowner.address,
+    });
+    const response = await request(baseUrl)
+      .patch(`${relativeUrl}/${campaign._id}`)
+      .send({
+        status: SAMPLE_DATA.CAMPAIGN_STATUSES.ACTIVE,
+      })
+      .set({ Authorization: getJwt(coowner.address) });
     assert.equal(response.statusCode, 403);
+  });
+
+  it('When unArchiving campaign should change status just to Active', async () => {
+    const campaign = await createCampaign({
+      ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
+      status: SAMPLE_DATA.CAMPAIGN_STATUSES.ARCHIVED,
+    });
+    const admin = await app
+      .service('users')
+      .create({ address: generateRandomEtheriumAddress(), isAdmin: true });
+    const response = await request(baseUrl)
+      .patch(`${relativeUrl}/${campaign._id}`)
+      .send({
+        status: SAMPLE_DATA.CAMPAIGN_STATUSES.PENDING,
+      })
+      .set({ Authorization: getJwt(admin.address) });
+    assert.equal(response.statusCode, 400);
+    assert.equal(
+      response.body.message,
+      errorMessages.ARCHIVED_CAMPAIGNS_STATUS_JUST_CAN_UPDATE_TO_ACTIVE,
+    );
   });
 
   it('should get unAuthorized error', async () => {

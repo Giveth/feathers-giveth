@@ -4,7 +4,7 @@ const CampaignStatus = {
   ACTIVE: 'Active',
   PENDING: 'Pending',
   CANCELED: 'Canceled',
-``  ARCHIVED: 'Archived',
+  ARCHIVED: 'Archived',
   FAILED: 'Failed',
 };
 
