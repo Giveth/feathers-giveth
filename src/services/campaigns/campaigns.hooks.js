@@ -55,7 +55,7 @@ const restrict = () => context => {
     if (campaign.status === CampaignStatus.ARCHIVED) {
       if (user.address !== campaign.ownerAddress && !user.isAdmin) {
         throw new errors.Forbidden(
-          errorMessages.JUST_CAMPAIGN_OWNER_AND_ADMIN_CAN_ARCHIVE_CAMPAIGN,
+          errorMessages.JUST_CAMPAIGN_OWNER_AND_ADMIN_CAN_UN_ARCHIVE_CAMPAIGN,
         );
       }
       if (data.status !== CampaignStatus.ACTIVE) {
