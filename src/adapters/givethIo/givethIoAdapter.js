@@ -54,16 +54,26 @@ const getUserByUserId = async userId => {
           email
           avatar
           walletAddress
+          location
         }
       }
     `;
     const result = await client.request(query, { userId: Number(userId) });
-    const { name, firstName, lastName, walletAddress: address, email, avatar } = result.user;
+    const {
+      name,
+      firstName,
+      lastName,
+      walletAddress: address,
+      email,
+      avatar,
+      location,
+    } = result.user;
     return {
       name: name || `${firstName || ''} ${lastName || ''}`,
       address,
       email,
       avatar,
+      location,
     };
   } catch (e) {
     logger.error('getUserByUserId error', e);
