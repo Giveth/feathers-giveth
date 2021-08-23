@@ -55,6 +55,7 @@ const getUserByUserId = async userId => {
           avatar
           walletAddress
           location
+          url
         }
       }
     `;
@@ -67,6 +68,7 @@ const getUserByUserId = async userId => {
       email,
       avatar,
       location,
+      url,
     } = result.user;
     return {
       name: name || `${firstName || ''} ${lastName || ''}`,
@@ -74,6 +76,7 @@ const getUserByUserId = async userId => {
       email,
       avatar,
       location,
+      url,
     };
   } catch (e) {
     logger.error('getUserByUserId error', e);
