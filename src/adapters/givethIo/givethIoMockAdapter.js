@@ -28,6 +28,7 @@ const getUserByUserId = _userId => {
     avatar:
       'https://lh3.googleusercontent.com/a-/AOh14GhZ2FbGT9rWS2yI9X9FxCFkzTxRrMV65C9iB8n58g=s96-c',
     email: 'john.smith@gmail.com',
+    location: 'world',
   };
 };
 module.exports = { getProjectInfoBySLug, getUserByUserId };

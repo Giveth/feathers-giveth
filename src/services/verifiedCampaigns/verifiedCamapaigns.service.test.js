@@ -17,6 +17,8 @@ function GetVerifiedCampaignsTestCases() {
     assert.equal(response.body.reviewerAddress, config.givethIoProjectsReviewerAddress);
     assert.exists(response.body.owner);
     assert.equal(response.body.owner.address, SAMPLE_DATA.GIVETH_IO_PROJECT_OWNER_ADDRESS);
+    assert.exists(response.body.owner.email);
+    assert.exists(response.body.owner.location);
     assert.exists(response.body.id);
   });
   it('Get 403 for getting projectInfo with invalid walletAddress', async () => {
