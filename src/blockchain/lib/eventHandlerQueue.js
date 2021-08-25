@@ -10,6 +10,7 @@ const { EventStatus } = require('../../models/events.model');
 
 const handleEventQueue = new Queue('eventHandler', { redis: config.get('redis') });
 const pendingEventQueue = new Queue('NewEventQueue', { redis: config.get('redis') });
+const TWO_MINUTES = 1000 * 60 * 2;
 
 setInterval(async () => {
   const eventHandlerQueueCount = await handleEventQueue.count();
@@ -18,7 +19,7 @@ setInterval(async () => {
     eventHandlerQueueCount,
     NewEventQueueCount,
   });
-}, 1000 * 60 * 2);
+}, TWO_MINUTES);
 
 const removeEvent = async (app, event) => {
   const { id, transactionHash } = event;
@@ -155,9 +156,17 @@ const initEventHandlerQueue = app => {
 
   handleEventQueue.process(1, async (job, done) => {
     const { event } = job.data;
+    const callDoneTimeout = setTimeout(() => {
+      logger.error('The event handler didnt respond, call done() to prevent stocking queue');
+      done();
+    }, TWO_MINUTES);
+
     try {
+      const remainingEventsInQueue = await handleEventQueue.count();
       const handler = handlers[event.event];
+
       logger.info('Handling Event: ', {
+        remainingEventsInQueue,
         event: event.event,
         transactionHash: event.transactionHash,
         status: event.status,
@@ -181,6 +190,7 @@ const initEventHandlerQueue = app => {
         processingError: e.toString(),
       });
     } finally {
+      clearTimeout(callDoneTimeout);
       done();
     }
   });
