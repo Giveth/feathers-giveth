@@ -1,4 +1,4 @@
-const { LiquidPledging } = require('giveth-liquidpledging');
+const { LiquidPledging } = require('@giveth/liquidpledging-contract');
 const logger = require('winston');
 const config = require('config');
 const Queue = require('bull');

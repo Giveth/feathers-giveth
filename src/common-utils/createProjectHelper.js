@@ -1,7 +1,7 @@
 const { keccak256 } = require('web3-utils');
-const { LPPCappedMilestone } = require('lpp-capped-milestone');
-const { LPMilestone, BridgedMilestone } = require('lpp-milestones');
-const { LPPCampaign } = require('lpp-campaign');
+const { LPPCappedMilestone } = require('@giveth/lpp-capped-milestone');
+const { LPMilestone, BridgedMilestone } = require('@giveth/lpp-milestones');
+const { LPPCampaign } = require('@giveth/lpp-campaign');
 const { isAddress } = require('web3-utils');
 const {
   removeHexPrefix,

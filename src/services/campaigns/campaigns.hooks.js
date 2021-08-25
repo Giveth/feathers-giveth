@@ -12,6 +12,7 @@ const addConfirmations = require('../../hooks/addConfirmations');
 const { CampaignStatus } = require('../../models/campaigns.model');
 const createModelSlug = require('../createModelSlug');
 const { isRequestInternal } = require('../../utils/feathersUtils');
+const { errorMessages } = require('../../utils/errorMessages');
 
 const schema = {
   include: [
@@ -51,6 +52,43 @@ const restrict = () => context => {
   const canUpdate = campaign => {
     if (!campaign) throw new errors.Forbidden();
 
+    if (campaign.status === CampaignStatus.ARCHIVED) {
+      if (user.address !== campaign.ownerAddress && !user.isAdmin) {
+        throw new errors.Forbidden(
+          errorMessages.JUST_CAMPAIGN_OWNER_AND_ADMIN_CAN_UN_ARCHIVE_CAMPAIGN,
+        );
+      }
+      if (data.status !== CampaignStatus.ACTIVE) {
+        throw new errors.BadRequest(
+          errorMessages.ARCHIVED_CAMPAIGNS_STATUS_JUST_CAN_UPDATE_TO_ACTIVE,
+        );
+      }
+      // when unArchiving campaign, user just can set status not any other field
+      Object.keys(data).forEach(key => {
+        if (key !== 'status') {
+          delete data[key];
+        }
+      });
+      return;
+    }
+    if (data.status === CampaignStatus.ARCHIVED) {
+      if (user.address !== campaign.ownerAddress && !user.isAdmin) {
+        throw new errors.Forbidden(
+          errorMessages.JUST_CAMPAIGN_OWNER_AND_ADMIN_CAN_ARCHIVE_CAMPAIGN,
+        );
+      }
+      if (campaign.status !== CampaignStatus.ACTIVE) {
+        throw new errors.BadRequest(errorMessages.JUST_ACTIVE_CAMPAIGNS_COULD_BE_ARCHIVED);
+      }
+      // when archiving campaign, user jus can status not any other field
+      Object.keys(data).forEach(key => {
+        if (key !== 'status') {
+          delete data[key];
+        }
+      });
+      return;
+    }
+
     // reviewer Canceled
     if (data.status === CampaignStatus.CANCELED && data.mined === false) {
       if (user.address !== campaign.reviewerAddress && user.address !== campaign.ownerAddress)
@@ -76,6 +114,14 @@ const restrict = () => context => {
 const removeProtectedFields = () => context => {
   if (context && context.data && !isRequestInternal(context)) {
     delete context.data.verified;
+  }
+  return context;
+};
+
+const removeStatusFromRequestDataBeforeCreating = () => context => {
+  if (context && context.data && !isRequestInternal(context)) {
+    // prevent user to create non Pending status
+    delete context.data.status;
   }
   return context;
 };
@@ -115,6 +161,7 @@ module.exports = {
     get: [],
     create: [
       removeProtectedFields(),
+      removeStatusFromRequestDataBeforeCreating(),
       // setAddress('coownerAddress'),
       sanitizeAddress('coownerAddress', {
         required: false,
