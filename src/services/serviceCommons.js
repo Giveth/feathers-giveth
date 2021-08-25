@@ -1,5 +1,5 @@
 const defaultFeatherMongooseOptions = {
-  multi: ['patch'],
+  multi: ['patch', 'remove'],
   whitelist: [
     '$exists',
     '$and',
