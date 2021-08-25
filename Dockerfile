@@ -12,6 +12,6 @@ RUN apk add --update alpine-sdk
 RUN apk add git python3
 RUN npm ci
 RUN npm i -g pm2
-RUN npm i -g migrate-mongo
+RUN npm i -g migrate-mongo@8.1.4
 CMD migrate-mongo up && pm2-runtime start ./src/index.js
 EXPOSE 3030
