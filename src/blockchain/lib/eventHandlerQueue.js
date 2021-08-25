@@ -174,6 +174,18 @@ const initEventHandlerQueue = app => {
         logIndex: event.logIndex,
         _id: event._id,
       });
+      const eventInDb = await eventService.get(event._id);
+      if (eventInDb === EventStatus.PROCESSED) {
+        logger.info('Event is already processed, so dont need to handle again', {
+          event: event.event,
+          _id: event._id,
+          transactionHash: event.transactionHash,
+          transactionIndex: event.transactionIndex,
+        });
+        clearTimeout(callDoneTimeout);
+        done();
+        return;
+      }
       if (typeof handler === 'function') {
         await handler(event);
       } else {
