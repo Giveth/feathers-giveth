@@ -1,10 +1,17 @@
 /* eslint-disable import/no-extraneous-dependencies */
 const Web3 = require('web3');
-const { Kernel, ACL, LPVault, LiquidPledging, LPFactory, test } = require('giveth-liquidpledging');
-const { LPPCampaign, LPPCampaignFactory } = require('lpp-campaign');
-const { BridgedMilestone, LPMilestone, MilestoneFactory } = require('lpp-milestones');
+const {
+  Kernel,
+  ACL,
+  LPVault,
+  LiquidPledging,
+  LPFactory,
+  test,
+} = require('@giveth/liquidpledging-contract');
+const { LPPCampaign, LPPCampaignFactory } = require('@giveth/lpp-campaign');
+const { BridgedMilestone, LPMilestone, MilestoneFactory } = require('@giveth/lpp-milestones');
 const { MiniMeTokenFactory, MiniMeToken, MiniMeTokenState } = require('minimetoken');
-const { GivethBridge, ForeignGivethBridge } = require('giveth-bridge');
+const { GivethBridge, ForeignGivethBridge } = require('@giveth/bridge');
 const startNetworks = require('./startNetworks');
 
 const { RecoveryVault } = test;

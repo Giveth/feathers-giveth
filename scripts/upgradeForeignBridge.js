@@ -2,7 +2,7 @@
 const Web3 = require('web3');
 const { LiquidPledging, Kernel } = require('giveth-liquidpledging');
 const { MiniMeToken, MiniMeTokenFactory } = require('minimetoken');
-const { ForeignGivethBridge } = require('giveth-bridge');
+const { ForeignGivethBridge } = require('@giveth/bridge');
 const { LPPCappedMilestone } = require('lpp-capped-milestone');
 
 const keys = require('./keys.js');

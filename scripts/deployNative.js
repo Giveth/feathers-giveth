@@ -1,8 +1,15 @@
 /* eslint-disable import/no-extraneous-dependencies */
 const Web3 = require('web3');
-const { Kernel, ACL, LPVault, LiquidPledging, LPFactory, test } = require('giveth-liquidpledging');
-const { LPPCampaign, LPPCampaignFactory } = require('lpp-campaign');
-const { LPPCappedMilestone, LPPCappedMilestoneFactory } = require('lpp-capped-milestone');
+const {
+  Kernel,
+  ACL,
+  LPVault,
+  LiquidPledging,
+  LPFactory,
+  test,
+} = require('@giveth/liquidpledging-contract');
+const { LPPCampaign, LPPCampaignFactory } = require('@giveth/lpp-campaign');
+const { LPPCappedMilestone, LPPCappedMilestoneFactory } = require('@giveth/lpp-capped-milestone');
 const { MiniMeTokenFactory, MiniMeToken, MiniMeTokenState } = require('minimetoken');
 const startNetworks = require('./startNetworks');
 
