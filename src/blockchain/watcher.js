@@ -1,7 +1,7 @@
 const { LiquidPledging, LPVault, Kernel } = require('@giveth/liquidpledging-contract');
 const { LPPCappedMilestone } = require('@giveth/lpp-capped-milestone');
 const { BridgedMilestone, LPMilestone } = require('@giveth/lpp-milestones');
-const { GivethBridge } = require('giveth-bridge');
+const { GivethBridge } = require('@giveth/bridge');
 const semaphore = require('semaphore');
 const { keccak256, padLeft, toHex } = require('web3-utils');
 const logger = require('winston');

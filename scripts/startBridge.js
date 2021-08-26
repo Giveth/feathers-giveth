@@ -1,5 +1,5 @@
 /* eslint-disable import/no-extraneous-dependencies, prefer-destructuring */
-const bridge = require('giveth-bridge/bridge');
+const bridge = require('@giveth/bridge/bridge');
 const startNetworks = require('./startNetworks');
 const logger = require('winston');
 

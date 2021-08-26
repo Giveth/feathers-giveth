@@ -1,4 +1,4 @@
-const ForeignGivethBridgeArtifact = require('giveth-bridge/build/ForeignGivethBridge.json');
+const ForeignGivethBridgeArtifact = require('@giveth/bridge-contract/build/ForeignGivethBridge.json');
 const LiquidPledgingArtifact = require('@giveth/liquidpledging-contract/build/LiquidPledging.json');
 const logger = require('winston');
 const { toBN } = require('web3-utils');
