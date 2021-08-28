@@ -103,14 +103,6 @@ If the `ipfsApi` is a valid ipfs node that we can connect to, we will pin every 
 
 ### Video Walkthrough
 Video tutorial walkthrough here: https://tinyurl.com/y9lx6jrl
-
-## Deploying
-
-1. Start a production server
-
-    ```
-    yarn serve
-    ```
     
 ## Scripts
 
@@ -159,30 +151,11 @@ make `isAdmin` field true, for your user in you local MongoDb
 
 ## Production
 
-We use pm2 to manage our production servers. You can start the server using the `yarn serve` cmd. You will need to create an `ecosystem.config.js` file with the following contents:
+We use docker-compose for orchestration of our docker containers in our production servers. 
+* make Make sure you have a file named `production.json` in config folder
+* Install docker and docker-compose on your server
+* run this command: `docker-compose -f docker-compose-production.yml up -d`
 
-```
-module.exports = {
-  /**
-   * Application configuration section
-   * http://pm2.keymetrics.io/docs/usage/application-declaration/
-   */
-  apps: [
-    // First application
-    {
-      name: 'feathers',
-      script: 'src/index.js',
-      log_date_format: 'YYYY-MM-DD HH:mm',
-      env: {
-        COMMON_VARIABLE: 'true',
-      },
-      env_production: {
-        NODE_ENV: 'production',
-      },
-    },
-  ],
-};
-```
 PS: It's good to see [Github Actions config](./.github/workflows/CI-CD.yml) to better understanding of deploy structure
 ## RSK
 
