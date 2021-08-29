@@ -1,8 +1,11 @@
 const { disallow } = require('feathers-hooks-common');
 const config = require('config');
+const errors = require('@feathersjs/errors');
 
 const { rateLimit } = require('../../utils/rateLimit');
 const onlyInternal = require('../../hooks/onlyInternal');
+const { errorMessages } = require('../../utils/errorMessages');
+const { isSymbolInTokenWhitelist } = require('../../utils/tokenHelper');
 const {
   getConversionRates,
   getHourlyCryptoConversion,
@@ -37,11 +40,31 @@ const findConversionRates = () => async context => {
     return context;
   });
 };
+const validateSymbols = () => async context => {
+  const { params } = context;
+  const { to, symbol } = params.query;
+  if (symbol && !isSymbolInTokenWhitelist(symbol)) {
+    throw new errors.BadRequest(errorMessages.SENT_SYMBOL_IS_NOT_IN_TOKEN_WITHE_LIST);
+  }
+  if (to && !Array.isArray(to) && !isSymbolInTokenWhitelist(to)) {
+    throw new errors.BadRequest(errorMessages.SENT_TO_IS_NOT_IN_TOKEN_WITHE_LIST);
+  }
+  if (to && Array.isArray(to)) {
+    // to can be string or array of strings
+    to.forEach(toSymbol => {
+      if (!isSymbolInTokenWhitelist(toSymbol)) {
+        throw new errors.BadRequest(errorMessages.SENT_TO_IS_NOT_IN_TOKEN_WITHE_LIST);
+      }
+    });
+  }
+  return context;
+};
 
 module.exports = {
   before: {
     all: [],
     find: [
+      validateSymbols(),
       rateLimit({
         threshold: config.rateLimit.threshold,
         ttl: config.rateLimit.ttlSeconds,

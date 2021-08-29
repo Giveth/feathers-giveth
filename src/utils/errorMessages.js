@@ -7,6 +7,8 @@ const errorMessages = {
     'Just campaignOwner and admin can unArchive campaign',
   ARCHIVED_CAMPAIGNS_STATUS_JUST_CAN_UPDATE_TO_ACTIVE:
     'Archived campaigns status can change just to Active',
+  SENT_SYMBOL_IS_NOT_IN_TOKEN_WITHE_LIST: 'Sent symbol is not in token whitelist',
+  SENT_TO_IS_NOT_IN_TOKEN_WITHE_LIST: 'Sent toSymbol is not in token whitelist',
 };
 
 module.exports = { errorMessages };

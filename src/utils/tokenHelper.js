@@ -41,9 +41,32 @@ function getTokenBySymbol(symbol) {
   return tokensBySymbols[symbol] || { symbol };
 }
 
+const isSymbolInTokenWhitelist = symbol => {
+  return Boolean(
+    getWhiteListTokens().find(token => token.symbol === symbol) ||
+      // for example we dont have BTC as symbol but it is rateEqSymbol for the WBTC token in our config
+      getWhiteListTokens().find(token => token.rateEqSymbol === symbol),
+  );
+};
+
+const getValidSymbols = () => {
+  const symbols = [];
+  getWhiteListTokens().forEach(token => {
+    if (!symbols.includes(token.symbol)) {
+      symbols.push(token.symbol);
+    }
+    if (token.rateEqSymbol && !symbols.includes(token.rateEqSymbol)) {
+      symbols.push(token.rateEqSymbol);
+    }
+  });
+  return symbols;
+};
+
 module.exports = {
   getTokenBySymbol,
   getWhiteListTokens,
   getTokenByAddress,
   getTokenByForeignAddress,
+  isSymbolInTokenWhitelist,
+  getValidSymbols,
 };
