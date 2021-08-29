@@ -42,7 +42,7 @@ function getValidSymbolsTestCases() {
       'ANT',
       'XDAI',
       'USD',
-    ])
+    ]);
 
     // expect().to.be.deep.equal();
   });
