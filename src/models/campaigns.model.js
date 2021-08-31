@@ -17,7 +17,7 @@ function createModel(app) {
   const { Schema } = mongooseClient;
   const campaign = new Schema(
     {
-      title: { type: String, required: true },
+      title: { type: String, required: true, index: true  },
       slug: { type: String, required: true },
       description: { type: String, required: true },
       projectId: { type: Schema.Types.Long, index: true }, // we can use Long here b/c lp only stores adminId in pledges as uint64
