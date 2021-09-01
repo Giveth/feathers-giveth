@@ -17,7 +17,7 @@ function createModel(app) {
   const { Schema } = mongooseClient;
   const campaign = new Schema(
     {
-      title: { type: String, required: true, index: true },
+      title: { type: String, required: true},
       slug: { type: String, required: true },
       description: { type: String, required: true },
       projectId: { type: Schema.Types.Long, index: true }, // we can use Long here b/c lp only stores adminId in pledges as uint64
@@ -68,6 +68,9 @@ function createModel(app) {
     coownerAddress: 1,
   });
   campaign.index({ slug: 1 }, { unique: true });
+  campaign.index({
+    title: 'text',
+  });
   return mongooseClient.model('campaign', campaign);
 }
 

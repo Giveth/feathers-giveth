@@ -122,6 +122,16 @@ function postCampaignTestCases() {
     assert.isNotNull(response2.body.slug);
     assert.notEqual(response1.body.slug, response2.body.slug);
   });
+
+  it('test search title', async () => {
+    const result = await app.service('campaigns').find({
+      query: { $text: { $search: SAMPLE_DATA.CAMPAIGN_TITLE.substring(0, 10) } },
+      paginate: false,
+    });
+    assert.isOk(result);
+    assert.equal(result.length, 1);
+    assert.equal(result[0].title, SAMPLE_DATA.CAMPAIGN_TITLE);
+  });
 }
 
 function patchCampaignTestCases() {
