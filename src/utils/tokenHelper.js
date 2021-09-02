@@ -4,6 +4,8 @@ const { ANY_TOKEN } = require('../blockchain/lib/web3Helpers');
 let tokensBySymbols;
 let tokensByAddress;
 let tokensByForeignAddress;
+const validSymbols = [];
+
 const getWhiteListTokens = () => {
   return config.get('tokenWhitelist');
 };
@@ -41,25 +43,23 @@ function getTokenBySymbol(symbol) {
   return tokensBySymbols[symbol] || { symbol };
 }
 
-const isSymbolInTokenWhitelist = symbol => {
-  return Boolean(
-    getWhiteListTokens().find(token => token.symbol === symbol) ||
-      // for example we dont have BTC as symbol but it is rateEqSymbol for the WBTC token in our config
-      getWhiteListTokens().find(token => token.rateEqSymbol === symbol),
-  );
-};
-
 const getValidSymbols = () => {
-  const symbols = [];
+  if (validSymbols.length) {
+    return validSymbols;
+  }
   getWhiteListTokens().forEach(token => {
-    if (!symbols.includes(token.symbol)) {
-      symbols.push(token.symbol);
+    if (!validSymbols.includes(token.symbol)) {
+      validSymbols.push(token.symbol);
     }
-    if (token.rateEqSymbol && !symbols.includes(token.rateEqSymbol)) {
-      symbols.push(token.rateEqSymbol);
+    if (token.rateEqSymbol && !validSymbols.includes(token.rateEqSymbol)) {
+      validSymbols.push(token.rateEqSymbol);
     }
   });
-  return symbols;
+  return validSymbols;
+};
+
+const isSymbolInTokenWhitelist = symbol => {
+  return getValidSymbols().includes(symbol);
 };
 
 module.exports = {
