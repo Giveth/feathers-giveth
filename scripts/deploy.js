@@ -8,7 +8,8 @@ const {
   LPFactory,
   test,
 } = require('@giveth/liquidpledging-contract');
-const { LPPCampaign, LPPCampaignFactory } = require('@giveth/lpp-campaign');
+// TODO should change it to @giveth/lpp-campaign, check https://github.com/Giveth/feathers-giveth/issues/607
+const { LPPCampaign, LPPCampaignFactory } = require('lpp-campaign');
 const { BridgedMilestone, LPMilestone, MilestoneFactory } = require('@giveth/lpp-milestones');
 const { MiniMeTokenFactory, MiniMeToken, MiniMeTokenState } = require('minimetoken');
 const { GivethBridge, ForeignGivethBridge } = require('@giveth/bridge');

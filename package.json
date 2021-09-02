@@ -95,6 +95,7 @@
     "lodash.merge": "^4.6.2",
     "lodash.omit": "^4.5.0",
     "lodash.pick": "^4.4.0",
+    "lpp-campaign": "^1.0.0",
     "memory-cache": "^0.2.0",
     "migrate-mongo": "^8.1.4",
     "mkdirp": "^0.5.1",
