@@ -4,6 +4,8 @@ const { ANY_TOKEN } = require('../blockchain/lib/web3Helpers');
 let tokensBySymbols;
 let tokensByAddress;
 let tokensByForeignAddress;
+const validSymbols = [];
+
 const getWhiteListTokens = () => {
   return config.get('tokenWhitelist');
 };
@@ -41,9 +43,30 @@ function getTokenBySymbol(symbol) {
   return tokensBySymbols[symbol] || { symbol };
 }
 
+const getValidSymbols = () => {
+  if (validSymbols.length) {
+    return validSymbols;
+  }
+  getWhiteListTokens().forEach(token => {
+    if (!validSymbols.includes(token.symbol)) {
+      validSymbols.push(token.symbol);
+    }
+    if (token.rateEqSymbol && !validSymbols.includes(token.rateEqSymbol)) {
+      validSymbols.push(token.rateEqSymbol);
+    }
+  });
+  return validSymbols;
+};
+
+const isSymbolInTokenWhitelist = symbol => {
+  return getValidSymbols().includes(symbol);
+};
+
 module.exports = {
   getTokenBySymbol,
   getWhiteListTokens,
   getTokenByAddress,
   getTokenByForeignAddress,
+  isSymbolInTokenWhitelist,
+  getValidSymbols,
 };
