@@ -33,10 +33,15 @@ const rateLimit = (options = {}) => {
       context.params._populate ||
       config.rateLimit.disable
     ) {
-      // Should not count internal requests
+      // Should not check rate limit
       return context;
     }
     const ip = context.params.headers['x-real-ip'] || context.params.headers.cookie;
+    if (config.rateLimit.whitelist && config.rateLimit.whitelist.includes(ip)) {
+      // Dont count rate limit for whitelist IPs
+      return context;
+    }
+
     // if we just use ip as key, can not use separate rate limit for separate web services
     const key = `${context.path}-${context.method}-${ip}`;
     try {
