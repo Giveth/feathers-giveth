@@ -69,8 +69,8 @@ const parseErrors = () => context => {
     logger.info('Mongo error in feathers call', context.error);
     throw new errors.BadRequest(errorMessages.INVALID_INPUT_DATA);
   }
-  if (context.error.stack) {
-    // Should not return stack error to client
+  if (context.error.stack && context.error.type !== 'FeathersError') {
+    // Should not return stack error to client when error is not instance of Feathers error
     logger.info('Error with stack', context.error);
     throw new errors.GeneralError();
   }
