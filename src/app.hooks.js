@@ -23,6 +23,10 @@ const authenticate = () => context => {
   if (context.path === 'analytics') {
     return context;
   }
+  if (context.path === '/verifyCampaigns') {
+    // we check this route with basic authentication
+    return context;
+  }
   // socket connection is already authenticated, we just check if user has been set on context.params
   if (context.params.provider === 'socketio' && context.params.user) {
     return context;
