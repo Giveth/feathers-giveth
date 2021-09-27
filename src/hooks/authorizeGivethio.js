@@ -20,7 +20,7 @@ const authorizeGivethio = context => {
   if (!givethIoInfo || !authorization || !authorization.includes(' ')) {
     throw new NotAuthenticated();
   }
-  const [username, password] = decodeBasicAuthentication(authorization);
+  const { username, password } = decodeBasicAuthentication(authorization);
   if (username !== givethIoInfo.username || password !== givethIoInfo.password) {
     throw new NotAuthenticated();
   }
