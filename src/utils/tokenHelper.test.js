@@ -29,8 +29,9 @@ function getWhiteListTokensTestCases() {
     expect(getWhiteListTokens()).to.be.deep.equal(tokens);
   });
 }
+
 function getValidSymbolsTestCases() {
-  it('should return correct whiteList tokens', () => {
+  it('should return correct validSymbols tokens', () => {
     assert.sameDeepMembers(getValidSymbols(), [
       'ETH',
       'SAI',
@@ -42,6 +43,15 @@ function getValidSymbolsTestCases() {
       'ANT',
       'XDAI',
       'USD',
+      'EUR',
+      'CAD',
+      'GBP',
+      'AUD',
+      'BRL',
+      'CHF',
+      'CZK',
+      'MXN',
+      'THB',
     ]);
 
     // expect().to.be.deep.equal();
