@@ -1,7 +1,7 @@
 const request = require('supertest');
 const config = require('config');
 const { assert } = require('chai');
-const { SAMPLE_DATA, getJwt, generateRandomTxHash } = require('../../../test/testUtility');
+const { SAMPLE_DATA, getJwt } = require('../../../test/testUtility');
 const { getFeatherAppInstance } = require('../../app');
 
 const { givethIoInfo } = config;
