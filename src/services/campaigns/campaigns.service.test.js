@@ -38,6 +38,19 @@ function postCampaignTestCases() {
     assert.equal(response.body.ownerAddress, SAMPLE_DATA.CREATE_CAMPAIGN_DATA.ownerAddress);
   });
 
+  it('should create campaign with less than 10 character', async () => {
+    const descriptionWithLEssThan10Character = '123456';
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .send({
+        ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
+        description: descriptionWithLEssThan10Character,
+      })
+      .set({ Authorization: getJwt(SAMPLE_DATA.CREATE_CAMPAIGN_DATA.ownerAddress) });
+    assert.equal(response.statusCode, 201);
+    assert.equal(response.body.description, descriptionWithLEssThan10Character);
+  });
+
   it('should create campaign successfully, should not set coownerAddress by default', async () => {
     const response = await request(baseUrl)
       .post(relativeUrl)
