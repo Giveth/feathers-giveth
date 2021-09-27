@@ -55,6 +55,12 @@ const getValidSymbols = () => {
       validSymbols.push(token.rateEqSymbol);
     }
   });
+  config.nativeCurrencyWhitelist.forEach(currency => {
+    if (!validSymbols.includes(currency.symbol)) {
+      validSymbols.push(currency.symbol);
+    }
+  });
+
   return validSymbols;
 };
 

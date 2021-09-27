@@ -61,6 +61,12 @@ function isSymbolInTokenWhitelistTestCases() {
   it('should return false for NODE token', () => {
     assert.isFalse(isSymbolInTokenWhitelist('NODE'));
   });
+  it('should return true for EUR token', () => {
+    assert.isTrue(isSymbolInTokenWhitelist('EUR'));
+  });
+  it('should return true for THB token', () => {
+    assert.isTrue(isSymbolInTokenWhitelist('THB'));
+  });
 }
 
 describe('test getTokenBySymbol() function', getTokenBySymbolTestCases);
