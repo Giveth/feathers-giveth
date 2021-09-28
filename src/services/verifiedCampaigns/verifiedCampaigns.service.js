@@ -12,13 +12,7 @@ module.exports = function verifiedCampaigns() {
     async create(data, params) {
       const { txHash, url, slug } = data;
       const projectInfo = await givethIoAdapter.getProjectInfoBySLug(slug);
-      const {
-        id: givethIoProjectId,
-        title,
-        description: givethIoDescription,
-        image: givethIoImage,
-      } = projectInfo;
-      const defaultImage = '/ipfs/QmeVDkwp9nrDsbAxLXY9yNW853C2F4CECC7wdvEJrroTqA';
+      const { id: givethIoProjectId, title, description, image } = projectInfo;
       const owner = await givethIoAdapter.getUserByUserId(projectInfo.admin);
       if (params.user.address.toLowerCase() !== owner.address.toLowerCase()) {
         throw new errors.Forbidden('The owner of project in givethIo is not you');
@@ -27,21 +21,16 @@ module.exports = function verifiedCampaigns() {
       if (campaign) {
         throw new errors.BadRequest('Campaign with this givethIo projectId exists');
       }
-      const imageIpfsPath = givethIoImage.match(/\/ipfs\/.*/);
+      const imageIpfsPath = image.match(/\/ipfs\/.*/);
       campaign = await app.service('campaigns').create({
         title,
         url,
         slug,
         reviewerAddress: config.givethIoProjectsReviewerAddress,
-
-        // because description in givethio is optional but in giveth trace is required
-        description: givethIoDescription || title,
+        description,
         verified: true,
         txHash,
-
-        // if givethIo image is undefined or is a number
-        // (givethIo project with default image have numbers as image) I set the our default image for them
-        image: imageIpfsPath ? imageIpfsPath[0] : defaultImage,
+        image: imageIpfsPath ? imageIpfsPath[0] : image,
         ownerAddress: owner.address,
         givethIoProjectId,
       });
