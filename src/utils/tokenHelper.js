@@ -43,10 +43,7 @@ function getTokenBySymbol(symbol) {
   return tokensBySymbols[symbol] || { symbol };
 }
 
-const getValidSymbols = () => {
-  if (validSymbols.length) {
-    return validSymbols;
-  }
+const initializeValidSymbols = () => {
   const _set = new Set();
   getWhiteListTokens().forEach(token => {
     _set.add(token.symbol);
@@ -55,11 +52,16 @@ const getValidSymbols = () => {
     }
   });
   validSymbols.push(...Array.from(_set));
-  return Array.from(validSymbols);
+};
+
+initializeValidSymbols();
+
+const getValidSymbols = () => {
+  return validSymbols;
 };
 
 const isSymbolInTokenWhitelist = symbol => {
-  return getValidSymbols().includes(symbol);
+  return validSymbols.includes(symbol);
 };
 
 module.exports = {
