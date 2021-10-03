@@ -35,7 +35,9 @@ const initialize = () => {
       _tokenSymbolSet.add(token.rateEqSymbol);
     }
   });
-
+  config.nativeCurrencyWhitelist.forEach(currency => {
+    _tokenSymbolSet.add(currency.symbol);
+  });
   tokensByForeignAddress[ANY_TOKEN.foreignAddress] = ANY_TOKEN;
   tokensByAddress[ANY_TOKEN.address] = ANY_TOKEN;
   tokensBySymbols[ANY_TOKEN.symbol] = ANY_TOKEN;
