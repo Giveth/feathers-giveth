@@ -66,7 +66,7 @@ const generateSwaggerDocForCRUDServiceTestCases = () => {
     assert.notExists(generatedSchema.operations.find.parameters[5]);
   });
   it('should add verified field in find operation', () => {
-    const testModel = mongoose.model(`test-${generateRandomNumber(1, 10000)}`, {
+    const testModel = mongoose.model(`test-${generateRandomNumber(1, 1000)}-${new Date()}`, {
       name: String,
       lastName: String,
       verified: Boolean,
