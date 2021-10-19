@@ -67,6 +67,7 @@ const configureAuditLog = app => {
   setAuditLogToFeathersService({ app, serviceName: 'donations' });
   setAuditLogToFeathersService({ app, serviceName: 'pledgeAdmins' });
   setAuditLogToFeathersService({ app, serviceName: 'events' });
+  setAuditLogToFeathersService({ app, serviceName: 'emails' });
 };
 
 module.exports = {

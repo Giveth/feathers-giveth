@@ -49,6 +49,7 @@ const assertNotThrowsAsync = async fn => {
 const testAddress = '0x90F8bf6A479f320ead074411a4B0e7944Ea8c9C1';
 const reviewerAddress = '0xd00cc82a132f421bA6414D196BC830Db95e2e7Dd';
 const campaignAddress = '5fd3412e3e403d0c0f9e4463';
+const campaignTitle = 'Serj tankian album ';
 const projectOwnerAddress = '0x839395e20bbB182fa440d08F850E6c7A8f6F0780';
 const secondUserAddress = '0xFFcf8FDEE72ac11b5c542428B35EEF5769C409f0';
 const givethIoProjectOwnerAddress = secondUserAddress;
@@ -149,6 +150,7 @@ const SAMPLE_DATA = {
   TRACE_ID: '5fd3424c3e403d0c0f9e4487',
   MILESTONE_PROJECT_ID: 5,
   CAMPAIGN_ID: campaignAddress,
+  CAMPAIGN_TITLE: campaignTitle,
   FAKE_USER_ADDRESS: generateRandomEtheriumAddress(),
   COMMUNITY_ID: '5fd339eaa5ffa2a6198ecd70',
   USER_ID: '5fd3385aa5ffa2a6198ecd6e',
@@ -293,6 +295,7 @@ const SAMPLE_DATA = {
     ACTIVE: 'Active',
     PENDING: 'Pending',
     CANCELED: 'Canceled',
+    ARCHIVED: 'Archived',
     FAILED: 'Failed',
   },
 };

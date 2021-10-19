@@ -1,5 +1,5 @@
-const ForeignGivethBridgeArtifact = require('giveth-bridge/build/ForeignGivethBridge.json');
-const LiquidPledgingArtifact = require('giveth-liquidpledging/build/LiquidPledging.json');
+const ForeignGivethBridgeArtifact = require('@giveth/bridge-contract/build/ForeignGivethBridge.json');
+const LiquidPledgingArtifact = require('@giveth/liquidpledging-contract/build/LiquidPledging.json');
 const logger = require('winston');
 const { toBN } = require('web3-utils');
 const eventDecodersFromArtifact = require('./lib/eventDecodersFromArtifact');
@@ -11,6 +11,7 @@ const { TraceStatus, TraceTypes } = require('../models/traces.model');
 const { AdminTypes } = require('../models/pledgeAdmins.model');
 const toWrapper = require('../utils/to');
 const reprocess = require('../utils/reprocess');
+const { isDonationBackToOriginalCampaign } = require('../utils/donationUtils');
 const { handleDonationConversationAndEmail } = require('../utils/conversationAndEmailHandler');
 
 function isOlderThenAMin(ts) {
@@ -252,7 +253,8 @@ const pledges = (app, liquidPledging) => {
     // find token
     const token = _retreiveTokenFromPledge(app, fromPledge);
     const [{ comment, giverAddress, ownerType, status, txNonce, actionTakerAddress }] = donations;
-
+    const parentDonations = donations.map(d => d._id);
+    const donationStatus = getDonationStatus(transferInfo);
     const mutation = {
       amount,
       amountRemaining: amount,
@@ -262,14 +264,13 @@ const pledges = (app, liquidPledging) => {
       ownerType: toPledgeAdmin.type,
       pledgeId: toPledgeId,
       commitTime: getCommitTime(toPledge.commitTime, ts),
-      status: getDonationStatus(transferInfo),
+      status: donationStatus,
       createdAt: ts,
-      parentDonations: donations.map(d => d._id),
+      parentDonations,
       txHash,
       mined: true,
       token,
     };
-
     // Propagate comment and actionTakerAddress for donations created by direct donating
     if (
       donations.length === 1 &&
@@ -310,7 +311,17 @@ const pledges = (app, liquidPledging) => {
       });
     }
 
-    if (isReturn || (await isReturnTransfer(transferInfo)) || isRejectedDelegation(transferInfo)) {
+    if (
+      isReturn ||
+      (await isReturnTransfer(transferInfo)) ||
+      isRejectedDelegation(transferInfo) ||
+      (await isDonationBackToOriginalCampaign(app, {
+        parentDonations,
+        ownerTypeId: toPledgeAdmin.typeId,
+        ownerType: toPledgeAdmin.type,
+        status: donationStatus,
+      }))
+    ) {
       mutation.isReturn = true;
     }
 

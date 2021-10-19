@@ -1,11 +1,14 @@
 const Contract = require('web3-eth-contract');
 
 /**
- * @param {object} artifact solcpiler generated artifact for a solidity contract
+ * @param {object} artifact solcpiler|embark generated artifact for a solidity contract
  * @returns {object} map of event names => log decoder
  */
-function eventDecodersFromArtifact(artifact) {
-  return artifact.compilerOutput.abi
+function eventDecodersFromArtifact({ compilerOutput, abiDefinition }) {
+  const abi = compilerOutput ? compilerOutput.abi : abiDefinition;
+  if (!abi) return {};
+
+  return abi
     .filter(method => method.type === 'event')
     .reduce(
       (decoders, event) => ({

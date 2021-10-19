@@ -1,5 +1,5 @@
 const Web3 = require('web3');
-const ForeignGivethBridgeArtifact = require('giveth-bridge/build/ForeignGivethBridge.json');
+const ForeignGivethBridgeArtifact = require('@giveth/bridge-contract/build/ForeignGivethBridge.json');
 const logger = require('winston');
 const topicsFromArtifacts = require('../../src/blockchain/lib/topicsFromArtifacts');
 const eventDecodersFromArtifact = require('../../src/blockchain/lib/eventDecodersFromArtifact');

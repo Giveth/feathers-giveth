@@ -1,8 +1,8 @@
 /* eslint-disable import/no-extraneous-dependencies */
 /* eslint-disable no-console */
 const Web3 = require('web3');
-const { LiquidPledging, Kernel, ACL } = require('giveth-liquidpledging');
-const { BridgedMilestone, LPMilestone, MilestoneFactory } = require('lpp-milestones');
+const { LiquidPledging, Kernel, ACL } = require('@giveth/liquidpledging-contract');
+const { BridgedMilestone, LPMilestone, MilestoneFactory } = require('@giveth/lpp-milestones');
 
 const keys = require('./keys.js');
 

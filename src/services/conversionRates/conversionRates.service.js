@@ -2,6 +2,7 @@
 const createService = require('feathers-mongoose');
 const createModel = require('../../models/conversionRates.model');
 const hooks = require('./conversionRates.hooks');
+const { getValidSymbols } = require('../../utils/tokenHelper');
 const { defaultFeatherMongooseOptions } = require('../serviceCommons');
 
 module.exports = function conversionRates() {
@@ -19,29 +20,36 @@ module.exports = function conversionRates() {
   service.docs = {
     operations: {
       find: {
-        'parameters[0]': {
-          name: 'date',
-          in: 'query',
-          description: 'timestamp for instance: 1624951936000',
-        },
-        'parameters[1]': {
-          name: 'symbol',
-          in: 'query',
-
-          default: 'ETH',
-        },
-        'parameters[2]': {
-          name: 'to',
-          in: 'query',
-
-          default: 'USD',
-        },
-        'parameters[3]': {
-          name: 'interval',
-          in: 'query',
-
-          description: 'could be hourly',
-        },
+        parameters: [
+          {
+            name: 'date',
+            in: 'query',
+            description: 'timestamp for instance: 1624951936000',
+          },
+          {
+            name: 'symbol',
+            in: 'query',
+            schema: {
+              type: 'string',
+              default: 'ETH',
+              enum: getValidSymbols(),
+            },
+          },
+          {
+            name: 'to',
+            in: 'query',
+            schema: {
+              type: 'string',
+              enum: getValidSymbols(),
+            },
+            description: 'could be string or array of string',
+          },
+          {
+            name: 'interval',
+            in: 'query',
+            description: 'could be hourly',
+          },
+        ],
       },
       update: false,
       patch: false,

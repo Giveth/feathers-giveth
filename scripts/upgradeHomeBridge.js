@@ -1,6 +1,6 @@
 /* eslint-disable import/no-extraneous-dependencies */
 const Web3 = require('web3');
-const { GivethBridge } = require('giveth-bridge');
+const { GivethBridge } = require('@giveth/bridge');
 
 const keys = require('./keys.js');
 

@@ -4,6 +4,7 @@ const CampaignStatus = {
   ACTIVE: 'Active',
   PENDING: 'Pending',
   CANCELED: 'Canceled',
+  ARCHIVED: 'Archived',
   FAILED: 'Failed',
 };
 
@@ -67,6 +68,9 @@ function createModel(app) {
     coownerAddress: 1,
   });
   campaign.index({ slug: 1 }, { unique: true });
+  campaign.index({
+    title: 'text',
+  });
   return mongooseClient.model('campaign', campaign);
 }
 

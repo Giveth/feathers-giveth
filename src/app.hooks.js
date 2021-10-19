@@ -1,8 +1,11 @@
 // Application hooks that run for every service
 const auth = require('@feathersjs/authentication');
+const errors = require('@feathersjs/errors');
 const config = require('config');
+const logger = require('winston');
 const { discard } = require('feathers-hooks-common');
 const { NotAuthenticated } = require('@feathersjs/errors');
+const { errorMessages } = require('./utils/errorMessages');
 const { DonationStatus } = require('./models/donations.model');
 const { isRequestInternal } = require('./utils/feathersUtils');
 const { responseLoggerHook, startMonitoring } = require('./hooks/logger');
@@ -51,6 +54,25 @@ const convertVerifiedToBoolean = () => context => {
     context.params.query.verified = true;
   } else if (context.params.query && context.params.query.verified === 'false') {
     context.params.query.verified = false;
+  }
+  return context;
+};
+
+const parseErrors = () => context => {
+  // verified field is boolean in Trace, Campaign and Community so for getting this filter
+  // in query string we should cast it to boolean here
+  if (context.error.message.includes('Invalid query parameter')) {
+    logger.info('Mongo error in feathers call', context.error);
+    throw new errors.BadRequest(errorMessages.INVALID_INPUT_DATA);
+  }
+  if (context.error.stack && context.error.stack.includes('MongoError')) {
+    logger.info('Mongo error in feathers call', context.error);
+    throw new errors.BadRequest(errorMessages.INVALID_INPUT_DATA);
+  }
+  if (context.error.stack && context.error.type !== 'FeathersError') {
+    // Should not return stack error to client when error is not instance of Feathers error
+    logger.info('Error with stack', context.error);
+    throw new errors.GeneralError();
   }
   return context;
 };
@@ -106,7 +128,7 @@ module.exports = {
   },
 
   error: {
-    all: [responseLoggerHook()],
+    all: [responseLoggerHook(), parseErrors()],
     find: [],
     get: [],
     create: [],

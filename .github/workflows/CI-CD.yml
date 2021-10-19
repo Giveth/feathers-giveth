@@ -6,6 +6,11 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
+       # Mongo is needed for running tests
+      - name: Start MongoDB
+        uses: supercharge/mongodb-github-action@1.3.0
+        with:
+          mongodb-version: 4.2
       - uses: actions/checkout@v1
       - name: Use Node.js
         uses: actions/setup-node@v1
@@ -15,12 +20,6 @@ jobs:
         run: npm ci
       - name: run linter
         run: npm run eslint
-
-      # Mongo is needed for running tests
-      - name: Start MongoDB
-        uses: supercharge/mongodb-github-action@1.3.0
-        with:
-          mongodb-version: 4.2
       - name: test
         run: npm run test
 
@@ -61,14 +60,13 @@ jobs:
           #          passphrase: ${{ secrets.PASSPHRASE }}
           privateKey: ${{ secrets.DEVELOP_PRIVATE_KEY}}
 
-      - name: beta deploy
+      - name: production deploy
         if: github.ref == 'refs/heads/master'
         uses: garygrossgarten/github-action-ssh@v0.6.4
         with:
-#          command: cd feathers-giveth-beta && git checkout master && git pull origin master && [[ -s $HOME/.nvm/nvm.sh ]] && . $HOME/.nvm/nvm.sh && nvm use 10  && npm ci &&  NODE_ENV=production ./node_modules/.bin/migrate-mongo up && npm run serve
           # pull images, restart docker, then remove unused docker images
-          command: cd feathers-giveth-beta && git checkout master && git pull origin master && docker-compose -f docker-compose-production.yml pull && docker-compose -f docker-compose-production.yml down && docker-compose -f docker-compose-production.yml up -d && docker image prune -a --force
-          host: ${{ secrets.BETA_HOST }}
-          username: ${{ secrets.BETA_USERNAME }}
+          command: cd feathers-giveth-trace && git checkout master && git pull origin master && docker-compose -f docker-compose-production.yml pull && docker-compose -f docker-compose-production.yml down && docker-compose -f docker-compose-production.yml up -d && docker image prune -a --force
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USERNAME }}
           #          passphrase: ${{ secrets.PASSPHRASE }}
-          privateKey: ${{ secrets.BETA_PRIVATE_KEY}}
+          privateKey: ${{ secrets.PRODUCTION_PRIVATE_KEY}}
