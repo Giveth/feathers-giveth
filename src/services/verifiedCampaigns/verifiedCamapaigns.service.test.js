@@ -5,7 +5,7 @@ const {
   SAMPLE_DATA,
   getJwt,
   generateRandomTxHash,
-  generateRandomNumber, generateRandomMongoId,
+  generateRandomMongoId,
 } = require('../../../test/testUtility');
 const { getFeatherAppInstance } = require('../../app');
 
