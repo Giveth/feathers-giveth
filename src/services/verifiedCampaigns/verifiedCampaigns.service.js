@@ -1,8 +1,11 @@
 const errors = require('@feathersjs/errors');
 const config = require('config');
 const logger = require('winston');
+const { NotFound } = require('@feathersjs/errors');
 const { findCampaignByGivethIoProjectId } = require('../../repositories/campaignRepository');
 const { getGivethIoAdapter } = require('../../adapters/adapterFactory');
+const { CampaignStatus } = require('../../models/campaigns.model');
+const hooks = require('./verifiedCampaigns.hooks');
 
 const givethIoAdapter = getGivethIoAdapter();
 module.exports = function verifiedCampaigns() {
@@ -53,10 +56,35 @@ module.exports = function verifiedCampaigns() {
       }
       return { ...projectInfo, owner, reviewerAddress: config.givethIoProjectsReviewerAddress };
     },
+
+    async update(data, params) {
+      const { campaignId, verified, archived, title, description } = params;
+      const campaign = await app.service('campaigns').get(campaignId);
+      if (!campaign) {
+        throw new NotFound();
+      }
+      const updateData = {};
+      if (verified !== undefined) {
+        updateData.verified = Boolean(verified);
+      }
+      if (title) {
+        updateData.title = title;
+      }
+      if (description) {
+        updateData.description = description;
+      }
+      if (archived === true && campaign.status === CampaignStatus.ACTIVE) {
+        updateData.status = CampaignStatus.ARCHIVED;
+      } else if (archived === false && campaign.status === CampaignStatus.ARCHIVED) {
+        updateData.status = CampaignStatus.ACTIVE;
+      }
+      const result = await app.service('campaigns').patch(campaign._id, updateData);
+      return result;
+    },
   };
 
   service.docs = {
-    securities: ['create'],
+    securities: ['create', 'update'],
     operations: {
       update: false,
       patch: false,
@@ -100,4 +128,5 @@ module.exports = function verifiedCampaigns() {
     },
   };
   app.use('/verifiedCampaigns', service);
+  app.service('verifiedCampaigns').hooks(hooks);
 };

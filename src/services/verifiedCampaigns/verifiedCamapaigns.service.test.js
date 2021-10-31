@@ -1,11 +1,19 @@
 const request = require('supertest');
 const config = require('config');
 const { assert } = require('chai');
-const { SAMPLE_DATA, getJwt, generateRandomTxHash } = require('../../../test/testUtility');
+const {
+  SAMPLE_DATA,
+  getJwt,
+  generateRandomTxHash,
+  generateRandomNumber, generateRandomMongoId,
+} = require('../../../test/testUtility');
+const { getFeatherAppInstance } = require('../../app');
 
 const baseUrl = config.get('givethFathersBaseUrl');
 const relativeUrl = '/verifiedCampaigns';
+const app = getFeatherAppInstance();
 
+const { givethIoInfo } = config;
 function GetVerifiedCampaignsTestCases() {
   it('get projectInfo with right input data', async () => {
     const slug = 'test';
@@ -73,5 +81,155 @@ function PostVerifiedCampaignsTestCases() {
   });
 }
 
+function PutVerifiedCampaignsTestCases() {
+  const generateGivethIoProjectId = () => {
+    const now = new Date();
+    return `${now.getHours()}${now.getMinutes()}${now.getSeconds()}${now.getMilliseconds()}`;
+  };
+  it('Change campaign info verified and archived successfully', async () => {
+    const givethIoProjectId = generateGivethIoProjectId();
+    const title = `test-title-${new Date()}`;
+    const campaign = await app.service('campaigns').create({
+      ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
+      status: SAMPLE_DATA.CAMPAIGN_STATUSES.ACTIVE,
+      givethIoProjectId,
+      verified: false,
+    });
+    const response = await request(baseUrl)
+      .put(`${relativeUrl}`)
+      .send({
+        campaignId: campaign._id,
+        archived: true,
+        verified: true,
+        title,
+      })
+      .set({
+        Authorization: `Basic ${Buffer.from(
+          `${givethIoInfo.username}:${givethIoInfo.password}`,
+        ).toString('base64')}`,
+      });
+    assert.equal(response.body.givethIoProjectId, campaign.givethIoProjectId);
+    assert.equal(response.body.title, title);
+    assert.isTrue(response.body.verified);
+    assert.equal(response.body.status, SAMPLE_DATA.CAMPAIGN_STATUSES.ARCHIVED);
+  });
+  it('Change campaign info verified true  successfully', async () => {
+    const givethIoProjectId = generateGivethIoProjectId();
+    const campaign = await app.service('campaigns').create({
+      ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
+      status: SAMPLE_DATA.CAMPAIGN_STATUSES.ACTIVE,
+      givethIoProjectId,
+      verified: false,
+    });
+    const response = await request(baseUrl)
+      .put(`${relativeUrl}`)
+      .send({
+        campaignId: campaign._id,
+        verified: true,
+      })
+      .set({
+        Authorization: `Basic ${Buffer.from(
+          `${givethIoInfo.username}:${givethIoInfo.password}`,
+        ).toString('base64')}`,
+      });
+    assert.equal(response.body.givethIoProjectId, campaign.givethIoProjectId);
+    assert.isTrue(response.body.verified);
+    assert.equal(response.body.status, SAMPLE_DATA.CAMPAIGN_STATUSES.ACTIVE);
+  });
+  it('Change campaign info verified false  successfully', async () => {
+    const givethIoProjectId = generateGivethIoProjectId();
+    const campaign = await app.service('campaigns').create({
+      ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
+      status: SAMPLE_DATA.CAMPAIGN_STATUSES.ACTIVE,
+      givethIoProjectId,
+      verified: true,
+    });
+    const response = await request(baseUrl)
+      .put(`${relativeUrl}`)
+      .send({
+        campaignId: campaign._id,
+        verified: false,
+      })
+      .set({
+        Authorization: `Basic ${Buffer.from(
+          `${givethIoInfo.username}:${givethIoInfo.password}`,
+        ).toString('base64')}`,
+      });
+    assert.equal(response.body.slug, campaign.slug);
+    assert.isFalse(response.body.verified);
+    assert.equal(response.body.status, SAMPLE_DATA.CAMPAIGN_STATUSES.ACTIVE);
+  });
+  it('Change campaign info archived  true successfully', async () => {
+    const givethIoProjectId = generateGivethIoProjectId();
+    const campaign = await app.service('campaigns').create({
+      ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
+      status: SAMPLE_DATA.CAMPAIGN_STATUSES.ACTIVE,
+      givethIoProjectId,
+      verified: false,
+    });
+    const response = await request(baseUrl)
+      .put(`${relativeUrl}`)
+      .send({
+        campaignId: campaign._id,
+        archived: true,
+      })
+      .set({
+        Authorization: `Basic ${Buffer.from(
+          `${givethIoInfo.username}:${givethIoInfo.password}`,
+        ).toString('base64')}`,
+      });
+    assert.equal(response.body.givethIoProjectId, campaign.givethIoProjectId);
+    assert.isFalse(response.body.verified);
+    assert.equal(response.body.status, SAMPLE_DATA.CAMPAIGN_STATUSES.ARCHIVED);
+  });
+  it('Change campaign info archived  false successfully', async () => {
+    const givethIoProjectId = generateGivethIoProjectId();
+    const campaign = await app.service('campaigns').create({
+      ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
+      status: SAMPLE_DATA.CAMPAIGN_STATUSES.ARCHIVED,
+      givethIoProjectId,
+      verified: false,
+    });
+    const response = await request(baseUrl)
+      .put(`${relativeUrl}`)
+      .send({
+        campaignId: campaign._id,
+        archived: false,
+      })
+      .set({
+        Authorization: `Basic ${Buffer.from(
+          `${givethIoInfo.username}:${givethIoInfo.password}`,
+        ).toString('base64')}`,
+      });
+    assert.equal(response.body.givethIoProjectId, campaign.givethIoProjectId);
+    assert.isFalse(response.body.verified);
+    assert.equal(response.body.status, SAMPLE_DATA.CAMPAIGN_STATUSES.ACTIVE);
+  });
+
+  it('Get 401 when when sending accessToken instead of basicAuthentication', async () => {
+    const response = await request(baseUrl)
+      .put(`${relativeUrl}`)
+      .send({
+        campaignId: generateRandomMongoId(),
+        verified: false,
+      })
+      .set({ Authorization: getJwt(SAMPLE_DATA.USER_ADDRESS) });
+
+    assert.equal(response.statusCode, 401);
+  });
+
+  it('Get 401 when not sending basicAuthentication', async () => {
+    const response = await request(baseUrl)
+      .put(`${relativeUrl}`)
+      .send({
+        campaignId: generateRandomMongoId(),
+        verified: true,
+      });
+
+    assert.equal(response.statusCode, 401);
+  });
+}
+
 describe(`Test GET ${relativeUrl}`, GetVerifiedCampaignsTestCases);
 describe(`Test POST ${relativeUrl}`, PostVerifiedCampaignsTestCases);
+describe(`Test PUT ${relativeUrl}`, PutVerifiedCampaignsTestCases);

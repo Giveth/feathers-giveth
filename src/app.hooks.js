@@ -23,7 +23,7 @@ const authenticate = () => context => {
   if (context.path === 'analytics') {
     return context;
   }
-  if (context.path === 'verifyCampaigns') {
+  if (context.path === 'verifiedCampaigns' && context.method === 'update') {
     // we check this route with basic authentication
     return context;
   }
