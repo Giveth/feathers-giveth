@@ -1,18 +1,7 @@
 const { NotAuthenticated } = require('@feathersjs/errors');
 const config = require('config');
 const { errorMessages } = require('../utils/errorMessages');
-
-/**
- *
- * @param basicAuthentication  * @param basicAuthentication, something like this "Basic dXNlcm5hbWU6cGFzc3dvcmQ="
- * @returns {{password: string, username: string}} example {username:"username", password:"password"}
- */
-const decodeBasicAuthentication = basicAuthentication => {
-  const [username, password] = Buffer.from(basicAuthentication.split(' ')[1], 'base64')
-    .toString()
-    .split(':');
-  return { username, password };
-};
+const { decodeBasicAuthentication } = require('../utils/basicAuthUtility');
 
 const authorizeGivethio = context => {
   const { authorization } = context.params.headers;

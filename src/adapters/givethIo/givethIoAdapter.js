@@ -4,6 +4,9 @@ const logger = require('winston');
 
 const client = new GraphQLClient(config.givethIoUrl);
 const errors = require('@feathersjs/errors');
+const axios = require('axios');
+const { createBasicAuthentication } = require('../../utils/basicAuthUtility');
+const { CampaignStatus } = require('../../models/campaigns.model');
 
 const getProjectInfoBySLug = async slug => {
   try {
@@ -84,4 +87,50 @@ const getUserByUserId = async userId => {
   }
 };
 
-module.exports = { getProjectInfoBySLug, getUserByUserId };
+const updateGivethIoProject = async ({
+  title,
+  description,
+  campaignId,
+  image,
+  status,
+  givethIoProjectId,
+}) => {
+  try {
+    logger.info('updateGivethIoProject() has been called', {
+      title,
+      description,
+      campaignId,
+      image,
+      status,
+      givethIoProjectId,
+    });
+    const Authorization = createBasicAuthentication({
+      username: config.givethIoInfo.givethIoUsername,
+      password: config.givethIoInfo.givethIoPassword,
+    });
+    const url = `${config.givethIoUpdateProjectUrl}/${givethIoProjectId}`;
+    await axios.put(
+      url,
+      {
+        title,
+        description,
+        campaignId,
+        image,
+        archived: status === CampaignStatus.ARCHIVED || status === CampaignStatus.CANCELED,
+      },
+      {
+        headers: {
+          Authorization,
+        },
+      },
+    );
+    return true;
+  } catch (e) {
+    logger.error('updateGivethIoProject() error', {
+      error: e,
+      inputData: { title, description, campaignId, givethIoProjectId },
+    });
+    return false;
+  }
+};
+module.exports = { getProjectInfoBySLug, getUserByUserId, updateGivethIoProject };

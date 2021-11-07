@@ -31,4 +31,8 @@ const getUserByUserId = _userId => {
     location: 'world',
   };
 };
-module.exports = { getProjectInfoBySLug, getUserByUserId };
+// eslint-disable-next-line no-unused-vars
+const updateGivethIoProject = ({ title, description, campaignId, givethIoProjectId }) => {
+  return true;
+};
+module.exports = { getProjectInfoBySLug, getUserByUserId, updateGivethIoProject };

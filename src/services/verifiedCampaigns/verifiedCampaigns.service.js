@@ -4,6 +4,7 @@ const logger = require('winston');
 const { NotFound } = require('@feathersjs/errors');
 const { findCampaignByGivethIoProjectId } = require('../../repositories/campaignRepository');
 const { getGivethIoAdapter } = require('../../adapters/adapterFactory');
+const { convertGivethIoToTraceImage } = require('../../utils/givethIoUtils');
 const { CampaignStatus } = require('../../models/campaigns.model');
 const hooks = require('./verifiedCampaigns.hooks');
 
@@ -24,7 +25,6 @@ module.exports = function verifiedCampaigns() {
       if (campaign) {
         throw new errors.BadRequest('Campaign with this givethIo projectId exists');
       }
-      const imageIpfsPath = image.match(/\/ipfs\/.*/);
       campaign = await app.service('campaigns').create({
         title,
         url,
@@ -33,7 +33,7 @@ module.exports = function verifiedCampaigns() {
         description,
         verified: true,
         txHash,
-        image: imageIpfsPath ? imageIpfsPath[0] : image,
+        image: convertGivethIoToTraceImage(image),
         ownerAddress: owner.address,
         givethIoProjectId,
       });
@@ -58,7 +58,7 @@ module.exports = function verifiedCampaigns() {
     },
 
     async update(data, params) {
-      const { campaignId, verified, archived, title, description } = params;
+      const { campaignId, verified, archived, title, description, image } = params;
       const campaign = await app.service('campaigns').get(campaignId);
       if (!campaign) {
         throw new NotFound();
@@ -78,7 +78,11 @@ module.exports = function verifiedCampaigns() {
       } else if (archived === false && campaign.status === CampaignStatus.ARCHIVED) {
         updateData.status = CampaignStatus.ACTIVE;
       }
-      const result = await app.service('campaigns').patch(campaign._id, updateData);
+      updateData.image = convertGivethIoToTraceImage(image);
+      logger.info('update campaign ', updateData);
+      const result = await app.service('campaigns').patch(campaign._id, updateData, {
+        calledFromGivethIo: true,
+      });
       return result;
     },
   };
