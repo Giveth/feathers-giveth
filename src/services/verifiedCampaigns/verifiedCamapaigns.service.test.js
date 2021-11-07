@@ -108,6 +108,10 @@ function PutVerifiedCampaignsTestCases() {
           `${givethIoInfo.username}:${givethIoInfo.password}`,
         ).toString('base64')}`,
       });
+    console.log('********************* response.body', {
+      campaign,
+      responseBody: response.body,
+    });
     assert.equal(response.body.givethIoProjectId, campaign.givethIoProjectId);
     assert.equal(response.body.title, title);
     assert.isTrue(response.body.verified);

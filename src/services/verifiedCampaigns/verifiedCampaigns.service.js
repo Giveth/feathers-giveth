@@ -78,7 +78,9 @@ module.exports = function verifiedCampaigns() {
       } else if (archived === false && campaign.status === CampaignStatus.ARCHIVED) {
         updateData.status = CampaignStatus.ACTIVE;
       }
-      updateData.image = convertGivethIoToTraceImage(image);
+      if (image) {
+        updateData.image = convertGivethIoToTraceImage(image);
+      }
       logger.info('update campaign ', updateData);
       const result = await app.service('campaigns').patch(campaign._id, updateData, {
         calledFromGivethIo: true,
