@@ -39,7 +39,19 @@ const getProjectInfoBySLug = async slug => {
       }
     `;
     const result = await client.request(query, { slug });
-    return result.projectBySlug;
+    const project = result.projectBySlug;
+    const defaultImage =
+      'https://ipfs.giveth.io/ipfs/QmeVDkwp9nrDsbAxLXY9yNW853C2F4CECC7wdvEJrroTqA';
+    if (!project.description) {
+      // because description in givethio is optional but in giveth trace is required
+      project.description = project.title;
+    }
+    if (!project.image || /^\d+$/.test(project.image)) {
+      // if givethIo image is undefined or is a number  (givethIo project with default image have numbers as image)
+      // I set the our default image for them
+      project.image = defaultImage;
+    }
+    return project;
   } catch (e) {
     logger.error('getProjectInfoBySLug error', e);
     throw new errors.BadRequest('Project in givethIo with this slug not found');

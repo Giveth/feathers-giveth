@@ -38,6 +38,19 @@ function postCampaignTestCases() {
     assert.equal(response.body.ownerAddress, SAMPLE_DATA.CREATE_CAMPAIGN_DATA.ownerAddress);
   });
 
+  it('should create campaign with less than 10 character', async () => {
+    const descriptionWithLEssThan10Character = '123456';
+    const response = await request(baseUrl)
+      .post(relativeUrl)
+      .send({
+        ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
+        description: descriptionWithLEssThan10Character,
+      })
+      .set({ Authorization: getJwt(SAMPLE_DATA.CREATE_CAMPAIGN_DATA.ownerAddress) });
+    assert.equal(response.statusCode, 201);
+    assert.equal(response.body.description, descriptionWithLEssThan10Character);
+  });
+
   it('should create campaign successfully, should not set coownerAddress by default', async () => {
     const response = await request(baseUrl)
       .post(relativeUrl)
@@ -312,7 +325,7 @@ function patchCampaignTestCases() {
     assert.equal(response.body.status, SAMPLE_DATA.CAMPAIGN_STATUSES.PENDING);
   });
 
-  it('Could campaignOwner can archive campaign', async () => {
+  it('Could not campaignOwner can archive campaign', async () => {
     const campaign = await createCampaign({
       ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
       status: SAMPLE_DATA.CAMPAIGN_STATUSES.ARCHIVED,
@@ -323,8 +336,8 @@ function patchCampaignTestCases() {
         status: SAMPLE_DATA.CAMPAIGN_STATUSES.ACTIVE,
       })
       .set({ Authorization: getJwt(campaign.ownerAddress) });
-    assert.equal(response.statusCode, 200);
-    assert.equal(response.body.status, SAMPLE_DATA.CAMPAIGN_STATUSES.ACTIVE);
+    assert.equal(response.statusCode, 403);
+    assert.equal(response.body.message, errorMessages.JUST_ADMINS_CAN_UN_ARCHIVE_CAMPAIGN);
   });
   it('should admin can unArchive campaign', async () => {
     const campaign = await createCampaign({
