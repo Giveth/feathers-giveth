@@ -2,7 +2,6 @@ const commons = require('feathers-hooks-common');
 const errors = require('@feathersjs/errors');
 const config = require('config');
 
-const logger = require('winston');
 const { rateLimit } = require('../../utils/rateLimit');
 const sanitizeAddress = require('../../hooks/sanitizeAddress');
 const setAddress = require('../../hooks/setAddress');
