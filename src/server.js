@@ -2,6 +2,7 @@ const logger = require('winston');
 const queryGasPrice = require('./blockchain/gasPriceService');
 const { queryConversionRates } = require('./services/conversionRates/getConversionRatesService');
 const { initFeatherApp } = require('./app');
+const { initHandlingGivethIoUpdateEvents } = require('./utils/givethIoSyncer');
 
 const app = initFeatherApp();
 const startServer = async () => {
@@ -15,6 +16,7 @@ const startServer = async () => {
 
   queryGasPrice();
   queryConversionRates(app);
+  initHandlingGivethIoUpdateEvents(app);
 
   return server;
 };

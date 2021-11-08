@@ -13,9 +13,8 @@ const { CampaignStatus } = require('../../models/campaigns.model');
 const createModelSlug = require('../createModelSlug');
 const { isRequestInternal } = require('../../utils/feathersUtils');
 const { errorMessages } = require('../../utils/errorMessages');
-const { getGivethIoAdapter } = require('../../adapters/adapterFactory');
+const { addVerifiedCampaignUpdateEvent } = require('../../utils/givethIoSyncer');
 
-const givethIoAdapter = getGivethIoAdapter();
 const schema = {
   include: [
     {
@@ -141,11 +140,10 @@ const syncWithGivethIo = () => async context => {
     //  ( givethIo call giveth trace, and after that giveth trace will call givethIo again)
 
     // We dont aput await here, just fire and forget
-    givethIoAdapter.updateGivethIoProject({
+    addVerifiedCampaignUpdateEvent({
       title: campaign.title,
       description: campaign.description,
       status: campaign.status,
-      image: campaign.image,
       givethIoProjectId: campaign.givethIoProjectId,
       campaignId: campaign._id,
     });

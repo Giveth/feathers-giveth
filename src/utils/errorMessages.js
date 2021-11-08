@@ -2,6 +2,7 @@
 const errorMessages = {
   INVALID_INPUT_DATA: 'Invalid input data',
   INVALID_IP: 'Invalid ip',
+  CAMPAIGN_NOT_FOUND: 'Campaign not found',
   JUST_ACTIVE_CAMPAIGNS_COULD_BE_ARCHIVED: 'Just Active campaigns could be archived',
   JUST_CAMPAIGN_OWNER_AND_ADMIN_CAN_ARCHIVE_CAMPAIGN:
     'Just campaignOwner and admin can archive campaign',
