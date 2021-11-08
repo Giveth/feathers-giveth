@@ -1,7 +1,7 @@
 const request = require('supertest');
 const { assert } = require('chai');
 const config = require('config');
-const { findCampaignByGivethIoProjectId, findCampaignBySlug } = require('./campaignRepository');
+const { findCampaignByGivethIoProjectId } = require('./campaignRepository');
 const { getFeatherAppInstance } = require('../app');
 const { getJwt, SAMPLE_DATA } = require('../../test/testUtility');
 
@@ -35,21 +35,4 @@ function findCampaignByGivethIoProjectIdTestCases() {
   });
 }
 
-function findCampaignBySlugTestCases() {
-  it('should return campaign', async () => {
-    const campaign = await createCampaign(SAMPLE_DATA.CREATE_CAMPAIGN_DATA);
-    const { slug } = campaign;
-    const result = await findCampaignBySlug(app, slug);
-    assert.isOk(result);
-    assert.equal(campaign._id, result._id);
-  });
-
-  it('should not find data', async () => {
-    const slug = new Date();
-    const result = await findCampaignBySlug(app, slug);
-    assert.notOk(result);
-  });
-}
-
 describe(`findCampaignByGivethIoProjectId test cases`, findCampaignByGivethIoProjectIdTestCases);
-describe(`findCampaignBySlug test cases`, findCampaignBySlugTestCases);
