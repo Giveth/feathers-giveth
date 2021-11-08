@@ -19,6 +19,7 @@ const addVerifiedCampaignUpdateEvent = ({
   title,
   description,
 }) => {
+  // giveth.io will handle this event
   updateCampaignQueue.add({ campaignId, status, givethIoProjectId, title, description });
 };
 
