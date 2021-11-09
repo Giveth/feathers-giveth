@@ -31,4 +31,5 @@ const getUserByUserId = _userId => {
     location: 'world',
   };
 };
+
 module.exports = { getProjectInfoBySLug, getUserByUserId };

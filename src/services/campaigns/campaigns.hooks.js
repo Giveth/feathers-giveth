@@ -13,6 +13,7 @@ const { CampaignStatus } = require('../../models/campaigns.model');
 const createModelSlug = require('../createModelSlug');
 const { isRequestInternal } = require('../../utils/feathersUtils');
 const { errorMessages } = require('../../utils/errorMessages');
+const { emitCampaignUpdateEvent } = require('../../utils/givethIoSyncer');
 
 const schema = {
   include: [
@@ -132,6 +133,22 @@ const countTraces = (item, service) =>
     },
   }).then(count => Object.assign(item, { milestonesCount: count }));
 
+const dispatchCampaignUpdateEvent = () => async context => {
+  const campaign = context.result;
+  if (campaign.givethIoProjectId && !context.params.calledFromGivethIo) {
+    // it's important to exclude updates that has called by givethio, because if it may cause loops
+    //  ( givethIo call giveth trace, and after that giveth trace will call givethIo again)
+
+    emitCampaignUpdateEvent({
+      title: campaign.title,
+      description: campaign.description,
+      status: campaign.status,
+      givethIoProjectId: campaign.givethIoProjectId,
+      campaignId: campaign._id,
+    });
+  }
+};
+
 // add milestonesCount to each COMMUNITY object
 const addTraceCounts = () => context => {
   const service = context.app.service('traces');
@@ -198,7 +215,8 @@ module.exports = {
     get: [addTraceCounts(), addConfirmations(), resolveFiles('image')],
     create: [resolveFiles('image')],
     update: [resolveFiles('image')],
-    patch: [resolveFiles('image')],
+    patch: [dispatchCampaignUpdateEvent(), resolveFiles('image')],
+    // patch: [ resolveFiles('image')],
     remove: [],
   },
 

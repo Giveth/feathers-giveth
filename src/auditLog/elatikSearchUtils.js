@@ -2,10 +2,8 @@ const axios = require('axios');
 const config = require('config');
 const logger = require('winston');
 const Sentry = require('@sentry/node');
+const { createBasicAuthentication } = require('../utils/basicAuthUtility');
 
-const createBasicAuthentication = ({ username, password }) => {
-  return `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`;
-};
 const removeUdefinedFieldFromObject = object => {
   // eslint-disable-next-line no-restricted-syntax
   for (const key of Object.keys(object)) {
@@ -35,6 +33,5 @@ const sendEventToElasticSearch = async data => {
 };
 
 module.exports = {
-  createBasicAuthentication,
   sendEventToElasticSearch,
 };
