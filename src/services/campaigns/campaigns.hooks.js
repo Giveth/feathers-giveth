@@ -13,7 +13,7 @@ const { CampaignStatus } = require('../../models/campaigns.model');
 const createModelSlug = require('../createModelSlug');
 const { isRequestInternal } = require('../../utils/feathersUtils');
 const { errorMessages } = require('../../utils/errorMessages');
-const { addVerifiedCampaignUpdateEvent } = require('../../utils/givethIoSyncer');
+const { emitCampaignUpdateEvent } = require('../../utils/givethIoSyncer');
 
 const schema = {
   include: [
@@ -133,14 +133,13 @@ const countTraces = (item, service) =>
     },
   }).then(count => Object.assign(item, { milestonesCount: count }));
 
-const syncWithGivethIo = () => async context => {
+const dispatchCampaignUpdateEvent = () => async context => {
   const campaign = context.result;
   if (campaign.givethIoProjectId && !context.params.calledFromGivethIo) {
     // it's important to exclude updates that has called by givethio, because if it may cause loops
     //  ( givethIo call giveth trace, and after that giveth trace will call givethIo again)
 
-    // We dont aput await here, just fire and forget
-    addVerifiedCampaignUpdateEvent({
+    emitCampaignUpdateEvent({
       title: campaign.title,
       description: campaign.description,
       status: campaign.status,
@@ -216,7 +215,7 @@ module.exports = {
     get: [addTraceCounts(), addConfirmations(), resolveFiles('image')],
     create: [resolveFiles('image')],
     update: [resolveFiles('image')],
-    patch: [syncWithGivethIo(), resolveFiles('image')],
+    patch: [dispatchCampaignUpdateEvent(), resolveFiles('image')],
     // patch: [ resolveFiles('image')],
     remove: [],
   },
