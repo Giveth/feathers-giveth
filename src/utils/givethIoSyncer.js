@@ -13,6 +13,13 @@ const updateGivethIoProjectQueue = new Queue('givethio-project-updated', {
 });
 
 const emitCampaignUpdateEvent = ({ campaignId, status, givethIoProjectId, title, description }) => {
+  logger.info('Add event to trace-campaign-updated queue', {
+    campaignId,
+    givethIoProjectId,
+    title,
+    description,
+    status,
+  });
   // giveth.io will handle this event
   updateCampaignQueue.add({ campaignId, status, givethIoProjectId, title, description });
 };
