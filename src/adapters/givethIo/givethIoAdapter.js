@@ -18,10 +18,6 @@ const getProjectInfoBySLug = async slug => {
           creationDate
           admin
           walletAddress
-          impactLocation
-          qualityScore
-          totalDonations
-          totalHearts
           verified
           categories {
             name
