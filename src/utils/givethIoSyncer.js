@@ -2,6 +2,8 @@ const config = require('config');
 const Queue = require('bull');
 const logger = require('winston');
 
+const TWO_MINUTES = 1000 * 60 * 2;
+
 const { errorMessages } = require('./errorMessages');
 const { CampaignStatus } = require('../models/campaigns.model');
 
@@ -17,6 +19,15 @@ updateCampaignQueue.on('error', err => {
 updateGivethIoProjectQueue.on('error', err => {
   logger.error('updateGivethIoProjectQueue connection error', err);
 });
+
+setInterval(async () => {
+  const updateCampaignQueueCount = await updateCampaignQueue.count();
+  const updateGivethIoProjectQueueCount = await updateGivethIoProjectQueue.count();
+  logger.info(`Sync trace and givethio job queues count:`, {
+    updateCampaignQueueCount,
+    updateGivethIoProjectQueueCount,
+  });
+}, TWO_MINUTES);
 
 const emitCampaignUpdateEvent = ({ campaignId, status, givethIoProjectId, title, description }) => {
   logger.info('Add event to trace-campaign-updated queue', {
