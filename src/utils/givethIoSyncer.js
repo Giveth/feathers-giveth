@@ -11,6 +11,12 @@ const updateCampaignQueue = new Queue('trace-campaign-updated', {
 const updateGivethIoProjectQueue = new Queue('givethio-project-updated', {
   redis: config.get('sharedRedis'),
 });
+updateCampaignQueue.on('error', err => {
+  logger.error('updateCampaignQueue connection error', err);
+});
+updateGivethIoProjectQueue.on('error', err => {
+  logger.error('updateGivethIoProjectQueue connection error', err);
+});
 
 const emitCampaignUpdateEvent = ({ campaignId, status, givethIoProjectId, title, description }) => {
   logger.info('Add event to trace-campaign-updated queue', {
