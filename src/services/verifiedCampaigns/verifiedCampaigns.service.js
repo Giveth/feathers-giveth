@@ -4,6 +4,11 @@ const logger = require('winston');
 const { findCampaignByGivethIoProjectId } = require('../../repositories/campaignRepository');
 const { getGivethIoAdapter } = require('../../adapters/adapterFactory');
 
+const convertGivethIoToTraceImage = image => {
+  const imageIpfsPath = image.match(/\/ipfs\/.*/);
+  return imageIpfsPath ? imageIpfsPath[0] : image;
+};
+
 const givethIoAdapter = getGivethIoAdapter();
 module.exports = function verifiedCampaigns() {
   const app = this;
@@ -21,7 +26,6 @@ module.exports = function verifiedCampaigns() {
       if (campaign) {
         throw new errors.BadRequest('Campaign with this givethIo projectId exists');
       }
-      const imageIpfsPath = image.match(/\/ipfs\/.*/);
       campaign = await app.service('campaigns').create({
         title,
         url,
@@ -30,7 +34,7 @@ module.exports = function verifiedCampaigns() {
         description,
         verified: true,
         txHash,
-        image: imageIpfsPath ? imageIpfsPath[0] : image,
+        image: convertGivethIoToTraceImage(image),
         ownerAddress: owner.address,
         givethIoProjectId,
       });
@@ -56,7 +60,7 @@ module.exports = function verifiedCampaigns() {
   };
 
   service.docs = {
-    securities: ['create'],
+    securities: ['create', 'update'],
     operations: {
       update: false,
       patch: false,

@@ -5,7 +5,6 @@ const { SAMPLE_DATA, getJwt, generateRandomTxHash } = require('../../../test/tes
 
 const baseUrl = config.get('givethFathersBaseUrl');
 const relativeUrl = '/verifiedCampaigns';
-
 function GetVerifiedCampaignsTestCases() {
   it('get projectInfo with right input data', async () => {
     const slug = 'test';
