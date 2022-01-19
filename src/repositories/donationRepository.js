@@ -7,7 +7,6 @@ const getTotalUsdValueDonatedToCampaign = async (app, { campaignId }) => {
     {
       $match: {
         campaignId,
-        homeTxHash: { $exists: true },
       },
     },
     {
