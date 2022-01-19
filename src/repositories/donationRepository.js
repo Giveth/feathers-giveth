@@ -1,6 +1,25 @@
 const { ObjectId } = require('mongoose').Types;
 const { DonationBridgeStatus, DonationStatus } = require('../models/donations.model');
 
+const getTotalUsdValueDonatedToCampaign = async (app, { campaignId }) => {
+  const donationModel = app.service('donations').Model;
+  const result = await donationModel.aggregate([
+    {
+      $match: {
+        campaignId,
+        homeTxHash: { $exists: true },
+      },
+    },
+    {
+      $group: {
+        _id: 'donations',
+        totalUsdValue: { $sum: { $toDouble: '$usdValue' } },
+      },
+    },
+  ]);
+  return result.length !== 0 ? result[0].totalUsdValue : 0;
+};
+
 const updateBridgePaymentExecutedTxHash = async (
   app,
   { txHash, bridgePaymentExecutedTxHash, bridgePaymentExecutedTime },
@@ -17,6 +36,7 @@ const updateBridgePaymentExecutedTxHash = async (
     },
   );
 };
+
 const updateBridgePaymentAuthorizedTxHash = async (
   app,
   { txHash, bridgePaymentAuthorizedTxHash },
@@ -236,4 +256,5 @@ module.exports = {
   listOfDonorsToVerifiedProjects,
   findParentDonation,
   findDonationById,
+  getTotalUsdValueDonatedToCampaign,
 };
