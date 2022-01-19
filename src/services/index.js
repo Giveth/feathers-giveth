@@ -21,7 +21,7 @@ const verifiedCampaigns = require('./verifiedCampaigns/verifiedCampaigns.service
 const conversionRates = require('./conversionRates/conversionRates.service.js');
 const conversations = require('./conversations/conversations.service.js');
 const givbackReportDonations = require('./verifiedProjectsGiversReport/verifiedPerojectsGiversReport.service');
-const campaignTotalDonationValue = require('./campaignTotalDonationsValue/campaignTotalDonationValue.service')
+const campaignTotalDonationValue = require('./campaignTotalDonationsValue/campaignTotalDonationValue.service');
 
 module.exports = function configure() {
   const app = this;
