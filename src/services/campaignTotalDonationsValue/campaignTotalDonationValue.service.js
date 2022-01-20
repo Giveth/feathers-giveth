@@ -1,7 +1,7 @@
 const { ObjectId } = require('mongoose').Types;
 const { getTotalUsdValueDonatedToCampaign } = require('../../repositories/donationRepository');
 
-module.exports = function verifiedCampaigns() {
+module.exports = function totalUsdValueDonatedToCampaign() {
   const app = this;
 
   const service = {
@@ -17,15 +17,22 @@ module.exports = function verifiedCampaigns() {
   };
 
   service.docs = {
-    securities: ['get'],
+    securities: [],
     operations: {
       update: false,
       patch: false,
       remove: false,
       create: false,
-      find: {
+      find: false,
+      get: {
         description: 'Get total donation usdValue to a campaign',
-        parameters: [],
+        parameters: [
+          {
+            name: 'id',
+            description: 'campaign ID',
+            in: 'path',
+          },
+        ],
       },
     },
     definition: {
