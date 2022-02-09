@@ -73,7 +73,7 @@ function initSwagger() {
             description: 'UAT',
           },
           {
-            url: 'https://feathers.beta.giveth.io',
+            url: 'https://feathers.giveth.io',
             description: 'Production',
           },
         ],
