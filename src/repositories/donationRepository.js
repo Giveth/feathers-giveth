@@ -103,19 +103,19 @@ const findParentDonation = (app, { parentDonations }) => {
   }]
   >}
  */
-const listOfDonorsToVerifiedProjects = async (app, { verifiedProjectIds, from, to }) => {
+const listOfDonorsToProjects = async (app, { projectIds, from, to }) => {
   const donationModel = app.service('donations').Model;
-  // If verifiedProjectIds is falsy it means we should use all donations
-  const orCondition = verifiedProjectIds
+  // If projectIds is falsy it means we should use all donations
+  const orCondition = projectIds
     ? [
         {
           // it's for communities
-          delegateId: { $in: verifiedProjectIds },
+          delegateId: { $in: projectIds },
           intendedProjectId: { $exists: false },
         },
 
         // it's for traces and campaigns
-        { ownerId: { $in: verifiedProjectIds } },
+        { ownerId: { $in: projectIds } },
       ]
     : [
         {
@@ -252,7 +252,7 @@ module.exports = {
   updateBridgePaymentExecutedTxHash,
   updateBridgePaymentAuthorizedTxHash,
   isAllDonationsPaidOut,
-  listOfDonorsToVerifiedProjects,
+  listOfDonorsToProjects,
   findParentDonation,
   findDonationById,
   getTotalUsdValueDonatedToCampaign,

@@ -1,10 +1,16 @@
 const moment = require('moment');
 const logger = require('winston');
 const errors = require('@feathersjs/errors');
-const { listOfDonorsToVerifiedProjects } = require('../../repositories/donationRepository');
-const { findVerifiedCommunities } = require('../../repositories/communityRepository');
-const { findVerifiedCampaigns } = require('../../repositories/campaignRepository');
-const { findVerifiedTraces } = require('../../repositories/traceRepository');
+const { listOfDonorsToProjects } = require('../../repositories/donationRepository');
+const {
+  findVerifiedCommunities,
+  findUnVerifiedCommunities,
+} = require('../../repositories/communityRepository');
+const {
+  findVerifiedCampaigns,
+  findUnVerifiedCampaigns,
+} = require('../../repositories/campaignRepository');
+const { findVerifiedTraces, findUnVerifiedTraces } = require('../../repositories/traceRepository');
 const { getTokenByAddress } = require('../../utils/tokenHelper');
 const { getTraceUrl, getCampaignUrl, getCommunityUrl } = require('../../utils/urlUtils');
 
@@ -36,11 +42,24 @@ const extractProjectInfo = donation => {
   return {};
 };
 
-const getAllVerfiedProjectdIds = async app => {
+const getAllVerifiedProjectdIds = async app => {
   const [traces, campaigns, communities] = await Promise.all([
     findVerifiedTraces(app),
     findVerifiedCampaigns(app),
     findVerifiedCommunities(app),
+  ]);
+  return [
+    ...traces.map(trace => trace.projectId),
+    ...campaigns.map(campaign => campaign.projectId),
+    ...communities.map(community => community.delegateId),
+  ];
+};
+
+const getAllUnVerifiedProjectdIds = async app => {
+  const [traces, campaigns, communities] = await Promise.all([
+    findUnVerifiedTraces(app),
+    findUnVerifiedCampaigns(app),
+    findUnVerifiedCommunities(app),
   ]);
   return [
     ...traces.map(trace => trace.projectId),
@@ -54,23 +73,25 @@ module.exports = function aggregateDonations() {
 
   const givbackReportDonations = {
     async find({ query }) {
-      const { fromDate, toDate, allProjects } = query;
+      const { fromDate, toDate, projectType } = query;
       if (!fromDate) {
         throw new errors.BadRequest('fromDate is required with this format: YYYY/MM/DD-hh:mm:ss');
       }
       if (!toDate) {
         throw new errors.BadRequest('toDate is required with this format: YYYY/MM/DD-hh:mm:ss');
       }
-      let verifiedProjectIds;
-      if (!allProjects || allProjects === 'false') {
-        verifiedProjectIds = await getAllVerfiedProjectdIds(app);
+      let projectIds;
+      if (projectType === 'verified') {
+        projectIds = await getAllVerifiedProjectdIds(app);
+      } else if (projectType === 'unVerified') {
+        projectIds = await getAllUnVerifiedProjectdIds(app);
       }
 
       const from = moment(fromDate, 'YYYY/MM/DD-hh:mm:ss').toDate();
       const to = moment(toDate, 'YYYY/MM/DD-hh:mm:ss').toDate();
 
-      const result = await listOfDonorsToVerifiedProjects(app, {
-        verifiedProjectIds,
+      const result = await listOfDonorsToProjects(app, {
+        projectIds,
         from,
         to,
       });
@@ -95,7 +116,6 @@ module.exports = function aggregateDonations() {
         total: result.length,
         from,
         to,
-        verifiedProjectIds,
         data: result,
       };
     },
@@ -117,11 +137,11 @@ module.exports = function aggregateDonations() {
           in: 'query',
         },
         'parameters[2]': {
-          name: 'allProjects',
+          name: 'projectType',
           in: 'query',
           schema: {
             type: 'string',
-            enum: ['true', 'false'],
+            enum: ['verified', 'unVerified', 'all'],
           },
         },
       },
