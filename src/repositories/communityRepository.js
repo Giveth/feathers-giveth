@@ -20,5 +20,5 @@ const findUnVerifiedCommunities = async app => {
 module.exports = {
   findParentCommunities,
   findVerifiedCommunities,
-  findUnVerifiedCommunities
+  findUnVerifiedCommunities,
 };
