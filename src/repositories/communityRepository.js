@@ -11,8 +11,14 @@ const findVerifiedCommunities = async app => {
   const communityModel = communityService.Model;
   return communityModel.find({ verified: true });
 };
+const findUnVerifiedCommunities = async app => {
+  const communityService = app.service('communities');
+  const communityModel = communityService.Model;
+  return communityModel.find({ verified: false });
+};
 
 module.exports = {
   findParentCommunities,
   findVerifiedCommunities,
+  findUnVerifiedCommunities,
 };
