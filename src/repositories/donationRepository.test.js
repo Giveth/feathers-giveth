@@ -6,6 +6,7 @@ const {
   updateBridgePaymentAuthorizedTxHash,
   isAllDonationsPaidOut,
   findDonationById,
+  getTotalUsdValueDonatedToCampaign,
 } = require('./donationRepository');
 
 let app;
@@ -149,6 +150,48 @@ function findDonationByIdTests() {
   });
 }
 
+function getTotalUsdValueDonatedToCampaignTests() {
+  it('Should return correct value for campaign', async () => {
+    const campaign = await app.service('campaigns').create({
+      ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
+      status: SAMPLE_DATA.CAMPAIGN_STATUSES.ACTIVE,
+    });
+    const campaignId = String(campaign._id);
+    const DonationModel = app.service('donations').Model;
+    const firstDonationUsdValue = 150;
+    const secondDonationUsdValue = 200;
+    await new DonationModel({
+      ...SAMPLE_DATA.DONATION_DATA,
+      ownerTypeId: SAMPLE_DATA.TRACE_ID,
+      campaignId,
+      status: 'Waiting',
+      usdValue: firstDonationUsdValue,
+      txHash: generateRandomTxHash(),
+      homeTxHash: generateRandomTxHash(),
+    }).save();
+    await new DonationModel({
+      ...SAMPLE_DATA.DONATION_DATA,
+      ownerTypeId: SAMPLE_DATA.TRACE_ID,
+      campaignId,
+      status: 'Waiting',
+      usdValue: secondDonationUsdValue,
+      txHash: generateRandomTxHash(),
+      homeTxHash: generateRandomTxHash(),
+    }).save();
+    const totalAmount = await getTotalUsdValueDonatedToCampaign(app, { campaignId });
+    assert.equal(totalAmount, firstDonationUsdValue + secondDonationUsdValue);
+  });
+  it('Should return zero value for campaign without any donation', async () => {
+    const campaign = await app.service('campaigns').create({
+      ...SAMPLE_DATA.CREATE_CAMPAIGN_DATA,
+      status: SAMPLE_DATA.CAMPAIGN_STATUSES.ACTIVE,
+    });
+    const campaignId = campaign._id;
+    const totalAmount = await getTotalUsdValueDonatedToCampaign(app, { campaignId });
+    assert.equal(totalAmount, 0);
+  });
+}
+
 describe(`updateBridgePaymentExecutedTxHash test cases`, updateBridgePaymentExecutedTxHashTests);
 describe(
   `updateBridgePaymentAuthorizedTxHash test cases`,
@@ -157,3 +200,4 @@ describe(
 
 describe(`isAllDonationsPaidOut test cases`, isAllDonationsPaidOutForTraceAndTxHashTests);
 describe(`findDonationById test cases`, findDonationByIdTests);
+describe(`getTotalUsdValueDonatedToCampaign test cases`, getTotalUsdValueDonatedToCampaignTests);

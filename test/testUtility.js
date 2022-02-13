@@ -251,7 +251,7 @@ const SAMPLE_DATA = {
     };
   },
   CREATE_CAMPAIGN_DATA: {
-    title: 'Hello I;m new Campaign',
+    title: 'Hello Im new Campaign',
     projectId: 10,
     image: 'This should be image :))',
     mined: false,
