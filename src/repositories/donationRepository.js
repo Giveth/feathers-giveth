@@ -4,17 +4,30 @@ const { DonationBridgeStatus, DonationStatus } = require('../models/donations.mo
 const getTotalUsdValueDonatedToCampaign = async (app, { campaignId }) => {
   const donationModel = app.service('donations').Model;
   const result = await donationModel.aggregate([
-    {
-      $match: {
-        campaignId,
+    [
+      {
+        $match: {
+          $or: [
+            {
+              ownerTypeId: campaignId,
+            },
+            {
+              campaignId,
+            },
+          ],
+        },
       },
-    },
-    {
-      $group: {
-        _id: 'donations',
-        totalUsdValue: { $sum: { $toDouble: '$usdValue' } },
+      {
+        $group: {
+          _id: 'donations',
+          totalUsdValue: {
+            $sum: {
+              $toDouble: '$usdValue',
+            },
+          },
+        },
       },
-    },
+    ],
   ]);
   return result.length !== 0 ? result[0].totalUsdValue : 0;
 };
