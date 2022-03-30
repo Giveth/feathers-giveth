@@ -1,6 +1,18 @@
 const dauria = require('dauria');
 const errors = require('@feathersjs/errors');
 const { disallow } = require('feathers-hooks-common');
+const { gql, GraphQLClient } = require('graphql-request');
+const config = require('config');
+const logger = require('winston');
+
+const client = new GraphQLClient(config.givethIoUrl);
+
+const TraceImageOwnerType = {
+  USER: 'USER',
+  TRACE: 'TRACE',
+  CAMPAIGN: 'CAMPAIGN',
+  DAC: 'DAC',
+};
 
 const transformFile = () => context => {
   // delete id to prevent users specifying the file path to upload the file to
@@ -25,6 +37,34 @@ const restrictFileType = () => context => {
   }
 };
 
+const uploadToImpactGraph = () => async context => {
+  const fileData = context.data.uri;
+  const TRACE_IMAGE_UPLOAD = gql`
+      mutation traceImageUpload($fileData:String!, $user:String!, $entityId:String!, $password: String!) {
+        traceImageUpload(
+          traceFileUpload: {
+            fileDataBase64: $fileData
+            user: $user
+            entityId: $entityId
+            password: $password
+            imageOwnerType: ${TraceImageOwnerType.USER}
+          }
+        )
+      }
+  `;
+  try {
+    const result = await client.request(TRACE_IMAGE_UPLOAD, {
+      fileData,
+      user: context.params.user.address,
+      entityId: '1',
+      password: 'hello_trace',
+    });
+    context.result = result.traceImageUpload;
+  } catch (e) {
+    logger.error(e);
+  }
+};
+
 const transformCreateResponse = () => context => {
   let { uploadsBaseUrl } = context.app.settings;
 
@@ -46,7 +86,7 @@ module.exports = {
   before: {
     all: [],
     get: [disallow()],
-    create: [transformFile(), restrictFileType()],
+    create: [transformFile(), restrictFileType(), uploadToImpactGraph()],
     remove: [disallow()],
   },
 
