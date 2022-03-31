@@ -86,6 +86,8 @@ module.exports = {
   before: {
     all: [],
     get: [disallow()],
+    patch: [disallow()],
+    update: [disallow()],
     create: [transformFile(), restrictFileType(), uploadToImpactGraph()],
     remove: [disallow()],
   },
