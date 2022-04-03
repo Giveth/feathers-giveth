@@ -57,7 +57,7 @@ const uploadToImpactGraph = () => async context => {
       fileData,
       user: context.params.user.address,
       entityId: '1',
-      password: 'hello_trace',
+      password: config.givethIoFileUploaderPassword,
     });
     context.result = result.traceImageUpload;
   } catch (e) {
