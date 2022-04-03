@@ -1,7 +1,6 @@
 const request = require('supertest');
 const config = require('config');
 const { assert } = require('chai');
-const path = require('path');
 const { getJwt } = require('../../../test/testUtility');
 const { getFeatherAppInstance } = require('../../app');
 
