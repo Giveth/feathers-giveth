@@ -1,7 +1,6 @@
 const request = require('supertest');
 const config = require('config');
 const { assert } = require('chai');
-const path = require('path');
 const { getJwt } = require('../../../test/testUtility');
 const { getFeatherAppInstance } = require('../../app');
 
@@ -18,17 +17,17 @@ const relativeUrl = '/uploads';
 //   });
 // }
 
-function postUploadsTestCases() {
-  it('should be successful, upload an image', async function() {
-    const response = await request(baseUrl)
-      .post(relativeUrl)
-      .attach('uri', path.resolve(__dirname, '../../../test/resources/giveth-landing-page.png'))
-      .set({ Authorization: getJwt() });
-    assert.equal(response.statusCode, 201);
-    assert.exists(response.body.url);
-    assert.exists(response.body.size);
-  });
-}
+// function postUploadsTestCases() {
+//   it('should be successful, upload an image', async function() {
+//     const response = await request(baseUrl)
+//       .post(relativeUrl)
+//       .attach('uri', path.resolve(__dirname, '../../../test/resources/giveth-landing-page.png'))
+//       .set({ Authorization: getJwt() });
+//     assert.equal(response.statusCode, 201);
+//     assert.exists(response.body.url);
+//     assert.exists(response.body.size);
+//   });
+// }
 
 function putUploadsTestCases() {
   it('should return 405, PUT is disallowed', async function() {
@@ -66,7 +65,7 @@ it('should uploads service registration be ok', () => {
 });
 
 // describe(`Test GET ${relativeUrl}`, getUploadsTestCases);
-describe(`Test POST ${relativeUrl}`, postUploadsTestCases);
+// describe(`Test POST ${relativeUrl}`, postUploadsTestCases);
 describe(`Test PUT ${relativeUrl}`, putUploadsTestCases);
 describe(`Test DELETE ${relativeUrl}`, deleteUploadsTestCases);
 describe(`Test PATCH ${relativeUrl}`, patchUploadsTestCases);
