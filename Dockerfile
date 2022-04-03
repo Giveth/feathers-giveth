@@ -10,6 +10,7 @@ COPY migrate-mongo-config.js .
 
 RUN apk add --update alpine-sdk
 RUN apk add git python3
+RUN echo -e '[url "https://github.com/"]\n  insteadOf = "git://github.com/"' >> ~/.gitconfig
 RUN npm ci
 RUN npm i -g pm2
 RUN npm i -g migrate-mongo@8.1.4
