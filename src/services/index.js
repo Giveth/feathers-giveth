@@ -12,6 +12,7 @@ const campaigns = require('./campaigns/campaigns.service.js');
 const campaigncsv = require('./csv/campaigncsv.service.js');
 const users = require('./users/users.service.js');
 const uploads = require('./uploads/uploads.service.js');
+const uploadByImpactGraph = require('./uploadsByImpactGraph/uploadByImpactGraph.service');
 const donations = require('./donations/donations.service.js');
 const aggregateDonations = require('./aggregateDonations/aggregateDonations.service.js');
 const transactions = require('./transactions/transactions.service.js');
@@ -30,6 +31,7 @@ module.exports = function configure() {
   app.configure(campaigns);
   app.configure(users);
   app.configure(uploads);
+  app.configure(uploadByImpactGraph);
   app.configure(donations);
   app.configure(aggregateDonations);
   app.configure(transactions);
