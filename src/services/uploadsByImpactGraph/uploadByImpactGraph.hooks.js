@@ -61,7 +61,8 @@ const uploadToImpactGraph = () => async context => {
     });
     context.result = result.traceImageUpload;
   } catch (e) {
-    logger.error(e);
+    logger.error('uploadToImpactGraph error', e);
+    throw e;
   }
 };
 
