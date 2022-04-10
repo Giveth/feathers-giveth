@@ -6,7 +6,7 @@ const { getFeatherAppInstance } = require('../../app');
 
 const app = getFeatherAppInstance();
 const baseUrl = config.get('givethFathersBaseUrl');
-const relativeUrl = '/uploads';
+const relativeUrl = '/uploadByImpactGraph';
 
 // In postman I get 405 for this endpoint, but in test we got 301 so this test fails
 // function getUploadsTestCases() {
@@ -17,15 +17,17 @@ const relativeUrl = '/uploads';
 //   });
 // }
 
-function postUploadsTestCases() {
-  it('should return 405, POST is disallowed', async function() {
-    const response = await request(baseUrl)
-      .post(relativeUrl)
-      .set({ Authorization: getJwt() });
-    assert.equal(response.statusCode, 405);
-    assert.equal(response.body.code, 405);
-  });
-}
+// function postUploadsTestCases() {
+//   it('should be successful, upload an image', async function() {
+//     const response = await request(baseUrl)
+//       .post(relativeUrl)
+//       .attach('uri', path.resolve(__dirname, '../../../test/resources/giveth-landing-page.png'))
+//       .set({ Authorization: getJwt() });
+//     assert.equal(response.statusCode, 201);
+//     assert.exists(response.body.url);
+//     assert.exists(response.body.size);
+//   });
+// }
 
 function putUploadsTestCases() {
   it('should return 405, PUT is disallowed', async function() {
@@ -63,7 +65,7 @@ it('should uploads service registration be ok', () => {
 });
 
 // describe(`Test GET ${relativeUrl}`, getUploadsTestCases);
-describe(`Test POST ${relativeUrl}`, postUploadsTestCases);
+// describe(`Test POST ${relativeUrl}`, postUploadsTestCases);
 describe(`Test PUT ${relativeUrl}`, putUploadsTestCases);
 describe(`Test DELETE ${relativeUrl}`, deleteUploadsTestCases);
 describe(`Test PATCH ${relativeUrl}`, patchUploadsTestCases);
