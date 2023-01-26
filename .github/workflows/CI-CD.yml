@@ -50,17 +50,17 @@ jobs:
     needs: publish
     runs-on: ubuntu-latest
     steps:
-      - name: develop deploy
-        if: github.ref == 'refs/heads/develop'
-        uses: garygrossgarten/github-action-ssh@v0.6.4
-        with:
-#          command: cd feathers-giveth-develop && git checkout develop && git pull origin develop && [[ -s $HOME/.nvm/nvm.sh ]] && . $HOME/.nvm/nvm.sh && nvm use 10  && npm ci &&  NODE_ENV=develop ./node_modules/.bin/migrate-mongo up && npm run serve
-          #           pull images, restart docker, then remove unused docker images
-          command: cd feathers-giveth-develop && git checkout develop && git pull origin develop && git pull origin develop && docker-compose -f docker-compose-develop.yml pull && docker-compose -f docker-compose-develop.yml down && docker-compose -f docker-compose-develop.yml up -d && docker image prune -a --force
-          host: ${{ secrets.DEVELOP_HOST }}
-          username: ${{ secrets.DEVELOP_USERNAME }}
-          #          passphrase: ${{ secrets.PASSPHRASE }}
-          privateKey: ${{ secrets.DEVELOP_PRIVATE_KEY}}
+#      - name: develop deploy
+#        if: github.ref == 'refs/heads/develop'
+#        uses: garygrossgarten/github-action-ssh@v0.6.4
+#        with:
+##          command: cd feathers-giveth-develop && git checkout develop && git pull origin develop && [[ -s $HOME/.nvm/nvm.sh ]] && . $HOME/.nvm/nvm.sh && nvm use 10  && npm ci &&  NODE_ENV=develop ./node_modules/.bin/migrate-mongo up && npm run serve
+#          #           pull images, restart docker, then remove unused docker images
+#          command: cd feathers-giveth-develop && git checkout develop && git pull origin develop && git pull origin develop && docker-compose -f docker-compose-develop.yml pull && docker-compose -f docker-compose-develop.yml down && docker-compose -f docker-compose-develop.yml up -d && docker image prune -a --force
+#          host: ${{ secrets.DEVELOP_HOST }}
+#          username: ${{ secrets.DEVELOP_USERNAME }}
+#          #          passphrase: ${{ secrets.PASSPHRASE }}
+#          privateKey: ${{ secrets.DEVELOP_PRIVATE_KEY}}
 
       - name: production deploy
         if: github.ref == 'refs/heads/master'
