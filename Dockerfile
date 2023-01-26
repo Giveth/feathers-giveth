@@ -5,7 +5,7 @@ WORKDIR /usr/src/app
 COPY package*.json ./
 COPY src ./src
 COPY public ./public
-COPY migrations_old ./migrations
+COPY migrations_old ./migrations_old
 COPY migrate-mongo-config.js .
 
 RUN apk add --update alpine-sdk
